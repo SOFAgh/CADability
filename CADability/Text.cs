@@ -1021,7 +1021,7 @@ namespace CADability.GeoObject
         }
         public IPaintTo3DList Get(string font, int fontStyle, char c, out double width, IPaintTo3D paintTo3D)
         {   // wie sicherstellen, dass nicht gerade eine Liste offen ist???
-            bool useLists = !paintTo3D.IsBitmap;
+            bool useLists = paintTo3D != null && !paintTo3D.IsBitmap;
             DictVal found;
             lock (this)
             {
