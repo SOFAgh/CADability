@@ -1021,7 +1021,8 @@ namespace CADability.GeoObject
         }
         public IPaintTo3DList Get(string font, int fontStyle, char c, out double width, IPaintTo3D paintTo3D)
         {   // wie sicherstellen, dass nicht gerade eine Liste offen ist???
-            bool useLists = paintTo3D != null && !paintTo3D.IsBitmap;
+            bool useLists = true;
+            if (paintTo3D != null) useLists = !paintTo3D.IsBitmap;
             DictVal found;
             lock (this)
             {
@@ -2978,7 +2979,8 @@ namespace CADability.GeoObject
                 // Der Text wird mit Größe 1 zusammengesetzt und an (0,0) platziert, jedoch unter Berücksichtigung
                 // der Alignments
                 ModOp toWorld = ModOp.Translate(location.x, location.y, location.z) * ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis }, new GeoVector[] { lineDirection, glyphDirection, lineDirection ^ glyphDirection });
-                bool useLists = !paintTo3D.IsBitmap;
+                bool useLists = true;
+                if (paintTo3D != null) useLists = !paintTo3D.IsBitmap;
                 int lfcount = 1; // der Zähler für mehrzeiligen Text
                 // den ersten x-Wert setzen:
                 dx = 0.0;
