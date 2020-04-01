@@ -1,0 +1,887 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Menus>
+  <MainMenu Name="SDI Menu">
+    <Popup MenuId="MenuId.File" MergeType="Remove">
+      <MenuItem MenuId="MenuId.File.New" IconNr="0" />
+      <MenuItem MenuId="MenuId.File.Open" IconNr="1" Shortcut="CtrlO"/>
+      <MenuItem MenuId="MenuId.File.Save" IconNr="2" Shortcut="CtrlS" />
+      <MenuItem MenuId="MenuId.File.Save.As" Shortcut="CtrlShiftS" />
+      <MenuItem MenuId="SEPARATOR" />
+      <MenuItem MenuId="MenuId.File.Print" IconNr="8" Shortcut="CtrlP" />/>
+      <MenuItem MenuId="MenuId.File.Print.Setup" />
+      <MenuItem MenuId="MenuId.File.Print.SelectPrinter" />
+      <MenuItem MenuId="SEPARATOR" />
+      <MenuItem MenuId="MenuId.File.Mru.File1" />
+      <MenuItem MenuId="MenuId.File.Mru.File2" />
+      <MenuItem MenuId="MenuId.File.Mru.File3" />
+      <MenuItem MenuId="MenuId.File.Mru.File4" />
+      <MenuItem MenuId="SEPARATOR" />
+      <MenuItem MenuId="MenuId.App.Exit" />
+    </Popup>
+    <Popup MenuId="MenuId.Edit" MergeType="Add" MergeOrder="1">
+      <MenuItem MenuId="MenuId.Edit.Undo" IconNr="6" Shortcut="CtrlZ" />
+      <MenuItem MenuId="MenuId.Edit.Redo" IconNr="7" Shortcut="CtrlY" />
+      <MenuItem MenuId="SEPARATOR" />
+      <MenuItem MenuId="MenuId.Edit.Cut" IconNr="3" Shortcut="CtrlX" />
+      <MenuItem MenuId="MenuId.Edit.Copy" IconNr="4" Shortcut="CtrlC" />
+      <MenuItem MenuId="MenuId.Edit.Paste" IconNr="5" Shortcut="CtrlV" />
+      <MenuItem MenuId="MenuId.Edit.SelectAll" Shortcut="CtrlA" />
+      <MenuItem MenuId="MenuId.Object.Delete" IconNr="149" />
+      <MenuItem MenuId="SEPARATOR" />
+      <Popup MenuId="MenuId.Object.Modify">
+        <MenuItem MenuId="MenuId.Object.Move" IconNr="85" Shortcut="F2"/>
+        <MenuItem MenuId="MenuId.Object.Rotate" IconNr="86" />
+        <MenuItem MenuId="MenuId.Object.Scale" IconNr="87" />
+        <MenuItem MenuId="MenuId.Object.Reflect" IconNr="88" />
+        <MenuItem MenuId="MenuId.Object.Snap" IconNr="89" />
+        <MenuItem MenuId="MenuId.Object.Hatch" IconNr="25" />
+        <MenuItem MenuId="SEPARATOR" />
+        <MenuItem MenuId="MenuId.Save.Symbol" IconNr="165" />
+      </Popup>
+      <Popup MenuId="MenuId.Object.Arrange">
+        <MenuItem MenuId="MenuId.Copy.Matrix" IconNr="106" />
+        <MenuItem MenuId="MenuId.Copy.Circular" IconNr="107" />
+        <MenuItem MenuId="MenuId.Align.Left"  IconNr="135" />
+        <MenuItem MenuId="MenuId.Align.Hcenter" IconNr="136"/>
+        <MenuItem MenuId="MenuId.Align.Right" IconNr="137"/>
+        <MenuItem MenuId="MenuId.Align.Top" IconNr="138"/>
+        <MenuItem MenuId="MenuId.Align.Vcenter" IconNr="139"/>
+        <MenuItem MenuId="MenuId.Align.Bottom" IconNr="140"/>
+        <MenuItem MenuId="MenuId.Align.Center" IconNr="206"/>
+        <MenuItem MenuId="MenuId.Space.Down" IconNr="144"/>
+        <MenuItem MenuId="MenuId.Space.Across" IconNr="143"/>
+        <MenuItem MenuId="MenuId.Same.Width" IconNr="145"/>
+        <MenuItem MenuId="MenuId.Same.Height" IconNr="146"/>
+      </Popup>
+      <Popup MenuId="MenuId.ConstrSelected.Face" IconNr="142" Usage="3D">
+        <MenuItem MenuId="MenuId.Constr.Face.FromSelectedObject"  IconNr="167"/>
+        <MenuItem MenuId="MenuId.Constr.Face.SelectedObjectExtrude"  IconNr="22"/>
+        <MenuItem MenuId="MenuId.Constr.Face.SelectedObjectRotate"  IconNr="162"/>
+        <MenuItem MenuId="MenuId.Constr.Face.SelectedRuledFace"  IconNr="163"/>
+        <MenuItem MenuId="MenuId.SelectedObjects.SewFaces"  IconNr="168"/>
+        <!-- <MenuItem MenuId="MenuId.SelectedEdges.Round" /> z.Z. nur testweise implementiert -->
+      </Popup>
+      <Popup MenuId="MenuId.ConstrSelected.Solid" IconNr="141" Usage="3D">
+        <Popup MenuId="MenuId.Constr.Solid.ModifyMode" IconNr="166"  >
+          <MenuItem MenuId="MenuId.Constr.Solid.ModifyMode.Unite" Flag="NotSticky"/>
+          <MenuItem MenuId="MenuId.Constr.Solid.ModifyMode.Subtract"  Flag="NotSticky"/>
+        </Popup>
+        <MenuItem MenuId="MenuId.Constr.Solid.SelectedFaceExtrude"  IconNr="159"/>
+        <MenuItem MenuId="MenuId.Constr.Solid.SelectedFaceRotate"  IconNr="160"/>
+        <MenuItem MenuId="MenuId.Constr.Solid.SelectedRuledSolid"  IconNr="161"/>
+        <MenuItem MenuId="MenuId.Constr.Solid.Fuse"/>
+      </Popup>
+      <MenuItem MenuId="MenuId.Import" IconNr="194"/>
+      <MenuItem MenuId="MenuId.Import.Edges" IconNr="194" Usage="3D"/>
+      <MenuItem MenuId="MenuId.Export" IconNr="195"/>
+    </Popup>
+    <Popup MenuId="MenuId.View" MergeType="Add" MergeOrder="2">
+      <Popup MenuId="MenuId.View.Model" >
+        <MenuItem MenuId="MenuId.View.Model.NewModelView" />
+        <MenuItem MenuId="SEPARATOR" />
+      </Popup>
+      <Popup MenuId="MenuId.View.Layout" >
+        <MenuItem MenuId="MenuId.View.Layout.NewLayout" />
+        <MenuItem MenuId="SEPARATOR" />
+      </Popup>
+      <Popup MenuId="MenuId.View.Toolbars" >
+        <MenuItem MenuId="MenuId.View.Toolbars.Contexthelp" />
+      </Popup>
+      <!-- <MenuItem MenuId="MenuId.Show.Ruler" /> -->
+      <Popup MenuId="MenuId.View.Split" IconNr="193" >
+        <MenuItem MenuId="MenuId.Split.Single" IconNr="187" />
+        <MenuItem MenuId="MenuId.Split.DoubleHor" IconNr="188" />
+        <MenuItem MenuId="MenuId.Split.DoubleVer" IconNr="189" />
+        <MenuItem MenuId="MenuId.Split.TripleHor" IconNr="191" />
+        <MenuItem MenuId="MenuId.Split.TripleVer" IconNr="190" />
+        <MenuItem MenuId="MenuId.Split.Quadruple" IconNr="192" />
+      </Popup>
+      <MenuItem MenuId="MenuId.Zoom.Total" IconNr="31" />
+      <MenuItem MenuId="MenuId.Zoom.Detail" IconNr="29" />
+      <MenuItem MenuId="MenuId.Zoom.DetailPlus" IconNr="151" />
+      <MenuItem MenuId="MenuId.Zoom.DetailMinus" IconNr="152" />
+      <MenuItem MenuId="MenuId.Thinlinesonly" IconNr="35" />
+      <MenuItem MenuId="MenuId.Repaint" IconNr="34" />
+      <MenuItem MenuId="MenuId.ViewPoint" IconNr="172" Usage="3D"/>
+      <MenuItem MenuId="MenuId.ViewFixPoint" IconNr="169" Usage="3D"/>
+      <MenuItem MenuId="MenuId.Scroll" IconNr="173" />
+      <MenuItem MenuId="MenuId.Zoom" IconNr="174" />
+      <MenuItem MenuId="MenuId.ZAxisUp" IconNr="175" Usage="3D"/>
+      <Popup MenuId="MenuId.Projection.Direction" IconNr="184" Usage="3D">
+        <MenuItem MenuId="MenuId.Projection.Direction.FromTop" IconNr="181" />
+        <MenuItem MenuId="MenuId.Projection.Direction.FromFront" IconNr="180" />
+        <MenuItem MenuId="MenuId.Projection.Direction.FromBack" IconNr="179" />
+        <MenuItem MenuId="MenuId.Projection.Direction.FromLeft" IconNr="178" />
+        <MenuItem MenuId="MenuId.Projection.Direction.FromRight" IconNr="182" />
+        <MenuItem MenuId="MenuId.Projection.Direction.FromBottom" IconNr="183" />
+        <MenuItem MenuId="MenuId.Projection.Direction.Isometric" IconNr="153" />
+        <MenuItem MenuId="MenuId.Projection.Direction.Orthogonal" />
+        <MenuItem MenuId="MenuId.Projection.Direction.Perspective" />
+      </Popup>
+    </Popup>
+    <Popup MenuId="MenuId.Construct" MergeType="Add" MergeOrder="3">
+      <MenuItem MenuId="MenuId.Select" IconNr="11" />
+      <MenuItem MenuId="MenuId.Constr.Point" IconNr="27" />
+      <Popup MenuId="MenuId.Constr.Line" IconNr="12" >
+        <MenuItem MenuId="MenuId.Constr.Line.TwoPoints" IconNr="40" />
+        <MenuItem MenuId="MenuId.Constr.Line.PointLengthAngle" IconNr="41" />
+        <MenuItem MenuId="MenuId.Constr.Line.PointTangent" IconNr="42" />
+        <MenuItem MenuId="MenuId.Constr.Line.TwoTangents" IconNr="43" />
+        <MenuItem MenuId="MenuId.Constr.Line.TangentAngle" IconNr="44" />
+        <MenuItem MenuId="MenuId.Constr.Line.MiddlePerp" IconNr="45" />
+        <MenuItem MenuId="MenuId.Constr.Line.BisectAngle" IconNr="46" />
+        <MenuItem MenuId="MenuId.Constr.Line.ParallelDist" IconNr="47" />
+        <MenuItem MenuId="MenuId.Constr.Line.ParallelPoint" IconNr="48" />
+        <MenuItem MenuId="MenuId.Constr.Line.PointPerp" IconNr="49" />
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Rect" IconNr="13">
+        <MenuItem MenuId="MenuId.Constr.Rect.PointWidthHeightAngle" IconNr="50" />
+        <MenuItem MenuId="MenuId.Constr.Rect.2PointsHeight" IconNr="51" />
+        <MenuItem MenuId="MenuId.Constr.Rect.2DiagonalPoints" IconNr="52" />
+        <MenuItem MenuId="MenuId.Constr.Rect.Parallelogram" IconNr="108" />
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Circle" IconNr="14">
+        <MenuItem MenuId="MenuId.Constr.Circle.CenterRadius" IconNr="53" />
+        <MenuItem MenuId="MenuId.Constr.Circle.2Points" IconNr="54" />
+        <MenuItem MenuId="MenuId.Constr.Circle.TwoPointsRadius" IconNr="131" />
+        <MenuItem MenuId="MenuId.Constr.Circle.CenterPoint" IconNr="55" />
+        <MenuItem MenuId="MenuId.Constr.Circle.3Points" IconNr="56" />
+        <MenuItem MenuId="MenuId.Constr.Circle.ThreeTangents" IconNr="57" />
+        <MenuItem MenuId="MenuId.Constr.Circle.TwoTangentsPoint" IconNr="117" />
+        <MenuItem MenuId="MenuId.Constr.Circle.TwoTangentsRadius" IconNr="58" />
+        <MenuItem MenuId="MenuId.Constr.Circle.TangentPointRadius" IconNr="59" />
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Arc" IconNr="15" >
+        <MenuItem MenuId="MenuId.Constr.Arc.CenterRadius" IconNr="60"/>
+        <MenuItem MenuId="MenuId.Constr.Arc.2PointsRadius" IconNr="61" />
+        <MenuItem MenuId="MenuId.Constr.Arc.CenterStartEnd" IconNr="62" />
+        <MenuItem MenuId="MenuId.Constr.Arc.3Points"  IconNr="63"/>
+        <MenuItem MenuId="MenuId.Constr.Arc.ThreeTangents" IconNr="64" />
+        <MenuItem MenuId="MenuId.Constr.Arc.TwoTangentsPoint" IconNr="119" />
+        <MenuItem MenuId="MenuId.Constr.Arc.TwoTangentsRadius" IconNr="65" />
+        <MenuItem MenuId="MenuId.Constr.Arc.TangentPointRadius" IconNr="127" />
+      </Popup>
+      <MenuItem MenuId="MenuId.Constr.Polyline" IconNr="16" />
+      <MenuItem MenuId="MenuID.Constr.BSpline.Points" IconNr="148" />
+      <Popup MenuId="MenuId.Constr.Ellipse" IconNr="17" >
+        <MenuItem MenuId="MenuId.Constr.Ellipse.CenterRadius" IconNr="81" />
+        <MenuItem MenuId="MenuId.Constr.Ellipse.2PointsDirections" IconNr="20"/>
+        <!--				<MenuItem MenuId="MenuId.Constr.Ellipse.CenterTwoTangents" IconNr="82"/>
+				<MenuItem MenuId="MenuId.Constr.Ellipse.FivePoints" IconNr="83" />
+-->
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Ellipsearc" IconNr="18" >
+        <MenuItem MenuId="MenuId.Constr.Ellipsearc.CenterRadius"  IconNr="109"/>
+        <MenuItem MenuId="MenuId.Constr.Ellipsearc.2PointsDirections" IconNr="21"/>
+        <!--				<MenuItem MenuId="MenuId.Constr.Ellipsearc.CenterTwoTangents" IconNr="110" />
+				<MenuItem MenuId="MenuId.Constr.Ellipsearc.FivePoints" IconNr="111"/>
+-->
+      </Popup>
+      <Popup MenuId="MenuId.Constr.3DObjects" IconNr="200" Usage="3D">
+        <Popup MenuId="MenuId.Constr.Solid.ModifyMode" IconNr="166">
+          <MenuItem MenuId="MenuId.Constr.Solid.ModifyMode.Unite"  Flag="NotSticky"/>
+          <MenuItem MenuId="MenuId.Constr.Solid.ModifyMode.Subtract"  Flag="NotSticky"/>
+        </Popup>
+        <MenuItem MenuId="MenuId.Constr.Sphere" IconNr="204"/>
+        <MenuItem MenuId="MenuId.Constr.Box" IconNr="201"/>
+        <MenuItem MenuId="MenuId.Constr.Cylinder" IconNr="202"/>
+        <MenuItem MenuId="MenuId.Constr.Cone" IconNr="203"/>
+        <MenuItem MenuId="MenuId.Constr.Torus" IconNr="205"/>
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Text" IconNr="19" >
+        <MenuItem MenuId="MenuId.Constr.Text.1Point" IconNr="104"/>
+        <MenuItem MenuId="MenuId.Constr.Text.2Points" IconNr="105"/>
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Hatch" IconNr="25" >
+        <MenuItem MenuId="MenuId.Constr.Hatch.Inside" IconNr="25" />
+        <MenuItem MenuId="MenuId.Constr.Hatch.WithHoles" IconNr="147" />
+        <MenuItem MenuId="MenuId.Constr.Hatch.Hull" IconNr="157" />
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Picture" IconNr="23" >
+        <MenuItem MenuId="MenuId.Constr.Picture.RefPoint2Directions" IconNr="210" />
+        <MenuItem MenuId="MenuId.Constr.Picture.RefPointWidthHeight" IconNr="211" />
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Dimension" IconNr="24" >
+        <MenuItem MenuId="MenuId.Constr.Horizontal.Dimension" IconNr="66" />
+        <MenuItem MenuId="MenuId.Constr.Vertical.Dimension" IconNr="67" />
+        <MenuItem MenuId="MenuId.Constr.Sloping.Dimension" IconNr="68" />
+        <MenuItem MenuId="MenuId.Constr.Distance.Dimension"  IconNr="112" />
+        <MenuItem MenuId="MenuId.Constr.Radius.Dimension" IconNr="69" />
+        <MenuItem MenuId="MenuId.Constr.Diameter.Dimension" IconNr="70" />
+        <MenuItem MenuId="MenuId.Constr.Angle.Dimension.Objects" IconNr="113" />
+        <MenuItem MenuId="MenuId.Constr.Angle.Dimension.3p" IconNr="71" />
+        <MenuItem MenuId="MenuId.Constr.Angle.Dimension.4p" IconNr="72" />
+        <MenuItem MenuId="MenuId.Constr.Point.Dimension" IconNr="114"/>
+        <MenuItem MenuId="MenuId.Constr.Labeling.Dimension" IconNr="115"/>
+      </Popup>
+      <MenuItem MenuId="MenuId.Constr.Symbol" IconNr="165" />
+      <Popup MenuId="MenuId.Constr.Face" IconNr="142">
+        <MenuItem MenuId="MenuId.Constr.Face.FromObject"  IconNr="167"/>
+        <MenuItem MenuId="MenuId.Constr.Face.ObjectExtrude"  IconNr="22"/>
+        <MenuItem MenuId="MenuId.Constr.Face.ObjectRotate"  IconNr="162"/>
+        <MenuItem MenuId="MenuId.Constr.Face.RuledFace"  IconNr="163"/>
+        <MenuItem MenuId="MenuId.SelectedObjects.SewFaces"  IconNr="168"/>
+        <!-- <MenuItem MenuId="MenuId.SelectedEdges.Round" /> z.Z. nur testweise implementiert -->
+      </Popup>
+      <Popup MenuId="MenuId.Constr.Solid" IconNr="141" Usage="3D">
+        <Popup MenuId="MenuId.Constr.Solid.ModifyMode" IconNr="166">
+          <MenuItem MenuId="MenuId.Constr.Solid.ModifyMode.Unite"  Flag="NotSticky"/>
+          <MenuItem MenuId="MenuId.Constr.Solid.ModifyMode.Subtract"  Flag="NotSticky"/>
+        </Popup>
+        <MenuItem MenuId="MenuId.Constr.Solid.FaceExtrude"  IconNr="159"/>
+        <MenuItem MenuId="MenuId.Constr.Solid.FaceRotate"  IconNr="160"/>
+        <MenuItem MenuId="MenuId.Constr.Solid.RuledSolid"  IconNr="161"/>
+        <!--<MenuItem MenuId="MenuId.Constr.Solid.ScrewPath" /> -->
+        <MenuItem MenuId="MenuId.Constr.Solid.Fuse"/>
+        <MenuItem MenuId="MenuId.Constr.Solid.ShellToSolid"/>
+      </Popup>
+      <Popup MenuId="MenuId.Tools" IconNr="28" >
+        <MenuItem MenuId="MenuId.Trim" IconNr="73" />
+        <MenuItem MenuId="MenuId.Trim.Split" IconNr="74"  />
+        <MenuItem MenuId="MenuId.Expand"  IconNr="75" />
+        <MenuItem MenuId="MenuId.Connect"  IconNr="186" />
+        <MenuItem MenuId="MenuId.Cut.Off"  IconNr="76" />
+        <MenuItem MenuId="MenuId.CutOffMultiple" IconNr="116"   />
+        <MenuItem MenuId="MenuId.Round.Off"  IconNr="77" />
+        <MenuItem MenuId="MenuId.RoundMultiple"  IconNr="78" />
+        <MenuItem MenuId="MenuId.Round.In"  IconNr="79" />
+        <MenuItem MenuId="MenuId.Aequidist" IconNr="80" />
+        <MenuItem MenuId="MenuId.PlaneIntersection" IconNr="164" Usage="3D"/>
+        <MenuItem MenuId="MenuId.Fillet" IconNr="170" Usage="3D"/>
+        <MenuItem MenuId="MenuId.Chamfer" IconNr="171" Usage="3D"/>
+        <!--				<MenuItem MenuId="MenuId.Change.Dim"  /> -->
+      </Popup>
+      <Popup MenuId="MenuId.Measure" IconNr="156" >
+        <MenuItem MenuId="MenuId.Measure.Point.IntersectionTwoCurves" IconNr="101"/>
+        <MenuItem MenuId="MenuId.Measure.Point.ObjectPoint" IconNr="150"/>
+        <MenuItem MenuId="MenuId.Measure.Point.IntermediatePoint" IconNr="102"/>
+        <MenuItem MenuId="MenuId.Measure.Point.OffsetByVector" IconNr="103"/>
+        <MenuItem MenuId="MenuId.Measure.Point.Polar" IconNr="26"/>
+        <MenuItem MenuId="SEPARATOR" />
+        <MenuItem MenuId="MenuId.Measure.Length.DistanceOfCurve" IconNr="120" />
+        <MenuItem MenuId="MenuId.Measure.Length.DistanceTwoPoints" IconNr="121" />
+        <MenuItem MenuId="MenuId.Measure.Length.DistancePointCurve" IconNr="122" />
+        <MenuItem MenuId="MenuId.Measure.Length.DistanceTwoCurves" IconNr="123" />
+        <MenuItem MenuId="SEPARATOR" />
+        <MenuItem MenuId="MenuId.Measure.Vector.DirectionOfCurve" IconNr="128"/>
+        <MenuItem MenuId="MenuId.Measure.Vector.DirectionTwoPoints" IconNr="129"/>
+        <MenuItem MenuId="MenuId.Measure.Vector.DirectionOfSurface" IconNr="207" Usage="3D"/>
+        <MenuItem MenuId="SEPARATOR" />
+      </Popup>
+    </Popup>
+    <Popup MenuId="MenuId.Extras" MergeType="Add" MergeOrder="4">
+      <MenuItem MenuId="MenuId.Colors"  IconNr="196" />
+      <MenuItem MenuId="MenuId.Layer"  IconNr="197" />
+      <MenuItem MenuId="MenuId.LineWidth"  IconNr="198" />
+      <MenuItem MenuId="MenuId.LinePattern"  IconNr="199" />
+      <MenuItem MenuId="MenuId.Hatchstyle"  IconNr="25" />
+      <MenuItem MenuId="MenuId.Dimstyle"  IconNr="24" />
+      <MenuItem MenuId="MenuId.Style"   IconNr="217"/>
+      <MenuItem MenuId="MenuId.SetGrid" IconNr="36" />
+
+      <Popup MenuId="MenuId.Snap" IconNr="38">
+        <MenuItem MenuId="MenuId.Activate.Grid" IconNr="36" />
+        <MenuItem MenuId="MenuId.Activate.Ortho" IconNr="37" />
+        <MenuItem MenuId="MenuId.Snap.ObjectSnapPoint" IconNr="38" />
+        <MenuItem MenuId="MenuId.Snap.ObjectPoint" IconNr="92" />
+        <MenuItem MenuId="MenuId.Snap.DropPoint" IconNr="90" />
+        <MenuItem MenuId="MenuId.Snap.ObjectCenter" IconNr="93" />
+        <MenuItem MenuId="MenuId.Snap.TangentPoint" IconNr="91" />
+        <MenuItem MenuId="MenuId.Snap.Intersections" IconNr="39" />
+        <MenuItem MenuId="MenuId.Snap.Surface" IconNr="208" Usage="3D"/>
+      </Popup>
+    </Popup>
+    <Popup MenuId="MenuId.Help" MergeType="Add" MergeOrder="51">
+      <MenuItem MenuId="MenuId.Help.Index" IconNr="97" Shortcut="F1" />"
+      <MenuItem MenuId="SEPARATOR" />
+      <MenuItem MenuId="MenuId.App.About" IconNr="99" />
+      <MenuItem MenuId="MenuId.DebugTest" />
+    </Popup>
+  </MainMenu>
+
+  <Popup MenuId="MenuId.SelectedObjects" Shortcuts="true">
+    <Popup MenuId="MenuId.SelectedObjects.Mode" Usage="3D">
+      <MenuItem MenuId="MenuId.SelectedObjects.Mode.All" />
+      <MenuItem MenuId="MenuId.SelectedObjects.Mode.FacesOnly" />
+      <MenuItem MenuId="MenuId.SelectedObjects.Mode.EdgesOnly" />
+    </Popup>
+    <MenuItem MenuId="MenuId.Edit.Cut" IconNr="3" />
+    <MenuItem MenuId="MenuId.Edit.Copy" IconNr="4" />
+    <MenuItem MenuId="MenuId.Edit.Paste" IconNr="5" />
+    <MenuItem MenuId="MenuId.Object.Delete" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Object.MakePath" />
+    <MenuItem MenuId="MenuId.SelectedObjects.ComposeAll" />
+    <MenuItem MenuId="MenuId.SelectedObjects.Decompose" />
+    <MenuItem MenuId="MenuId.SelectedObjects.Approximate" />
+    <MenuItem MenuId="MenuId.SelectedObjects.MakeFilter" />
+    <MenuItem MenuId="SEPARATOR" />
+    <Popup MenuId="MenuId.Object.Modify">
+      <MenuItem MenuId="MenuId.Object.Move" IconNr="85" />
+      <MenuItem MenuId="MenuId.Object.Rotate" IconNr="86" />
+      <MenuItem MenuId="MenuId.Object.Scale" IconNr="87" />
+      <MenuItem MenuId="MenuId.Object.Reflect" IconNr="88" />
+      <MenuItem MenuId="MenuId.Object.Snap" IconNr="89" />
+      <MenuItem MenuId="MenuId.Object.Hatch" IconNr="25" />
+      <MenuItem MenuId="SEPARATOR" />
+      <MenuItem MenuId="MenuId.Save.Symbol" IconNr="165" />
+    </Popup>
+    <Popup MenuId="MenuId.Object.Arrange">
+      <MenuItem MenuId="MenuId.Copy.Matrix" IconNr="106" />
+      <MenuItem MenuId="MenuId.Copy.Circular" IconNr="107" />
+      <MenuItem MenuId="MenuId.Align.Left"  IconNr="135" />
+      <MenuItem MenuId="MenuId.Align.Hcenter" IconNr="136"/>
+      <MenuItem MenuId="MenuId.Align.Right" IconNr="137"/>
+      <MenuItem MenuId="MenuId.Align.Top" IconNr="138"/>
+      <MenuItem MenuId="MenuId.Align.Vcenter" IconNr="139"/>
+      <MenuItem MenuId="MenuId.Align.Bottom" IconNr="140"/>
+      <MenuItem MenuId="MenuId.Align.Center" IconNr="206"/>
+      <MenuItem MenuId="MenuId.Space.Down" IconNr="144"/>
+      <MenuItem MenuId="MenuId.Space.Across" IconNr="143"/>
+      <MenuItem MenuId="MenuId.Same.Width" IconNr="145"/>
+      <MenuItem MenuId="MenuId.Same.Height" IconNr="146"/>
+    </Popup>
+    <Popup MenuId="MenuId.ConstrSelected.Face" IconNr="142" Usage="3D">
+      <MenuItem MenuId="MenuId.Constr.Face.FromSelectedObject"  IconNr="167"/>
+      <MenuItem MenuId="MenuId.Constr.Face.SelectedObjectExtrude"  IconNr="22"/>
+      <MenuItem MenuId="MenuId.Constr.Face.SelectedObjectRotate"  IconNr="162"/>
+      <MenuItem MenuId="MenuId.Constr.Face.SelectedRuledFace"  IconNr="163"/>
+      <MenuItem MenuId="MenuId.SelectedObjects.SewFaces" IconNr="168"/>
+    </Popup>
+    <Popup MenuId="MenuId.ConstrSelected.Solid" IconNr="141" Usage="3D">
+      <Popup MenuId="MenuId.Constr.Solid.ModifyMode"  IconNr="166">
+        <MenuItem MenuId="MenuId.Constr.Solid.ModifyMode.Unite" Flag="NotSticky"/>
+        <MenuItem MenuId="MenuId.Constr.Solid.ModifyMode.Subtract" Flag="NotSticky"/>
+      </Popup>
+      <MenuItem MenuId="MenuId.Constr.Solid.SelectedFaceExtrude"  IconNr="159"/>
+      <MenuItem MenuId="MenuId.Constr.Solid.SelectedFaceRotate"  IconNr="160"/>
+      <MenuItem MenuId="MenuId.Constr.Solid.SelectedRuledSolid"  IconNr="161"/>
+      <MenuItem MenuId="MenuId.Constr.Solid.Fuse"/>
+      <MenuItem MenuId="MenuId.Constr.Solid.Intersect"/>
+      <MenuItem MenuId="MenuId.Constr.Solid.Difference"/>
+    </Popup>
+  </Popup>
+  <Popup MenuId="MenuId.DrawingPlane" Shortcuts="true" Usage="3D">
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardXY" />
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardXY.Offset" />
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardXZ" />
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardXZ.Offset" />
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardYZ" />
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardYZ.Offset" />
+    <MenuItem MenuId="MenuId.DrawingPlane.Tangential" />
+    <MenuItem MenuId="MenuId.DrawingPlane.Three.Points" />
+    <MenuItem MenuId="MenuId.DrawingPlane.Show" />
+    <!-- <MenuItem MenuId="MenuId.DrawingPlane.Point.Direction" /> -->
+  </Popup>
+  <Popup MenuId="MenuId.IntersectionPlane" Shortcuts="true" Usage="3D">
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardXY" />
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardXZ" />
+    <MenuItem MenuId="MenuId.DrawingPlane.StandardYZ" />
+    <MenuItem MenuId="MenuId.DrawingPlane.Three.Points" />
+    <MenuItem MenuId="MenuId.Plane.2PointsDrawingPlane" />
+    <MenuItem MenuId="MenuId.Plane.OriginNormalPoint" />
+    <MenuItem MenuId="MenuId.DrawingPlane.Tangential" />
+    <!-- <MenuItem MenuId="MenuId.DrawingPlane.Point.Direction" /> -->
+  </Popup>
+
+  <Popup MenuId="MenuId.Angle" Shortcuts="true">
+    <MenuItem MenuId="MenuId.Angle.ModifyWithMouse" IconNr="100"/>
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Angle.Plus30" />
+    <MenuItem MenuId="MenuId.Angle.Plus45" />
+    <MenuItem MenuId="MenuId.Angle.Plus90" />
+    <MenuItem MenuId="MenuId.Angle.Minus30" />
+    <MenuItem MenuId="MenuId.Angle.Minus45" />
+    <MenuItem MenuId="MenuId.Angle.Minus90" />
+    <MenuItem MenuId="MenuId.Angle.Opposite" />
+    <!--		<MenuItem MenuId="SEPARATOR" /> 
+		<MenuItem MenuId="MenuId.Angle.NameVariable" />
+		<MenuItem MenuId="SEPARATOR" />
+		<MenuItem MenuId="MenuId.Angle.FormatSettings" />
+-->
+  </Popup>
+  <Popup MenuId="MenuId.Point" Shortcuts="true">
+    <MenuItem MenuId="MenuId.Point.ModifyWithMouse" IconNr="100"/>
+    <MenuItem MenuId="MenuId.Point.IntersectionTwoCurves" IconNr="101"/>
+    <MenuItem MenuId="MenuId.Point.ObjectPoint" IconNr="150"/>
+    <MenuItem MenuId="MenuId.Point.IntermediatePoint" IconNr="102"/>
+    <MenuItem MenuId="MenuId.Point.OffsetByVector" IconNr="103"/>
+    <MenuItem MenuId="MenuId.Point.Polar" IconNr="26"/>
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Point.NameVariable" IconNr="118" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Point.FormatSettings"  IconNr="209"/>
+  </Popup>
+  <Popup MenuId="MenuId.IndexedPoint" Shortcuts="true">
+    <MenuItem MenuId="MenuId.IndexedPoint.InsertAfter" IconNr="133" />
+    <MenuItem MenuId="MenuId.IndexedPoint.InsertBefore" IconNr="132" />
+    <MenuItem MenuId="MenuId.IndexedPoint.Delete"  IconNr="134"/>
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Point.ModifyWithMouse" IconNr="100"/>
+    <MenuItem MenuId="MenuId.Point.IntersectionTwoCurves" IconNr="101"/>
+    <MenuItem MenuId="MenuId.Point.ObjectPoint" IconNr="150"/>
+    <MenuItem MenuId="MenuId.Point.IntermediatePoint" IconNr="102"/>
+    <MenuItem MenuId="MenuId.Point.OffsetByVector" IconNr="103"/>
+    <MenuItem MenuId="MenuId.Point.Polar" IconNr="26"/>
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Point.NameVariable"  IconNr="118"/>
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Point.FormatSettings" IconNr="209"/>
+
+  </Popup>
+  <Popup MenuId="MenuId.Vector" Shortcuts="true">
+    <MenuItem MenuId="MenuId.Vector.ModifyWithMouse" IconNr="100"/>
+    <MenuItem MenuId="MenuId.Vector.DirectionOfCurve" IconNr="128"/>
+    <MenuItem MenuId="MenuId.Vector.DirectionTwoPoints" IconNr="129"/>
+    <MenuItem MenuId="MenuId.Vector.DirectionOfSurface" IconNr="207" Usage="3D"/>
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Vector.NameVariable" IconNr="130" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Vector.FormatSettings" IconNr="209"/>
+  </Popup>
+  <Popup MenuId="MenuId.Length" Shortcuts="true">
+    <MenuItem MenuId="MenuId.Length.ModifyWithMouse" IconNr="100" />
+    <MenuItem MenuId="MenuId.Length.DistanceOfCurve" IconNr="120" />
+    <MenuItem MenuId="MenuId.Length.DistanceTwoPoints" IconNr="121" />
+    <MenuItem MenuId="MenuId.Length.DistancePointCurve" IconNr="122" />
+    <MenuItem MenuId="MenuId.Length.DistanceTwoCurves" IconNr="123" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Length.DoubleValue" IconNr="124" />
+    <MenuItem MenuId="MenuId.Length.HalfValue" IconNr="125" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Length.NameVariable" IconNr="126" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.Length.FormatSettings"  IconNr="209"/>
+  </Popup>
+  <Popup MenuId="MenuId.ColorListEntry">
+    <MenuItem MenuId="MenuId.ColorListEntry.Delete" />
+    <MenuItem MenuId="MenuId.ColorListEntry.Edit" />
+    <MenuItem MenuId="MenuId.ColorListEntry.Current" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.ColorListEntry.ChangeColor" />
+  </Popup>
+  <Popup MenuId="MenuId.LayerListEntry">
+    <MenuItem MenuId="MenuId.LayerListEntry.Delete" />
+    <MenuItem MenuId="MenuId.LayerListEntry.Edit" />
+    <MenuItem MenuId="MenuId.LayerListEntry.Current" />
+  </Popup>
+  <Popup MenuId="MenuId.HatchStyleList">
+    <MenuItem MenuId="MenuId.HatchStyleList.NewSolid" />
+    <MenuItem MenuId="MenuId.HatchStyleList.NewLines" />
+    <MenuItem MenuId="MenuId.HatchStyleList.NewContour" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.HatchStyleList.RemoveUnused" />
+    <MenuItem MenuId="MenuId.HatchStyleList.UpdateFromProject" />
+    <MenuItem MenuId="MenuId.HatchStyleList.AddFromGlobal" />
+    <MenuItem MenuId="MenuId.HatchStyleList.MakeGlobal" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.HatchStyleList.UpdateAllHatchs" />
+  </Popup>
+  <Popup MenuId="MenuId.Settings.HatchStyleList">
+    <MenuItem MenuId="MenuId.HatchStyleList.NewSolid" />
+    <MenuItem MenuId="MenuId.HatchStyleList.NewLines" />
+    <MenuItem MenuId="MenuId.HatchStyleList.NewContour" />
+  </Popup>
+  <Popup MenuId="MenuId.HatchStyleEntry">
+    <MenuItem MenuId="MenuId.HatchStyleListEntry.Delete" />
+    <MenuItem MenuId="MenuId.HatchStyleListEntry.Edit" />
+    <MenuItem MenuId="MenuId.HatchStyleListEntry.Current" />
+  </Popup>
+  <Popup MenuId="MenuId.DimStyleList">
+    <MenuItem MenuId="MenuId.DimStyleList.New" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.DimStyleList.RemoveUnused" />
+    <MenuItem MenuId="MenuId.DimStyleList.UpdateFromProject" />
+    <MenuItem MenuId="MenuId.DimStyleList.AddFromGlobal" />
+    <MenuItem MenuId="MenuId.DimStyleList.MakeGlobal" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.DimStyleList.UpdateAllDimensions" />
+  </Popup>
+  <Popup MenuId="MenuId.Settings.DimStyleList">
+    <MenuItem MenuId="MenuId.DimStyleList.New" />
+  </Popup>
+  <Popup MenuId="MenuId.DimStyleEntry">
+    <MenuItem MenuId="MenuId.DimStyleEntry.Delete" />
+    <MenuItem MenuId="MenuId.DimStyleEntry.Edit" />
+    <MenuItem MenuId="MenuId.DimStyleEntry.Current" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.DimStyleEntry.Clone" />
+  </Popup>
+  <Popup MenuId="MenuId.LayerList">
+    <MenuItem MenuId="MenuId.LayerList.New" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.LayerList.RemoveUnused" />
+    <MenuItem MenuId="MenuId.LayerList.UpdateFromProject" />
+    <MenuItem MenuId="MenuId.LayerList.AddFromGlobal" />
+    <MenuItem MenuId="MenuId.LayerList.MakeGlobal" />
+  </Popup>
+  <Popup MenuId="MenuId.Settings.LayerList">
+    <MenuItem MenuId="MenuId.LayerList.New" />
+  </Popup>
+  <Popup MenuId="MenuId.ColorList">
+    <MenuItem MenuId="MenuId.ColorList.New" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.ColorList.RemoveUnused" />
+    <MenuItem MenuId="MenuId.ColorList.UpdateFromProject" />
+    <MenuItem MenuId="MenuId.ColorList.AddFromGlobal" />
+    <MenuItem MenuId="MenuId.ColorList.MakeGlobal" />
+  </Popup>
+  <Popup MenuId="MenuId.Settings.ColorList">
+    <MenuItem MenuId="MenuId.ColorList.New" />
+  </Popup>
+  <Popup MenuId="MenuId.StyleList">
+    <MenuItem MenuId="MenuId.StyleList.New" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.StyleList.RemoveUnused" />
+    <MenuItem MenuId="MenuId.StyleList.UpdateFromProject" />
+    <MenuItem MenuId="MenuId.StyleList.AddFromGlobal" />
+    <MenuItem MenuId="MenuId.StyleList.MakeGlobal" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.StyleList.UpdateAllObjects" />
+  </Popup>
+  <Popup MenuId="MenuId.Settings.StyleList">
+    <MenuItem MenuId="MenuId.StyleList.New" />
+  </Popup>
+  <Popup MenuId="MenuId.LayerEntry">
+    <MenuItem MenuId="MenuId.LayerEntry.Delete" />
+    <MenuItem MenuId="MenuId.LayerEntry.Edit" />
+    <MenuItem MenuId="MenuId.LayerEntry.Current" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.LayerEntry.Clone" />
+  </Popup>
+  <Popup MenuId="MenuId.LineWidthList">
+    <MenuItem MenuId="MenuId.LineWidthList.New" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.LineWidthList.RemoveUnused" />
+    <MenuItem MenuId="MenuId.LineWidthList.UpdateFromProject" />
+    <MenuItem MenuId="MenuId.LineWidthList.AddFromGlobal" />
+    <MenuItem MenuId="MenuId.LineWidthList.MakeGlobal" />
+  </Popup>
+  <Popup MenuId="MenuId.Settings.LineWidthList">
+    <MenuItem MenuId="MenuId.LineWidthList.New" />
+  </Popup>
+  <Popup MenuId="MenuId.LineWidthEntry">
+    <MenuItem MenuId="MenuId.LineWidthEntry.Delete" />
+    <MenuItem MenuId="MenuId.LineWidthEntry.Edit" />
+    <MenuItem MenuId="MenuId.LineWidthEntry.Current" />
+  </Popup>
+  <Popup MenuId="MenuId.LinePatternList">
+    <MenuItem MenuId="MenuId.LinePatternList.New" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.LinePatternList.RemoveUnused" />
+    <MenuItem MenuId="MenuId.LinePatternList.UpdateFromProject" />
+    <MenuItem MenuId="MenuId.LinePatternList.AddFromGlobal" />
+    <MenuItem MenuId="MenuId.LinePatternList.MakeGlobal" />
+  </Popup>
+  <Popup MenuId="MenuId.Settings.LinePatternList">
+    <MenuItem MenuId="MenuId.LinePatternList.New" />
+  </Popup>
+  <Popup MenuId="MenuId.LinePatternEntry">
+    <MenuItem MenuId="MenuId.LinePatternEntry.Delete" />
+    <MenuItem MenuId="MenuId.LinePatternEntry.Edit" />
+    <MenuItem MenuId="MenuId.LinePatternEntry.Current" />
+  </Popup>
+  <Popup MenuId="MenuId.StyleEntry">
+    <MenuItem MenuId="MenuId.StyleEntry.Delete" />
+    <MenuItem MenuId="MenuId.StyleEntry.Edit" />
+    <MenuItem MenuId="MenuId.StyleEntry.DefaultForCurves" />
+    <MenuItem MenuId="MenuId.StyleEntry.DefaultForSolids" />
+    <MenuItem MenuId="MenuId.StyleEntry.DefaultForText" />
+    <MenuItem MenuId="MenuId.StyleEntry.DefaultForDimension" />
+  </Popup>
+
+  <Popup MenuId="MenuId.Navigate">
+    <MenuItem MenuId="MenuId.Navigate.Back" IconNr="94"/>
+    <MenuItem MenuId="MenuId.Navigate.Forward" IconNr="95"/>
+    <MenuItem MenuId="MenuId.Contexthelp.Hide" IconNr="158"/>
+    <MenuItem MenuId="MenuId.Navigate.Index" IconNr="99"/>
+    <!--		
+		<Popup MenuId="MenuId.Navigate.Help" IconNr="9">
+			<MenuItem MenuId="MenuId.Navigate.Overview" IconNr="96"/>
+			<MenuItem MenuId="MenuId.Navigate.Contents" IconNr="97"/>
+			<MenuItem MenuId="MenuId.Navigate.Search" IconNr="98"/>
+			<MenuItem MenuId="MenuId.Navigate.Index" IconNr="99"/>
+		</Popup>
+-->
+  </Popup>
+  <Popup MenuId="MenuId.PointSymbol">
+    <MenuItem MenuId="MenuId.PointSymbol.Empty" />
+    <MenuItem MenuId="MenuId.PointSymbol.Dot" />
+    <MenuItem MenuId="MenuId.PointSymbol.Plus" />
+    <MenuItem MenuId="MenuId.PointSymbol.Cross" />
+    <MenuItem MenuId="MenuId.PointSymbol.Line" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.PointSymbol.Square" />
+    <MenuItem MenuId="MenuId.PointSymbol.Circle" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Point">
+    <MenuItem MenuId="SEPARATOR" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Text">
+    <!-- Kontextmenue für markierten Text -->
+    <MenuItem MenuId="MenuId.Outline" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Line">
+    <!-- Kontextmenue für markierte Linie -->
+    <MenuItem MenuId="MenuId.Reverse"  IconNr="213"/>
+    <MenuItem MenuId="MenuId.CurveSplit"  IconNr="214" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Ellipse">
+    <!-- Kontextmenue für markierte Ellipse -->
+    <MenuItem MenuId="MenuId.Reverse" IconNr="213" />
+    <MenuItem MenuId="MenuId.CurveSplit"  IconNr="214"/>
+    <MenuItem MenuId="MenuId.Approximate"  IconNr="216"/>
+    <MenuItem MenuId="MenuId.Aequidist" IconNr="80" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Path">
+    <!-- Kontextmenue für markierten Pfad -->
+    <MenuItem MenuId="MenuId.Reverse"  IconNr="213" />
+    <MenuItem MenuId="MenuId.CurveSplit" IconNr="214" />
+    <MenuItem MenuId="MenuId.Explode"  IconNr="215"/>
+    <MenuItem MenuId="MenuId.Approximate" IconNr="216" />
+    <MenuItem MenuId="MenuId.Aequidist" IconNr="80" />
+    <MenuItem MenuId="MenuId.Reduce" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Polyline">
+    <!-- Kontextmenue für markierte Polylinie -->
+    <MenuItem MenuId="MenuId.Reverse"  IconNr="213"/>
+    <MenuItem MenuId="MenuId.CurveSplit"  IconNr="214" />
+    <MenuItem MenuId="MenuId.Explode"  IconNr="215"/>
+    <MenuItem MenuId="MenuId.Aequidist" IconNr="80" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Spline">
+    <!-- Kontextmenue für markierte Splines -->
+    <MenuItem MenuId="MenuId.Reverse" IconNr="213" />
+    <MenuItem MenuId="MenuId.CurveSplit" IconNr="214" />
+    <MenuItem MenuId="MenuId.Approximate"  IconNr="216"/>
+    <MenuItem MenuId="MenuId.Aequidist" IconNr="80" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Hatch">
+    <!-- Kontextmenue für markierte Schraffuren -->
+    <MenuItem MenuId="MenuId.Explode"  IconNr="215"/>
+  </Popup>
+  <Popup MenuId="MenuId.Object.Dimension">
+    <!-- Kontextmenue für markierte Bemassungen -->
+    <MenuItem MenuId="MenuId.Explode"  IconNr="215"/>
+  </Popup>
+  <Popup MenuId="MenuId.Object.Block">
+    <!-- Kontextmenue für markierte Blöcke -->
+    <MenuItem MenuId="MenuId.Explode"  IconNr="215"/>
+  </Popup>
+  <Popup MenuId="MenuId.ForegroundBackground" Usage="2D">
+    <!-- Kontextmenue für Kind-Objekte von markierten Blöcken -->
+    <MenuItem MenuId="MenuId.SelectedObject.ToBackground" />
+    <MenuItem MenuId="MenuId.SelectedObject.ToForeground" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.BlockRef">
+    <!-- Kontextmenue für markierte Blockreferenzen -->
+    <MenuItem MenuId="MenuId.Explode"  IconNr="215"/>
+  </Popup>
+  <Popup MenuId="MenuId.Object.Shell">
+    <!-- Kontextmenue für markierte Schalen -->
+    <MenuItem MenuId="MenuId.Explode"  IconNr="215"/>
+    <MenuItem MenuId="MenuId.Offset" />
+    <MenuItem MenuId="MenuId.ThickShell" />
+    <MenuItem MenuId="MenuId.Solid.ShellToSolid" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Solid">
+    <!-- Kontextmenue für markierte Solids -->
+    <MenuItem MenuId="MenuId.Explode"  IconNr="215"/>
+    <MenuItem MenuId="MenuId.SplitByPlane" />
+  </Popup>
+  <Popup MenuId="MenuId.Object.Face">
+    <!-- Kontextmenue für markierte Flächen -->
+    <MenuItem MenuId="MenuId.Outline" />
+  </Popup>
+  <Popup MenuId="MenuId.SelectedObject" Shortcuts="true">
+    <!-- Kontextmenue was an alle Kontextmenues von markierten Objekten angehängt wird -->
+    <MenuItem MenuId="MenuId.SelectedObject.Delete" />
+    <MenuItem MenuId="MenuId.SelectedObject.DontSelect" />
+    <MenuItem MenuId="MenuId.SelectedObject.SelectOnlyThis" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.SelectedObject.ToBackground" Usage="2D"/>
+    <MenuItem MenuId="MenuId.SelectedObject.ToForeground" Usage="2D"/>
+  </Popup>
+  <Popup MenuId="MenuId.ViewProperty">
+    <MenuItem MenuId="MenuId.View.Layout.NewLayout" />
+    <MenuItem MenuId="MenuId.View.Model.NewModelView" />
+    <MenuItem MenuId="MenuId.View.NewAnimatedView" />
+    <MenuItem MenuId="MenuId.View.NewGDIView" />
+  </Popup>
+  <Popup MenuId="MenuId.LayoutView">
+    <MenuItem MenuId="MenuId.LayoutView.Show" />
+    <MenuItem MenuId="MenuId.LayoutView.Rename" />
+    <MenuItem MenuId="MenuId.LayoutView.Remove" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.LayoutView.AddPatch" />
+    <MenuItem MenuId="SEPARATOR" />
+    <MenuItem MenuId="MenuId.LayoutView.Print" />
+    <MenuItem MenuId="MenuId.LayoutView.Print.Setup" />
+    <MenuItem MenuId="MenuId.LayoutView.Print.SelectPrinter" />
+  </Popup>
+  <Popup MenuId="MenuId.ModelView">
+    <MenuItem MenuId="MenuId.ModelView.Show" />
+    <MenuItem MenuId="MenuId.ModelView.Rename" />
+    <MenuItem MenuId="MenuId.ModelView.Remove" />
+  </Popup>
+  <Popup MenuId="MenuId.GDI2DView">
+    <MenuItem MenuId="MenuId.GDI2DView.Show" />
+    <MenuItem MenuId="MenuId.GDI2DView.Rename" />
+    <MenuItem MenuId="MenuId.GDI2DView.Remove" />
+    <MenuItem MenuId="MenuId.GDI2DView.Print" />
+  </Popup>
+  <Popup MenuId="MenuId.Layout.Scale">
+    <MenuItem MenuId="MenuId.Layout.Scale.1To1" />
+    <MenuItem MenuId="MenuId.Layout.Scale.1To5" />
+    <MenuItem MenuId="MenuId.Layout.Scale.1To10" />
+    <MenuItem MenuId="MenuId.Layout.Scale.1To50" />
+    <MenuItem MenuId="MenuId.Layout.Scale.1To100" />
+    <MenuItem MenuId="MenuId.Layout.Scale.1To1000" />
+    <MenuItem MenuId="MenuId.Layout.Scale.10To1" />
+    <MenuItem MenuId="MenuId.Layout.Scale.100To1" />
+    <MenuItem MenuId="MenuId.Layout.Scale.Fit" />
+  </Popup>
+  <Popup MenuId="MenuId.Layout.Horizontal">
+    <MenuItem MenuId="MenuId.Layout.Horizontal.Left" />
+    <MenuItem MenuId="MenuId.Layout.Horizontal.Center" />
+    <MenuItem MenuId="MenuId.Layout.Horizontal.Right" />
+  </Popup>
+  <Popup MenuId="MenuId.Layout.Vertical">
+    <MenuItem MenuId="MenuId.Layout.Vertical.Bottom" />
+    <MenuItem MenuId="MenuId.Layout.Vertical.Center" />
+    <MenuItem MenuId="MenuId.Layout.Vertical.Top" />
+  </Popup>
+  <Popup MenuId="MenuId.LayoutPatch">
+    <MenuItem MenuId="MenuId.LayoutPatch.Rename" />
+    <MenuItem MenuId="MenuId.LayoutPatch.Remove" />
+    <MenuItem MenuId="MenuId.LayoutPatch.FillLayout" />
+    <MenuItem MenuId="MenuId.LayoutPatch.Center" />
+  </Popup>
+  <Popup MenuId="MenuId.Symbols">
+    <MenuItem MenuId="MenuId.Symbols.FileOpen" />
+  </Popup>
+  <Popup MenuId="MenuId.SymbolEntry">
+    <MenuItem MenuId="MenuId.SymbolEntry.Remove" />
+    <MenuItem MenuId="MenuId.SymbolEntry.Copy" />
+    <MenuItem MenuId="MenuId.SymbolEntry.Edit" />
+  </Popup>
+  <Popup MenuId="MenuId.SymbolList">
+    <MenuItem MenuId="MenuId.SymbolList.Remove" />
+    <MenuItem MenuId="MenuId.SymbolList.Paste" />
+    <MenuItem MenuId="MenuId.SymbolList.Autoload" />
+  </Popup>
+  <Popup MenuId="MenuId.NamedValue">
+    <MenuItem MenuId="MenuId.NamedValue.Remove" />
+    <MenuItem MenuId="MenuId.NamedValue.EditName" />
+  </Popup>
+  <Popup MenuId="MenuId.NamedValues">
+    <MenuItem MenuId="MenuId.NamedValues.NewGeoPoint" />
+    <MenuItem MenuId="MenuId.NamedValues.NewGeoVector" />
+    <MenuItem MenuId="MenuId.NamedValues.NewDouble" />
+  </Popup>
+  <Popup MenuId="MenuId.Projection.Direction">
+    <Popup MenuId="MenuId.Projection.Direction.Vertical">
+      <MenuItem MenuId="MenuId.Projection.Direction.Vertical.FromTop" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Vertical.FromAboveGround" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Vertical.FromGroundLevel" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Vertical.FromBelowGround" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Vertical.FromBottom" />
+    </Popup>
+    <Popup MenuId="MenuId.Projection.Direction.Horizontal">
+      <MenuItem MenuId="MenuId.Projection.Direction.Horizontal.FromFront" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Horizontal.FromFrontRight" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Horizontal.FromRight" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Horizontal.FromRightBack" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Horizontal.FromBack" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Horizontal.FromBackLeft" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Horizontal.FromLeft" />
+      <MenuItem MenuId="MenuId.Projection.Direction.Horizontal.FromLeftFront" />
+    </Popup>
+  </Popup>
+  <Popup MenuId="MenuId.FilterList">
+    <MenuItem MenuId="MenuId.FilterList.AddFilter" />
+    <MenuItem MenuId="MenuId.FilterList.DeactivateAll" />
+  </Popup>
+  <Popup MenuId="MenuId.Filter">
+    <MenuItem MenuId="MenuId.Filter.Active" />
+    <MenuItem MenuId="MenuId.Filter.OnlyThis" />
+    <MenuItem MenuId="MenuId.Filter.Rename" />
+    <MenuItem MenuId="MenuId.Filter.Delete" />
+  </Popup>
+  <Popup MenuId="MenuId.AttributeFilter">
+    <MenuItem MenuId="MenuId.AttributeFilter.SelectAll" />
+    <MenuItem MenuId="MenuId.AttributeFilter.SelectNone" />
+  </Popup>
+  <Popup MenuId="MenuId.VisibleLayer">
+    <MenuItem MenuId="MenuId.VisibleLayer.SelectAll" />
+    <MenuItem MenuId="MenuId.VisibleLayer.SelectNone" />
+  </Popup>
+  <Popup MenuId="MenuId.Models">
+    <MenuItem MenuId="MenuId.Models.Add" />
+    <MenuItem MenuId="MenuId.Models.Import" />
+  </Popup>
+  <Popup MenuId="MenuId.Model">
+    <MenuItem MenuId="MenuId.Model.Remove" />
+    <MenuItem MenuId="MenuId.Model.Rename" />
+  </Popup>
+  <Popup MenuId="MenuId.ConstructRightButton">
+    <MenuItem MenuId="MenuId.Construct.Finish" IconNr="84"/>
+    <MenuItem MenuId="MenuId.Construct.Abort" IconNr="149"/>
+  </Popup>
+  <Popup MenuId="MenuId.AnimatedView">
+    <MenuItem MenuId="MenuId.AnimatedView.Show" />
+    <MenuItem MenuId="MenuId.AnimatedView.Start" />
+    <MenuItem MenuId="MenuId.AnimatedView.Stop" />
+  </Popup>
+  <Popup MenuId="MenuId.DriveList">
+    <MenuItem MenuId="MenuId.DriveList.NewLinear" />
+    <MenuItem MenuId="MenuId.DriveList.NewAxis" />
+    <MenuItem MenuId="MenuId.DriveList.NewDualcurve" />
+  </Popup>
+  <Popup MenuId="MenuId.CurveDrive">
+    <MenuItem MenuId="MenuId.CurveDrive.Remove" />
+    <MenuItem MenuId="MenuId.CurveDrive.Rename" />
+  </Popup>
+  <Popup MenuId="MenuId.GeoObjectList">
+    <MenuItem MenuId="MenuId.GeoObjectList.Remove" />
+    <MenuItem MenuId="MenuId.GeoObjectList.Show" />
+  </Popup>
+  <Popup MenuId="MenuId.CurveDriveCurve">
+    <MenuItem MenuId="MenuId.CurveDriveCurve.Show" />
+    <MenuItem MenuId="MenuId.CurveDriveCurve.Set" />
+  </Popup>
+  <Popup MenuId="MenuId.Drive.MovedObjects">
+    <MenuItem MenuId="MenuId.Drive.MovedObjects.Show" />
+    <MenuItem MenuId="MenuId.Drive.MovedObjects.Set" />
+  </Popup>
+  <Popup MenuId="MenuId.DrivePosition">
+    <MenuItem MenuId="MenuId.DrivePosition.Remove" />
+  </Popup>
+  <Popup MenuId="MenuId.Schedule">
+    <MenuItem MenuId="MenuId.Schedule.NewPosition" />
+    <MenuItem MenuId="MenuId.Schedule.Sort" />
+    <MenuItem MenuId="MenuId.Schedule.MakeCurrent" />
+    <MenuItem MenuId="MenuId.Schedule.Remove" />
+  </Popup>
+  <Popup MenuId="MenuId.ScheduleList">
+    <MenuItem MenuId="MenuId.ScheduleList.NewSchedule" />
+  </Popup>
+  <Popup MenuId="MenuId.Picture.Path">
+    <MenuItem MenuId="MenuId.Picture.Path.Reload" />
+    <MenuItem MenuId="MenuId.Picture.Path.Open" />
+  </Popup>
+  <Popup MenuId="MenuId.OpenFileDialog">
+    <MenuItem MenuId="MenuId.OpenFileDialog.Show" />
+  </Popup>
+  <Popup MenuId="MenuId.Path.Vertex">
+    <MenuItem MenuId="MenuId.Path.Vertex.StartWithMe" IconNr="212"/>
+  </Popup>
+  <Popup MenuId="MenuId.Axis" >
+    <MenuItem MenuId="MenuId.XAxis" />
+    <MenuItem MenuId="MenuId.YAxis" />
+    <MenuItem MenuId="MenuId.ZAxis" />
+  </Popup>
+  <Popup MenuId="MenuId.DebugFlag" >
+    <MenuItem MenuId="MenuId.ToggleDebugFlag" />
+  </Popup>
+</Menus>

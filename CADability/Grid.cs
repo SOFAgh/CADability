@@ -1,0 +1,224 @@
+﻿using CADability.UserInterface;
+using System;
+using System.Runtime.Serialization;
+
+namespace CADability
+{
+    /// <summary>
+    /// The Grid settings, used only in class <see cref="Projection"/>.
+    /// </summary>
+    // created by MakeClassComVisible
+    [Serializable]
+    public class Grid : IShowPropertyImpl, ISerializable
+    {
+        private double dx;
+        private double dy;
+        public enum Appearance { dots, marks, lines, fields };
+        private Appearance displayMode;
+        private bool show;
+        public delegate void GridChangedDelegate(Grid sender);
+        public event GridChangedDelegate GridChangedEvent;
+        public Grid()
+        {
+            dx = dy = 10.0; // damit es nicht 0.0 ist
+            displayMode = Appearance.dots;
+            show = false;
+            base.resourceId = "Grid";
+        }
+        public double XDistance
+        {
+            get
+            {
+                return dx;
+            }
+            set
+            {
+                dx = value;
+            }
+        }
+        public double YDistance
+        {
+            get
+            {
+                return dy;
+            }
+            set
+            {
+                dy = value;
+            }
+        }
+        public Appearance DisplayMode
+        {
+            set
+            {
+                displayMode = value;
+            }
+            get
+            {
+                return displayMode;
+            }
+        }
+        public bool Show
+        {
+            get
+            {
+                return show;
+            }
+            set
+            {
+                show = value;
+            }
+        }
+        #region IShowPropertyImpl
+        /// <summary>
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
+        /// </summary>
+        public override ShowPropertyEntryType EntryType
+        {
+            get
+            {
+                return ShowPropertyEntryType.GroupTitle;
+            }
+        }
+        private IShowProperty[] subEntries;
+        private DoubleProperty dxProperty;
+        private DoubleProperty dyProperty;
+        private MultipleChoiceProperty displayModeProperty;
+        /// <summary>
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// returns the subentries in this property view.
+        /// </summary>
+        public override IShowProperty[] SubEntries
+        {
+            get
+            {
+                if (subEntries == null)
+                {
+                    subEntries = new IShowProperty[3];
+                    dxProperty = new DoubleProperty("Grid.XDistance", base.Frame);
+                    dyProperty = new DoubleProperty("Grid.YDistance", base.Frame);
+                    dxProperty.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetDx);
+                    dxProperty.SetDoubleEvent += new CADability.UserInterface.DoubleProperty.SetDoubleDelegate(OnSetDx);
+                    dyProperty.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetDy);
+                    dyProperty.SetDoubleEvent += new CADability.UserInterface.DoubleProperty.SetDoubleDelegate(OnSetDy);
+                    dxProperty.Refresh();
+                    dyProperty.Refresh();
+                    int initial = (int)displayMode + 1;
+                    if (!show) initial = 0;
+                    displayModeProperty = new MultipleChoiceProperty("Grid.DisplayMode", initial);
+                    displayModeProperty.ValueChangedEvent += new ValueChangedDelegate(OnDisplayModeValueChanged);
+                    subEntries[0] = dxProperty;
+                    subEntries[1] = dyProperty;
+                    subEntries[2] = displayModeProperty;
+
+                }
+                return subEntries;
+            }
+        }
+        /// <summary>
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// returns the number of subentries in this property view.
+        /// </summary>
+        public override int SubEntriesCount
+        {
+            get
+            {
+                return SubEntries.Length;
+            }
+        }
+        /// <summary>
+        /// Overrides <see cref="IShowPropertyImpl.Added"/>
+        /// </summary>
+        /// <param name="propertyTreeView"></param>
+        public override void Added(IPropertyTreeView propertyTreeView)
+        {
+            base.Added(propertyTreeView);
+            propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
+        }
+        /// <summary>
+        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
+        /// </summary>
+        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
+        public override void Removed(IPropertyTreeView propertyTreeView)
+        {
+            propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
+            base.Removed(propertyTreeView);
+        }
+
+
+        #endregion
+        #region ISerializable Members
+        /// <summary>
+        /// Constructor required by deserialization
+        /// </summary>
+        /// <param name="info">SerializationInfo</param>
+        /// <param name="context">StreamingContext</param>
+        protected Grid(SerializationInfo info, StreamingContext context)
+            : this()
+        {
+            dx = (double)info.GetValue("XDistance", typeof(double));
+            dy = (double)info.GetValue("YDistance", typeof(double));
+            displayMode = (Appearance)info.GetValue("DisplayMode", typeof(Appearance));
+            show = (bool)info.GetValue("Show", typeof(bool));
+        }
+        /// <summary>
+        /// Implements <see cref="ISerializable.GetObjectData"/>
+        /// </summary>
+        /// <param name="info">The <see cref="System.Runtime.Serialization.SerializationInfo"/> to populate with data.</param>
+        /// <param name="context">The destination (<see cref="System.Runtime.Serialization.StreamingContext"/>) for this serialization.</param>
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue("XDistance", dx);
+            info.AddValue("YDistance", dy);
+            info.AddValue("DisplayMode", displayMode, typeof(Appearance));
+            info.AddValue("Show", show);
+        }
+
+        #endregion
+
+        private double OnGetDx(DoubleProperty sender)
+        {
+            return XDistance;
+        }
+
+        private void OnSetDx(DoubleProperty sender, double l)
+        {
+            dx = l;
+        }
+        private double OnGetDy(DoubleProperty sender)
+        {
+            return YDistance;
+        }
+
+        private void OnSetDy(DoubleProperty sender, double l)
+        {
+            dy = l;
+        }
+
+        private void OnDisplayModeValueChanged(object sender, object NewValue)
+        {
+            if (displayModeProperty.CurrentIndex == 0)
+            {
+                show = false;
+            }
+            else
+            {
+                displayMode = (Appearance)(displayModeProperty.CurrentIndex - 1);
+                show = true;
+            }
+            if (GridChangedEvent != null) GridChangedEvent(this);
+        }
+
+        private void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
+        {
+            // hier nur feuern wenn der Abstand verlassen wird, 
+            // displaymode wird bei jeder Änderung gefeurt
+            if ((OldFocus == dxProperty && NewFocus != dyProperty) ||
+                (OldFocus == dyProperty && NewFocus != dxProperty))
+            {
+                if (GridChangedEvent != null) GridChangedEvent(this);
+            }
+        }
+    }
+}

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Scripting.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="MenuResource.xml" />
+    <None Remove="StringTableDeutsch.xml" />
+    <None Remove="StringTableEnglish.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="MenuResource.xml" />
+    <EmbeddedResource Include="StringTableDeutsch.xml" />
+    <EmbeddedResource Include="StringTableEnglish.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualStudio.DebuggerVisualizers">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\PublicAssemblies\Microsoft.VisualStudio.DebuggerVisualizers.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
