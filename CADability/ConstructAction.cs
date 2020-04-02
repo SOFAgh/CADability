@@ -5152,9 +5152,10 @@ namespace CADability.Actions
             {
                 if (editBox == null)
                 {
-                    editBox = new StringProperty(text, "TextString", "Text.TextString");
+                    editBox = new StringProperty(text.TextString, "Text.TextString");
                     editBox.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnEditboxStateChanged);
-                    editBox.StringChangedEvent += new StringProperty.StringChangedDelegate(OnEditBoxStringChanged);
+                    editBox.OnSetValue = OnEditBoxStringChanged;
+                    editBox.OnGetValue = delegate () { return text.TextString; };
                     if (!isfixed)
                     {
                         editBox.Highlight = true;
@@ -5162,8 +5163,9 @@ namespace CADability.Actions
                 }
                 return editBox;
             }
-            void OnEditBoxStringChanged(object sender, EventArgs e)
+            void OnEditBoxStringChanged(string val)
             {
+                text.TextString = val;
                 (this as IInputObject).SetFixed(true);
             }
             void IInputObject.OnMouse(MouseEventArgs e, CADability.Actions.ConstructAction.MouseState mouseState, IView vw)
