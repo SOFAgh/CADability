@@ -365,7 +365,7 @@ namespace CADability.Forms
         public void PreProcessKeyDown(Substitutes.KeyEventArgs e)
         {   // this is beeing called after the ActiveAction has preprocessed (and not handled) the key down message
             // we can handle it here, before it gets handled by maybe and edit text box or something else (menu?)
-            switch (e.KeyCode)
+            switch (e.KeyData) // was KeyCode, but didn't work
             {
                 case Substitutes.Keys.Tab:
                     if (e.Control)

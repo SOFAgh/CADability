@@ -635,7 +635,7 @@ namespace CADability
             if (e.Handled) return;
             Action a = ActiveAction;
             if (a == null) return;
-            switch (e.KeyCode)
+            switch (e.KeyData) // was KeyCode, but didn't work
             {
                 case Keys.Escape:
                     e.Handled = a.OnEscape(e.KeyData);
