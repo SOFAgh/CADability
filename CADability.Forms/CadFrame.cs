@@ -16,33 +16,83 @@ namespace CADability.Forms
      */
     public class CadFrame : FrameImpl, IUIService
     {
-        CadCanvas cadCanvas;
+        private readonly CadCanvas cadCanvas;
+        private MainMenu mainMenu; // to be able to handle the MRU file list
 
         internal CadFrame(IControlCenter cc, CadCanvas cadCanvas) : base(cc, cadCanvas)
         {
             this.cadCanvas = cadCanvas;
         }
 
-        event EventHandler IUIService.ApplicationIdle
+        internal MainMenu MainMenu
         {
-            add
+            set
             {
-                throw new NotImplementedException();
-            }
-
-            remove
-            {
-                throw new NotImplementedException();
+                mainMenu = value;
             }
         }
-
         public override bool OnCommand(string MenuId)
         {
-            return base.OnCommand(MenuId);
+            if (MenuId == "MenuId.App.Exit")
+            {   // this command cannot be handled by CADability.dll
+                Application.Exit();
+                return true; 
+            }
+            else return base.OnCommand(MenuId);
         }
         public override bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             return base.OnUpdateCommand(MenuId, CommandState);
+        }
+
+        private void UpdateMRUMenu(MenuItem mi, string[] mruFiles)
+        {
+            if (mi.IsParent)
+            {
+                foreach (MenuItem mmi in mi.MenuItems)
+                {
+                    UpdateMRUMenu(mmi, mruFiles);
+                }
+            }
+            else
+            {
+                MenuItemWithHandler mid = mi as MenuItemWithHandler;
+                if (mid != null)
+                {
+                    MenuWithHandler mwh = mid.Tag as MenuWithHandler;
+                    if (mwh != null)
+                    {
+                        string MenuId = mwh.ID;
+                        if (MenuId.StartsWith("MenuId.File.Mru.File"))
+                        {
+                            string filenr = MenuId.Substring("MenuId.File.Mru.File".Length);
+                            try
+                            {
+                                int n = int.Parse(filenr);
+                                if (n <= mruFiles.Length && n > 0)
+                                {
+                                    string[] parts = mruFiles[mruFiles.Length - n].Split(';');
+                                    if (parts.Length > 1)
+                                        mid.Text = parts[0];
+                                }
+                            }
+                            catch (FormatException) { }
+                            catch (OverflowException) { }
+                        }
+                    }
+                }
+            }
+        }
+
+        public override void UpdateMRUMenu(string[] mruFiles)
+        {
+            if (mainMenu != null)
+            {
+                foreach (MenuItem mi in mainMenu.MenuItems)
+                {
+                    UpdateMRUMenu(mi, mruFiles);
+                }
+            }
         }
 
         #region IUIService implementation
@@ -226,6 +276,18 @@ namespace CADability.Forms
                 if (formats[i] == typeOfdata.Name) return true;
             }
             return false;
+        }
+        event EventHandler IUIService.ApplicationIdle
+        {
+            add
+            {
+                throw new NotImplementedException();
+            }
+
+            remove
+            {
+                throw new NotImplementedException();
+            }
         }
         #endregion
     }

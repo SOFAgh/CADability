@@ -267,6 +267,7 @@ namespace CADability
         event ActionTerminatedDelegate ActionTerminatedEvent;
         void RaiseActionStartedEvent(Action Action);
         void RaiseActionTerminatedEvent(Action Action);
+        void UpdateMRUMenu(string[] mruFiles);
     }
 
     /// <summary>
@@ -652,6 +653,9 @@ namespace CADability
             }
             if (!e.Handled) ControlCenter.PreProcessKeyDown(e);
         }
+        public virtual void UpdateMRUMenu(string[] mruFiles)
+        {
+        }
 
         public ActionStack ActionStack => actionStack;
         /// <summary>
@@ -743,16 +747,6 @@ namespace CADability
         }
 
         #region handling menu commands
-        private void UpdateMRUMenu()
-        {
-            // MRU files should be in the global settings, not in the registry. Registry should no longer be used
-            //mruFiles = MRUFiles.GetMRUFiles(); // so stehen sie gerade in der registry
-            //MainMenu mm = (this as IFrameInternal).FindMainMenu();
-            //if (mm != null) foreach (MenuItem mi in mm.MenuItems)
-            //    {
-            //        UpdateMRUMenu(mi);
-            //    }
-        }
         public virtual bool OnCommand(string MenuId)
         {
             CurrentMenuId = MenuId; // ist das hier die richtige Stelle?
@@ -851,13 +845,13 @@ namespace CADability
                     project.WriteToFile(project.FileName);
                     FileNameChangedEvent?.Invoke(project.FileName);
                     if (project.FileName != null) MRUFiles.AddPath(project.FileName, "cdb");
-                    UpdateMRUMenu();
+                    UpdateMRUMenu(MRUFiles.GetMRUFiles());
                     return true;
                 case "MenuId.File.Save.As":
                     project.WriteToFile(null);
                     FileNameChangedEvent?.Invoke(project.FileName);
                     if (project.FileName != null) MRUFiles.AddPath(project.FileName, "cdb");
-                    UpdateMRUMenu();
+                    UpdateMRUMenu(MRUFiles.GetMRUFiles());
                     return true;
                 case "MenuId.Zoom.Detail":
                     SetAction(new ZoomAction());
@@ -2186,7 +2180,7 @@ namespace CADability
                             }
                         }
                         MRUFiles.AddPath(fileName, filetype);
-                        UpdateMRUMenu();
+                        UpdateMRUMenu(MRUFiles.GetMRUFiles());
                     }
                 }
             }

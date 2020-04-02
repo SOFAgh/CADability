@@ -34,7 +34,7 @@ namespace CADability.Forms
                 if (connect != null) mainMenu = connect.Invoke(null, new object[] { cadFrame, mainMenu }) as MenuWithHandler[];
             }
             #endregion DebuggerPlayground
-            this.Menu = MenuManager.MakeMainMenu(mainMenu);
+            cadFrame.MainMenu = Menu = MenuManager.MakeMainMenu(mainMenu);
             // open an existing Project or create a new one
             string fileName = "";
             for (int i = 0; i < args.Length; i++)
@@ -69,6 +69,7 @@ namespace CADability.Forms
         protected override void OnClosing(CancelEventArgs e)
         {   // maybe we need to save the project
             ToolBars.SaveToolbarPositions(topToolStripContainer);
+            Settings.SaveGlobalSettings();
             // ToolStripManager.SaveSettings(this); // save the positions of the toolbars (doesn't work correctly)
             base.OnClosing(e);
         }
