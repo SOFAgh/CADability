@@ -173,7 +173,7 @@ namespace CADability.Forms
                 User.ReleaseDC(controlHandle, deviceContext);
             }
 #if DEBUG
-            System.Diagnostics.Trace.WriteLine("deleting PaintToOpenGl");
+            //System.Diagnostics.Trace.WriteLine("deleting PaintToOpenGl");
             //MessageBox.Show("deleting PaintToOpenGl");
 #endif
         }

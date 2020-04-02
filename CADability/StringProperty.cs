@@ -71,7 +71,7 @@ namespace CADability.UserInterface
         [Obsolete("use SetValue instead")]
         public void SetString(string val)
         {
-            SetValue(val, false);
+            SetValue(val, true);
         }
         [Obsolete("use GetValue instead")]
         public string GetString()
