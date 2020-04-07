@@ -153,15 +153,15 @@ namespace CADability.Actions
                 double DeviceToWorldFactor = 1.0; // wird in den meisten Fällen überschrieben
                 if (rl.activeAction == null)
                 {
-                    if (ActiveFrame.Frame != null)
+                    if (FrameImpl.MainFrame != null)
                     {
-                        if (ActiveFrame.Frame.ActiveView != null)
+                        if (FrameImpl.MainFrame.ActiveView != null)
                         {
-                            Rectangle r = ActiveFrame.Frame.ActiveView.DisplayRectangle;
+                            Rectangle r = FrameImpl.MainFrame.ActiveView.DisplayRectangle;
                             if ((r.Height + r.Width) > 2)
                             {
                                 WindowSize = (r.Height + r.Width) / 2;
-                                DeviceToWorldFactor = ActiveFrame.Frame.ActiveView.Projection.DeviceToWorldFactor;
+                                DeviceToWorldFactor = FrameImpl.MainFrame.ActiveView.Projection.DeviceToWorldFactor;
                             }
                         }
                     }
@@ -372,11 +372,11 @@ namespace CADability.Actions
                 IView CondorView = null;
                 if (rg.activeAction == null)
                 {
-                    if (ActiveFrame.Frame != null)
+                    if (FrameImpl.MainFrame != null)
                     {
-                        if (ActiveFrame.Frame.ActiveView != null)
+                        if (FrameImpl.MainFrame.ActiveView != null)
                         {
-                            CondorView = ActiveFrame.Frame.ActiveView;
+                            CondorView = FrameImpl.MainFrame.ActiveView;
                         }
                     }
                 }

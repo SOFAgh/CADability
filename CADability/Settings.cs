@@ -1484,7 +1484,7 @@ namespace CADability
         {
             if (list.Count < 2)
             {
-                ActiveFrame.Frame.UIService.ShowMessageBox(StringTable.GetString(resourceId + ".DontRemoveLastItem"), StringTable.GetString(resourceId + ".Label"), MessageBoxButtons.OK);
+                FrameImpl.MainFrame.UIService.ShowMessageBox(StringTable.GetString(resourceId + ".DontRemoveLastItem"), StringTable.GetString(resourceId + ".Label"), MessageBoxButtons.OK);
                 return false; // nicht entfernen
             }
             return true;

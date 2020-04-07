@@ -335,7 +335,7 @@ namespace CADability.Forms
                             }
                             else
                             {
-                                //IFrameInternal frm = ActiveFrame.Frame as IFrameInternal;
+                                //IFrameInternal frm = FrameImpl.MainFrame as IFrameInternal;
                                 //bool handled = false;
                                 //if (frm != null) frm.UpdateContextMenu(miid.mTarget, miid.mID, commandState, ref handled);
                                 //if (handled)

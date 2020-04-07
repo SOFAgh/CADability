@@ -13,13 +13,12 @@ namespace CADability.Forms
     public partial class MainForm : Form
     {
         protected CadFrame cadFrame; // the frame, which knows about the views, the ControlCenter (PropertiesExplorer), the menu
-
+        private ProgressForm progressForm;
         public MainForm(string[] args)
         {
             InitializeComponent(); // makes the cadCanvas and the propertiesExplorer
             KeyPreview = true; // used to filter the escape key (and maybe some more?)
-            cadFrame = new CadFrame(propertiesExplorer, cadCanvas);
-            ActiveFrame.Frame = cadFrame;
+            cadFrame = new CadFrame(this);
             cadCanvas.Frame = cadFrame;
             propertiesExplorer.Frame = cadFrame;
             // show this menu in the MainForm
@@ -34,7 +33,7 @@ namespace CADability.Forms
                 if (connect != null) mainMenu = connect.Invoke(null, new object[] { cadFrame, mainMenu }) as MenuWithHandler[];
             }
             #endregion DebuggerPlayground
-            cadFrame.MainMenu = Menu = MenuManager.MakeMainMenu(mainMenu);
+            Menu = MenuManager.MakeMainMenu(mainMenu);
             // open an existing Project or create a new one
             string fileName = "";
             for (int i = 0; i < args.Length; i++)
@@ -56,12 +55,28 @@ namespace CADability.Forms
             }
             if (toOpen == null) cadFrame.GenerateNewProject();
             else cadFrame.Project = toOpen;
-            // if (cadFrame.ActiveView is ICadView cadView) cadCanvas.ShowCadView(cadView);
-            // add some toolbars (ToolStripManager.LoadSettings(this) and ToolStripManager.SaveSettings(this) doesn't work)
             ToolBars.CreateOrRestoreToolbars(topToolStripContainer, cadFrame);
             Application.Idle += new EventHandler(OnIdle); // update the toolbars (menues are updated when they popup)
         }
-
+        // Access the components of the MainForm from the CadFrame. 
+        internal ProgressForm ProgressForm
+        { 
+            get
+            {
+                if (progressForm==null)
+                {
+                    progressForm = new ProgressForm
+                    {
+                        TopLevel = true,
+                        Owner = this,
+                        Visible = false
+                    };
+                }
+                return progressForm;
+            }
+        }
+        internal PropertiesExplorer PropertiesExplorer => propertiesExplorer;
+        internal CadCanvas CadCanvas => cadCanvas;
         private void OnIdle(object sender, EventArgs e)
         {
             ToolBars.UpdateCommandState(topToolStripContainer.TopToolStripPanel);

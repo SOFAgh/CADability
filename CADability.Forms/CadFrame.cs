@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
 using System.IO;
+using System.Threading;
 using System.Windows.Forms;
 using Action = CADability.Actions.Action;
 
@@ -17,26 +18,19 @@ namespace CADability.Forms
     public class CadFrame : FrameImpl, IUIService
     {
         private readonly CadCanvas cadCanvas;
-        private MainMenu mainMenu; // to be able to handle the MRU file list
+        private MainForm mainForm; // we need the MainMenu and ProgressBar here
 
-        internal CadFrame(IControlCenter cc, CadCanvas cadCanvas) : base(cc, cadCanvas)
+        internal CadFrame(MainForm mainForm) : base(mainForm.PropertiesExplorer, mainForm.CadCanvas)
         {
-            this.cadCanvas = cadCanvas;
+            this.mainForm = mainForm;
         }
 
-        internal MainMenu MainMenu
-        {
-            set
-            {
-                mainMenu = value;
-            }
-        }
         public override bool OnCommand(string MenuId)
         {
             if (MenuId == "MenuId.App.Exit")
             {   // this command cannot be handled by CADability.dll
                 Application.Exit();
-                return true; 
+                return true;
             }
             else return base.OnCommand(MenuId);
         }
@@ -86,9 +80,9 @@ namespace CADability.Forms
 
         public override void UpdateMRUMenu(string[] mruFiles)
         {
-            if (mainMenu != null)
+            if (mainForm.Menu != null)
             {
-                foreach (MenuItem mi in mainMenu.MenuItems)
+                foreach (MenuItem mi in mainForm.Menu.MenuItems)
                 {
                     UpdateMRUMenu(mi, mruFiles);
                 }
@@ -183,6 +177,11 @@ namespace CADability.Forms
             color = colorDialog.Color;
             return dlgres;
         }
+        void IUIService.ShowProgressBar(bool show, double percent, string title)
+        {
+            mainForm.ProgressForm.ShowProgressBar(show, percent, title);
+        }
+
         /// <summary>
         /// Returns a bitmap from the specified embeded resource. the name is in the form filename:index
         /// </summary>
@@ -273,7 +272,7 @@ namespace CADability.Forms
             string[] formats = data.GetFormats(false);
             for (int i = 0; i < formats.Length; i++)
             {
-                if (formats[i] == typeOfdata.Name) return true;
+                if (formats[i] == typeOfdata.FullName) return true;
             }
             return false;
         }

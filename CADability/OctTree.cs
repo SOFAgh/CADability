@@ -16,7 +16,7 @@ namespace CADability
             this.name = name;
             starttime = Environment.TickCount;
         }
-        #region IDisposable Members
+    #region IDisposable Members
 
         void IDisposable.Dispose()
         {
@@ -49,7 +49,7 @@ namespace CADability
                 System.Diagnostics.Trace.WriteLine(d.ToString(), BitConverter.DoubleToInt64Bits(d).ToString("X"));
             }
         }
-        #endregion
+    #endregion
     }
 #endif
 
@@ -278,7 +278,10 @@ namespace CADability
                         }
                     }
                 }
-                if ((!BoundingCube.Disjoint(objectToAdd.GetExtent(root.precision), cube) && objectToAdd.HitTest(ref cube, root.precision)))
+                bool insert;
+                lock (objectToAdd) // HitTest and GetExtent are maybe not reentrant, because they may modify the approximation of the object
+                    insert = !BoundingCube.Disjoint(objectToAdd.GetExtent(root.precision), cube) && objectToAdd.HitTest(ref cube, root.precision);
+                if (insert)
                 {
                     List<TT> toInsert = null;
                     if (ppp == null)
@@ -306,7 +309,7 @@ namespace CADability
                                 else
                                 {
                                     list.Add(objectToAdd);
-                                    return; // done leave the lock fast!
+                                    return; // done, leave the lock fast!
                                 }
                             }
                         }

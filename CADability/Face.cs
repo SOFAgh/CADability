@@ -250,1357 +250,1777 @@ namespace CADability.GeoObject
         /// <returns></returns>
         internal static Face[] MakeFacesFromStepAdvancedFace(ISurface surface, List<List<StepEdgeDescriptor>> loops, bool sameSense, double precision)
         {
-#if DEBUG
-            if (Settings.GlobalSettings.GetBoolValue("Experimental.ParallelStepImport", false))
+            List<StepEdgeDescriptor> listToLock = new List<StepEdgeDescriptor>();
+#if PARALLEL
             {
                 for (int i = 0; i < loops.Count; i++)
                 {
                     for (int j = loops[i].Count - 1; j >= 0; --j)
                     {
-                        //System.Diagnostics.Debug.Assert(Monitor.IsEntered(loops[i][j]));
+                        listToLock.Add(loops[i][j]);
                     }
                 }
+                // we need exclusive acces to all edges of the loop, because they might be modified during the creation
+                listToLock.Sort(delegate (StepEdgeDescriptor s1, StepEdgeDescriptor s2) { return s1.id.CompareTo(s2.id); });
             }
 #endif
+            using (ParallelHelper.LockMultipleObjects(listToLock.ToArray())) // listToLock is empty in case of not parallel
+            {
 #if DEBUG
-            for (int i = 0; i < loops.Count; i++)
-            {
-                for (int j = loops[i].Count - 1; j >= 0; --j)
+                for (int i = 0; i < loops.Count; i++)
                 {
-                    if (loops[i][j].createdEdges != null)
+                    for (int j = loops[i].Count - 1; j >= 0; --j)
                     {
-                        for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
+                        if (loops[i][j].createdEdges != null)
                         {
-                            if (loops[i][j].createdEdges[k].GetHashCode() >= 435 && loops[i][j].createdEdges[k].GetHashCode() >= 438)
+                            for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
                             {
+                                if (loops[i][j].createdEdges[k].GetHashCode() >= 435 && loops[i][j].createdEdges[k].GetHashCode() >= 438)
+                                {
 
+                                }
                             }
                         }
                     }
                 }
-            }
 #endif
-            if (!sameSense)
-            {   // in CADability the surfaces can be oriented both ways, in step, the standard surfaces (cylinder, sphere, torus, cone) are always "outward" oriented
-                // and if necessary the sameSense is false. Here we convert the surface to the CADability requirenments
-                sameSense = true;
-                surface = surface.Clone();
-                surface.ReverseOrientation(); // 2d modification is not relevant here
-            }
-            // simply remove loop edges which are too short
-            for (int i = 0; i < loops.Count; i++)
-            {
-                for (int j = loops[i].Count - 1; j >= 0; --j)
-                {
-                    if (loops[i][j].curve != null && loops[i][j].curve.Length < precision / 2.0)
-                    {
-                        //loops[i].RemoveAt(j);
-                    }
+                if (!sameSense)
+                {   // in CADability the surfaces can be oriented both ways, in step, the standard surfaces (cylinder, sphere, torus, cone) are always "outward" oriented
+                    // and if necessary the sameSense is false. Here we convert the surface to the CADability requirenments
+                    sameSense = true;
+                    surface = surface.Clone();
+                    surface.ReverseOrientation(); // 2d modification is not relevant here
                 }
-            }
-            // Some problem arise, because the curves may be not very precise. We try to adjust start- and enpoints
-            // so the connections are precise
-            double minCurveLength = double.MaxValue;
-            for (int i = 0; i < loops.Count; i++)
-            {
-                if (loops[i].Count > 1)
+                // simply remove loop edges which are too short
+                for (int i = 0; i < loops.Count; i++)
                 {
-                    for (int j = 0; j < loops[i].Count; j++)
+                    for (int j = loops[i].Count - 1; j >= 0; --j)
                     {
-                        int jn = (j + 1) % loops[i].Count;
-                        if (loops[i][j].curve != null && loops[i][jn].curve != null)
-                            Connect3dCurves(loops[i][j].curve, loops[i][j].forward, loops[i][jn].curve, loops[i][jn].forward);
-                        if (loops[i][j].curve != null) minCurveLength = Math.Min(minCurveLength, loops[i][j].curve.Length);
-                    }
-                }
-                if (loops[i].Count == 1 && loops[i][0].curve is Ellipse && loops[i][0].curve.IsClosed && loops[i][0].vertex1 == loops[i][0].vertex2)
-                {
-                    // a single circle must correspond to its vertex with its start/endpoint. 
-                    // This is not always given in step files, because they don't care about start/endpoints of circles
-                    Ellipse elli = loops[i][0].curve as Ellipse;
-                    if ((elli.StartPoint | loops[i][0].vertex1.Position) > Precision.eps)
-                    {
-                        double sp = elli.PositionOf(loops[i][0].vertex1.Position);
-                        elli.StartParameter = sp * Math.PI * 2.0;
-                    }
-                }
-            }
-            // self intersecting loop. Of course a loop cannot intersect itself, but in some files they do (83855_elp11b.stp)
-            // We try here to remove smaller parts
-            double vprec = Math.Min(precision, minCurveLength / 2.0);
-            Set<Vertex> allVertices = new Set<Vertex>();
-            for (int i = 0; i < loops.Count; i++)
-            {
-                Set<Vertex> vertices = new Set<Vertex>();
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    bool duplicateFound = false;
-                    foreach (Vertex vtx in vertices)
-                    {
-                        if (vtx != loops[i][j].vertex1 && (vtx.Position | loops[i][j].vertex1.Position) < vprec)
+                        if (loops[i][j].curve != null && loops[i][j].curve.Length < precision / 2.0)
                         {
-                            vtx.MergeWith(loops[i][j].vertex1);
-                            loops[i][j].vertex1 = vtx;
-                            duplicateFound = true;
-                            break;
-                        }
-                    }
-                    if (!duplicateFound) vertices.Add(loops[i][j].vertex1);
-                    duplicateFound = false;
-                    foreach (Vertex vtx in vertices)
-                    {
-                        if (vtx != loops[i][j].vertex2 && (vtx.Position | loops[i][j].vertex2.Position) < vprec)
-                        {
-                            vtx.MergeWith(loops[i][j].vertex2);
-                            loops[i][j].vertex2 = vtx;
-                            duplicateFound = true;
-                            break;
-                        }
-                    }
-                    if (!duplicateFound) vertices.Add(loops[i][j].vertex2);
-                }
-                allVertices.AddMany(vertices);
-                if (vertices.Count > loops[i].Count)
-                {
-                    // there must be different vertices with the same coordinate, because the loop must always be closed (in 3d)
-                }
-                else if (vertices.Count < loops[i].Count)
-                {
-                    // there must be a self intersection
-                    Dictionary<Vertex, int> vertexUsage = new Dictionary<Vertex, int>(); // find the vertices used more than twice
-                    // we could do this in the loop above, but this part is very rarely executed, soo we keep the first part fast
-                    for (int j = 0; j < loops[i].Count; j++)
-                    {
-                        if (!vertexUsage.ContainsKey(loops[i][j].vertex1)) vertexUsage[loops[i][j].vertex1] = 0;
-                        ++vertexUsage[loops[i][j].vertex1];
-                        if (!vertexUsage.ContainsKey(loops[i][j].vertex2)) vertexUsage[loops[i][j].vertex2] = 0;
-                        ++vertexUsage[loops[i][j].vertex2];
-                    }
-                    Set<Vertex> selfIntersections = new Set<Vertex>();
-                    foreach (KeyValuePair<Vertex, int> item in vertexUsage)
-                    {
-                        if (item.Value > 2) selfIntersections.Add(item.Key);
-                    }
-                    List<List<StepEdgeDescriptor>> subloops = new List<List<StepEdgeDescriptor>>();
-                    subloops.Add(loops[i]);
-                    // assuming each selfIntersection vertex is only used twice
-                    foreach (Vertex vtx in selfIntersections)
-                    {
-                        for (int k = 0; k < subloops.Count; k++)
-                        {
-                            int first = -1, second = -1;
-                            for (int j = 0; j < subloops[k].Count; j++)
-                            {
-                                if (first < 0 && ((subloops[k][j].forward && subloops[k][j].vertex1 == vtx) || (!subloops[k][j].forward && subloops[k][j].vertex2 == vtx))) first = j;
-                                if (first >= 0 && ((subloops[k][j].forward && subloops[k][j].vertex2 == vtx) || (!subloops[k][j].forward && subloops[k][j].vertex1 == vtx))) second = j;
-                                if (second >= 0) break;
-                            }
-                            if (first >= 0 && second >= 0) // respecting the case that the first edge in the loop is closed
-                            {
-                                List<StepEdgeDescriptor> part1 = subloops[k].GetRange(first, second - first + 1);
-                                subloops[k].RemoveRange(first, second - first + 1);
-                                subloops.Add(part1);
-                                break; // the vertex vtx has been handled
-                            }
-                        }
-                    }
-                    loops.RemoveAt(i);
-                    loops.InsertRange(i, subloops);
-                    // now a self intersecting loop has been splitted in multiple non-selfintersecting loops
-                    // We should now remove those parts, wich are incorrect oriented.
-                }
-                // of course there could also be a self intersection of edge curves inside the curves. This is not checked here
-            }
-            for (int i = loops.Count - 1; i >= 0; --i)
-            {   // there is a seam, which we don't want here
-                if (loops[i].Count == 2 && loops[i][0].curve != null && loops[i][0].curve.SameGeometry(loops[i][1].curve, precision))
-                {
-                    loops.RemoveAt(i);
-                }
-            }
-            if (loops.Count == 0)
-            {
-                return new Face[0];
-            }
-            // if a loop-curve has already a created edge and this edge has already a primary and a secondary face, i.e. the edge is already used by two faces
-            // we must create a new edge for the new face we are going to make
-            for (int i = 0; i < loops.Count; i++)
-            {
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 0)
-                    {
-                        if (loops[i][j].createdEdges[0].PrimaryFace != null && loops[i][j].createdEdges[0].SecondaryFace != null)
-                        {
-                            loops[i][j].createdEdges.Clear();
+                            //loops[i].RemoveAt(j);
                         }
                     }
                 }
-            }
-
-            // if a loop-curve has already created edges (i.e. this is the second usage of this loop-curve)
-            // and there has more than one edge been created (a previous face was splitted)
-            // then we split this loop curve into two loop curves to make further processing easier
-            for (int i = 0; i < loops.Count; i++)
-            {
-                bool needsResort = false; // maybe there is a rule to make this superfluous, but I don't know
-                for (int j = 0; j < loops[i].Count; j++)
+                // Some problem arise, because the curves may be not very precise. We try to adjust start- and enpoints
+                // so the connections are precise
+                double minCurveLength = double.MaxValue;
+                for (int i = 0; i < loops.Count; i++)
                 {
-                    if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 1)
-                    {
-                        //Vertex sv = null;
-                        //if (loops[i][j].forward) sv = loops[i][j].vertex1;
-                        //else sv = loops[i][j].vertex2;
-                        //if (loops[i][j].createdEdges[0].EndVertex(loops[i][j].createdEdges[0].PrimaryFace) != sv)
-                        //{
-                        //    loops[i][j].createdEdges.Reverse();
-                        //}
-                        List<StepEdgeDescriptor> toInsert = new List<StepEdgeDescriptor>();
-                        for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
-                        {
-                            loops[i][j].createdEdges[k].UseVertices(loops[i][j].vertex1, loops[i][j].vertex2);
-                            StepEdgeDescriptor se = new StepEdgeDescriptor(loops[i][j].createdEdges[k], loops[i][j].forward);
-                            toInsert.Add(se);
-                        }
-                        loops[i].RemoveAt(j);
-                        loops[i].InsertRange(j, toInsert);
-                        needsResort = true;
-                    }
-                }
-                if (needsResort)
-                {
-                    Set<StepEdgeDescriptor> loopcurves = new Set<StepEdgeDescriptor>(loops[i]);
-                    loops[i].Clear();
-                    StepEdgeDescriptor se = loopcurves.GetAny();
-                    loopcurves.Remove(se);
-                    loops[i].Add(se);
-                    while (loopcurves.Count > 0)
-                    {
-                        Vertex lastVertex;
-                        if (loops[i][loops[i].Count - 1].forward) lastVertex = loops[i][loops[i].Count - 1].vertex2;
-                        else lastVertex = loops[i][loops[i].Count - 1].vertex1;
-                        bool found = false;
-                        foreach (StepEdgeDescriptor item in loopcurves)
-                        {
-                            if ((item.forward && item.vertex1 == lastVertex) || (!item.forward && item.vertex2 == lastVertex))
-                            {
-                                loops[i].Add(item);
-                                loopcurves.Remove(item);
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) return null; // loop is not connected logically
-                    }
-                }
-            }
-            // split loops containing seams. (like in 2472g.stp)
-            // A loop may contain an edge which is used twice in different directions. Remove this edge and split the loop into two loops:
-            // NO!!! we don't do this, if there is a real seam, the face will be splitted, and splitting can deal with it
-            // we only check to find the seam edges
-            for (int i = loops.Count - 1; i >= 0; --i)
-            {
-                for (int j = 0; j < loops[i].Count - 1; j++)
-                {
-                    for (int k = j + 1; k < loops[i].Count; k++)
-                    {
-                        bool sameEdge = false;
-                        if (loops[i][j].forward != loops[i][k].forward && loops[i][j].vertex1 == loops[i][k].vertex1 && loops[i][j].vertex2 == loops[i][k].vertex2) sameEdge = true;
-                        if (loops[i][j].forward == loops[i][k].forward && loops[i][j].vertex1 == loops[i][k].vertex2 && loops[i][j].vertex2 == loops[i][k].vertex1) sameEdge = true;
-
-                        if (sameEdge && loops[i][j].curve.SameGeometry(loops[i][k].curve, Precision.eps))
-                        {
-                            // two edges going in opposite directions 
-                            loops[i][j].isSeam = loops[i][k].isSeam = true;
-                        }
-                    }
-                }
-            }
-            // there are loop curves (polylines as bsplines), which have a common starting and ending part. These parts seem to be seams, like in N13_MASCHIO_3D_FILO.stp
-            // we try to remove these parts and substitute with trimmed curves
-            for (int i = 0; i < loops.Count; ++i)
-            {
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    if (loops[i][j].createdEdges == null || loops[i][j].createdEdges.Count == 0)
-                    {
-                        if (loops[i][j].curve is BSpline && (loops[i][j].curve as BSpline).degree == 1)
-                        {
-                            BSpline polygon = loops[i][j].curve as BSpline;
-                            if (Precision.IsEqual(polygon.Poles[0], polygon.Poles[polygon.Poles.Length - 1]))
-                            {
-                                List<GeoPoint> ppoles = new List<GeoPoint>(polygon.Poles);
-                                while (ppoles.Count > 2 && Precision.IsEqual(ppoles[0], ppoles[ppoles.Count - 1]) && Precision.IsEqual(ppoles[1], ppoles[ppoles.Count - 2]))
-                                {
-                                    ppoles.RemoveAt(ppoles.Count - 1);
-                                    ppoles.RemoveAt(0);
-                                }
-                                if (ppoles.Count > 1)
-                                {
-                                    ppoles.RemoveAt(ppoles.Count - 1); // polyline will be flagged as closed, so we can remove last point
-                                    Polyline pl = Polyline.Construct();
-                                    pl.SetPoints(ppoles.ToArray(), true);
-                                    loops[i][j].curve = pl;
-                                    loops[i][j].vertex1 = loops[i][j].vertex2 = new Vertex(ppoles[0]);
-                                }
-                                else
-                                {   //should not happen: a polyline going forth and back
-                                    loops[i][j].curve = null;
-                                    loops[i][j].vertex1 = loops[i][j].vertex2 = new Vertex(ppoles[0]); // a pole (in N13_MASCHIO_3D_FILO.stp)
-                                }
-                            }
-                            else
-                            {
-                                Polyline pl = Polyline.Construct();
-                                pl.SetPoints(polygon.Poles, false); // make polygon from bspline with degree 1
-                                loops[i][j].curve = pl;
-                            }
-                        }
-
-                    }
-                }
-            }
-
-            ISurface canonical = surface.GetCanonicalForm(precision);
-            if (canonical != null)
-            {
-                surface = canonical; // they have different uv systems, but this doesn't matter here
-                GeoVector move = GeoVector.NullVector;
-                foreach (Vertex vtx in allVertices)
-                {
-                    GeoVector diff = vtx.Position - surface.PointAt(surface.PositionOf(vtx.Position));
-                    move += diff;
-                }
-                move = (1.0 / allVertices.Count) * move;
-                surface.Modify(ModOp.Translate(move));
-                move = GeoVector.NullVector;
-                foreach (Vertex vtx in allVertices)
-                {
-                    GeoVector diff = vtx.Position - surface.PointAt(surface.PositionOf(vtx.Position));
-                    move += diff;
-                }
-            }
-            else if (!(surface is PlaneSurface))
-            {   // introduced because of a conical surface with opening angle of almost 180° and curves residing in the plane between the two
-                // parts of the cone. In 2d this turns out to be difficult, because points are mapped on different parts of the cone.
-                // file "1528_Einsätze_DS-oben.stp"
-                GeoPoint[] vtxpnts = new GeoPoint[allVertices.Count];
-                int vii = 0;
-                foreach (Vertex vtx in allVertices)
-                {
-                    vtxpnts[vii] = vtx.Position;
-                    ++vii;
-                }
-                Plane pln = Plane.FromPoints(vtxpnts, out double maxDist, out bool isLinear);
-                if (maxDist < precision)
-                {
-                    bool curvesAreInPlane = true;
-                    for (int i = 0; i < loops.Count; i++)
+                    if (loops[i].Count > 1)
                     {
                         for (int j = 0; j < loops[i].Count; j++)
                         {
+                            int jn = (j + 1) % loops[i].Count;
+                            if (loops[i][j].curve != null && loops[i][jn].curve != null)
+                                Connect3dCurves(loops[i][j].curve, loops[i][j].forward, loops[i][jn].curve, loops[i][jn].forward);
+                            if (loops[i][j].curve != null) minCurveLength = Math.Min(minCurveLength, loops[i][j].curve.Length);
+                        }
+                    }
+                    if (loops[i].Count == 1 && loops[i][0].curve is Ellipse && loops[i][0].curve.IsClosed && loops[i][0].vertex1 == loops[i][0].vertex2)
+                    {
+                        // a single circle must correspond to its vertex with its start/endpoint. 
+                        // This is not always given in step files, because they don't care about start/endpoints of circles
+                        Ellipse elli = loops[i][0].curve as Ellipse;
+                        if ((elli.StartPoint | loops[i][0].vertex1.Position) > Precision.eps)
+                        {
+                            double sp = elli.PositionOf(loops[i][0].vertex1.Position);
+                            elli.StartParameter = sp * Math.PI * 2.0;
+                        }
+                    }
+                }
+                // self intersecting loop. Of course a loop cannot intersect itself, but in some files they do (83855_elp11b.stp)
+                // We try here to remove smaller parts
+                double vprec = Math.Min(precision, minCurveLength / 2.0);
+                Set<Vertex> allVertices = new Set<Vertex>();
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    Set<Vertex> vertices = new Set<Vertex>();
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        bool duplicateFound = false;
+                        foreach (Vertex vtx in vertices)
+                        {
+                            if (vtx != loops[i][j].vertex1 && (vtx.Position | loops[i][j].vertex1.Position) < vprec)
+                            {
+                                vtx.MergeWith(loops[i][j].vertex1);
+                                loops[i][j].vertex1 = vtx;
+                                duplicateFound = true;
+                                break;
+                            }
+                        }
+                        if (!duplicateFound) vertices.Add(loops[i][j].vertex1);
+                        duplicateFound = false;
+                        foreach (Vertex vtx in vertices)
+                        {
+                            if (vtx != loops[i][j].vertex2 && (vtx.Position | loops[i][j].vertex2.Position) < vprec)
+                            {
+                                vtx.MergeWith(loops[i][j].vertex2);
+                                loops[i][j].vertex2 = vtx;
+                                duplicateFound = true;
+                                break;
+                            }
+                        }
+                        if (!duplicateFound) vertices.Add(loops[i][j].vertex2);
+                    }
+                    allVertices.AddMany(vertices);
+                    if (vertices.Count > loops[i].Count)
+                    {
+                        // there must be different vertices with the same coordinate, because the loop must always be closed (in 3d)
+                    }
+                    else if (vertices.Count < loops[i].Count)
+                    {
+                        // there must be a self intersection
+                        Dictionary<Vertex, int> vertexUsage = new Dictionary<Vertex, int>(); // find the vertices used more than twice
+                                                                                             // we could do this in the loop above, but this part is very rarely executed, soo we keep the first part fast
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            if (!vertexUsage.ContainsKey(loops[i][j].vertex1)) vertexUsage[loops[i][j].vertex1] = 0;
+                            ++vertexUsage[loops[i][j].vertex1];
+                            if (!vertexUsage.ContainsKey(loops[i][j].vertex2)) vertexUsage[loops[i][j].vertex2] = 0;
+                            ++vertexUsage[loops[i][j].vertex2];
+                        }
+                        Set<Vertex> selfIntersections = new Set<Vertex>();
+                        foreach (KeyValuePair<Vertex, int> item in vertexUsage)
+                        {
+                            if (item.Value > 2) selfIntersections.Add(item.Key);
+                        }
+                        List<List<StepEdgeDescriptor>> subloops = new List<List<StepEdgeDescriptor>>();
+                        subloops.Add(loops[i]);
+                        // assuming each selfIntersection vertex is only used twice
+                        foreach (Vertex vtx in selfIntersections)
+                        {
+                            for (int k = 0; k < subloops.Count; k++)
+                            {
+                                int first = -1, second = -1;
+                                for (int j = 0; j < subloops[k].Count; j++)
+                                {
+                                    if (first < 0 && ((subloops[k][j].forward && subloops[k][j].vertex1 == vtx) || (!subloops[k][j].forward && subloops[k][j].vertex2 == vtx))) first = j;
+                                    if (first >= 0 && ((subloops[k][j].forward && subloops[k][j].vertex2 == vtx) || (!subloops[k][j].forward && subloops[k][j].vertex1 == vtx))) second = j;
+                                    if (second >= 0) break;
+                                }
+                                if (first >= 0 && second >= 0) // respecting the case that the first edge in the loop is closed
+                                {
+                                    List<StepEdgeDescriptor> part1 = subloops[k].GetRange(first, second - first + 1);
+                                    subloops[k].RemoveRange(first, second - first + 1);
+                                    subloops.Add(part1);
+                                    break; // the vertex vtx has been handled
+                                }
+                            }
+                        }
+                        loops.RemoveAt(i);
+                        loops.InsertRange(i, subloops);
+                        // now a self intersecting loop has been splitted in multiple non-selfintersecting loops
+                        // We should now remove those parts, wich are incorrect oriented.
+                    }
+                    // of course there could also be a self intersection of edge curves inside the curves. This is not checked here
+                }
+                for (int i = loops.Count - 1; i >= 0; --i)
+                {   // there is a seam, which we don't want here
+                    if (loops[i].Count == 2 && loops[i][0].curve != null && loops[i][0].curve.SameGeometry(loops[i][1].curve, precision))
+                    {
+                        loops.RemoveAt(i);
+                    }
+                }
+                if (loops.Count == 0)
+                {
+                    return new Face[0];
+                }
+                // if a loop-curve has already a created edge and this edge has already a primary and a secondary face, i.e. the edge is already used by two faces
+                // we must create a new edge for the new face we are going to make
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 0)
+                        {
+                            if (loops[i][j].createdEdges[0].PrimaryFace != null && loops[i][j].createdEdges[0].SecondaryFace != null)
+                            {
+                                loops[i][j].createdEdges.Clear();
+                            }
+                        }
+                    }
+                }
+
+                // if a loop-curve has already created edges (i.e. this is the second usage of this loop-curve)
+                // and there has more than one edge been created (a previous face was splitted)
+                // then we split this loop curve into two loop curves to make further processing easier
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    bool needsResort = false; // maybe there is a rule to make this superfluous, but I don't know
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 1)
+                        {
+                            //Vertex sv = null;
+                            //if (loops[i][j].forward) sv = loops[i][j].vertex1;
+                            //else sv = loops[i][j].vertex2;
+                            //if (loops[i][j].createdEdges[0].EndVertex(loops[i][j].createdEdges[0].PrimaryFace) != sv)
+                            //{
+                            //    loops[i][j].createdEdges.Reverse();
+                            //}
+                            List<StepEdgeDescriptor> toInsert = new List<StepEdgeDescriptor>();
+                            for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
+                            {
+                                loops[i][j].createdEdges[k].UseVertices(loops[i][j].vertex1, loops[i][j].vertex2);
+                                StepEdgeDescriptor se = new StepEdgeDescriptor(loops[i][j].createdEdges[k], loops[i][j].forward);
+                                toInsert.Add(se);
+                            }
+                            loops[i].RemoveAt(j);
+                            loops[i].InsertRange(j, toInsert);
+                            needsResort = true;
+                        }
+                    }
+                    if (needsResort)
+                    {
+                        Set<StepEdgeDescriptor> loopcurves = new Set<StepEdgeDescriptor>(loops[i]);
+                        loops[i].Clear();
+                        StepEdgeDescriptor se = loopcurves.GetAny();
+                        loopcurves.Remove(se);
+                        loops[i].Add(se);
+                        while (loopcurves.Count > 0)
+                        {
+                            Vertex lastVertex;
+                            if (loops[i][loops[i].Count - 1].forward) lastVertex = loops[i][loops[i].Count - 1].vertex2;
+                            else lastVertex = loops[i][loops[i].Count - 1].vertex1;
+                            bool found = false;
+                            foreach (StepEdgeDescriptor item in loopcurves)
+                            {
+                                if ((item.forward && item.vertex1 == lastVertex) || (!item.forward && item.vertex2 == lastVertex))
+                                {
+                                    loops[i].Add(item);
+                                    loopcurves.Remove(item);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) return null; // loop is not connected logically
+                        }
+                    }
+                }
+                // split loops containing seams. (like in 2472g.stp)
+                // A loop may contain an edge which is used twice in different directions. Remove this edge and split the loop into two loops:
+                // NO!!! we don't do this, if there is a real seam, the face will be splitted, and splitting can deal with it
+                // we only check to find the seam edges
+                for (int i = loops.Count - 1; i >= 0; --i)
+                {
+                    for (int j = 0; j < loops[i].Count - 1; j++)
+                    {
+                        for (int k = j + 1; k < loops[i].Count; k++)
+                        {
+                            bool sameEdge = false;
+                            if (loops[i][j].forward != loops[i][k].forward && loops[i][j].vertex1 == loops[i][k].vertex1 && loops[i][j].vertex2 == loops[i][k].vertex2) sameEdge = true;
+                            if (loops[i][j].forward == loops[i][k].forward && loops[i][j].vertex1 == loops[i][k].vertex2 && loops[i][j].vertex2 == loops[i][k].vertex1) sameEdge = true;
+
+                            if (sameEdge && loops[i][j].curve.SameGeometry(loops[i][k].curve, Precision.eps))
+                            {
+                                // two edges going in opposite directions 
+                                loops[i][j].isSeam = loops[i][k].isSeam = true;
+                            }
+                        }
+                    }
+                }
+                // there are loop curves (polylines as bsplines), which have a common starting and ending part. These parts seem to be seams, like in N13_MASCHIO_3D_FILO.stp
+                // we try to remove these parts and substitute with trimmed curves
+                for (int i = 0; i < loops.Count; ++i)
+                {
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        if (loops[i][j].createdEdges == null || loops[i][j].createdEdges.Count == 0)
+                        {
+                            if (loops[i][j].curve is BSpline && (loops[i][j].curve as BSpline).degree == 1)
+                            {
+                                BSpline polygon = loops[i][j].curve as BSpline;
+                                if (Precision.IsEqual(polygon.Poles[0], polygon.Poles[polygon.Poles.Length - 1]))
+                                {
+                                    List<GeoPoint> ppoles = new List<GeoPoint>(polygon.Poles);
+                                    while (ppoles.Count > 2 && Precision.IsEqual(ppoles[0], ppoles[ppoles.Count - 1]) && Precision.IsEqual(ppoles[1], ppoles[ppoles.Count - 2]))
+                                    {
+                                        ppoles.RemoveAt(ppoles.Count - 1);
+                                        ppoles.RemoveAt(0);
+                                    }
+                                    if (ppoles.Count > 1)
+                                    {
+                                        ppoles.RemoveAt(ppoles.Count - 1); // polyline will be flagged as closed, so we can remove last point
+                                        Polyline pl = Polyline.Construct();
+                                        pl.SetPoints(ppoles.ToArray(), true);
+                                        loops[i][j].curve = pl;
+                                        loops[i][j].vertex1 = loops[i][j].vertex2 = new Vertex(ppoles[0]);
+                                    }
+                                    else
+                                    {   //should not happen: a polyline going forth and back
+                                        loops[i][j].curve = null;
+                                        loops[i][j].vertex1 = loops[i][j].vertex2 = new Vertex(ppoles[0]); // a pole (in N13_MASCHIO_3D_FILO.stp)
+                                    }
+                                }
+                                else
+                                {
+                                    Polyline pl = Polyline.Construct();
+                                    pl.SetPoints(polygon.Poles, false); // make polygon from bspline with degree 1
+                                    loops[i][j].curve = pl;
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+                ISurface canonical = surface.GetCanonicalForm(precision);
+                if (canonical != null)
+                {
+                    surface = canonical; // they have different uv systems, but this doesn't matter here
+                    GeoVector move = GeoVector.NullVector;
+                    foreach (Vertex vtx in allVertices)
+                    {
+                        GeoVector diff = vtx.Position - surface.PointAt(surface.PositionOf(vtx.Position));
+                        move += diff;
+                    }
+                    move = (1.0 / allVertices.Count) * move;
+                    surface.Modify(ModOp.Translate(move));
+                    move = GeoVector.NullVector;
+                    foreach (Vertex vtx in allVertices)
+                    {
+                        GeoVector diff = vtx.Position - surface.PointAt(surface.PositionOf(vtx.Position));
+                        move += diff;
+                    }
+                }
+                else if (!(surface is PlaneSurface))
+                {   // introduced because of a conical surface with opening angle of almost 180° and curves residing in the plane between the two
+                    // parts of the cone. In 2d this turns out to be difficult, because points are mapped on different parts of the cone.
+                    // file "1528_Einsätze_DS-oben.stp"
+                    GeoPoint[] vtxpnts = new GeoPoint[allVertices.Count];
+                    int vii = 0;
+                    foreach (Vertex vtx in allVertices)
+                    {
+                        vtxpnts[vii] = vtx.Position;
+                        ++vii;
+                    }
+                    Plane pln = Plane.FromPoints(vtxpnts, out double maxDist, out bool isLinear);
+                    if (maxDist < precision)
+                    {
+                        bool curvesAreInPlane = true;
+                        for (int i = 0; i < loops.Count; i++)
+                        {
+                            for (int j = 0; j < loops[i].Count; j++)
+                            {
+                                if (loops[i][j].curve != null)
+                                {
+                                    if (!loops[i][j].curve.IsInPlane(pln))
+                                    {
+                                        curvesAreInPlane = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!curvesAreInPlane) break;
+                        }
+                        if (curvesAreInPlane) surface = new PlaneSurface(pln);
+                    }
+                }
+                if (surface is SphericalSurface && (surface as SphericalSurface).IsRealSphere)
+                {
+                    // typically the sperical surfaces are oriented so that the spheres axis is the z-Axis (if it was not not created as a surface of revolution)
+                    // it is easier and faster if the loops don't include one of the poles. This is not always possible, but we try it here:
+                    SphericalSurface sphericalSurface = surface as SphericalSurface;
+                    GeoPoint loc = sphericalSurface.Location;
+                    int loopind = 0; // the longest loop is considered to be the outer loop, which is true in most cases
+                    if (loops.Count > 1)
+                    {
+                        double maxlen = 0.0;
+                        for (int i = 0; i < loops.Count; i++)
+                        {
+                            double ll = 0.0;
+                            for (int j = 0; j < loops[i].Count; j++)
+                            {
+                                if (loops[i][j].curve != null) ll += loops[i][j].curve.Length;
+                            }
+                            if (ll > maxlen)
+                            {
+                                loopind = i;
+                                maxlen = ll;
+                            }
+                        }
+                    }
+                    GeoVector axdir = GeoVector.NullVector;
+                    for (int k = 0; k < 10; k++)
+                    {
+                        double a = ((k + 1) % Math.PI);
+                        double b = Math.PI / 2.0 - ((k + 10) % Math.PI); // quasi random angles
+                        axdir = new GeoVector(new Angle(a), new Angle(b));
+                        Plane tstpln = new Plane(loc, axdir);
+                        List<ICurve2D> projectedLoop = new List<ICurve2D>();
+                        for (int i = 0; i < loops[loopind].Count; i++)
+                        {
+                            if (loops[loopind][i].curve != null)
+                            {
+                                ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
+                                if (!loops[0][loopind].forward) c2d.Reverse();
+                                projectedLoop.Add(c2d);
+                            }
+                        }
+                        ICurve2D[] pla = projectedLoop.ToArray();
+
+                        if (Border.IsPointOnOutline(pla, GeoPoint2D.Origin, precision)) continue;
+                        if (Border.IsInside(pla, GeoPoint2D.Origin) != Border.CounterClockwise(pla))
+                        {
+                            break;
+                        }
+                    }
+                    double radius = sphericalSurface.RadiusX;
+                    GeoVector dirx = axdir ^ GeoVector.ZAxis;
+                    GeoVector diry = dirx ^ axdir;
+                    dirx.Norm();
+                    diry.Norm();
+                    surface = new SphericalSurface(loc, radius * dirx, radius * diry, radius * axdir);
+                }
+                if (surface is CylindricalSurface || surface is ConicalSurface || surface is ToroidalSurface || surface is SurfaceOfRevolution)
+                {   // avoid vertices close to 0 or 180°, because here the surface might be splitted and cause very short edges which might make problems
+                    List<double> uvalues = new List<double>();
+                    foreach (Vertex vtx in allVertices)
+                    {
+                        GeoPoint2D uv = surface.PositionOf(vtx.Position);
+                        uvalues.Add(uv.x % Math.PI);
+                    }
+                    uvalues.Sort();
+                    double bestu = 0.0;
+                    double maxdist = 0.0;
+                    for (int i = 0; i < uvalues.Count; i++)
+                    {
+                        double nu;
+                        if (i + 1 == uvalues.Count) nu = uvalues[0] + Math.PI;
+                        else nu = uvalues[i + 1];
+                        double d = nu - uvalues[i];
+                        if (d > maxdist)
+                        {
+                            maxdist = d;
+                            bestu = (nu + uvalues[i]) / 2.0;
+                        }
+                    }
+                    if (bestu != 0.0)
+                    {
+                        GeoVector axis = GeoVector.NullVector;
+                        GeoPoint location = GeoPoint.Origin;
+                        if (surface is CylindricalSurface)
+                        {
+                            location = (surface as CylindricalSurface).Location;
+                            axis = (surface as CylindricalSurface).ZAxis;
+                        }
+                        if (surface is ConicalSurface)
+                        {
+                            location = (surface as ConicalSurface).Location;
+                            axis = (surface as ConicalSurface).ZAxis;
+                        }
+                        if (surface is ToroidalSurface)
+                        {
+                            location = (surface as ToroidalSurface).Location;
+                            axis = (surface as ToroidalSurface).ZAxis;
+                        }
+                        if (surface is SurfaceOfRevolution)
+                        {
+                            location = (surface as SurfaceOfRevolution).Location;
+                            axis = (surface as SurfaceOfRevolution).Axis;
+                        }
+                        ModOp rotation = ModOp.Rotate(location, axis, new SweepAngle(bestu));
+                        surface.Modify(rotation);
+                    }
+                }
+#if DEBUG
+                // Show the 3d loops for this face
+                DebuggerContainer dc = new DebuggerContainer();
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        if (loops[i][j].curve != null)
+                        {
+                            GeoPoint ccnt;
+                            if (loops[i][j].forward)
+                            {
+                                dc.Add(loops[i][j].curve as IGeoObject, System.Drawing.Color.Blue, i * 100 + j);
+                                ccnt = loops[i][j].curve.PointAt(0.5);
+                                GeoVector cdir = loops[i][j].curve.DirectionAt(0.5);
+                                cdir.NormIfNotNull();
+                                Line dl = Line.TwoPoints(ccnt, ccnt + loops[i][j].curve.Length * 0.05 * cdir);
+                                dc.Add(dl, System.Drawing.Color.Red, i * 100 + j);
+                            }
+                            else
+                            {
+                                ICurve crv = loops[i][j].curve.Clone();
+                                crv.Reverse();
+                                dc.Add(crv as IGeoObject, System.Drawing.Color.Blue, i * 100 + j);
+                                ccnt = crv.PointAt(0.5);
+                                GeoVector cdir = crv.DirectionAt(0.5).Normalized;
+                                Line dl = Line.TwoPoints(ccnt, ccnt + crv.Length * 0.05 * cdir);
+                                dc.Add(dl, System.Drawing.Color.Red, i * 100 + j);
+                            }
+                            try
+                            {
+                                GeoVector ndir = surface.GetNormal(surface.PositionOf(ccnt)).Normalized;
+                                Line dn = Line.TwoPoints(ccnt, ccnt + loops[i][j].curve.Length * 0.05 * ndir);
+                                dc.Add(dn, System.Drawing.Color.Green, i * 100 + j);
+                            }
+                            catch { }
+                            Point pnt = Point.Construct();
+                            pnt.Symbol = PointSymbol.Cross;
+                            pnt.Location = loops[i][j].vertex1.Position;
+                            dc.Add(pnt, loops[i][j].vertex1.GetHashCode());
+                            if (loops[i][j].vertex2 != loops[i][j].vertex1)
+                            {
+                                pnt = Point.Construct();
+                                pnt.Symbol = PointSymbol.Cross;
+                                pnt.Location = loops[i][j].vertex2.Position;
+                                dc.Add(pnt, loops[i][j].vertex2.GetHashCode());
+                            }
+                        }
+                        else
+                        {
+                            Point pnt = Point.Construct();
+                            pnt.Symbol = PointSymbol.Plus;
+                            pnt.Location = loops[i][j].vertex1.Position;
+                            dc.Add(pnt, loops[i][j].vertex1.GetHashCode());
+                        }
+                    }
+                }
+                DebuggerContainer dced = new DebuggerContainer();
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
+                        {
+                            dced.Add(loops[i][j].createdEdges[k].Curve3D as IGeoObject, i * 100 + j);
+                        }
+                    }
+                }
+                DebuggerContainer dc2dx = new DebuggerContainer();
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        if (loops[i][j].curve != null)
+                        {
+                            ICurve2D c2d = surface.GetProjectedCurve(loops[i][j].curve, 0.0);
+                            if (!loops[i][j].forward) c2d.Reverse();
+                            dc2dx.Add(c2d, System.Drawing.Color.Red, i * 100 + j);
+                            GeoPoint2D po;
+                            if (loops[i][j].forward) po = surface.PositionOf(loops[i][j].curve.StartPoint);
+                            else po = surface.PositionOf(loops[i][j].curve.EndPoint);
+                            dc2dx.Add(po, System.Drawing.Color.Red, i * 100 + j);
+                        }
+                    }
+                }
+                // *** check 3d loops, raw 2d projection, already created edges
+#endif
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        if (loops[i][j].createdEdges.Count > 1)
+                        {   // this edge has been splitted
+                            Vertex sv = null;
+                            if (loops[i][j].forward) sv = loops[i][j].vertex1;
+                            else sv = loops[i][j].vertex2;
+                            if (loops[i][j].createdEdges[0].EndVertex(loops[i][j].createdEdges[0].PrimaryFace) == sv)
+                            {
+                                // nothig to do, createdEdges is in correct order
+                            }
+                            else
+                            {
+                                loops[i][j].createdEdges.Reverse();
+                            }
+                        }
+                    }
+                }
+                // Poles (typically with sphere, cone and sometimes nurbes) lead to missing 2d connections.
+                // these edges are inserted here with no 3d curve but valid vertices
+                double[] us = surface.GetUSingularities();
+                double[] vs = surface.GetVSingularities();
+                // the following three lists are synchronous
+                List<GeoPoint> poles = new List<GeoPoint>();
+                List<GeoPoint2D> poles2d = new List<GeoPoint2D>();
+                List<bool> poleIsInU = new List<bool>();
+                for (int i = 0; i < us.Length; i++)
+                {
+                    poles.Add(surface.PointAt(new GeoPoint2D(us[i], 0.0)));
+                    poles2d.Add(new GeoPoint2D(us[i], 0.0));
+                    poleIsInU.Add(false);
+                }
+                for (int i = 0; i < vs.Length; i++)
+                {
+                    poles.Add(surface.PointAt(new GeoPoint2D(0.0, vs[i])));
+                    poles2d.Add(new GeoPoint2D(0.0, vs[i]));
+                    poleIsInU.Add(true);
+                }
+                //for (int i = 0; i < poles.Count; i++)
+                //{
+                //    foreach (Vertex vtx in allVertices)
+                //    {
+                //        if ((vtx.Position|poles[i])<precision)
+                //        {
+
+                //        }
+                //    }
+                //}
+                List<Pair<StepEdgeDescriptor, List<StepEdgeDescriptor>>> splittedByPoles = new List<Pair<StepEdgeDescriptor, List<StepEdgeDescriptor>>>();
+                if (poles.Count > 0)
+                {
+                    // check whether a loop-curve goes through a pole. In this case we have to split the loop-curve into parts in order to be able to insert 
+                    // the loop-pole-curve (which is a point in 3d and a line in 2d) in between these two parts
+                    // not implemented yet: the loop edge already has been splitted (multiple createdEdges)!!!
+                    for (int i = 0; i < loops.Count; i++)
+                    {
+                        Dictionary<Vertex, int> vertexToPole = new Dictionary<Vertex, int>();
+                        for (int j = loops[i].Count - 1; j >= 0; --j) // backward loop, because maybe an entry will be splitted
+                        {
                             if (loops[i][j].curve != null)
                             {
-                                if (!loops[i][j].curve.IsInPlane(pln))
+                                for (int k = 0; k < poles.Count; k++)
                                 {
-                                    curvesAreInPlane = false;
+                                    if (loops[i][j].curve.DistanceTo(poles[k]) < Precision.eps)
+                                    {
+                                        if (Precision.IsEqual(loops[i][j].vertex1.Position, poles[k]) || Precision.IsEqual(loops[i][j].vertex2.Position, poles[k])) continue;
+                                        double pos = loops[i][j].curve.PositionOf(poles[k]);
+                                        if (pos >= 1 - 1e-5 || pos <= 1e-5) continue;
+                                        ICurve[] parts = loops[i][j].curve.Split(pos);
+                                        StepEdgeDescriptor se = loops[i][j];
+                                        loops[i].RemoveAt(j);
+                                        List<StepEdgeDescriptor> toInsert = new List<StepEdgeDescriptor>();
+                                        Vertex lastEnd = null;
+                                        for (int l = 0; l < parts.Length; l++)
+                                        {
+                                            Vertex sv;
+                                            if (lastEnd != null) sv = lastEnd;
+                                            else sv = se.vertex1;
+                                            Vertex ev;
+                                            if (l < parts.Length - 1) ev = new Vertex(parts[l].EndPoint);
+                                            else ev = se.vertex2;
+                                            lastEnd = ev;
+                                            StepEdgeDescriptor sedpart = new StepEdgeDescriptor(parts[l], sv, ev, se.forward);
+                                            toInsert.Add(sedpart);
+                                        }
+                                        if (!se.forward) toInsert.Reverse();
+                                        loops[i].InsertRange(j, toInsert);
+                                        splittedByPoles.Add(new Pair<StepEdgeDescriptor, List<StepEdgeDescriptor>>(se, toInsert));
+                                    }
+                                }
+                            }
+                        }
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            for (int k = 0; k < poles.Count; k++)
+                            {
+                                if ((loops[i][j].vertex1.Position | poles[k]) < 10 * precision) vertexToPole[loops[i][j].vertex1] = k;
+                                if ((loops[i][j].vertex2.Position | poles[k]) < 10 * precision) vertexToPole[loops[i][j].vertex2] = k;
+                            }
+                        }
+                        if (vertexToPole.Count > 1)
+                        {   // very rare case: two different vertices for the same pole
+                            List<Vertex> keys = new List<Vertex>(vertexToPole.Keys);
+                            for (int vi = 0; vi < keys.Count - 1; vi++)
+                            {
+                                for (int vj = vi + 1; vj < keys.Count; vj++)
+                                {
+                                    if (vertexToPole.ContainsKey(keys[vi]) && vertexToPole.ContainsKey(keys[vj]) && vertexToPole[keys[vi]] == vertexToPole[keys[vj]])
+                                    {   // different vertices, same pole: replace vertex item2.Key by item1.Key
+                                        keys[vi].MergeWith(keys[vj]); // updates all existing edges, but not the parameter loops
+                                        for (int j = 0; j < loops[i].Count; j++)
+                                        {
+                                            if (loops[i][j].vertex1 == keys[vj]) loops[i][j].vertex1 = keys[vi];
+                                            if (loops[i][j].vertex2 == keys[vj]) loops[i][j].vertex2 = keys[vi];
+                                        }
+                                        vertexToPole.Remove(keys[vj]);
+                                    }
+                                }
+                            }
+                        }
+                        if (vertexToPole.Count > 0)
+                        {
+                            bool poleInserted = false;
+                            for (int j = 0; j < loops[i].Count; j++)
+                            {
+                                int j1 = (j + 1) % loops[i].Count;
+                                if (j != j1)
+                                {
+                                    Vertex endVertex;
+                                    if (loops[i][j].forward) endVertex = loops[i][j].vertex2;
+                                    else endVertex = loops[i][j].vertex1;
+                                    if (vertexToPole.ContainsKey(endVertex) && ((endVertex == loops[i][j1].vertex1) || (endVertex == loops[i][j1].vertex2)))
+                                    {   // insert a pole between j and j+1, 2d curve will be created later
+                                        loops[i].Insert(j1, new StepEdgeDescriptor((ICurve)null, endVertex, endVertex, false));
+                                        poleInserted = true;
+                                        ++j;
+                                    }
+                                }
+                            }
+                            if (poleInserted)
+                            {
+                                // permute cyclicaly so that the list starts with a pole followed by the longest path without a pole.
+                                // This is only important for the domain calculation
+                                List<int> poleIndices = new List<int>();
+                                for (int j = 0; j < loops[i].Count; j++) if (loops[i][j].curve == null) poleIndices.Add(j);
+                                int bestPoleIndex = poleIndices[poleIndices.Count - 1];
+                                int maxSpan = loops[i].Count - bestPoleIndex + poleIndices[0] - 1;
+                                for (int j = 0; j < poleIndices.Count - 1; j++)
+                                {
+                                    int span = poleIndices[j + 1] - poleIndices[j] - 1;
+                                    if (span > maxSpan)
+                                    {
+                                        maxSpan = span;
+                                        bestPoleIndex = poleIndices[j];
+                                    }
+                                }
+                                if (bestPoleIndex != 0)
+                                {   // rotate the list so it begins with a pole (followed by a maximum number of non-poles
+                                    List<StepEdgeDescriptor> rotated = new List<StepEdgeDescriptor>(loops[i].Count);
+                                    for (int j = 0; j < loops[i].Count; j++)
+                                    {
+                                        rotated.Add(loops[i][(j + bestPoleIndex) % loops[i].Count]);
+                                    }
+                                    loops[i] = rotated;
+                                }
+                            }
+
+                        }
+                    }
+                }
+
+                // STEP allows faces to have periodic surfaces, which are bounded by two outer loops, like a piece of a cylinder, bounded by two circles or ellipses.
+                // In CADability, each face must have a single outer bound in u/v space (and any number of holes). Also we do not like "seam"-edges, i.e. edges,
+                // which are used twice in both directions on a single face. (Although it is still allowed and causes much debugging effort)
+                // create the 2d projections of the edges on the surface.
+                double uperiod = 0.0, vperiod = 0.0;
+                if (surface.IsUPeriodic) uperiod = surface.UPeriod;
+                if (surface.IsVPeriodic) vperiod = surface.VPeriod;
+#if DEBUG
+                // *** check correct 2d projection
+                DebuggerContainer dccrv2d = new DebuggerContainer();
+#endif
+                // in case of periodic surfaces, we need the curves to be as close together as possible
+                // so we start with the first curve to set a domain for the periodic space
+                BoundingRect[] loopExt = new BoundingRect[loops.Count];
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    loopExt[i] = BoundingRect.EmptyBoundingRect;
+                    GeoPoint2D lastEndPoint = GeoPoint2D.Invalid;
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        if (loops[i][j].curve != null)
+                        {
+                            double len = loops[i][j].curve.Length;
+                            ICurve2D crv2d;
+                            if (len < Precision.eps * 100)
+                            {
+                                GeoPoint2D sp = surface.PositionOf(loops[i][j].curve.StartPoint);
+                                GeoPoint2D ep = surface.PositionOf(loops[i][j].curve.EndPoint);
+                                if (!lastEndPoint.IsValid)
+                                {
+                                    lastEndPoint = sp;
+                                }
+                                SurfaceHelper.AdjustPeriodicStartPoint(surface, lastEndPoint, ref sp);
+                                SurfaceHelper.AdjustPeriodicStartPoint(surface, lastEndPoint, ref ep);
+                                crv2d = new Line2D(sp, ep);
+                            }
+                            else crv2d = surface.GetProjectedCurve(loops[i][j].curve, 0.0);
+                            if (!loops[i][j].forward) crv2d.Reverse();
+                            if (!lastEndPoint.IsValid)
+                            {
+                                if (i != 0) SurfaceHelper.AdjustPeriodic(surface, loopExt[0], crv2d); // else crv2d is the first 2d curve of this loops and determins the domain
+                            }
+                            else
+                            {
+                                SurfaceHelper.AdjustPeriodicStartPoint(surface, lastEndPoint, crv2d);
+                            }
+                            if (crv2d != null) lastEndPoint = crv2d.EndPoint;
+#if DEBUG
+                            dccrv2d.Add(crv2d, System.Drawing.Color.Red, i * 100 + j);
+#endif
+                            crv2d.UserData["EdgeDescriptor"] = loops[i][j]; // if we need to split, we need this information
+                            loops[i][j].curve2d = crv2d;
+                            loopExt[i].MinMax(crv2d.GetExtent());
+                        }
+                    }
+                }
+                BoundingRect ext = BoundingRect.EmptyBoundingRect;
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    ext.MinMax(loopExt[i]);
+                }
+                if (ext.IsEmpty())
+                {   // rare case, only poles, e.g. a full sphere
+                    surface.GetNaturalBounds(out ext.Left, out ext.Right, out ext.Bottom, out ext.Top);
+                }
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        if (loops[i][j].curve == null)
+                        {
+                            // probably a pole
+                            if (loops[i][j].vertex1 == loops[i][j].vertex2 && poles.Count > 0)
+                            {
+                                int poleIndex = -1;
+                                double mindist = double.MaxValue;
+                                for (int k = 0; k < poles.Count; k++)
+                                {
+                                    double d = poles[k] | loops[i][j].vertex1.Position;
+                                    if (d < mindist)
+                                    {
+                                        mindist = d;
+                                        poleIndex = k;
+                                    }
+                                }
+                                if (poleIndex >= 0)
+                                {
+                                    // if it is a vertex loop, like the tip of a cone, then this is the only edge, and you dont't know the orientation
+                                    if (poleIsInU[poleIndex])
+                                    {
+                                        loops[i][j].curve2d = new Line2D(new GeoPoint2D(ext.Left, poles2d[poleIndex].y), new GeoPoint2D(ext.Right, poles2d[poleIndex].y));
+                                    }
+                                    else
+                                    {
+                                        loops[i][j].curve2d = new Line2D(new GeoPoint2D(poles2d[poleIndex].x, ext.Bottom), new GeoPoint2D(poles2d[poleIndex].x, ext.Top));
+                                    }
+                                    int j0 = (j + loops[i].Count - 1) % loops[i].Count;
+                                    int j1 = (j + 1) % loops[i].Count;
+                                    GeoPoint2D lastEndPoint = loops[i][j0].curve2d.EndPoint;
+                                    GeoPoint2D nextStartPoint = loops[i][j1].curve2d.StartPoint;
+                                    if ((loops[i][j].curve2d.EndPoint | lastEndPoint) + (loops[i][j].curve2d.StartPoint | nextStartPoint) <
+                                        (loops[i][j].curve2d.StartPoint | lastEndPoint) + (loops[i][j].curve2d.EndPoint | nextStartPoint)) loops[i][j].curve2d.Reverse();
+#if DEBUG
+                                    dccrv2d.Add(loops[i][j].curve2d, System.Drawing.Color.Green, i * 100 + j);
+#endif
+                                    ext.MinMax(loops[i][j].curve2d.GetExtent());
+                                }
+                            }
+                        }
+                    }
+                }
+                // *** check correct 2d projection and poles
+                int outerLoop = 0;
+                List<int> openLoops = new List<int>();
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    if (i > 0 && loopExt[i].Size > loopExt[outerLoop].Size) outerLoop = i; // ok, there could be bounds with the same size, but do you have an example?
+                    if (!Precision.IsEqual(loops[i][0].curve2d.StartPoint, loops[i][loops[i].Count - 1].curve2d.EndPoint))
+                    {   // a loop might be open, such as the top and bottom of a cylinder, which has two outer loops
+                        if ((surface.IsUPeriodic && Math.Abs(loops[i][0].curve2d.StartPoint.x - loops[i][loops[i].Count - 1].curve2d.EndPoint.x) > surface.UPeriod / 2) ||
+                            (surface.IsVPeriodic && Math.Abs(loops[i][0].curve2d.StartPoint.y - loops[i][loops[i].Count - 1].curve2d.EndPoint.y) > surface.VPeriod / 2))
+                        {
+                            openLoops.Add(i); // open loops are always outer loop
+                        }
+                    }
+                }
+                if (openLoops.Count > 0) outerLoop = -1; // none of the closed loops is an outer loop, we have one ore more open loops
+                bool needsToSplit = false;
+                List<int> loopsToRemove = new List<int>();
+                // in most step files, the loops are oriented correctly, but in some (e.g. 2472g.stp) we have to repair
+                // the loop of the outerLoop must be counterclockwise, the others must be clockwise
+                int reverseCount = 0;
+                List<int> loopsToreverse = new List<int>(); // this is a repair machanism. In correct step files there should be no loops the have to be reversed
+                double sumArea = 0.0;
+                for (int i = loops.Count - 1; i >= 0; --i)
+                {
+                    if (openLoops.Contains(i)) continue;
+                    ICurve2D[] crvs = new ICurve2D[loops[i].Count];
+                    for (int j = 0; j < crvs.Length; j++)
+                    {
+                        crvs[j] = loops[i][j].curve2d;
+                    }
+                    double area = Border.SignedArea(crvs);
+                    bool closed = true;
+                    if (loops[i][0].curve != null && loops[i][loops[i].Count - 1].curve != null)
+                    {
+                        GeoPoint sp, ep;
+                        if (loops[i][0].forward) sp = loops[i][0].curve.StartPoint;
+                        else sp = loops[i][0].curve.EndPoint;
+                        int last = loops[i].Count - 1;
+                        if (loops[i][last].forward) ep = loops[i][last].curve.EndPoint;
+                        else ep = loops[i][last].curve.StartPoint;
+                        if ((sp | ep) > precision) closed = false;
+                    }
+                    if (Math.Abs(area) < (ext.Width + ext.Height) * 1e-8 || !closed)
+                    {   // probably a seam: two curves going forth and back on the same path
+                        loopsToRemove.Add(i);
+                    }
+                    else
+                    {
+                        sumArea += Math.Abs(area);
+                        bool ccw = area > 0.0;
+                        if ((i == outerLoop && !ccw) || (i != outerLoop && ccw))
+                        {
+                            loopsToreverse.Add(i);
+                            ++reverseCount;
+                        }
+                    }
+                }
+                if (openLoops.Count == 0 && sumArea < (ext.Width + ext.Height) * 1e-8) return null; // empty face
+                if (loops.Count == 1 && openLoops.Count == 1)
+                {
+                    // only a single open loop (like the equator on the sphere): there must be a pole which belongs to the surface
+                    // we must assume that the surface and loops are correct oriented, otherwise it is not possible to decide which pole to use
+                    int poleIndex = -1;
+                    for (int i = 0; i < poles2d.Count; i++)
+                    {
+                        double area = 0.0;
+                        for (int j = 0; j < loops[0].Count; j++)
+                        {
+                            area += loops[0][j].curve2d.GetAreaFromPoint(poles2d[i]);
+                        }
+                        if (area > 0) poleIndex = i;
+                    }
+                    if (poleIndex < 0 && poles2d.Count == 1)
+                    {   // e.g. conical, we reverse the loop and use the only pole
+                        for (int j = 0; j < loops[0].Count; j++)
+                        {
+                            loops[0][j].forward = !loops[0][j].forward;
+                            loops[0][j].curve2d.Reverse();
+                        }
+                        loops[0].Reverse();
+                        poleIndex = 0;
+                    }
+                    if (poleIndex >= 0)
+                    {
+                        Vertex vtxpole = new Vertex(poles[poleIndex]);
+                        StepEdgeDescriptor se = new StepEdgeDescriptor((ICurve)null, vtxpole, vtxpole, true);
+                        List<StepEdgeDescriptor> loop = new List<StepEdgeDescriptor>();
+                        loop.Add(se);
+                        loops.Add(loop);
+                        if (poleIsInU[poleIndex])
+                        {
+                            se.curve2d = new Line2D(new GeoPoint2D(ext.Left, poles2d[poleIndex].y), new GeoPoint2D(ext.Right, poles2d[poleIndex].y));
+                        }
+                        else
+                        {
+                            se.curve2d = new Line2D(new GeoPoint2D(poles2d[poleIndex].x, ext.Bottom), new GeoPoint2D(poles2d[poleIndex].x, ext.Top));
+                        }
+                        SurfaceHelper.AdjustPeriodic(surface, ext, se.curve2d);
+                        if (se.curve2d.GetAreaFromPoint(loops[0][0].curve2d.StartPoint) < 0.0) se.curve2d.Reverse();
+#if DEBUG
+                        dccrv2d.Add(se.curve2d, System.Drawing.Color.Green, 1);
+#endif
+                        ext.MinMax(se.curve2d.GetExtent());
+                        openLoops.Add(1);
+
+                    }
+                }
+                GeoPoint2D cnt = ext.GetCenter();
+                if (openLoops.Count > 0)
+                {   // open loops limit parts of closed surfaces. E.g. two circles bound a segment of a cylinder
+                    // the orientation of these curves is sometimes wrong, so we have to test
+                    // there must be exactely two loops
+                    if (openLoops.Count == 2)
+                    {
+                        int ii = openLoops[0];
+                        int oppii = openLoops[1]; // oppii is the otehr open loop one
+                                                  // calculating the area is a bad idea
+                                                  // file 0816.5.001.stp with step index 160309 is a example, where the area dosn't work
+                        if (Geometry.InnerIntersection(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint, loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint))
+                        {
+                            for (int i = 0; i < loops.Count; i++)
+                            {
+                                if (loops[i].Count == 1 && loops[i][0].curve == null) // a pole from a point, reverse the curve2d
+                                {
+                                    loops[i][0].curve2d.Reverse();
                                     break;
                                 }
                             }
                         }
-                        if (!curvesAreInPlane) break;
-                    }
-                    if (curvesAreInPlane) surface = new PlaneSurface(pln);
-                }
-            }
-            if (surface is SphericalSurface && (surface as SphericalSurface).IsRealSphere)
-            {
-                // typically the sperical surfaces are oriented so that the spheres axis is the z-Axis (if it was not not created as a surface of revolution)
-                // it is easier and faster if the loops don't include one of the poles. This is not always possible, but we try it here:
-                SphericalSurface sphericalSurface = surface as SphericalSurface;
-                GeoPoint loc = sphericalSurface.Location;
-                int loopind = 0; // the longest loop is considered to be the outer loop, which is true in most cases
-                if (loops.Count > 1)
-                {
-                    double maxlen = 0.0;
-                    for (int i = 0; i < loops.Count; i++)
-                    {
-                        double ll = 0.0;
-                        for (int j = 0; j < loops[i].Count; j++)
-                        {
-                            if (loops[i][j].curve != null) ll += loops[i][j].curve.Length;
-                        }
-                        if (ll > maxlen)
-                        {
-                            loopind = i;
-                            maxlen = ll;
-                        }
-                    }
-                }
-                GeoVector axdir = GeoVector.NullVector;
-                for (int k = 0; k < 10; k++)
-                {
-                    double a = ((k + 1) % Math.PI);
-                    double b = Math.PI / 2.0 - ((k + 10) % Math.PI); // quasi random angles
-                    axdir = new GeoVector(new Angle(a), new Angle(b));
-                    Plane tstpln = new Plane(loc, axdir);
-                    List<ICurve2D> projectedLoop = new List<ICurve2D>();
-                    for (int i = 0; i < loops[loopind].Count; i++)
-                    {
-                        if (loops[loopind][i].curve != null)
-                        {
-                            ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
-                            if (!loops[0][loopind].forward) c2d.Reverse();
-                            projectedLoop.Add(c2d);
-                        }
-                    }
-                    ICurve2D[] pla = projectedLoop.ToArray();
+                        Line2D l1 = new Line2D(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint);
+                        Line2D l2 = new Line2D(loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint);
+                        List<ICurve2D> testDirections = new List<ICurve2D>();
+                        for (int i = 0; i < loops[ii].Count; i++) testDirections.Add(loops[ii][i].curve2d);
+                        testDirections.Add(l1);
+                        for (int i = 0; i < loops[oppii].Count; i++) testDirections.Add(loops[oppii][i].curve2d);
+                        testDirections.Add(l2);
 
-                    if (Border.IsPointOnOutline(pla, GeoPoint2D.Origin, precision)) continue;
-                    if (Border.IsInside(pla, GeoPoint2D.Origin) != Border.CounterClockwise(pla))
-                    {
-                        break;
-                    }
-                }
-                double radius = sphericalSurface.RadiusX;
-                GeoVector dirx = axdir ^ GeoVector.ZAxis;
-                GeoVector diry = dirx ^ axdir;
-                dirx.Norm();
-                diry.Norm();
-                surface = new SphericalSurface(loc, radius * dirx, radius * diry, radius * axdir);
-            }
-            if (surface is CylindricalSurface || surface is ConicalSurface || surface is ToroidalSurface || surface is SurfaceOfRevolution)
-            {   // avoid vertices close to 0 or 180°, because here the surface might be splitted and cause very short edges which might make problems
-                List<double> uvalues = new List<double>();
-                foreach (Vertex vtx in allVertices)
-                {
-                    GeoPoint2D uv = surface.PositionOf(vtx.Position);
-                    uvalues.Add(uv.x % Math.PI);
-                }
-                uvalues.Sort();
-                double bestu = 0.0;
-                double maxdist = 0.0;
-                for (int i = 0; i < uvalues.Count; i++)
-                {
-                    double nu;
-                    if (i + 1 == uvalues.Count) nu = uvalues[0] + Math.PI;
-                    else nu = uvalues[i + 1];
-                    double d = nu - uvalues[i];
-                    if (d > maxdist)
-                    {
-                        maxdist = d;
-                        bestu = (nu + uvalues[i]) / 2.0;
-                    }
-                }
-                if (bestu != 0.0)
-                {
-                    GeoVector axis = GeoVector.NullVector;
-                    GeoPoint location = GeoPoint.Origin;
-                    if (surface is CylindricalSurface)
-                    {
-                        location = (surface as CylindricalSurface).Location;
-                        axis = (surface as CylindricalSurface).ZAxis;
-                    }
-                    if (surface is ConicalSurface)
-                    {
-                        location = (surface as ConicalSurface).Location;
-                        axis = (surface as ConicalSurface).ZAxis;
-                    }
-                    if (surface is ToroidalSurface)
-                    {
-                        location = (surface as ToroidalSurface).Location;
-                        axis = (surface as ToroidalSurface).ZAxis;
-                    }
-                    if (surface is SurfaceOfRevolution)
-                    {
-                        location = (surface as SurfaceOfRevolution).Location;
-                        axis = (surface as SurfaceOfRevolution).Axis;
-                    }
-                    ModOp rotation = ModOp.Rotate(location, axis, new SweepAngle(bestu));
-                    surface.Modify(rotation);
-                }
-            }
-#if DEBUG
-            // Show the 3d loops for this face
-            DebuggerContainer dc = new DebuggerContainer();
-            for (int i = 0; i < loops.Count; i++)
-            {
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    if (loops[i][j].curve != null)
-                    {
-                        GeoPoint ccnt;
-                        if (loops[i][j].forward)
+                        double area = Border.SignedArea(testDirections); // test, whether the open loops together with the connecting seams build a ccw outline (which they should)
+                        if (area < 0.0)
                         {
-                            dc.Add(loops[i][j].curve as IGeoObject, System.Drawing.Color.Blue, i * 100 + j);
-                            ccnt = loops[i][j].curve.PointAt(0.5);
-                            GeoVector cdir = loops[i][j].curve.DirectionAt(0.5);
-                            cdir.NormIfNotNull();
-                            Line dl = Line.TwoPoints(ccnt, ccnt + loops[i][j].curve.Length * 0.05 * cdir);
-                            dc.Add(dl, System.Drawing.Color.Red, i * 100 + j);
-                        }
-                        else
-                        {
-                            ICurve crv = loops[i][j].curve.Clone();
-                            crv.Reverse();
-                            dc.Add(crv as IGeoObject, System.Drawing.Color.Blue, i * 100 + j);
-                            ccnt = crv.PointAt(0.5);
-                            GeoVector cdir = crv.DirectionAt(0.5).Normalized;
-                            Line dl = Line.TwoPoints(ccnt, ccnt + crv.Length * 0.05 * cdir);
-                            dc.Add(dl, System.Drawing.Color.Red, i * 100 + j);
-                        }
-                        try
-                        {
-                            GeoVector ndir = surface.GetNormal(surface.PositionOf(ccnt)).Normalized;
-                            Line dn = Line.TwoPoints(ccnt, ccnt + loops[i][j].curve.Length * 0.05 * ndir);
-                            dc.Add(dn, System.Drawing.Color.Green, i * 100 + j);
-                        }
-                        catch { }
-                        Point pnt = Point.Construct();
-                        pnt.Symbol = PointSymbol.Cross;
-                        pnt.Location = loops[i][j].vertex1.Position;
-                        dc.Add(pnt, loops[i][j].vertex1.GetHashCode());
-                        if (loops[i][j].vertex2 != loops[i][j].vertex1)
-                        {
-                            pnt = Point.Construct();
-                            pnt.Symbol = PointSymbol.Cross;
-                            pnt.Location = loops[i][j].vertex2.Position;
-                            dc.Add(pnt, loops[i][j].vertex2.GetHashCode());
-                        }
-                    }
-                    else
-                    {
-                        Point pnt = Point.Construct();
-                        pnt.Symbol = PointSymbol.Plus;
-                        pnt.Location = loops[i][j].vertex1.Position;
-                        dc.Add(pnt, loops[i][j].vertex1.GetHashCode());
-                    }
-                }
-            }
-            DebuggerContainer dced = new DebuggerContainer();
-            for (int i = 0; i < loops.Count; i++)
-            {
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
-                    {
-                        dced.Add(loops[i][j].createdEdges[k].Curve3D as IGeoObject, i * 100 + j);
-                    }
-                }
-            }
-            DebuggerContainer dc2dx = new DebuggerContainer();
-            for (int i = 0; i < loops.Count; i++)
-            {
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    if (loops[i][j].curve != null)
-                    {
-                        ICurve2D c2d = surface.GetProjectedCurve(loops[i][j].curve, 0.0);
-                        if (!loops[i][j].forward) c2d.Reverse();
-                        dc2dx.Add(c2d, System.Drawing.Color.Red, i * 100 + j);
-                        GeoPoint2D po;
-                        if (loops[i][j].forward) po = surface.PositionOf(loops[i][j].curve.StartPoint);
-                        else po = surface.PositionOf(loops[i][j].curve.EndPoint);
-                        dc2dx.Add(po, System.Drawing.Color.Red, i * 100 + j);
-                    }
-                }
-            }
-            // *** check 3d loops, raw 2d projection, already created edges
-#endif
-            for (int i = 0; i < loops.Count; i++)
-            {
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    if (loops[i][j].createdEdges.Count > 1)
-                    {   // this edge has been splitted
-                        Vertex sv = null;
-                        if (loops[i][j].forward) sv = loops[i][j].vertex1;
-                        else sv = loops[i][j].vertex2;
-                        if (loops[i][j].createdEdges[0].EndVertex(loops[i][j].createdEdges[0].PrimaryFace) == sv)
-                        {
-                            // nothig to do, createdEdges is in correct order
-                        }
-                        else
-                        {
-                            loops[i][j].createdEdges.Reverse();
-                        }
-                    }
-                }
-            }
-            // Poles (typically with sphere, cone and sometimes nurbes) lead to missing 2d connections.
-            // these edges are inserted here with no 3d curve but valid vertices
-            double[] us = surface.GetUSingularities();
-            double[] vs = surface.GetVSingularities();
-            // the following three lists are synchronous
-            List<GeoPoint> poles = new List<GeoPoint>();
-            List<GeoPoint2D> poles2d = new List<GeoPoint2D>();
-            List<bool> poleIsInU = new List<bool>();
-            for (int i = 0; i < us.Length; i++)
-            {
-                poles.Add(surface.PointAt(new GeoPoint2D(us[i], 0.0)));
-                poles2d.Add(new GeoPoint2D(us[i], 0.0));
-                poleIsInU.Add(false);
-            }
-            for (int i = 0; i < vs.Length; i++)
-            {
-                poles.Add(surface.PointAt(new GeoPoint2D(0.0, vs[i])));
-                poles2d.Add(new GeoPoint2D(0.0, vs[i]));
-                poleIsInU.Add(true);
-            }
-            //for (int i = 0; i < poles.Count; i++)
-            //{
-            //    foreach (Vertex vtx in allVertices)
-            //    {
-            //        if ((vtx.Position|poles[i])<precision)
-            //        {
-
-            //        }
-            //    }
-            //}
-            List<Pair<StepEdgeDescriptor, List<StepEdgeDescriptor>>> splittedByPoles = new List<Pair<StepEdgeDescriptor, List<StepEdgeDescriptor>>>();
-            if (poles.Count > 0)
-            {
-                // check whether a loop-curve goes through a pole. In this case we have to split the loop-curve into parts in order to be able to insert 
-                // the loop-pole-curve (which is a point in 3d and a line in 2d) in between these two parts
-                // not implemented yet: the loop edge already has been splitted (multiple createdEdges)!!!
-                for (int i = 0; i < loops.Count; i++)
-                {
-                    Dictionary<Vertex, int> vertexToPole = new Dictionary<Vertex, int>();
-                    for (int j = loops[i].Count - 1; j >= 0; --j) // backward loop, because maybe an entry will be splitted
-                    {
-                        if (loops[i][j].curve != null)
-                        {
-                            for (int k = 0; k < poles.Count; k++)
+                            if (surface.IsUPeriodic && surface.IsVPeriodic)
                             {
-                                if (loops[i][j].curve.DistanceTo(poles[k]) < Precision.eps)
-                                {
-                                    if (Precision.IsEqual(loops[i][j].vertex1.Position, poles[k]) || Precision.IsEqual(loops[i][j].vertex2.Position, poles[k])) continue;
-                                    double pos = loops[i][j].curve.PositionOf(poles[k]);
-                                    if (pos >= 1 - 1e-5 || pos <= 1e-5) continue;
-                                    ICurve[] parts = loops[i][j].curve.Split(pos);
-                                    StepEdgeDescriptor se = loops[i][j];
-                                    loops[i].RemoveAt(j);
-                                    List<StepEdgeDescriptor> toInsert = new List<StepEdgeDescriptor>();
-                                    Vertex lastEnd = null;
-                                    for (int l = 0; l < parts.Length; l++)
+                                // when on a torus (or similar surface) and the face is bound by two open curves (in 2d, closed curves in 3d) then it is not clear, which part of the torus is used
+                                GeoVector2D md = loops[ii][loops[ii].Count - 1].curve2d.EndPoint - loops[ii][0].curve2d.StartPoint;
+                                if (Math.Abs(md.x) > Math.Abs(md.y))
+                                {   // the open loop is in u direction, change the v-domain of the second loop
+                                    double dv;
+                                    if (loops[ii][0].curve2d.StartPoint.y < loops[oppii][0].curve2d.StartPoint.y) dv = -surface.VPeriod;
+                                    else dv = surface.VPeriod;
+                                    for (int i = 0; i < loops[oppii].Count; i++)
                                     {
-                                        Vertex sv;
-                                        if (lastEnd != null) sv = lastEnd;
-                                        else sv = se.vertex1;
-                                        Vertex ev;
-                                        if (l < parts.Length - 1) ev = new Vertex(parts[l].EndPoint);
-                                        else ev = se.vertex2;
-                                        lastEnd = ev;
-                                        StepEdgeDescriptor sedpart = new StepEdgeDescriptor(parts[l], sv, ev, se.forward);
-                                        toInsert.Add(sedpart);
+                                        loops[oppii][i].curve2d.Move(0, dv);
                                     }
-                                    if (!se.forward) toInsert.Reverse();
-                                    loops[i].InsertRange(j, toInsert);
-                                    splittedByPoles.Add(new Pair<StepEdgeDescriptor, List<StepEdgeDescriptor>>(se, toInsert));
-                                }
-                            }
-                        }
-                    }
-                    for (int j = 0; j < loops[i].Count; j++)
-                    {
-                        for (int k = 0; k < poles.Count; k++)
-                        {
-                            if ((loops[i][j].vertex1.Position | poles[k]) < 10 * precision) vertexToPole[loops[i][j].vertex1] = k;
-                            if ((loops[i][j].vertex2.Position | poles[k]) < 10 * precision) vertexToPole[loops[i][j].vertex2] = k;
-                        }
-                    }
-                    if (vertexToPole.Count > 1)
-                    {   // very rare case: two different vertices for the same pole
-                        List<Vertex> keys = new List<Vertex>(vertexToPole.Keys);
-                        for (int vi = 0; vi < keys.Count - 1; vi++)
-                        {
-                            for (int vj = vi + 1; vj < keys.Count; vj++)
-                            {
-                                if (vertexToPole.ContainsKey(keys[vi]) && vertexToPole.ContainsKey(keys[vj]) && vertexToPole[keys[vi]] == vertexToPole[keys[vj]])
-                                {   // different vertices, same pole: replace vertex item2.Key by item1.Key
-                                    keys[vi].MergeWith(keys[vj]); // updates all existing edges, but not the parameter loops
-                                    for (int j = 0; j < loops[i].Count; j++)
-                                    {
-                                        if (loops[i][j].vertex1 == keys[vj]) loops[i][j].vertex1 = keys[vi];
-                                        if (loops[i][j].vertex2 == keys[vj]) loops[i][j].vertex2 = keys[vi];
-                                    }
-                                    vertexToPole.Remove(keys[vj]);
-                                }
-                            }
-                        }
-                    }
-                    if (vertexToPole.Count > 0)
-                    {
-                        bool poleInserted = false;
-                        for (int j = 0; j < loops[i].Count; j++)
-                        {
-                            int j1 = (j + 1) % loops[i].Count;
-                            if (j != j1)
-                            {
-                                Vertex endVertex;
-                                if (loops[i][j].forward) endVertex = loops[i][j].vertex2;
-                                else endVertex = loops[i][j].vertex1;
-                                if (vertexToPole.ContainsKey(endVertex) && ((endVertex == loops[i][j1].vertex1) || (endVertex == loops[i][j1].vertex2)))
-                                {   // insert a pole between j and j+1, 2d curve will be created later
-                                    loops[i].Insert(j1, new StepEdgeDescriptor((ICurve)null, endVertex, endVertex, false));
-                                    poleInserted = true;
-                                    ++j;
-                                }
-                            }
-                        }
-                        if (poleInserted)
-                        {
-                            // permute cyclicaly so that the list starts with a pole followed by the longest path without a pole.
-                            // This is only important for the domain calculation
-                            List<int> poleIndices = new List<int>();
-                            for (int j = 0; j < loops[i].Count; j++) if (loops[i][j].curve == null) poleIndices.Add(j);
-                            int bestPoleIndex = poleIndices[poleIndices.Count - 1];
-                            int maxSpan = loops[i].Count - bestPoleIndex + poleIndices[0] - 1;
-                            for (int j = 0; j < poleIndices.Count - 1; j++)
-                            {
-                                int span = poleIndices[j + 1] - poleIndices[j] - 1;
-                                if (span > maxSpan)
-                                {
-                                    maxSpan = span;
-                                    bestPoleIndex = poleIndices[j];
-                                }
-                            }
-                            if (bestPoleIndex != 0)
-                            {   // rotate the list so it begins with a pole (followed by a maximum number of non-poles
-                                List<StepEdgeDescriptor> rotated = new List<StepEdgeDescriptor>(loops[i].Count);
-                                for (int j = 0; j < loops[i].Count; j++)
-                                {
-                                    rotated.Add(loops[i][(j + bestPoleIndex) % loops[i].Count]);
-                                }
-                                loops[i] = rotated;
-                            }
-                        }
-
-                    }
-                }
-            }
-
-            // STEP allows faces to have periodic surfaces, which are bounded by two outer loops, like a piece of a cylinder, bounded by two circles or ellipses.
-            // In CADability, each face must have a single outer bound in u/v space (and any number of holes). Also we do not like "seam"-edges, i.e. edges,
-            // which are used twice in both directions on a single face. (Although it is still allowed and causes much debugging effort)
-            // create the 2d projections of the edges on the surface.
-            double uperiod = 0.0, vperiod = 0.0;
-            if (surface.IsUPeriodic) uperiod = surface.UPeriod;
-            if (surface.IsVPeriodic) vperiod = surface.VPeriod;
-#if DEBUG
-            // *** check correct 2d projection
-            DebuggerContainer dccrv2d = new DebuggerContainer();
-#endif
-            // in case of periodic surfaces, we need the curves to be as close together as possible
-            // so we start with the first curve to set a domain for the periodic space
-            BoundingRect[] loopExt = new BoundingRect[loops.Count];
-            for (int i = 0; i < loops.Count; i++)
-            {
-                loopExt[i] = BoundingRect.EmptyBoundingRect;
-                GeoPoint2D lastEndPoint = GeoPoint2D.Invalid;
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    if (loops[i][j].curve != null)
-                    {
-                        double len = loops[i][j].curve.Length;
-                        ICurve2D crv2d;
-                        if (len < Precision.eps * 100)
-                        {
-                            GeoPoint2D sp = surface.PositionOf(loops[i][j].curve.StartPoint);
-                            GeoPoint2D ep = surface.PositionOf(loops[i][j].curve.EndPoint);
-                            if (!lastEndPoint.IsValid)
-                            {
-                                lastEndPoint = sp;
-                            }
-                            SurfaceHelper.AdjustPeriodicStartPoint(surface, lastEndPoint, ref sp);
-                            SurfaceHelper.AdjustPeriodicStartPoint(surface, lastEndPoint, ref ep);
-                            crv2d = new Line2D(sp, ep);
-                        }
-                        else crv2d = surface.GetProjectedCurve(loops[i][j].curve, 0.0);
-                        if (!loops[i][j].forward) crv2d.Reverse();
-                        if (!lastEndPoint.IsValid)
-                        {
-                            if (i != 0) SurfaceHelper.AdjustPeriodic(surface, loopExt[0], crv2d); // else crv2d is the first 2d curve of this loops and determins the domain
-                        }
-                        else
-                        {
-                            SurfaceHelper.AdjustPeriodicStartPoint(surface, lastEndPoint, crv2d);
-                        }
-                        if (crv2d != null) lastEndPoint = crv2d.EndPoint;
-#if DEBUG
-                        dccrv2d.Add(crv2d, System.Drawing.Color.Red, i * 100 + j);
-#endif
-                        crv2d.UserData["EdgeDescriptor"] = loops[i][j]; // if we need to split, we need this information
-                        loops[i][j].curve2d = crv2d;
-                        loopExt[i].MinMax(crv2d.GetExtent());
-                    }
-                }
-            }
-            BoundingRect ext = BoundingRect.EmptyBoundingRect;
-            for (int i = 0; i < loops.Count; i++)
-            {
-                ext.MinMax(loopExt[i]);
-            }
-            if (ext.IsEmpty())
-            {   // rare case, only poles, e.g. a full sphere
-                surface.GetNaturalBounds(out ext.Left, out ext.Right, out ext.Bottom, out ext.Top);
-            }
-            for (int i = 0; i < loops.Count; i++)
-            {
-                for (int j = 0; j < loops[i].Count; j++)
-                {
-                    if (loops[i][j].curve == null)
-                    {
-                        // probably a pole
-                        if (loops[i][j].vertex1 == loops[i][j].vertex2 && poles.Count > 0)
-                        {
-                            int poleIndex = -1;
-                            double mindist = double.MaxValue;
-                            for (int k = 0; k < poles.Count; k++)
-                            {
-                                double d = poles[k] | loops[i][j].vertex1.Position;
-                                if (d < mindist)
-                                {
-                                    mindist = d;
-                                    poleIndex = k;
-                                }
-                            }
-                            if (poleIndex >= 0)
-                            {
-                                // if it is a vertex loop, like the tip of a cone, then this is the only edge, and you dont't know the orientation
-                                if (poleIsInU[poleIndex])
-                                {
-                                    loops[i][j].curve2d = new Line2D(new GeoPoint2D(ext.Left, poles2d[poleIndex].y), new GeoPoint2D(ext.Right, poles2d[poleIndex].y));
                                 }
                                 else
                                 {
-                                    loops[i][j].curve2d = new Line2D(new GeoPoint2D(poles2d[poleIndex].x, ext.Bottom), new GeoPoint2D(poles2d[poleIndex].x, ext.Top));
-                                }
-                                int j0 = (j + loops[i].Count - 1) % loops[i].Count;
-                                int j1 = (j + 1) % loops[i].Count;
-                                GeoPoint2D lastEndPoint = loops[i][j0].curve2d.EndPoint;
-                                GeoPoint2D nextStartPoint = loops[i][j1].curve2d.StartPoint;
-                                if ((loops[i][j].curve2d.EndPoint | lastEndPoint) + (loops[i][j].curve2d.StartPoint | nextStartPoint) <
-                                    (loops[i][j].curve2d.StartPoint | lastEndPoint) + (loops[i][j].curve2d.EndPoint | nextStartPoint)) loops[i][j].curve2d.Reverse();
-#if DEBUG
-                                dccrv2d.Add(loops[i][j].curve2d, System.Drawing.Color.Green, i * 100 + j);
-#endif
-                                ext.MinMax(loops[i][j].curve2d.GetExtent());
-                            }
-                        }
-                    }
-                }
-            }
-            // *** check correct 2d projection and poles
-            int outerLoop = 0;
-            List<int> openLoops = new List<int>();
-            for (int i = 0; i < loops.Count; i++)
-            {
-                if (i > 0 && loopExt[i].Size > loopExt[outerLoop].Size) outerLoop = i; // ok, there could be bounds with the same size, but do you have an example?
-                if (!Precision.IsEqual(loops[i][0].curve2d.StartPoint, loops[i][loops[i].Count - 1].curve2d.EndPoint))
-                {   // a loop might be open, such as the top and bottom of a cylinder, which has two outer loops
-                    if ((surface.IsUPeriodic && Math.Abs(loops[i][0].curve2d.StartPoint.x - loops[i][loops[i].Count - 1].curve2d.EndPoint.x) > surface.UPeriod / 2) ||
-                        (surface.IsVPeriodic && Math.Abs(loops[i][0].curve2d.StartPoint.y - loops[i][loops[i].Count - 1].curve2d.EndPoint.y) > surface.VPeriod / 2))
-                    {
-                        openLoops.Add(i); // open loops are always outer loop
-                    }
-                }
-            }
-            if (openLoops.Count > 0) outerLoop = -1; // none of the closed loops is an outer loop, we have one ore more open loops
-            bool needsToSplit = false;
-            List<int> loopsToRemove = new List<int>();
-            // in most step files, the loops are oriented correctly, but in some (e.g. 2472g.stp) we have to repair
-            // the loop of the outerLoop must be counterclockwise, the others must be clockwise
-            int reverseCount = 0;
-            List<int> loopsToreverse = new List<int>(); // this is a repair machanism. In correct step files there should be no loops the have to be reversed
-            double sumArea = 0.0;
-            for (int i = loops.Count - 1; i >= 0; --i)
-            {
-                if (openLoops.Contains(i)) continue;
-                ICurve2D[] crvs = new ICurve2D[loops[i].Count];
-                for (int j = 0; j < crvs.Length; j++)
-                {
-                    crvs[j] = loops[i][j].curve2d;
-                }
-                double area = Border.SignedArea(crvs);
-                bool closed = true;
-                if (loops[i][0].curve != null && loops[i][loops[i].Count - 1].curve != null)
-                {
-                    GeoPoint sp, ep;
-                    if (loops[i][0].forward) sp = loops[i][0].curve.StartPoint;
-                    else sp = loops[i][0].curve.EndPoint;
-                    int last = loops[i].Count - 1;
-                    if (loops[i][last].forward) ep = loops[i][last].curve.EndPoint;
-                    else ep = loops[i][last].curve.StartPoint;
-                    if ((sp | ep) > precision) closed = false;
-                }
-                if (Math.Abs(area) < (ext.Width + ext.Height) * 1e-8 || !closed)
-                {   // probably a seam: two curves going forth and back on the same path
-                    loopsToRemove.Add(i);
-                }
-                else
-                {
-                    sumArea += Math.Abs(area);
-                    bool ccw = area > 0.0;
-                    if ((i == outerLoop && !ccw) || (i != outerLoop && ccw))
-                    {
-                        loopsToreverse.Add(i);
-                        ++reverseCount;
-                    }
-                }
-            }
-            if (openLoops.Count == 0 && sumArea < (ext.Width + ext.Height) * 1e-8) return null; // empty face
-            if (loops.Count == 1 && openLoops.Count == 1)
-            {
-                // only a single open loop (like the equator on the sphere): there must be a pole which belongs to the surface
-                // we must assume that the surface and loops are correct oriented, otherwise it is not possible to decide which pole to use
-                int poleIndex = -1;
-                for (int i = 0; i < poles2d.Count; i++)
-                {
-                    double area = 0.0;
-                    for (int j = 0; j < loops[0].Count; j++)
-                    {
-                        area += loops[0][j].curve2d.GetAreaFromPoint(poles2d[i]);
-                    }
-                    if (area > 0) poleIndex = i;
-                }
-                if (poleIndex < 0 && poles2d.Count == 1)
-                {   // e.g. conical, we reverse the loop and use the only pole
-                    for (int j = 0; j < loops[0].Count; j++)
-                    {
-                        loops[0][j].forward = !loops[0][j].forward;
-                        loops[0][j].curve2d.Reverse();
-                    }
-                    loops[0].Reverse();
-                    poleIndex = 0;
-                }
-                if (poleIndex >= 0)
-                {
-                    Vertex vtxpole = new Vertex(poles[poleIndex]);
-                    StepEdgeDescriptor se = new StepEdgeDescriptor((ICurve)null, vtxpole, vtxpole, true);
-                    List<StepEdgeDescriptor> loop = new List<StepEdgeDescriptor>();
-                    loop.Add(se);
-                    loops.Add(loop);
-                    if (poleIsInU[poleIndex])
-                    {
-                        se.curve2d = new Line2D(new GeoPoint2D(ext.Left, poles2d[poleIndex].y), new GeoPoint2D(ext.Right, poles2d[poleIndex].y));
-                    }
-                    else
-                    {
-                        se.curve2d = new Line2D(new GeoPoint2D(poles2d[poleIndex].x, ext.Bottom), new GeoPoint2D(poles2d[poleIndex].x, ext.Top));
-                    }
-                    SurfaceHelper.AdjustPeriodic(surface, ext, se.curve2d);
-                    if (se.curve2d.GetAreaFromPoint(loops[0][0].curve2d.StartPoint) < 0.0) se.curve2d.Reverse();
-#if DEBUG
-                    dccrv2d.Add(se.curve2d, System.Drawing.Color.Green, 1);
-#endif
-                    ext.MinMax(se.curve2d.GetExtent());
-                    openLoops.Add(1);
-
-                }
-            }
-            GeoPoint2D cnt = ext.GetCenter();
-            if (openLoops.Count > 0)
-            {   // open loops limit parts of closed surfaces. E.g. two circles bound a segment of a cylinder
-                // the orientation of these curves is sometimes wrong, so we have to test
-                // there must be exactely two loops
-                if (openLoops.Count == 2)
-                {
-                    int ii = openLoops[0];
-                    int oppii = openLoops[1]; // oppii is the otehr open loop one
-                    // calculating the area is a bad idea
-                    // file 0816.5.001.stp with step index 160309 is a example, where the area dosn't work
-                    if (Geometry.InnerIntersection(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint, loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint))
-                    {
-                        for (int i = 0; i < loops.Count; i++)
-                        {
-                            if (loops[i].Count == 1 && loops[i][0].curve == null) // a pole from a point, reverse the curve2d
-                            {
-                                loops[i][0].curve2d.Reverse();
-                                break;
-                            }
-                        }
-                    }
-                    Line2D l1 = new Line2D(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint);
-                    Line2D l2 = new Line2D(loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint);
-                    List<ICurve2D> testDirections = new List<ICurve2D>();
-                    for (int i = 0; i < loops[ii].Count; i++) testDirections.Add(loops[ii][i].curve2d);
-                    testDirections.Add(l1);
-                    for (int i = 0; i < loops[oppii].Count; i++) testDirections.Add(loops[oppii][i].curve2d);
-                    testDirections.Add(l2);
-
-                    double area = Border.SignedArea(testDirections); // test, whether the open loops together with the connecting seams build a ccw outline (which they should)
-                    if (area < 0.0)
-                    {
-                        if (surface.IsUPeriodic && surface.IsVPeriodic)
-                        {
-                            // when on a torus (or similar surface) and the face is bound by two open curves (in 2d, closed curves in 3d) then it is not clear, which part of the torus is used
-                            GeoVector2D md = loops[ii][loops[ii].Count - 1].curve2d.EndPoint - loops[ii][0].curve2d.StartPoint;
-                            if (Math.Abs(md.x) > Math.Abs(md.y))
-                            {   // the open loop is in u direction, change the v-domain of the second loop
-                                double dv;
-                                if (loops[ii][0].curve2d.StartPoint.y < loops[oppii][0].curve2d.StartPoint.y) dv = -surface.VPeriod;
-                                else dv = surface.VPeriod;
-                                for (int i = 0; i < loops[oppii].Count; i++)
-                                {
-                                    loops[oppii][i].curve2d.Move(0, dv);
+                                    double du;
+                                    if (loops[ii][0].curve2d.StartPoint.x < loops[oppii][0].curve2d.StartPoint.x) du = -surface.UPeriod;
+                                    else du = surface.UPeriod;
+                                    for (int i = 0; i < loops[oppii].Count; i++)
+                                    {
+                                        loops[oppii][i].curve2d.Move(du, 0);
+                                    }
                                 }
                             }
                             else
+                            {   // this happens with _L.001.050_4.stp: the inner hole item 3327 a wrong oriented cylinder
+                                loopsToreverse.Add(ii);
+                                loopsToreverse.Add(oppii);
+                                reverseCount += 2;
+                            }
+                            ext = BoundingRect.EmptyBoundingRect; // recalc the extent since 2d curves have been moved
+                            for (int i = 0; i < loops.Count; i++)
                             {
-                                double du;
-                                if (loops[ii][0].curve2d.StartPoint.x < loops[oppii][0].curve2d.StartPoint.x) du = -surface.UPeriod;
-                                else du = surface.UPeriod;
-                                for (int i = 0; i < loops[oppii].Count; i++)
+                                loopExt[i] = BoundingRect.EmptyBoundingRect;
+                                for (int j = 0; j < loops[i].Count; j++)
                                 {
-                                    loops[oppii][i].curve2d.Move(du, 0);
+                                    loopExt[i].MinMax(loops[i][j].curve2d.GetExtent());
                                 }
+                                ext.MinMax(loopExt[i]);
                             }
                         }
-                        else
-                        {   // this happens with _L.001.050_4.stp: the inner hole item 3327 a wrong oriented cylinder
-                            loopsToreverse.Add(ii);
-                            loopsToreverse.Add(oppii);
-                            reverseCount += 2;
+                        if (Geometry.IntersectLLparInside(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint, loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint, out double pos1, out double pos2))
+                        {
+                            if (loopsToreverse.Contains(ii)) loopsToreverse.Remove(ii);
+                            else loopsToreverse.Add(ii);
+                            reverseCount++;
                         }
-                        ext = BoundingRect.EmptyBoundingRect; // recalc the extent since 2d curves have been moved
+                        else
+                        {
+                        }
+                    }
+                    else
+                    {
+                        return null; // no way to deal with more than 2 open loops
+                    }
+                    //for (int i = 0; i < openLoops.Count; i++)
+                    //{
+                    //    int ii = openLoops[i];
+                    //    int oppii = (ii + 1) % loops.Count; // there must be more than one loop and oppii is another one
+                    //    // calculate the area of this loop in 2d with the center of the extent
+                    //    // The center isn't necessary a good choice, the center of the opposite side of ext would be better, but more work to find this side
+                    //    cnt = loops[oppii][loops[oppii].Count / 2].curve2d.PointAt(0.5);
+                    //    double area = 0.0;
+                    //    for (int j = 0; j < loops[ii].Count; j++)
+                    //    {
+                    //        area += loops[ii][j].curve2d.GetAreaFromPoint(cnt);
+                    //    }
+                    //    if (area < 0)
+                    //    {
+                    //        if (loops[ii].Count > 1 || loops[ii][0].curve != null) // otherwise it is a vertex loop with yet unknown orientation
+                    //            ++reverseCount;
+                    //        //loops[ii].Reverse();
+                    //        //for (int j = 0; j < loops[ii].Count; j++)
+                    //        //{
+                    //        //    loops[ii][j].curve2d.Reverse();
+                    //        //    loops[ii][j].forward = !loops[i][j].forward;
+                    //        //}
+                    //    }
+                    //}
+                }
+                if (reverseCount > 0)
+                {
+                    if (loops.Count == reverseCount)
+                    {
+                        // all loops are reversed, we reverse the surface
+                        ModOp2D mreverse = surface.ReverseOrientation();
+                        ext = BoundingRect.EmptyBoundingRect;
                         for (int i = 0; i < loops.Count; i++)
                         {
                             loopExt[i] = BoundingRect.EmptyBoundingRect;
                             for (int j = 0; j < loops[i].Count; j++)
                             {
+                                loops[i][j].curve2d = loops[i][j].curve2d.GetModified(mreverse);
                                 loopExt[i].MinMax(loops[i][j].curve2d.GetExtent());
                             }
                             ext.MinMax(loopExt[i]);
+                            // loops[i].Reverse(); we do not need to reverse, because the curve2ds are reflected (mirrored)
                         }
-                    }
-                    if (Geometry.IntersectLLparInside(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint, loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint, out double pos1, out double pos2))
-                    {
-                        if (loopsToreverse.Contains(ii)) loopsToreverse.Remove(ii);
-                        else loopsToreverse.Add(ii);
-                        reverseCount++;
                     }
                     else
                     {
-                    }
-                }
-                else
-                {
-                    return null; // no way to deal with more than 2 open loops
-                }
-                //for (int i = 0; i < openLoops.Count; i++)
-                //{
-                //    int ii = openLoops[i];
-                //    int oppii = (ii + 1) % loops.Count; // there must be more than one loop and oppii is another one
-                //    // calculate the area of this loop in 2d with the center of the extent
-                //    // The center isn't necessary a good choice, the center of the opposite side of ext would be better, but more work to find this side
-                //    cnt = loops[oppii][loops[oppii].Count / 2].curve2d.PointAt(0.5);
-                //    double area = 0.0;
-                //    for (int j = 0; j < loops[ii].Count; j++)
-                //    {
-                //        area += loops[ii][j].curve2d.GetAreaFromPoint(cnt);
-                //    }
-                //    if (area < 0)
-                //    {
-                //        if (loops[ii].Count > 1 || loops[ii][0].curve != null) // otherwise it is a vertex loop with yet unknown orientation
-                //            ++reverseCount;
-                //        //loops[ii].Reverse();
-                //        //for (int j = 0; j < loops[ii].Count; j++)
-                //        //{
-                //        //    loops[ii][j].curve2d.Reverse();
-                //        //    loops[ii][j].forward = !loops[i][j].forward;
-                //        //}
-                //    }
-                //}
-            }
-            if (reverseCount > 0)
-            {
-                if (loops.Count == reverseCount)
-                {
-                    // all loops are reversed, we reverse the surface
-                    ModOp2D mreverse = surface.ReverseOrientation();
-                    ext = BoundingRect.EmptyBoundingRect;
-                    for (int i = 0; i < loops.Count; i++)
-                    {
-                        loopExt[i] = BoundingRect.EmptyBoundingRect;
-                        for (int j = 0; j < loops[i].Count; j++)
+                        // reverse only some loops: heere we leave the surface unchanged and only reverse those loops
+                        for (int i = 0; i < loops.Count; i++)
                         {
-                            loops[i][j].curve2d = loops[i][j].curve2d.GetModified(mreverse);
-                            loopExt[i].MinMax(loops[i][j].curve2d.GetExtent());
-                        }
-                        ext.MinMax(loopExt[i]);
-                        // loops[i].Reverse(); we do not need to reverse, because the curve2ds are reflected (mirrored)
-                    }
-                }
-                else
-                {
-                    // reverse only some loops: heere we leave the surface unchanged and only reverse those loops
-                    for (int i = 0; i < loops.Count; i++)
-                    {
-                        if (loopsToreverse.Contains(i))
-                        {
-                            for (int j = 0; j < loops[i].Count; j++)
+                            if (loopsToreverse.Contains(i))
                             {
-                                loops[i][j].forward = !loops[i][j].forward;
-                                loops[i][j].curve2d.Reverse();
+                                for (int j = 0; j < loops[i].Count; j++)
+                                {
+                                    loops[i][j].forward = !loops[i][j].forward;
+                                    loops[i][j].curve2d.Reverse();
+                                }
+                                loops[i].Reverse();
                             }
-                            loops[i].Reverse();
+                            // loops[i].Reverse(); we do not need to reverse, because the curve2ds are reflected (mirrored)
                         }
-                        // loops[i].Reverse(); we do not need to reverse, because the curve2ds are reflected (mirrored)
                     }
                 }
-            }
-            // Orient vertex loops: a vertex loop consists of a single line over the period and it's orientation is unknown when created
-            cnt = ext.GetCenter();
-            for (int i = 0; i < loops.Count; i++)
-            {
-                if (loops[i].Count == 1 && loops[i][0].curve == null)
-                {   // a pole across the whole domain
-                    double area = loops[i][0].curve2d.GetAreaFromPoint(cnt);
-                    if (area < 0) loops[i][0].curve2d.Reverse();
-                }
-            }
-            if (uperiod > 0 && ext.Width >= uperiod * 0.999999) needsToSplit = true;
-            if (vperiod > 0 && ext.Height >= vperiod * 0.999999) needsToSplit = true;
-            for (int i = 0; i < loopsToRemove.Count; i++)
-            {
-                loops.RemoveAt(loopsToRemove[i]); // loopsToRemove is sorted from back to front
-            }
-            if (!needsToSplit)
-            {   // this is the eays case, where there is a single outline and 0 or more holes and the face is not periodically closed (wrapped around)
-                // simply create the necessary edges
-                Face fc = Face.Construct();
-                Edge[][] edges = new Edge[loops.Count][];
-
+                // Orient vertex loops: a vertex loop consists of a single line over the period and it's orientation is unknown when created
+                cnt = ext.GetCenter();
                 for (int i = 0; i < loops.Count; i++)
                 {
-                    List<Edge> createdEdges = new List<Edge>();
-                    // edges might be used more than twice in step files. It is difficult then to create proper shells. 
-                    // here the third usage of an edge simply creates a new edge.
-                    for (int j = 0; j < loops[i].Count; j++)
-                    {
-                        if (loops[i][j].createdEdges.Count == 0)
-                        {
-                            Edge created = new Edge(fc, loops[i][j].curve);
-                            created.UseVerticesForce(loops[i][j].vertex1, loops[i][j].vertex2);
-                            if (loops[i][j].curve2d != null)
-                            {
-                                created.SetPrimary(fc, loops[i][j].curve2d, loops[i][j].forward);
-                            }
-                            loops[i][j].createdEdges.Add(created);
-                            createdEdges.Add(created);
-                        }
-                        else
-                        {
-                            if (loops[i][j].createdEdges.Count > 1)
-                            {
-                                // maybe the edges are in the wrong order
-                                bool reverse = false;
-                                if (loops[i][j].forward)
-                                {
-                                    if (loops[i][j].vertex1 != loops[i][j].createdEdges[0].Vertex1 && loops[i][j].vertex1 != loops[i][j].createdEdges[0].Vertex2) reverse = true;
-                                }
-                                else
-                                {
-                                    if (loops[i][j].vertex2 != loops[i][j].createdEdges[0].Vertex1 && loops[i][j].vertex2 != loops[i][j].createdEdges[0].Vertex2) reverse = true;
-                                }
-                                if (reverse) loops[i][j].createdEdges.Reverse();
-#if DEBUG
-                                bool ok = true;
-                                if (loops[i][j].forward)
-                                {
-                                    if (loops[i][j].vertex2 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex1
-                                        && loops[i][j].vertex2 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex2) ok = false;
-                                }
-                                else
-                                {
-                                    if (loops[i][j].vertex1 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex1
-                                        && loops[i][j].vertex1 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex2) ok = false;
-                                }
-                                // System.Diagnostics.Debug.Assert(ok); this may happen and is valid
-#endif
-                            }
-                            for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
-                            {   // in most cases this is only a single edge, unless it has been splitted before
-                                // the curve is never null here if count >1
-                                if (loops[i][j].createdEdges[k].Curve3D != null && loops[i][j].createdEdges[k].SecondaryFace == null)
-                                {
-                                    ICurve2D crv2d = surface.GetProjectedCurve(loops[i][j].createdEdges[k].Curve3D, 0.0);
-                                    if (!loops[i][j].forward) crv2d.Reverse();
-                                    SurfaceHelper.AdjustPeriodic(surface, ext, crv2d);
-                                    if (loops[i][j].createdEdges.Count == 1) crv2d = loops[i][j].curve2d; // already claculated
-                                    loops[i][j].createdEdges[k].SetSecondary(fc, crv2d, loops[i][j].forward);
-                                    createdEdges.Add(loops[i][j].createdEdges[k]);
-                                }
-                                else
-                                {   // make a new edge
-                                    Edge created = new Edge(fc, loops[i][j].curve);
-                                    created.UseVerticesForce(loops[i][j].vertex1, loops[i][j].vertex2);
-                                    if (loops[i][j].curve != null)
-                                    {
-                                        created.SetPrimary(fc, loops[i][j].curve2d, loops[i][j].forward);
-                                    }
-                                    loops[i][j].createdEdges.Add(created);
-                                    createdEdges.Add(created);
-                                }
-                            }
-                        }
+                    if (loops[i].Count == 1 && loops[i][0].curve == null)
+                    {   // a pole across the whole domain
+                        double area = loops[i][0].curve2d.GetAreaFromPoint(cnt);
+                        if (area < 0) loops[i][0].curve2d.Reverse();
                     }
-                    // add the missing poles, which connect the ends of two adjacent edges in 2d
-                    for (int j = 0; j < loops[i].Count; j++)
+                }
+                if (uperiod > 0 && ext.Width >= uperiod * 0.999999) needsToSplit = true;
+                if (vperiod > 0 && ext.Height >= vperiod * 0.999999) needsToSplit = true;
+                for (int i = 0; i < loopsToRemove.Count; i++)
+                {
+                    loops.RemoveAt(loopsToRemove[i]); // loopsToRemove is sorted from back to front
+                }
+                if (!needsToSplit)
+                {   // this is the eays case, where there is a single outline and 0 or more holes and the face is not periodically closed (wrapped around)
+                    // simply create the necessary edges
+                    Face fc = Face.Construct();
+                    Edge[][] edges = new Edge[loops.Count][];
+
+                    for (int i = 0; i < loops.Count; i++)
                     {
-                        if (loops[i][j].curve == null)
-                        {   // a pole (singularity)
-                            int next = (j + 1) % loops[i].Count;
-                            int last = (j + loops[i].Count - 1) % loops[i].Count;
-                            if (loops[i][j].createdEdges.Count == 1)
-                            {   // this must be the case
-                                ICurve2D singularCurve2d = new Line2D(loops[i][last].createdEdges[0].Curve2D(fc).EndPoint, loops[i][next].createdEdges[0].Curve2D(fc).StartPoint);
-                                if (loops[i][j].createdEdges[0].PrimaryCurve2D == null)
+                        List<Edge> createdEdges = new List<Edge>();
+                        // edges might be used more than twice in step files. It is difficult then to create proper shells. 
+                        // here the third usage of an edge simply creates a new edge.
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            if (loops[i][j].createdEdges.Count == 0)
+                            {
+                                Edge created = new Edge(fc, loops[i][j].curve);
+                                created.UseVerticesForce(loops[i][j].vertex1, loops[i][j].vertex2);
+                                if (loops[i][j].curve2d != null)
                                 {
-                                    loops[i][j].createdEdges[0].SetPrimary(fc, singularCurve2d, true);
+                                    created.SetPrimary(fc, loops[i][j].curve2d, loops[i][j].forward);
                                 }
-                                else
-                                {
-                                    loops[i][j].createdEdges[0].SetSecondary(fc, singularCurve2d, true);
-                                }
+                                loops[i][j].createdEdges.Add(created);
+                                createdEdges.Add(created);
                             }
                             else
                             {
+                                if (loops[i][j].createdEdges.Count > 1)
+                                {
+                                    // maybe the edges are in the wrong order
+                                    bool reverse = false;
+                                    if (loops[i][j].forward)
+                                    {
+                                        if (loops[i][j].vertex1 != loops[i][j].createdEdges[0].Vertex1 && loops[i][j].vertex1 != loops[i][j].createdEdges[0].Vertex2) reverse = true;
+                                    }
+                                    else
+                                    {
+                                        if (loops[i][j].vertex2 != loops[i][j].createdEdges[0].Vertex1 && loops[i][j].vertex2 != loops[i][j].createdEdges[0].Vertex2) reverse = true;
+                                    }
+                                    if (reverse) loops[i][j].createdEdges.Reverse();
+#if DEBUG
+                                    bool ok = true;
+                                    if (loops[i][j].forward)
+                                    {
+                                        if (loops[i][j].vertex2 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex1
+                                            && loops[i][j].vertex2 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex2) ok = false;
+                                    }
+                                    else
+                                    {
+                                        if (loops[i][j].vertex1 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex1
+                                            && loops[i][j].vertex1 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex2) ok = false;
+                                    }
+                                    // System.Diagnostics.Debug.Assert(ok); this may happen and is valid
+#endif
+                                }
+                                for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
+                                {   // in most cases this is only a single edge, unless it has been splitted before
+                                    // the curve is never null here if count >1
+                                    if (loops[i][j].createdEdges[k].Curve3D != null && loops[i][j].createdEdges[k].SecondaryFace == null)
+                                    {
+                                        ICurve2D crv2d = surface.GetProjectedCurve(loops[i][j].createdEdges[k].Curve3D, 0.0);
+                                        if (!loops[i][j].forward) crv2d.Reverse();
+                                        SurfaceHelper.AdjustPeriodic(surface, ext, crv2d);
+                                        if (loops[i][j].createdEdges.Count == 1) crv2d = loops[i][j].curve2d; // already claculated
+                                        loops[i][j].createdEdges[k].SetSecondary(fc, crv2d, loops[i][j].forward);
+                                        createdEdges.Add(loops[i][j].createdEdges[k]);
+                                    }
+                                    else
+                                    {   // make a new edge
+                                        Edge created = new Edge(fc, loops[i][j].curve);
+                                        created.UseVerticesForce(loops[i][j].vertex1, loops[i][j].vertex2);
+                                        if (loops[i][j].curve != null)
+                                        {
+                                            created.SetPrimary(fc, loops[i][j].curve2d, loops[i][j].forward);
+                                        }
+                                        loops[i][j].createdEdges.Add(created);
+                                        createdEdges.Add(created);
+                                    }
+                                }
+                            }
+                        }
+                        // add the missing poles, which connect the ends of two adjacent edges in 2d
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            if (loops[i][j].curve == null)
+                            {   // a pole (singularity)
+                                int next = (j + 1) % loops[i].Count;
+                                int last = (j + loops[i].Count - 1) % loops[i].Count;
+                                if (loops[i][j].createdEdges.Count == 1)
+                                {   // this must be the case
+                                    ICurve2D singularCurve2d = new Line2D(loops[i][last].createdEdges[0].Curve2D(fc).EndPoint, loops[i][next].createdEdges[0].Curve2D(fc).StartPoint);
+                                    if (loops[i][j].createdEdges[0].PrimaryCurve2D == null)
+                                    {
+                                        loops[i][j].createdEdges[0].SetPrimary(fc, singularCurve2d, true);
+                                    }
+                                    else
+                                    {
+                                        loops[i][j].createdEdges[0].SetSecondary(fc, singularCurve2d, true);
+                                    }
+                                }
+                                else
+                                {
 
+                                }
+                            }
+                        }
+                        edges[i] = createdEdges.ToArray();
+                    }
+#if DEBUG
+                    // show the 2d bounds of the face (with orientation)
+                    DebuggerContainer dc2d = new DebuggerContainer();
+                    double arrowsize = ext.Size / 100.0;
+                    List<List<ICurve2D>> orientationTest = new List<List<ICurve2D>>();
+                    for (int i = 0; i < edges.Length; i++)
+                    {
+                        List<ICurve2D> outline = new List<ICurve2D>();
+                        for (int j = 0; j < edges[i].Length; j++)
+                        {
+                            dc2d.Add(edges[i][j].Curve2D(fc), System.Drawing.Color.Blue, i * 100 + j);
+                            outline.Add(edges[i][j].Curve2D(fc));
+                            try
+                            {
+                                GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
+                                GeoVector2D dir = edges[i][j].Curve2D(fc).DirectionAt(0.5).Normalized;
+                                arrowpnts[1] = edges[i][j].Curve2D(fc).PointAt(0.5);
+                                arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
+                                arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
+                                Polyline2D pl2d = new Polyline2D(arrowpnts);
+                                dc2d.Add(pl2d, System.Drawing.Color.Red, 0);
+                            }
+                            catch (Polyline2DException) { }
+                            catch (GeoVectorException) { }
+                        }
+                        orientationTest.Add(outline);
+                    }
+                    // check, whether the orientations are coorect
+                    double maxarea = 0.0;
+                    int biggest = -1;
+                    for (int i = 0; i < orientationTest.Count; i++)
+                    {
+                        double a = Border.SignedArea(orientationTest[i]);
+                        if (Math.Abs(a) > maxarea)
+                        {
+                            biggest = i;
+                            maxarea = Math.Abs(a);
+                        }
+                    }
+                    if (Border.CounterClockwise(orientationTest[biggest]) != sameSense)
+                    {
+                        // wrong orientation
+                    }
+                    for (int i = 0; i < orientationTest.Count; i++)
+                    {
+                        if (i != biggest)
+                        {
+                            if (Border.CounterClockwise(orientationTest[i]) == sameSense)
+                            {
+                                // wrong orientation
                             }
                         }
                     }
-                    edges[i] = createdEdges.ToArray();
-                }
-#if DEBUG
-                // show the 2d bounds of the face (with orientation)
-                DebuggerContainer dc2d = new DebuggerContainer();
-                double arrowsize = ext.Size / 100.0;
-                List<List<ICurve2D>> orientationTest = new List<List<ICurve2D>>();
-                for (int i = 0; i < edges.Length; i++)
-                {
-                    List<ICurve2D> outline = new List<ICurve2D>();
-                    for (int j = 0; j < edges[i].Length; j++)
+                    if (edges[0].Length == 1)
                     {
-                        dc2d.Add(edges[i][j].Curve2D(fc), System.Drawing.Color.Blue, i * 100 + j);
-                        outline.Add(edges[i][j].Curve2D(fc));
-                        try
+
+                    }
+#endif
+                    // here we can do better: everything is correctly sorted, we must find the outline versus holes
+                    fc.Set(surface, edges);
+                    SimpleShape dbgarea = fc.Area;
+                    // if (as in rare cases) a loop curve going through a pole had to be splitted
+                    // we have to propagate the partial edges to the original loop curve
+                    for (int i = splittedByPoles.Count - 1; i >= 0; --i)
+                    {
+                        StepEdgeDescriptor original = splittedByPoles[i].First;
+                        List<StepEdgeDescriptor> replacedBy = splittedByPoles[i].Second;
+                        if (original.createdEdges.Count > 0) // there is only one
                         {
-                            GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
-                            GeoVector2D dir = edges[i][j].Curve2D(fc).DirectionAt(0.5).Normalized;
-                            arrowpnts[1] = edges[i][j].Curve2D(fc).PointAt(0.5);
+                            Edge[] replacingEdges = new Edge[replacedBy.Count];
+                            for (int j = 0; j < replacedBy.Count; j++)
+                            {
+                                replacingEdges[j] = replacedBy[j].createdEdges[0]; // it must be exactely one
+                                ICurve2D c2d = original.createdEdges[0].PrimaryFace.surface.GetProjectedCurve(replacedBy[j].curve, 0.0);
+                                bool forward = original.createdEdges[0].Forward(original.createdEdges[0].PrimaryFace);
+                                if (!forward) c2d.Reverse();
+                                replacingEdges[j].SetSecondary(original.createdEdges[0].PrimaryFace, c2d, forward);
+                            }
+                            Vertex svr = replacingEdges[0].StartVertex(original.createdEdges[0].PrimaryFace);
+                            Vertex svo = original.createdEdges[0].StartVertex(original.createdEdges[0].PrimaryFace);
+                            if (svr != svo) Array.Reverse(replacingEdges);
+                            original.createdEdges[0].PrimaryFace.ReplaceEdge(original.createdEdges[0], replacingEdges, true);
+                        }
+                        else
+                        {
+                            // this loop-curve has not been used yet, so move all the newly created edges there
+                            for (int j = 0; j < replacedBy.Count; j++)
+                            {
+                                original.createdEdges.Add(replacedBy[j].createdEdges[0]); // it must be exactely one
+                            }
+                        }
+                    }
+                    fc.ReduceVertices(); // in rare cases the vertices are defined multiple times in STEP. We need to have unique vertices
+                    fc.MakeArea();
+                    return new Face[] { fc };
+                }
+                else
+                {   // we must split this periodic face into two ore more parts
+                    // we divide the 2d area into two parts (only one parameter is periodic) or into 4 parts (both u and v are periodic)
+                    // for each periodic parameter there will be 3 lines (2d) e.g. cylinder: u = 0, pi, 2*pi, v infinite
+
+                    // maybe a surface is periodic in both parameters, but one parameter doesn't touch both sides
+                    if (uperiod > 0)
+                    {
+                        if ((ext.Right - ext.Left) < uperiod * 0.9) uperiod = 0;
+                    }
+                    if (vperiod > 0)
+                    {
+                        if ((ext.Top - ext.Bottom) < vperiod * 0.9) vperiod = 0;
+                    }
+                    double umin, umax, vmin, vmax;
+                    umin = ext.Left;
+                    umax = ext.Right;
+                    vmin = ext.Bottom;
+                    vmax = ext.Top;
+                    if (uperiod > 0.0)
+                    {
+                        umin = 0.0;
+                        umax = uperiod;
+                        if (vperiod > 0)
+                        {
+                            vmin = 0.0;
+                            vmax = vperiod;
+                        }
+                        else
+                        {   // are there poles in the middle of the surface?
+                            // if so, we would have to split the surface here as well (e. a conic, which contains the waist)
+                            // REMOVED: poles are included as 2d curves and in ext
+                            // we still need these pole points (83855_elp11b.stp, face 1242)
+                            if (vs != null && vs.Length > 0)
+                            {
+                                for (int i = 0; i < vs.Length; i++)
+                                {
+                                    vmin = Math.Min(vmin, vs[i]);
+                                    vmax = Math.Max(vmax, vs[i]);
+                                }
+                            }
+                        }
+                    }
+                    if (vperiod > 0.0)
+                    {
+                        vmin = 0.0;
+                        vmax = vperiod;
+                        if (uperiod > 0)
+                        {
+                            umin = 0.0;
+                            umax = uperiod;
+                        }
+                        else
+                        {   // are ther poles in the middle of the surface?
+                            // if so, we would have to split the surface here as well (e. a conic, which contains the waist)
+                            // REMOVED: poles are included as 2d curves and in ext
+                        }
+                    }
+                    // in most cases we can use one plane (spere, cylinder, cone) or two planes (torus) to split the periodic space in two resp. four parts.
+                    // working in 3d is probably more accurate. If there should be a case, where this is not possible (strangely distorted periodic nurbs surface)
+                    // we would have to implement a 2d intersection mechanism as well.
+                    Plane uSplitPlane = Plane.XYPlane, vSplitPlane = Plane.XYPlane;
+                    bool uPlaneValid = false, vPlaneValid = false;
+                    double[] uSplitPositions = null, vSplitPositions = null;
+                    if (uperiod > 0)
+                    {
+                        ICurve cv1 = surface.FixedU(0.0, vmin, vmax);
+                        ICurve cv2 = surface.FixedU(uperiod / 2.0, vmin, vmax);
+                        uPlaneValid = Curves.GetCommonPlane(cv1, cv2, out uSplitPlane);
+                        if (!uPlaneValid)
+                        {   // we cannot simply use a plane to cut the face, because the curves at 0 and period/2 don't reside in a plane
+                            // instead of this simple approach, which is ok for cones cylinders, torii, spheres, rotated 2d curves and most nurbs surfaces,
+                            // we have to split the periodic parameter range into period/2 segments at 0, period/2, period, 3/2*period and so on
+                            List<double> lPositions = new List<double>();
+                            double left = ext.Left + uperiod * 1e-6;
+                            double right = ext.Right - uperiod * 1e-6;
+                            int n = 0;
+                            do
+                            {
+                                double u = n * uperiod / 2.0;
+                                if (-u <= left && u >= right) break;
+                                if (u > left && u < right) lPositions.Add(u);
+                                if (n > 0 && -u > left && -u < right) lPositions.Insert(0, -u);
+                                ++n;
+                            } while (true);
+                            uSplitPositions = lPositions.ToArray();
+                        }
+                    }
+                    if (vperiod > 0)
+                    {
+                        ICurve cv1 = surface.FixedV(0.0, umin, umax);
+                        ICurve cv2 = surface.FixedV(vperiod / 2.0, umin, umax);
+                        vPlaneValid = Curves.GetCommonPlane(cv1, cv2, out vSplitPlane);
+                        if (!vPlaneValid)
+                        {
+                            List<double> lPositions = new List<double>();
+                            double bottom = ext.Bottom + vperiod * 1e-8;
+                            double top = ext.Top - vperiod * 1e-8;
+                            int n = 0;
+                            do
+                            {
+                                double v = n * vperiod / 2.0;
+                                if (-v <= bottom && v >= top) break;
+                                if (v > bottom && v < top) lPositions.Add(v);
+                                if (n > 0 && -v > bottom && -v < top) lPositions.Insert(0, -v);
+                                ++n;
+                            } while (true);
+                            vSplitPositions = lPositions.ToArray();
+                        }
+                    }
+                    // if edges already exist AND already have been splitted because the other face also was periodic
+                    // then we make two edge descriptors in order to prevent the same edge beeing splitted differently on two faces
+                    for (int i = 0; i < loops.Count; i++)
+                    {
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 1)
+                            {
+                                // I cannot imagine a case, where these edges would not be connected
+                                // and the orientation must be reverse
+                                StepEdgeDescriptor se = loops[i][j];
+                                BoundingRect domain = se.curve2d.GetExtent();
+                                loops[i].RemoveAt(j);
+                                for (int k = 0; k < se.createdEdges.Count; k++)
+                                {
+                                    StepEdgeDescriptor separt = new StepEdgeDescriptor(se.createdEdges[k], se.forward);
+                                    ICurve2D crv2d = surface.GetProjectedCurve(separt.curve, 0.0);
+                                    if (!se.forward) crv2d.Reverse();
+                                    SurfaceHelper.AdjustPeriodic(surface, domain, crv2d);
+                                    separt.curve2d = crv2d;
+                                    // not sure whether directions and vertex1/2 are correct
+                                    loops[i].Insert(j, separt);
+                                }
+                            }
+                        }
+                    }
+                    List<ICurve2D> crvs2d = new List<ICurve2D>(); // all 2d curves (splitted and unsplitted)
+                    List<ICurve> crvs3d = new List<ICurve>(); // synchronous list of 3d curves
+                    List<int> loopSpan = new List<int>(); // indices in crvs2d where a new loop begins
+                    allVertices = new Set<Vertex>();
+                    double minLength = double.MaxValue;
+                    for (int i = 0; i < loops.Count; i++)
+                    {
+                        int firstCrv2d = crvs2d.Count;
+                        loopSpan.Add(crvs2d.Count); // here a new loop begins
+                        Vertex lastIntersection = null;
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            if (loops[i][j].isSeam && loops[i][j].curve != null)
+                            {
+                                minLength = Math.Min(minLength, loops[i][j].curve.Length);
+                            }
+                            if (loops[i][j].curve != null && !loops[i][j].isSeam)
+                            {
+                                allVertices.Add(loops[i][j].vertex1);
+                                allVertices.Add(loops[i][j].vertex2);
+                                List<double> ispPos = new List<double>();
+                                // cut the edges by the plane(s) to make unperiodic parts
+                                ICurve forwardOrientedCurve = loops[i][j].curve.Clone();
+                                if (!loops[i][j].forward) forwardOrientedCurve.Reverse(); // this 3d curve is forward oriented for this surface
+                                                                                          // we need the orientation to get the 2d curves in the correct order
+                                if (uPlaneValid) ispPos.AddRange(forwardOrientedCurve.GetPlaneIntersection(uSplitPlane));
+                                else if (uSplitPositions != null)
+                                {
+                                    for (int ui = 0; ui < uSplitPositions.Length; ui++)
+                                    {
+                                        GeoPoint2DWithParameter[] ip2d = loops[i][j].curve2d.Intersect(new GeoPoint2D(uSplitPositions[ui], ext.Bottom), new GeoPoint2D(uSplitPositions[ui], ext.Top));
+                                        for (int ipi = 0; ipi < ip2d.Length; ipi++)
+                                        {
+                                            if (ip2d[ipi].par1 > 0 && ip2d[ipi].par1 < 1)
+                                            {
+                                                ispPos.Add(forwardOrientedCurve.PositionOf(surface.PointAt(ip2d[ipi].p)));
+                                            }
+                                        }
+                                    }
+
+                                }
+                                if (vPlaneValid) ispPos.AddRange(forwardOrientedCurve.GetPlaneIntersection(vSplitPlane));
+                                else if (vSplitPositions != null)
+                                {
+                                    for (int vi = 0; vi < vSplitPositions.Length; vi++)
+                                    {
+                                        GeoPoint2DWithParameter[] ip2d = loops[i][j].curve2d.Intersect(new GeoPoint2D(ext.Left, vSplitPositions[vi]), new GeoPoint2D(ext.Right, vSplitPositions[vi]));
+                                        for (int ipi = 0; ipi < ip2d.Length; ipi++)
+                                        {
+                                            if (ip2d[ipi].par1 > 0 && ip2d[ipi].par1 < 1)
+                                            {
+                                                ispPos.Add(forwardOrientedCurve.PositionOf(surface.PointAt(ip2d[ipi].p)));
+                                            }
+                                        }
+                                    }
+
+                                }
+                                for (int k = ispPos.Count - 1; k >= 0; --k)
+                                {
+                                    if (ispPos[k] <= 1e-5 || ispPos[k] >= 1 - 1e-5 || double.IsNaN(ispPos[k])) ispPos.RemoveAt(k); // avoid intersectionpoints at the very beginning and end
+                                }
+
+                                ispPos.Add(0.0);
+                                ispPos.Add(1.0);
+                                ispPos.Sort();
+                                GeoPoint2D sp2d, ep2d;
+                                sp2d = surface.PositionOf(loops[i][j].vertex1.Position);
+                                ep2d = surface.PositionOf(loops[i][j].vertex2.Position);
+                                SurfaceHelper.AdjustPeriodic(surface, ext, ref sp2d);
+                                SurfaceHelper.AdjustPeriodic(surface, ext, ref ep2d);
+                                for (int ii = 0; ii < ispPos.Count - 1; ii++)
+                                {
+                                    if (ispPos[ii + 1] - ispPos[ii] > 1e-6)
+                                    {
+                                        ICurve crv3d = forwardOrientedCurve.Clone();
+                                        bool unsplitted = false;
+                                        Vertex splitVertex = null;
+                                        if (ispPos[ii] == 0.0 && ispPos[ii + 1] == 1.0)
+                                        {
+                                            unsplitted = true;
+                                            lastIntersection = null;
+                                        }
+                                        else
+                                        {
+                                            crv3d.Trim(ispPos[ii], ispPos[ii + 1]);
+                                            // the new split points will be new vertices. In order that UseVertices doesn't use a close by vertex
+                                            // we create the exact vertex here. We don't need to check the startpoint, since it already was the endpoint of the previous segment.
+                                            if (ii < ispPos.Count - 1)
+                                            {
+                                                splitVertex = new Vertex(crv3d.EndPoint);
+                                                allVertices.Add(splitVertex);
+                                            }
+                                        }
+                                        minLength = Math.Min(minLength, crv3d.Length);
+                                        crvs3d.Add(crv3d);
+                                        ICurve2D crv2d;
+                                        if (unsplitted)
+                                        {
+                                            crv2d = loops[i][j].curve2d;
+                                        }
+                                        else
+                                        {
+                                            crv2d = surface.GetProjectedCurve(crv3d, 0.0);
+                                            // if (!loops[i][j].forward) crv2d.Reverse(); crv3d is forward on this surface at this point of code
+                                            SurfaceHelper.AdjustPeriodic(surface, loops[i][j].curve2d.GetExtent(), crv2d); // move into the same domain as the original curve2d
+                                        }
+                                        lastIntersection = splitVertex;
+                                        if (!loops[i][j].forward) crv3d.Reverse(); // crv3d was forward oriented, now it is oriented according to loop[i][j].forward again
+                                        crv2d.UserData["EdgeDescriptor"] = loops[i][j];
+                                        crv2d.UserData["Curves3DIndex"] = crvs3d.Count - 1;
+                                        crv2d.UserData["Unsplitted"] = unsplitted;
+                                        if (uperiod > 0)
+                                        {
+                                            while (crv2d.PointAt(0.5).x > uperiod) crv2d.Move(-uperiod, 0);
+                                            while (crv2d.PointAt(0.5).x < 0.0) crv2d.Move(uperiod, 0);
+                                        }
+                                        if (vperiod > 0)
+                                        {
+                                            while (crv2d.PointAt(0.5).y > vperiod) crv2d.Move(0, -vperiod);
+                                            while (crv2d.PointAt(0.5).y < 0.0) crv2d.Move(0, vperiod);
+                                        }
+                                        else if (surface.IsVPeriodic)
+                                        {
+                                            double extcv = (ext.Bottom + ext.Top) / 2.0;
+                                            while (crv2d.PointAt(0.5).y > extcv + surface.VPeriod / 2.0) crv2d.Move(0, -surface.VPeriod);
+                                            while (crv2d.PointAt(0.5).y < extcv - surface.VPeriod / 2.0) crv2d.Move(0, surface.VPeriod);
+                                        }
+                                        crvs2d.Add(crv2d);
+                                        ext.MinMax(crv2d.GetExtent()); // ext should already reflect the correct extend, but splitting a curve may yield more precise points
+                                    }
+                                    //else
+                                    //{
+
+                                    //}
+                                }
+                            }
+                            else if (loops[i][j].curve == null && loops[i][j].vertex1 == loops[i][j].vertex2)
+                            {
+                                // maybe we need to split a pole
+                                // splitting a pole when not the plane but a list of parameter positions is specified is not yet implemented. No example found.
+                                if ((uPlaneValid) || uSplitPositions != null) // omitted: && Precision.IsPointOnPlane(loops[i][j].vertex1.Position, uSplitPlane)
+                                {
+                                    // poles are always lines, we have to cut this (horizontal) line in uperiod/2 pieces
+                                    Line2D l2d = loops[i][j].curve2d as Line2D;
+                                    double y = l2d.StartPoint.y;
+                                    List<ICurve2D> splitted = new List<ICurve2D>();
+                                    if (l2d.StartPoint.x < l2d.EndPoint.x)
+                                    {
+                                        double upos = Math.Floor(l2d.StartPoint.x / (uperiod / 2) + 1) * (uperiod / 2);
+                                        double x = l2d.StartPoint.x;
+                                        while (upos < l2d.EndPoint.x)
+                                        {
+                                            Line2D ppart = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(upos, y));
+                                            if (ppart.Length > uperiod * 1e-6) splitted.Add(ppart);
+                                            x = upos;
+                                            upos += uperiod / 2;
+                                        }
+                                        Line2D last = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(l2d.EndPoint.x, y));
+                                        if (last.Length > uperiod * 1e-6) splitted.Add(last);
+                                    }
+                                    else
+                                    {
+                                        double upos = Math.Ceiling(l2d.StartPoint.x / (uperiod / 2) - 1) * (uperiod / 2);
+                                        double x = l2d.StartPoint.x;
+                                        while (upos > l2d.EndPoint.x)
+                                        {
+                                            Line2D ppart = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(upos, y));
+                                            if (ppart.Length > uperiod * 1e-6) splitted.Add(ppart);
+                                            x = upos;
+                                            upos -= uperiod / 2;
+                                        }
+                                        Line2D last = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(l2d.EndPoint.x, y));
+                                        if (last.Length > uperiod * 1e-6) splitted.Add(last);
+                                    }
+                                    for (int k = 0; k < splitted.Count; k++)
+                                    {
+                                        crvs3d.Add(null); // the pole has no 3d curve
+                                        splitted[k].UserData["EdgeDescriptor"] = loops[i][j];
+                                        splitted[k].UserData["Curves3DIndex"] = crvs3d.Count - 1;
+                                        splitted[k].UserData["Unsplitted"] = false;
+                                        if (uperiod > 0)
+                                        {
+                                            while (splitted[k].PointAt(0.5).x > uperiod) splitted[k].Move(-uperiod, 0);
+                                            while (splitted[k].PointAt(0.5).x < 0.0) splitted[k].Move(uperiod, 0);
+                                        }
+                                        crvs2d.Add(splitted[k]);
+                                        ext.MinMax(splitted[k].GetExtent()); // ext should already reflect the correct extend, but splitting a curve may yield more precise points
+                                    }
+                                }
+                                if ((vPlaneValid) || vSplitPositions != null) // omitted: && Precision.IsPointOnPlane(loops[i][j].vertex1.Position, vSplitPlane)
+                                {
+                                    // poles are always lines, we have to cut this (vertical) line in vperiod/2 pieces
+                                    Line2D l2d = loops[i][j].curve2d as Line2D;
+                                    double x = l2d.StartPoint.x;
+                                    List<ICurve2D> splitted = new List<ICurve2D>();
+                                    if (l2d.StartPoint.y < l2d.EndPoint.y)
+                                    {
+                                        double vpos = Math.Floor(l2d.StartPoint.y / (vperiod / 2) + 1) * (vperiod / 2);
+                                        double y = l2d.StartPoint.y;
+                                        while (vpos < l2d.EndPoint.y)
+                                        {
+                                            Line2D ppart = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(x, vpos));
+                                            if (ppart.Length > vperiod * 1e-6) splitted.Add(ppart);
+                                            y = vpos;
+                                            vpos += vperiod / 2;
+                                        }
+                                        Line2D last = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(x, l2d.EndPoint.y));
+                                        if (last.Length > uperiod * 1e-6) splitted.Add(last);
+                                    }
+                                    else
+                                    {
+                                        double vpos = Math.Ceiling(l2d.StartPoint.y / (vperiod / 2) - 1) * (vperiod / 2);
+                                        double y = l2d.StartPoint.y;
+                                        while (vpos > l2d.EndPoint.y)
+                                        {
+                                            Line2D ppart = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(x, vpos));
+                                            if (ppart.Length > vperiod * 1e-6) splitted.Add(ppart);
+                                            y = vpos;
+                                            vpos -= vperiod / 2;
+                                        }
+                                        Line2D last = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(x, l2d.EndPoint.y));
+                                        if (last.Length > uperiod * 1e-6) splitted.Add(last);
+                                    }
+                                    for (int k = 0; k < splitted.Count; k++)
+                                    {
+                                        crvs3d.Add(null); // the pole has no 3d curve
+                                        splitted[k].UserData["EdgeDescriptor"] = loops[i][j];
+                                        splitted[k].UserData["Curves3DIndex"] = crvs3d.Count - 1;
+                                        splitted[k].UserData["Unsplitted"] = false;
+                                        if (vperiod > 0)
+                                        {
+                                            while (splitted[k].PointAt(0.5).y > vperiod) splitted[k].Move(0, -vperiod);
+                                            while (splitted[k].PointAt(0.5).y < 0.0) splitted[k].Move(0, vperiod);
+                                        }
+                                        crvs2d.Add(splitted[k]);
+                                    }
+                                }
+                                allVertices.Add(loops[i][j].vertex1);
+                            }
+                        }
+                    }
+                    loopSpan.Add(crvs2d.Count);
+#if DEBUG
+                    // show the 2d splitted curves and their directions
+                    DebuggerContainer dc2d = new DebuggerContainer();
+                    double arrowsize = ext.Size / 100.0;
+                    for (int i = 0; i < crvs2d.Count; i++)
+                    {
+                        dc2d.Add(crvs2d[i], System.Drawing.Color.Blue, i);
+                        GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
+                        GeoVector2D dir = crvs2d[i].DirectionAt(0.5);
+                        if (!dir.IsNullVector())
+                        {
+                            dir = dir.Normalized;
+                            arrowpnts[1] = crvs2d[i].PointAt(0.5);
                             arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
                             arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
                             Polyline2D pl2d = new Polyline2D(arrowpnts);
                             dc2d.Add(pl2d, System.Drawing.Color.Red, 0);
                         }
-                        catch (Polyline2DException) { }
-                        catch (GeoVectorException) { }
                     }
-                    orientationTest.Add(outline);
-                }
-                // check, whether the orientations are coorect
-                double maxarea = 0.0;
-                int biggest = -1;
-                for (int i = 0; i < orientationTest.Count; i++)
-                {
-                    double a = Border.SignedArea(orientationTest[i]);
-                    if (Math.Abs(a) > maxarea)
+                    for (int i = 0; i < loops.Count; i++)
                     {
-                        biggest = i;
-                        maxarea = Math.Abs(a);
-                    }
-                }
-                if (Border.CounterClockwise(orientationTest[biggest]) != sameSense)
-                {
-                    // wrong orientation
-                }
-                for (int i = 0; i < orientationTest.Count; i++)
-                {
-                    if (i != biggest)
-                    {
-                        if (Border.CounterClockwise(orientationTest[i]) == sameSense)
+                        for (int j = 0; j < loops[i].Count; j++)
                         {
-                            // wrong orientation
+                            if (loops[i][j].vertex1 != null)
+                            {
+                                Point pnt = Point.Construct();
+                                pnt.Symbol = PointSymbol.Cross;
+                                GeoPoint2D p2d = surface.PositionOf(loops[i][j].vertex1.Position);
+                                SurfaceHelper.AdjustPeriodic(surface, ext, ref p2d);
+                                pnt.Location = new GeoPoint(p2d);
+                                dc2d.Add(pnt);
+                            }
+                            if (loops[i][j].vertex2 != null)
+                            {
+                                Point pnt = Point.Construct();
+                                pnt.Symbol = PointSymbol.Cross;
+                                GeoPoint2D p2d = surface.PositionOf(loops[i][j].vertex2.Position);
+                                SurfaceHelper.AdjustPeriodic(surface, ext, ref p2d);
+                                pnt.Location = new GeoPoint(p2d);
+                                dc2d.Add(pnt);
+                            }
                         }
                     }
-                }
-                if (edges[0].Length == 1)
-                {
-
-                }
-#endif
-                // here we can do better: everything is correctly sorted, we must find the outline versus holes
-                fc.Set(surface, edges);
-                SimpleShape dbgarea = fc.Area;
-                // if (as in rare cases) a loop curve going through a pole had to be splitted
-                // we have to propagate the partial edges to the original loop curve
-                for (int i = splittedByPoles.Count - 1; i >= 0; --i)
-                {
-                    StepEdgeDescriptor original = splittedByPoles[i].First;
-                    List<StepEdgeDescriptor> replacedBy = splittedByPoles[i].Second;
-                    if (original.createdEdges.Count > 0) // there is only one
+                    foreach (Vertex vtx in allVertices)
                     {
-                        Edge[] replacingEdges = new Edge[replacedBy.Count];
-                        for (int j = 0; j < replacedBy.Count; j++)
-                        {
-                            replacingEdges[j] = replacedBy[j].createdEdges[0]; // it must be exactely one
-                            ICurve2D c2d = original.createdEdges[0].PrimaryFace.surface.GetProjectedCurve(replacedBy[j].curve, 0.0);
-                            bool forward = original.createdEdges[0].Forward(original.createdEdges[0].PrimaryFace);
-                            if (!forward) c2d.Reverse();
-                            replacingEdges[j].SetSecondary(original.createdEdges[0].PrimaryFace, c2d, forward);
-                        }
-                        Vertex svr = replacingEdges[0].StartVertex(original.createdEdges[0].PrimaryFace);
-                        Vertex svo = original.createdEdges[0].StartVertex(original.createdEdges[0].PrimaryFace);
-                        if (svr != svo) Array.Reverse(replacingEdges);
-                        original.createdEdges[0].PrimaryFace.ReplaceEdge(original.createdEdges[0], replacingEdges, true);
+                        Point pnt = Point.Construct();
+                        pnt.Symbol = PointSymbol.Plus;
+                        GeoPoint2D p2d = surface.PositionOf(vtx.Position);
+                        SurfaceHelper.AdjustPeriodic(surface, ext, ref p2d);
+                        pnt.Location = new GeoPoint(p2d);
+                        dc2d.Add(pnt);
                     }
-                    else
+                    if (uperiod == 0)
                     {
-                        // this loop-curve has not been used yet, so move all the newly created edges there
-                        for (int j = 0; j < replacedBy.Count; j++)
+                        umin = ext.Left;
+                        umax = ext.Right;
+                        // we still need these pole points (83855_elp11b.stp, face 1242)
+                        if (us != null && us.Length > 0)
                         {
-                            original.createdEdges.Add(replacedBy[j].createdEdges[0]); // it must be exactely one
+                            for (int i = 0; i < us.Length; i++)
+                            {
+                                umin = Math.Min(umin, us[i]);
+                                umax = Math.Max(umax, us[i]);
+                            }
                         }
                     }
-                }
-                fc.ReduceVertices(); // in rare cases the vertices are defined multiple times in STEP. We need to have unique vertices
-                fc.MakeArea();
-                return new Face[] { fc };
-            }
-            else
-            {   // we must split this periodic face into two ore more parts
-                // we divide the 2d area into two parts (only one parameter is periodic) or into 4 parts (both u and v are periodic)
-                // for each periodic parameter there will be 3 lines (2d) e.g. cylinder: u = 0, pi, 2*pi, v infinite
-
-                // maybe a surface is periodic in both parameters, but one parameter doesn't touch both sides
-                if (uperiod > 0)
-                {
-                    if ((ext.Right - ext.Left) < uperiod * 0.9) uperiod = 0;
-                }
-                if (vperiod > 0)
-                {
-                    if ((ext.Top - ext.Bottom) < vperiod * 0.9) vperiod = 0;
-                }
-                double umin, umax, vmin, vmax;
-                umin = ext.Left;
-                umax = ext.Right;
-                vmin = ext.Bottom;
-                vmax = ext.Top;
-                if (uperiod > 0.0)
-                {
-                    umin = 0.0;
-                    umax = uperiod;
-                    if (vperiod > 0)
+                    if (vperiod == 0)
                     {
-                        vmin = 0.0;
-                        vmax = vperiod;
-                    }
-                    else
-                    {   // are there poles in the middle of the surface?
-                        // if so, we would have to split the surface here as well (e. a conic, which contains the waist)
-                        // REMOVED: poles are included as 2d curves and in ext
+                        vmin = ext.Bottom;
+                        vmax = ext.Top;
                         // we still need these pole points (83855_elp11b.stp, face 1242)
                         if (vs != null && vs.Length > 0)
                         {
@@ -1611,647 +2031,260 @@ namespace CADability.GeoObject
                             }
                         }
                     }
-                }
-                if (vperiod > 0.0)
-                {
-                    vmin = 0.0;
-                    vmax = vperiod;
-                    if (uperiod > 0)
+                    GeoPoint2D[] boundpnts = new GeoPoint2D[5];
+                    boundpnts[4] = boundpnts[0] = new GeoPoint2D(umin, vmin);
+                    boundpnts[1] = new GeoPoint2D(umax, vmin);
+                    boundpnts[2] = new GeoPoint2D(umax, vmax);
+                    boundpnts[3] = new GeoPoint2D(umin, vmax);
+                    Polyline2D bnd2d = new Polyline2D(boundpnts);
+                    dc2d.Add(bnd2d, System.Drawing.Color.Green, 0);
+                    // *** check 2d splitted curves and directions
+#endif
+                    // now we make two or four sets of curves (corresponding to the non periodic sub-patches of the surface) and make faces from each set
+                    Set<int>[,] part = new Set<int>[2, 2];
+                    part[0, 0] = new Set<int>();
+                    part[0, 1] = new Set<int>();
+                    part[1, 0] = new Set<int>();
+                    part[1, 1] = new Set<int>();
+                    // distribute the 2d curves into the appropriate patch
+                    for (int i = 0; i < crvs2d.Count; i++)
                     {
-                        umin = 0.0;
-                        umax = uperiod;
+                        GeoPoint2D mp = crvs2d[i].PointAt(0.5);
+                        int ui = 0, vi = 0;
+                        if (uperiod > 0) ui = Math.Max(0, Math.Min(1, (int)Math.Floor((mp.x / uperiod * 2))));
+                        if (vperiod > 0) vi = Math.Max(0, Math.Min(1, (int)Math.Floor((mp.y / vperiod * 2))));
+                        part[ui, vi].Add(i);
                     }
-                    else
-                    {   // are ther poles in the middle of the surface?
-                        // if so, we would have to split the surface here as well (e. a conic, which contains the waist)
-                        // REMOVED: poles are included as 2d curves and in ext
-                    }
-                }
-                // in most cases we can use one plane (spere, cylinder, cone) or two planes (torus) to split the periodic space in two resp. four parts.
-                // working in 3d is probably more accurate. If there should be a case, where this is not possible (strangely distorted periodic nurbs surface)
-                // we would have to implement a 2d intersection mechanism as well.
-                Plane uSplitPlane = Plane.XYPlane, vSplitPlane = Plane.XYPlane;
-                bool uPlaneValid = false, vPlaneValid = false;
-                double[] uSplitPositions = null, vSplitPositions = null;
-                if (uperiod > 0)
-                {
-                    ICurve cv1 = surface.FixedU(0.0, vmin, vmax);
-                    ICurve cv2 = surface.FixedU(uperiod / 2.0, vmin, vmax);
-                    uPlaneValid = Curves.GetCommonPlane(cv1, cv2, out uSplitPlane);
-                    if (!uPlaneValid)
-                    {   // we cannot simply use a plane to cut the face, because the curves at 0 and period/2 don't reside in a plane
-                        // instead of this simple approach, which is ok for cones cylinders, torii, spheres, rotated 2d curves and most nurbs surfaces,
-                        // we have to split the periodic parameter range into period/2 segments at 0, period/2, period, 3/2*period and so on
-                        List<double> lPositions = new List<double>();
-                        double left = ext.Left + uperiod * 1e-6;
-                        double right = ext.Right - uperiod * 1e-6;
-                        int n = 0;
-                        do
+                    // and for each set we calculate a list of parameters for the counterclockwise rectangle, starting at the lower left point of the bounding rectangle
+                    // for each patch collect the parts of the 2d curves of this patch together with the appropriate parts of the bounding rectangle
+                    Set<Face> res = new Set<Face>();
+                    Dictionary<DoubleVertexKey, Edge> seams = new Dictionary<DoubleVertexKey, Edge>();
+                    for (int ui = 0; ui < 2; ui++)
+                        for (int vi = 0; vi < 2; vi++)
                         {
-                            double u = n * uperiod / 2.0;
-                            if (-u <= left && u >= right) break;
-                            if (u > left && u < right) lPositions.Add(u);
-                            if (n > 0 && -u > left && -u < right) lPositions.Insert(0, -u);
-                            ++n;
-                        } while (true);
-                        uSplitPositions = lPositions.ToArray();
-                    }
-                }
-                if (vperiod > 0)
-                {
-                    ICurve cv1 = surface.FixedV(0.0, umin, umax);
-                    ICurve cv2 = surface.FixedV(vperiod / 2.0, umin, umax);
-                    vPlaneValid = Curves.GetCommonPlane(cv1, cv2, out vSplitPlane);
-                    if (!vPlaneValid)
-                    {
-                        List<double> lPositions = new List<double>();
-                        double bottom = ext.Bottom + vperiod * 1e-8;
-                        double top = ext.Top - vperiod * 1e-8;
-                        int n = 0;
-                        do
-                        {
-                            double v = n * vperiod / 2.0;
-                            if (-v <= bottom && v >= top) break;
-                            if (v > bottom && v < top) lPositions.Add(v);
-                            if (n > 0 && -v > bottom && -v < top) lPositions.Insert(0, -v);
-                            ++n;
-                        } while (true);
-                        vSplitPositions = lPositions.ToArray();
-                    }
-                }
-                // if edges already exist AND already have been splitted because the other face also was periodic
-                // then we make two edge descriptors in order to prevent the same edge beeing splitted differently on two faces
-                for (int i = 0; i < loops.Count; i++)
-                {
-                    for (int j = 0; j < loops[i].Count; j++)
-                    {
-                        if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 1)
-                        {
-                            // I cannot imagine a case, where these edges would not be connected
-                            // and the orientation must be reverse
-                            StepEdgeDescriptor se = loops[i][j];
-                            BoundingRect domain = se.curve2d.GetExtent();
-                            loops[i].RemoveAt(j);
-                            for (int k = 0; k < se.createdEdges.Count; k++)
+                            double left, right, bottom, top;
+                            if (uperiod > 0)
                             {
-                                StepEdgeDescriptor separt = new StepEdgeDescriptor(se.createdEdges[k], se.forward);
-                                ICurve2D crv2d = surface.GetProjectedCurve(separt.curve, 0.0);
-                                if (!se.forward) crv2d.Reverse();
-                                SurfaceHelper.AdjustPeriodic(surface, domain, crv2d);
-                                separt.curve2d = crv2d;
-                                // not sure whether directions and vertex1/2 are correct
-                                loops[i].Insert(j, separt);
+                                left = ui * uperiod / 2;
+                                right = (ui + 1) * uperiod / 2;
                             }
-                        }
-                    }
-                }
-                List<ICurve2D> crvs2d = new List<ICurve2D>(); // all 2d curves (splitted and unsplitted)
-                List<ICurve> crvs3d = new List<ICurve>(); // synchronous list of 3d curves
-                List<int> loopSpan = new List<int>(); // indices in crvs2d where a new loop begins
-                allVertices = new Set<Vertex>();
-                double minLength = double.MaxValue;
-                for (int i = 0; i < loops.Count; i++)
-                {
-                    int firstCrv2d = crvs2d.Count;
-                    loopSpan.Add(crvs2d.Count); // here a new loop begins
-                    Vertex lastIntersection = null;
-                    for (int j = 0; j < loops[i].Count; j++)
-                    {
-                        if (loops[i][j].isSeam && loops[i][j].curve != null)
-                        {
-                            minLength = Math.Min(minLength, loops[i][j].curve.Length);
-                        }
-                        if (loops[i][j].curve != null && !loops[i][j].isSeam)
-                        {
-                            allVertices.Add(loops[i][j].vertex1);
-                            allVertices.Add(loops[i][j].vertex2);
-                            List<double> ispPos = new List<double>();
-                            // cut the edges by the plane(s) to make unperiodic parts
-                            ICurve forwardOrientedCurve = loops[i][j].curve.Clone();
-                            if (!loops[i][j].forward) forwardOrientedCurve.Reverse(); // this 3d curve is forward oriented for this surface
-                            // we need the orientation to get the 2d curves in the correct order
-                            if (uPlaneValid) ispPos.AddRange(forwardOrientedCurve.GetPlaneIntersection(uSplitPlane));
-                            else if (uSplitPositions != null)
+                            else
                             {
-                                for (int ui = 0; ui < uSplitPositions.Length; ui++)
+                                left = umin;
+                                right = umax;
+                            }
+                            if (vperiod > 0)
+                            {
+                                bottom = vi * vperiod / 2;
+                                top = (vi + 1) * vperiod / 2;
+                            }
+                            else
+                            {
+                                bottom = vmin;
+                                top = vmax;
+                            }
+                            BoundingRect patch = new BoundingRect(left, bottom, right, top);
+                            Set<int> s = part[ui, vi];
+                            if (s.Count == 0) continue;
+                            List<List<ICurve2D>> looplist = new List<List<ICurve2D>>();
+                            Set<ICurve2D> seamLines = new Set<ICurve2D>();
+                            BoundingRect precisionExt = ext;
+                            precisionExt.Inflate(ext.Width * 10, ext.Height * 10); // this is for precision only
+                                                                                   // we get problems with almost tangential intersections
+                            Set<int> entering = new Set<int>();
+                            Set<int> leaving = new Set<int>();
+                            for (int i = 0; i < crvs2d.Count; i++)
+                            {
+                                int ni = NextInSameLoop(i, loopSpan);
+                                if (s.Contains(i) && !s.Contains(ni))
                                 {
-                                    GeoPoint2DWithParameter[] ip2d = loops[i][j].curve2d.Intersect(new GeoPoint2D(uSplitPositions[ui], ext.Bottom), new GeoPoint2D(uSplitPositions[ui], ext.Top));
-                                    for (int ipi = 0; ipi < ip2d.Length; ipi++)
-                                    {
-                                        if (ip2d[ipi].par1 > 0 && ip2d[ipi].par1 < 1)
-                                        {
-                                            ispPos.Add(forwardOrientedCurve.PositionOf(surface.PointAt(ip2d[ipi].p)));
-                                        }
-                                    }
+                                    leaving.Add(i);
                                 }
-
-                            }
-                            if (vPlaneValid) ispPos.AddRange(forwardOrientedCurve.GetPlaneIntersection(vSplitPlane));
-                            else if (vSplitPositions != null)
-                            {
-                                for (int vi = 0; vi < vSplitPositions.Length; vi++)
+                                if (!s.Contains(i) && s.Contains(ni))
                                 {
-                                    GeoPoint2DWithParameter[] ip2d = loops[i][j].curve2d.Intersect(new GeoPoint2D(ext.Left, vSplitPositions[vi]), new GeoPoint2D(ext.Right, vSplitPositions[vi]));
-                                    for (int ipi = 0; ipi < ip2d.Length; ipi++)
-                                    {
-                                        if (ip2d[ipi].par1 > 0 && ip2d[ipi].par1 < 1)
-                                        {
-                                            ispPos.Add(forwardOrientedCurve.PositionOf(surface.PointAt(ip2d[ipi].p)));
-                                        }
-                                    }
+                                    entering.Add(ni);
                                 }
-
                             }
-                            for (int k = ispPos.Count - 1; k >= 0; --k)
+                            int maxCount = s.Count + leaving.Count + 4;
+                            while (s.Count > 0)
                             {
-                                if (ispPos[k] <= 1e-5 || ispPos[k] >= 1 - 1e-5 || double.IsNaN(ispPos[k])) ispPos.RemoveAt(k); // avoid intersectionpoints at the very beginning and end
-                            }
-
-                            ispPos.Add(0.0);
-                            ispPos.Add(1.0);
-                            ispPos.Sort();
-                            GeoPoint2D sp2d, ep2d;
-                            sp2d = surface.PositionOf(loops[i][j].vertex1.Position);
-                            ep2d = surface.PositionOf(loops[i][j].vertex2.Position);
-                            SurfaceHelper.AdjustPeriodic(surface, ext, ref sp2d);
-                            SurfaceHelper.AdjustPeriodic(surface, ext, ref ep2d);
-                            for (int ii = 0; ii < ispPos.Count - 1; ii++)
-                            {
-                                if (ispPos[ii + 1] - ispPos[ii] > 1e-6)
+                                List<ICurve2D> loop = new List<ICurve2D>();
+                                int currentInd = s.GetAny();
+                                int startInd = currentInd;
+                                loop.Add(crvs2d[currentInd]);
+                                s.Remove(currentInd);
+                                while (true) // stopped by break, when the first curve is reached
                                 {
-                                    ICurve crv3d = forwardOrientedCurve.Clone();
-                                    bool unsplitted = false;
-                                    Vertex splitVertex = null;
-                                    if (ispPos[ii] == 0.0 && ispPos[ii + 1] == 1.0)
-                                    {
-                                        unsplitted = true;
-                                        lastIntersection = null;
+                                    int nextind = -1;
+                                    // ind ist the index of the last added curve2d
+                                    if (!leaving.Contains(currentInd))
+                                    {   // connected next curve can be added to the loop
+                                        nextind = NextInSameLoop(currentInd, loopSpan);
+                                        // nextind must be in s
                                     }
                                     else
-                                    {
-                                        crv3d.Trim(ispPos[ii], ispPos[ii + 1]);
-                                        // the new split points will be new vertices. In order that UseVertices doesn't use a close by vertex
-                                        // we create the exact vertex here. We don't need to check the startpoint, since it already was the endpoint of the previous segment.
-                                        if (ii < ispPos.Count - 1)
+                                    {   // we must insert a line (or sometimes more: torus) from the bounds of the patch
+                                        double pos = patch.PositionOf(crvs2d[currentInd].EndPoint);
+                                        double minDist = double.MaxValue;
+                                        nextind = -1;
+                                        foreach (int ind2 in entering)
                                         {
-                                            splitVertex = new Vertex(crv3d.EndPoint);
-                                            allVertices.Add(splitVertex);
+                                            double pos2 = patch.PositionOf(crvs2d[ind2].StartPoint);
+                                            double d = pos2 - pos;
+                                            if (d < 0.0) d += 4.0;
+                                            if (d < minDist)
+                                            {
+                                                minDist = d;
+                                                nextind = ind2;
+                                            }
+                                        }
+                                        // there must be a valid nexind
+                                        GeoPoint2D[] trimmed = patch.GetLines(pos, (pos + minDist) % 4.0); // the vertices of a polyline from pos to pos+minDist
+                                        for (int j = 0; j < trimmed.Length - 1; j++) // could be more than two points when we have 4 parts (torus-like surface)
+                                        {
+                                            Line2D l2d = new Line2D(trimmed[j], trimmed[j + 1]);
+                                            if (l2d.Length > (uperiod + vperiod) * 1e-6)
+                                            {
+                                                loop.Add(l2d);
+                                                seamLines.Add(l2d);
+                                            }
                                         }
                                     }
-                                    minLength = Math.Min(minLength, crv3d.Length);
-                                    crvs3d.Add(crv3d);
-                                    ICurve2D crv2d;
-                                    if (unsplitted)
-                                    {
-                                        crv2d = loops[i][j].curve2d;
-                                    }
-                                    else
-                                    {
-                                        crv2d = surface.GetProjectedCurve(crv3d, 0.0);
-                                        // if (!loops[i][j].forward) crv2d.Reverse(); crv3d is forward on this surface at this point of code
-                                        SurfaceHelper.AdjustPeriodic(surface, loops[i][j].curve2d.GetExtent(), crv2d); // move into the same domain as the original curve2d
-                                    }
-                                    lastIntersection = splitVertex;
-                                    if (!loops[i][j].forward) crv3d.Reverse(); // crv3d was forward oriented, now it is oriented according to loop[i][j].forward again
-                                    crv2d.UserData["EdgeDescriptor"] = loops[i][j];
-                                    crv2d.UserData["Curves3DIndex"] = crvs3d.Count - 1;
-                                    crv2d.UserData["Unsplitted"] = unsplitted;
-                                    if (uperiod > 0)
-                                    {
-                                        while (crv2d.PointAt(0.5).x > uperiod) crv2d.Move(-uperiod, 0);
-                                        while (crv2d.PointAt(0.5).x < 0.0) crv2d.Move(uperiod, 0);
-                                    }
-                                    if (vperiod > 0)
-                                    {
-                                        while (crv2d.PointAt(0.5).y > vperiod) crv2d.Move(0, -vperiod);
-                                        while (crv2d.PointAt(0.5).y < 0.0) crv2d.Move(0, vperiod);
-                                    }
-                                    else if (surface.IsVPeriodic)
-                                    {
-                                        double extcv = (ext.Bottom + ext.Top) / 2.0;
-                                        while (crv2d.PointAt(0.5).y > extcv + surface.VPeriod / 2.0) crv2d.Move(0, -surface.VPeriod);
-                                        while (crv2d.PointAt(0.5).y < extcv - surface.VPeriod / 2.0) crv2d.Move(0, surface.VPeriod);
-                                    }
-                                    crvs2d.Add(crv2d);
-                                    ext.MinMax(crv2d.GetExtent()); // ext should already reflect the correct extend, but splitting a curve may yield more precise points
+                                    if (nextind == startInd) break; // loop is closed
+                                    loop.Add(crvs2d[nextind]);
+                                    s.Remove(nextind);
+                                    currentInd = nextind;
+                                    if (loop.Count > maxCount + 4) return null; // there is an endless loop! Should never happen. 
                                 }
-                                //else
-                                //{
-
-                                //}
+                                // there are some strange cases (e.g. "17044100P011 Kein Volumenmodell.stp", step index: 2561) where the seam is *part* of an edge
+                                // here we get two identical curves going for and back.
+                                for (int j = loop.Count - 1; j > 0; --j)
+                                {
+                                    if ((loop[j].EndPoint | loop[j - 1].StartPoint) + (loop[j].StartPoint | loop[j - 1].EndPoint) < Precision.eps)
+                                    {
+                                        if (loop[j].Distance(loop[j - 1].PointAt(0.5)) < Precision.eps)
+                                        {
+                                            loop.RemoveAt(j);
+                                            loop.RemoveAt(j - 1);
+                                            --j;
+                                        }
+                                    }
+                                }
+                                looplist.Add(loop);
                             }
-                        }
-                        else if (loops[i][j].curve == null && loops[i][j].vertex1 == loops[i][j].vertex2)
-                        {
-                            // maybe we need to split a pole
-                            // splitting a pole when not the plane but a list of parameter positions is specified is not yet implemented. No example found.
-                            if ((uPlaneValid) || uSplitPositions != null) // omitted: && Precision.IsPointOnPlane(loops[i][j].vertex1.Position, uSplitPlane)
-                            {
-                                // poles are always lines, we have to cut this (horizontal) line in uperiod/2 pieces
-                                Line2D l2d = loops[i][j].curve2d as Line2D;
-                                double y = l2d.StartPoint.y;
-                                List<ICurve2D> splitted = new List<ICurve2D>();
-                                if (l2d.StartPoint.x < l2d.EndPoint.x)
-                                {
-                                    double upos = Math.Floor(l2d.StartPoint.x / (uperiod / 2) + 1) * (uperiod / 2);
-                                    double x = l2d.StartPoint.x;
-                                    while (upos < l2d.EndPoint.x)
-                                    {
-                                        Line2D ppart = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(upos, y));
-                                        if (ppart.Length > uperiod * 1e-6) splitted.Add(ppart);
-                                        x = upos;
-                                        upos += uperiod / 2;
-                                    }
-                                    Line2D last = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(l2d.EndPoint.x, y));
-                                    if (last.Length > uperiod * 1e-6) splitted.Add(last);
-                                }
-                                else
-                                {
-                                    double upos = Math.Ceiling(l2d.StartPoint.x / (uperiod / 2) - 1) * (uperiod / 2);
-                                    double x = l2d.StartPoint.x;
-                                    while (upos > l2d.EndPoint.x)
-                                    {
-                                        Line2D ppart = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(upos, y));
-                                        if (ppart.Length > uperiod * 1e-6) splitted.Add(ppart);
-                                        x = upos;
-                                        upos -= uperiod / 2;
-                                    }
-                                    Line2D last = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(l2d.EndPoint.x, y));
-                                    if (last.Length > uperiod * 1e-6) splitted.Add(last);
-                                }
-                                for (int k = 0; k < splitted.Count; k++)
-                                {
-                                    crvs3d.Add(null); // the pole has no 3d curve
-                                    splitted[k].UserData["EdgeDescriptor"] = loops[i][j];
-                                    splitted[k].UserData["Curves3DIndex"] = crvs3d.Count - 1;
-                                    splitted[k].UserData["Unsplitted"] = false;
-                                    if (uperiod > 0)
-                                    {
-                                        while (splitted[k].PointAt(0.5).x > uperiod) splitted[k].Move(-uperiod, 0);
-                                        while (splitted[k].PointAt(0.5).x < 0.0) splitted[k].Move(uperiod, 0);
-                                    }
-                                    crvs2d.Add(splitted[k]);
-                                    ext.MinMax(splitted[k].GetExtent()); // ext should already reflect the correct extend, but splitting a curve may yield more precise points
-                                }
-                            }
-                            if ((vPlaneValid) || vSplitPositions != null) // omitted: && Precision.IsPointOnPlane(loops[i][j].vertex1.Position, vSplitPlane)
-                            {
-                                // poles are always lines, we have to cut this (vertical) line in vperiod/2 pieces
-                                Line2D l2d = loops[i][j].curve2d as Line2D;
-                                double x = l2d.StartPoint.x;
-                                List<ICurve2D> splitted = new List<ICurve2D>();
-                                if (l2d.StartPoint.y < l2d.EndPoint.y)
-                                {
-                                    double vpos = Math.Floor(l2d.StartPoint.y / (vperiod / 2) + 1) * (vperiod / 2);
-                                    double y = l2d.StartPoint.y;
-                                    while (vpos < l2d.EndPoint.y)
-                                    {
-                                        Line2D ppart = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(x, vpos));
-                                        if (ppart.Length > vperiod * 1e-6) splitted.Add(ppart);
-                                        y = vpos;
-                                        vpos += vperiod / 2;
-                                    }
-                                    Line2D last = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(x, l2d.EndPoint.y));
-                                    if (last.Length > uperiod * 1e-6) splitted.Add(last);
-                                }
-                                else
-                                {
-                                    double vpos = Math.Ceiling(l2d.StartPoint.y / (vperiod / 2) - 1) * (vperiod / 2);
-                                    double y = l2d.StartPoint.y;
-                                    while (vpos > l2d.EndPoint.y)
-                                    {
-                                        Line2D ppart = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(x, vpos));
-                                        if (ppart.Length > vperiod * 1e-6) splitted.Add(ppart);
-                                        y = vpos;
-                                        vpos -= vperiod / 2;
-                                    }
-                                    Line2D last = new Line2D(new GeoPoint2D(x, y), new GeoPoint2D(x, l2d.EndPoint.y));
-                                    if (last.Length > uperiod * 1e-6) splitted.Add(last);
-                                }
-                                for (int k = 0; k < splitted.Count; k++)
-                                {
-                                    crvs3d.Add(null); // the pole has no 3d curve
-                                    splitted[k].UserData["EdgeDescriptor"] = loops[i][j];
-                                    splitted[k].UserData["Curves3DIndex"] = crvs3d.Count - 1;
-                                    splitted[k].UserData["Unsplitted"] = false;
-                                    if (vperiod > 0)
-                                    {
-                                        while (splitted[k].PointAt(0.5).y > vperiod) splitted[k].Move(0, -vperiod);
-                                        while (splitted[k].PointAt(0.5).y < 0.0) splitted[k].Move(0, vperiod);
-                                    }
-                                    crvs2d.Add(splitted[k]);
-                                }
-                            }
-                            allVertices.Add(loops[i][j].vertex1);
-                        }
-                    }
-                }
-                loopSpan.Add(crvs2d.Count);
+                            // Now the looplist contains one or more outer loops (counterclock) and maybe some inner loops (clockwise)
+                            // for this (nonperiodic) patch of the surface. In very rare cases there are multiple outer loops. then we have to find which inner loop
+                            // resides inside which outer loop
 #if DEBUG
-                // show the 2d splitted curves and their directions
-                DebuggerContainer dc2d = new DebuggerContainer();
-                double arrowsize = ext.Size / 100.0;
-                for (int i = 0; i < crvs2d.Count; i++)
-                {
-                    dc2d.Add(crvs2d[i], System.Drawing.Color.Blue, i);
-                    GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
-                    GeoVector2D dir = crvs2d[i].DirectionAt(0.5);
-                    if (!dir.IsNullVector())
-                    {
-                        dir = dir.Normalized;
-                        arrowpnts[1] = crvs2d[i].PointAt(0.5);
-                        arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
-                        arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
-                        Polyline2D pl2d = new Polyline2D(arrowpnts);
-                        dc2d.Add(pl2d, System.Drawing.Color.Red, 0);
-                    }
-                }
-                for (int i = 0; i < loops.Count; i++)
-                {
-                    for (int j = 0; j < loops[i].Count; j++)
-                    {
-                        if (loops[i][j].vertex1 != null)
-                        {
-                            Point pnt = Point.Construct();
-                            pnt.Symbol = PointSymbol.Cross;
-                            GeoPoint2D p2d = surface.PositionOf(loops[i][j].vertex1.Position);
-                            SurfaceHelper.AdjustPeriodic(surface, ext, ref p2d);
-                            pnt.Location = new GeoPoint(p2d);
-                            dc2d.Add(pnt);
-                        }
-                        if (loops[i][j].vertex2 != null)
-                        {
-                            Point pnt = Point.Construct();
-                            pnt.Symbol = PointSymbol.Cross;
-                            GeoPoint2D p2d = surface.PositionOf(loops[i][j].vertex2.Position);
-                            SurfaceHelper.AdjustPeriodic(surface, ext, ref p2d);
-                            pnt.Location = new GeoPoint(p2d);
-                            dc2d.Add(pnt);
-                        }
-                    }
-                }
-                foreach (Vertex vtx in allVertices)
-                {
-                    Point pnt = Point.Construct();
-                    pnt.Symbol = PointSymbol.Plus;
-                    GeoPoint2D p2d = surface.PositionOf(vtx.Position);
-                    SurfaceHelper.AdjustPeriodic(surface, ext, ref p2d);
-                    pnt.Location = new GeoPoint(p2d);
-                    dc2d.Add(pnt);
-                }
-                if (uperiod == 0)
-                {
-                    umin = ext.Left;
-                    umax = ext.Right;
-                    // we still need these pole points (83855_elp11b.stp, face 1242)
-                    if (us != null && us.Length > 0)
-                    {
-                        for (int i = 0; i < us.Length; i++)
-                        {
-                            umin = Math.Min(umin, us[i]);
-                            umax = Math.Max(umax, us[i]);
-                        }
-                    }
-                }
-                if (vperiod == 0)
-                {
-                    vmin = ext.Bottom;
-                    vmax = ext.Top;
-                    // we still need these pole points (83855_elp11b.stp, face 1242)
-                    if (vs != null && vs.Length > 0)
-                    {
-                        for (int i = 0; i < vs.Length; i++)
-                        {
-                            vmin = Math.Min(vmin, vs[i]);
-                            vmax = Math.Max(vmax, vs[i]);
-                        }
-                    }
-                }
-                GeoPoint2D[] boundpnts = new GeoPoint2D[5];
-                boundpnts[4] = boundpnts[0] = new GeoPoint2D(umin, vmin);
-                boundpnts[1] = new GeoPoint2D(umax, vmin);
-                boundpnts[2] = new GeoPoint2D(umax, vmax);
-                boundpnts[3] = new GeoPoint2D(umin, vmax);
-                Polyline2D bnd2d = new Polyline2D(boundpnts);
-                dc2d.Add(bnd2d, System.Drawing.Color.Green, 0);
-                // *** check 2d splitted curves and directions
-#endif
-                // now we make two or four sets of curves (corresponding to the non periodic sub-patches of the surface) and make faces from each set
-                Set<int>[,] part = new Set<int>[2, 2];
-                part[0, 0] = new Set<int>();
-                part[0, 1] = new Set<int>();
-                part[1, 0] = new Set<int>();
-                part[1, 1] = new Set<int>();
-                // distribute the 2d curves into the appropriate patch
-                for (int i = 0; i < crvs2d.Count; i++)
-                {
-                    GeoPoint2D mp = crvs2d[i].PointAt(0.5);
-                    int ui = 0, vi = 0;
-                    if (uperiod > 0) ui = Math.Max(0, Math.Min(1, (int)Math.Floor((mp.x / uperiod * 2))));
-                    if (vperiod > 0) vi = Math.Max(0, Math.Min(1, (int)Math.Floor((mp.y / vperiod * 2))));
-                    part[ui, vi].Add(i);
-                }
-                // and for each set we calculate a list of parameters for the counterclockwise rectangle, starting at the lower left point of the bounding rectangle
-                // for each patch collect the parts of the 2d curves of this patch together with the appropriate parts of the bounding rectangle
-                Set<Face> res = new Set<Face>();
-                Dictionary<DoubleVertexKey, Edge> seams = new Dictionary<DoubleVertexKey, Edge>();
-                for (int ui = 0; ui < 2; ui++)
-                    for (int vi = 0; vi < 2; vi++)
-                    {
-                        double left, right, bottom, top;
-                        if (uperiod > 0)
-                        {
-                            left = ui * uperiod / 2;
-                            right = (ui + 1) * uperiod / 2;
-                        }
-                        else
-                        {
-                            left = umin;
-                            right = umax;
-                        }
-                        if (vperiod > 0)
-                        {
-                            bottom = vi * vperiod / 2;
-                            top = (vi + 1) * vperiod / 2;
-                        }
-                        else
-                        {
-                            bottom = vmin;
-                            top = vmax;
-                        }
-                        BoundingRect patch = new BoundingRect(left, bottom, right, top);
-                        Set<int> s = part[ui, vi];
-                        if (s.Count == 0) continue;
-                        List<List<ICurve2D>> looplist = new List<List<ICurve2D>>();
-                        Set<ICurve2D> seamLines = new Set<ICurve2D>();
-                        BoundingRect precisionExt = ext;
-                        precisionExt.Inflate(ext.Width * 10, ext.Height * 10); // this is for precision only
-                        // we get problems with almost tangential intersections
-                        Set<int> entering = new Set<int>();
-                        Set<int> leaving = new Set<int>();
-                        for (int i = 0; i < crvs2d.Count; i++)
-                        {
-                            int ni = NextInSameLoop(i, loopSpan);
-                            if (s.Contains(i) && !s.Contains(ni))
+                            DebuggerContainer dcloops = new DebuggerContainer();
+                            arrowsize = ext.Size / 100.0;
+                            for (int i = 0; i < looplist.Count; i++)
                             {
-                                leaving.Add(i);
-                            }
-                            if (!s.Contains(i) && s.Contains(ni))
-                            {
-                                entering.Add(ni);
-                            }
-                        }
-                        int maxCount = s.Count + leaving.Count + 4;
-                        while (s.Count > 0)
-                        {
-                            List<ICurve2D> loop = new List<ICurve2D>();
-                            int currentInd = s.GetAny();
-                            int startInd = currentInd;
-                            loop.Add(crvs2d[currentInd]);
-                            s.Remove(currentInd);
-                            while (true) // stopped by break, when the first curve is reached
-                            {
-                                int nextind = -1;
-                                // ind ist the index of the last added curve2d
-                                if (!leaving.Contains(currentInd))
-                                {   // connected next curve can be added to the loop
-                                    nextind = NextInSameLoop(currentInd, loopSpan);
-                                    // nextind must be in s
-                                }
-                                else
-                                {   // we must insert a line (or sometimes more: torus) from the bounds of the patch
-                                    double pos = patch.PositionOf(crvs2d[currentInd].EndPoint);
-                                    double minDist = double.MaxValue;
-                                    nextind = -1;
-                                    foreach (int ind2 in entering)
-                                    {
-                                        double pos2 = patch.PositionOf(crvs2d[ind2].StartPoint);
-                                        double d = pos2 - pos;
-                                        if (d < 0.0) d += 4.0;
-                                        if (d < minDist)
-                                        {
-                                            minDist = d;
-                                            nextind = ind2;
-                                        }
-                                    }
-                                    // there must be a valid nexind
-                                    GeoPoint2D[] trimmed = patch.GetLines(pos, (pos + minDist) % 4.0); // the vertices of a polyline from pos to pos+minDist
-                                    for (int j = 0; j < trimmed.Length - 1; j++) // could be more than two points when we have 4 parts (torus-like surface)
-                                    {
-                                        Line2D l2d = new Line2D(trimmed[j], trimmed[j + 1]);
-                                        if (l2d.Length > (uperiod + vperiod) * 1e-6)
-                                        {
-                                            loop.Add(l2d);
-                                            seamLines.Add(l2d);
-                                        }
-                                    }
-                                }
-                                if (nextind == startInd) break; // loop is closed
-                                loop.Add(crvs2d[nextind]);
-                                s.Remove(nextind);
-                                currentInd = nextind;
-                                if (loop.Count > maxCount + 4) return null; // there is an endless loop! Should never happen. 
-                            }
-                            // there are some strange cases (e.g. "17044100P011 Kein Volumenmodell.stp", step index: 2561) where the seam is *part* of an edge
-                            // here we get two identical curves going for and back.
-                            for (int j = loop.Count - 1; j > 0; --j)
-                            {
-                                if ((loop[j].EndPoint | loop[j - 1].StartPoint) + (loop[j].StartPoint | loop[j - 1].EndPoint) < Precision.eps)
+                                for (int j = 0; j < looplist[i].Count; j++)
                                 {
-                                    if (loop[j].Distance(loop[j - 1].PointAt(0.5)) < Precision.eps)
-                                    {
-                                        loop.RemoveAt(j);
-                                        loop.RemoveAt(j - 1);
-                                        --j;
-                                    }
+                                    dcloops.Add(looplist[i][j], System.Drawing.Color.Blue, i * 100 + j);
+                                    GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
+                                    GeoVector2D dir = looplist[i][j].DirectionAt(0.5).Normalized;
+                                    arrowpnts[1] = looplist[i][j].PointAt(0.5);
+                                    arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
+                                    arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
+                                    Polyline2D pl2d = new Polyline2D(arrowpnts);
+                                    dcloops.Add(pl2d, System.Drawing.Color.Red, i * 100 + j);
                                 }
                             }
-                            looplist.Add(loop);
-                        }
-                        // Now the looplist contains one or more outer loops (counterclock) and maybe some inner loops (clockwise)
-                        // for this (nonperiodic) patch of the surface. In very rare cases there are multiple outer loops. then we have to find which inner loop
-                        // resides inside which outer loop
-#if DEBUG
-                        DebuggerContainer dcloops = new DebuggerContainer();
-                        arrowsize = ext.Size / 100.0;
-                        for (int i = 0; i < looplist.Count; i++)
-                        {
-                            for (int j = 0; j < looplist[i].Count; j++)
-                            {
-                                dcloops.Add(looplist[i][j], System.Drawing.Color.Blue, i * 100 + j);
-                                GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
-                                GeoVector2D dir = looplist[i][j].DirectionAt(0.5).Normalized;
-                                arrowpnts[1] = looplist[i][j].PointAt(0.5);
-                                arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
-                                arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
-                                Polyline2D pl2d = new Polyline2D(arrowpnts);
-                                dcloops.Add(pl2d, System.Drawing.Color.Red, i * 100 + j);
-                            }
-                        }
-                        // *** check 2d curves in this patch (ui,vi)
+                            // *** check 2d curves in this patch (ui,vi)
 #endif
-                        List<int> outlines = new List<int>();
-                        List<int> holes = new List<int>();
-                        for (int i = 0; i < looplist.Count; i++)
-                        {
-                            if (Border.CounterClockwise(looplist[i]))
-                            {   // an outline loop may have two consecutive lines, which belong to the same seam (very rare case, but see 10163_SF51_01_091118.stp)
-                                // in this case we must combine the lines
-                                // NO: dont combine because of 83855_elp11b.stp (the borderpos points have been adapted)
-                                //for (int j = 0; j < looplist[i].Count; j++)
-                                //{
-                                //    int next = (j + 1) % looplist[i].Count;
-                                //    if (seamLines.Contains(looplist[i][j]) && seamLines.Contains(looplist[i][next]) && Precision.SameDirection(looplist[i][j].EndDirection, looplist[i][next].StartDirection, false))
-                                //    {
-                                //        // two seam lines with same direction: combine to a single one:
-                                //        looplist[i][j].EndPoint = looplist[i][next].EndPoint; // it is two lines, so no problem here
-                                //        looplist[i].RemoveAt(next);
-                                //        --j; // same test once more
-                                //    }
-                                //}
-                                outlines.Add(i);
-                            }
-                            else holes.Add(i);
-                        }
-                        if (outlines.Count > 1 && holes.Count > 0)
-                        {   // we have multiple outlines and at least one hole. To which outline belongs the hole?
-                            // no case found until now
-                            return null;
-                            // throw new NotImplementedException("to implement: multiple outlines with holes in face splitting (step import)");
-                        }
-                        else
-                        {
-                            for (int i = 0; i < outlines.Count; i++)
+                            List<int> outlines = new List<int>();
+                            List<int> holes = new List<int>();
+                            for (int i = 0; i < looplist.Count; i++)
                             {
-                                Face fc = Face.Construct();
-                                List<Edge[]> outlineAndHoles = new List<Edge[]>();
-                                List<Edge> ledge = new List<Edge>();
-                                double area = 0.0;
-                                for (int j = 0; j < looplist[outlines[i]].Count; j++)
+                                if (Border.CounterClockwise(looplist[i]))
+                                {   // an outline loop may have two consecutive lines, which belong to the same seam (very rare case, but see 10163_SF51_01_091118.stp)
+                                    // in this case we must combine the lines
+                                    // NO: dont combine because of 83855_elp11b.stp (the borderpos points have been adapted)
+                                    //for (int j = 0; j < looplist[i].Count; j++)
+                                    //{
+                                    //    int next = (j + 1) % looplist[i].Count;
+                                    //    if (seamLines.Contains(looplist[i][j]) && seamLines.Contains(looplist[i][next]) && Precision.SameDirection(looplist[i][j].EndDirection, looplist[i][next].StartDirection, false))
+                                    //    {
+                                    //        // two seam lines with same direction: combine to a single one:
+                                    //        looplist[i][j].EndPoint = looplist[i][next].EndPoint; // it is two lines, so no problem here
+                                    //        looplist[i].RemoveAt(next);
+                                    //        --j; // same test once more
+                                    //    }
+                                    //}
+                                    outlines.Add(i);
+                                }
+                                else holes.Add(i);
+                            }
+                            if (outlines.Count > 1 && holes.Count > 0)
+                            {   // we have multiple outlines and at least one hole. To which outline belongs the hole?
+                                // no case found until now
+                                return null;
+                                // throw new NotImplementedException("to implement: multiple outlines with holes in face splitting (step import)");
+                            }
+                            else
+                            {
+                                for (int i = 0; i < outlines.Count; i++)
                                 {
-                                    StepEdgeDescriptor sed = null;
-                                    int crvs3dind = -1;
-                                    bool unsplitted = false;
-                                    if (looplist[outlines[i]][j].UserData.Contains("EdgeDescriptor"))
+                                    Face fc = Face.Construct();
+                                    List<Edge[]> outlineAndHoles = new List<Edge[]>();
+                                    List<Edge> ledge = new List<Edge>();
+                                    double area = 0.0;
+                                    for (int j = 0; j < looplist[outlines[i]].Count; j++)
                                     {
-                                        sed = looplist[outlines[i]][j].UserData["EdgeDescriptor"] as StepEdgeDescriptor;
-                                        crvs3dind = (int)looplist[outlines[i]][j].UserData["Curves3DIndex"];
-                                        unsplitted = (bool)looplist[outlines[i]][j].UserData["Unsplitted"];
-                                    }
-                                    if (crvs3dind >= 0)
-                                    {
-                                        // part of an StepEdgeDescriptor
+                                        StepEdgeDescriptor sed = null;
+                                        int crvs3dind = -1;
+                                        bool unsplitted = false;
+                                        if (looplist[outlines[i]][j].UserData.Contains("EdgeDescriptor"))
+                                        {
+                                            sed = looplist[outlines[i]][j].UserData["EdgeDescriptor"] as StepEdgeDescriptor;
+                                            crvs3dind = (int)looplist[outlines[i]][j].UserData["Curves3DIndex"];
+                                            unsplitted = (bool)looplist[outlines[i]][j].UserData["Unsplitted"];
+                                        }
+                                        if (crvs3dind >= 0)
+                                        {
+                                            // part of an StepEdgeDescriptor
 
-                                        Edge edg;
-                                        if (sed.createdEdges.Count == 1 && unsplitted)
-                                        {
-                                            sed.createdEdges[0].SetSecondary(fc, looplist[outlines[i]][j], sed.forward);
-                                            edg = sed.createdEdges[0];
+                                            Edge edg;
+                                            if (sed.createdEdges.Count == 1 && unsplitted)
+                                            {
+                                                sed.createdEdges[0].SetSecondary(fc, looplist[outlines[i]][j], sed.forward);
+                                                edg = sed.createdEdges[0];
+                                            }
+                                            else
+                                            {
+                                                edg = new Edge(fc, crvs3d[crvs3dind], fc, looplist[outlines[i]][j], sed.forward);
+                                                if (edg.Curve3D != null) edg.UseVertices(allVertices, minLength * 0.1);
+                                                else
+                                                {
+                                                    // a pole, find the best vertex
+                                                    GeoPoint pl = surface.PointAt(looplist[outlines[i]][j].StartPoint);
+                                                    Vertex poleVertex = null;
+                                                    double minDist = double.MaxValue;
+                                                    foreach (Vertex vtx in allVertices)
+                                                    {
+                                                        double d = pl | vtx.Position;
+                                                        if (d < minDist)
+                                                        {
+                                                            minDist = d;
+                                                            poleVertex = vtx;
+                                                        }
+                                                    }
+                                                    if (poleVertex != null) edg.Vertex1 = edg.Vertex2 = poleVertex;
+                                                }
+                                                sed.createdEdges.Add(edg);
+                                            }
+                                            // don't use null edges
+                                            if (edg.Vertex1 != edg.Vertex2 || (edg.Curve3D != null && edg.Curve3D.Length < minLength / 2) || (edg.Curve3D == null)) ledge.Add(edg);
+                                            area += looplist[outlines[i]][j].GetArea();
                                         }
                                         else
                                         {
-                                            edg = new Edge(fc, crvs3d[crvs3dind], fc, looplist[outlines[i]][j], sed.forward);
-                                            if (edg.Curve3D != null) edg.UseVertices(allVertices, minLength * 0.1);
+                                            // a seam or a pole
+                                            ICurve crv = surface.Make3dCurve(looplist[outlines[i]][j]);
+                                            Edge edg = new Edge(fc, crv, fc, looplist[outlines[i]][j], true);
+                                            if (crv != null) edg.UseVertices(allVertices, minLength * 0.1);
                                             else
                                             {
                                                 // a pole, find the best vertex
@@ -2261,7 +2294,7 @@ namespace CADability.GeoObject
                                                 foreach (Vertex vtx in allVertices)
                                                 {
                                                     double d = pl | vtx.Position;
-                                                    if (d < minDist)
+                                                    if (d < minLength * 0.1 && d < minDist)
                                                     {
                                                         minDist = d;
                                                         poleVertex = vtx;
@@ -2269,228 +2302,200 @@ namespace CADability.GeoObject
                                                 }
                                                 if (poleVertex != null) edg.Vertex1 = edg.Vertex2 = poleVertex;
                                             }
-                                            sed.createdEdges.Add(edg);
-                                        }
-                                        // don't use null edges
-                                        if (edg.Vertex1 != edg.Vertex2 || (edg.Curve3D != null && edg.Curve3D.Length < minLength / 2) || (edg.Curve3D == null)) ledge.Add(edg);
-                                        area += looplist[outlines[i]][j].GetArea();
-                                    }
-                                    else
-                                    {
-                                        // a seam or a pole
-                                        ICurve crv = surface.Make3dCurve(looplist[outlines[i]][j]);
-                                        Edge edg = new Edge(fc, crv, fc, looplist[outlines[i]][j], true);
-                                        if (crv != null) edg.UseVertices(allVertices, minLength * 0.1);
-                                        else
-                                        {
-                                            // a pole, find the best vertex
-                                            GeoPoint pl = surface.PointAt(looplist[outlines[i]][j].StartPoint);
-                                            Vertex poleVertex = null;
-                                            double minDist = double.MaxValue;
-                                            foreach (Vertex vtx in allVertices)
-                                            {
-                                                double d = pl | vtx.Position;
-                                                if (d < minLength * 0.1 && d < minDist)
-                                                {
-                                                    minDist = d;
-                                                    poleVertex = vtx;
-                                                }
-                                            }
-                                            if (poleVertex != null) edg.Vertex1 = edg.Vertex2 = poleVertex;
-                                        }
-                                        if (seams.ContainsKey(new DoubleVertexKey(edg.Vertex1, edg.Vertex2)))
-                                        {   // this seam has already been generated, now use the reverse oriented first edge on this face
-                                            edg = seams[new DoubleVertexKey(edg.Vertex1, edg.Vertex2)];
-                                            edg.SetSecondary(fc, looplist[outlines[i]][j], false);
-                                        }
-                                        else
-                                        {
-                                            seams[new DoubleVertexKey(edg.Vertex1, edg.Vertex2)] = edg;
-                                        }
-                                        // don't use null edges
-                                        if (edg.Vertex1 != edg.Vertex2 || (edg.Curve3D != null && edg.Curve3D.Length < minLength / 2)) ledge.Add(edg);
-                                        area += looplist[outlines[i]][j].GetArea();
-                                        // need to combine seam edges!
-                                    }
-                                }
-                                if (area > ext.Size * 1e-6) outlineAndHoles.Add(ledge.ToArray());
-                                else
-                                {
-                                    for (int k = 0; k < ledge.Count; k++)
-                                    {
-                                        if (ledge[k].SecondaryFace == fc)
-                                        {
-                                            ledge[k].RemoveFace(fc);
-                                        }
-                                        if (ledge[k].PrimaryFace == fc)
-                                        {
-                                            ledge[k].RemoveFace(fc);
-                                        }
-                                        for (int l = 0; l < loops.Count; l++)
-                                        {
-                                            for (int m = 0; m < loops[l].Count; m++)
-                                            {
-                                                if (loops[l][m].createdEdges.Contains(ledge[k])) loops[l][m].createdEdges.Remove(ledge[k]);
-                                            }
-                                        }
-                                    }
-                                }
-                                for (int k = 0; k < holes.Count; k++)
-                                {   // all holes are inside this (single) outline
-                                    // holes cannot have seams (or poles?)
-                                    ledge.Clear();
-                                    area = 0.0;
-                                    for (int j = 0; j < looplist[holes[k]].Count; j++)
-                                    {
-
-                                        StepEdgeDescriptor sed = null;
-                                        int crvs3dind = -1;
-                                        bool unsplitted = false;
-                                        if (looplist[holes[k]][j].UserData.Contains("EdgeDescriptor"))
-                                        {
-                                            sed = looplist[holes[k]][j].UserData["EdgeDescriptor"] as StepEdgeDescriptor;
-                                            crvs3dind = (int)looplist[holes[k]][j].UserData["Curves3DIndex"];
-                                            unsplitted = (bool)looplist[holes[k]][j].UserData["Unsplitted"];
-                                        }
-                                        if (crvs3dind >= 0)
-                                        {
-                                            // part of an StepEdgeDescriptor
-
-                                            Edge edg;
-                                            if (sed.createdEdges.Count == 1 && unsplitted)
-                                            {
-                                                sed.createdEdges[0].SetSecondary(fc, looplist[holes[k]][j], sed.forward);
-                                                edg = sed.createdEdges[0];
+                                            if (seams.ContainsKey(new DoubleVertexKey(edg.Vertex1, edg.Vertex2)))
+                                            {   // this seam has already been generated, now use the reverse oriented first edge on this face
+                                                edg = seams[new DoubleVertexKey(edg.Vertex1, edg.Vertex2)];
+                                                edg.SetSecondary(fc, looplist[outlines[i]][j], false);
                                             }
                                             else
                                             {
-                                                edg = new Edge(fc, crvs3d[crvs3dind], fc, looplist[holes[k]][j], sed.forward);
-                                                edg.UseVertices(allVertices, minLength * 0.1);
-                                                sed.createdEdges.Add(edg);
+                                                seams[new DoubleVertexKey(edg.Vertex1, edg.Vertex2)] = edg;
                                             }
-                                            if (edg.Vertex1 != edg.Vertex2 || (edg.Curve3D != null && edg.Curve3D.Length < minLength / 2) || (edg.Curve3D == null)) ledge.Add(edg);
-                                            area += looplist[holes[k]][j].GetArea();
-                                        }
-                                        else
-                                        {   // this should never happen
-                                            ledge.Clear();
-                                            break;
-                                            // throw new ApplicationException("error in splitting face with step import");
+                                            // don't use null edges
+                                            if (edg.Vertex1 != edg.Vertex2 || (edg.Curve3D != null && edg.Curve3D.Length < minLength / 2)) ledge.Add(edg);
+                                            area += looplist[outlines[i]][j].GetArea();
+                                            // need to combine seam edges!
                                         }
                                     }
-                                    if (ledge.Count > 0 && area < -ext.Size * 1e-6) outlineAndHoles.Add(ledge.ToArray());
-                                }
-                                if (outlineAndHoles.Count > 0)
-                                {
-                                    fc.Set(surface.Clone(), outlineAndHoles.ToArray()); // we need to clone the surface so that two faces don't have the same surface (in case we will revers or modify it)
-                                    res.Add(fc);
-                                }
-                                else
-                                {
+                                    if (area > ext.Size * 1e-6) outlineAndHoles.Add(ledge.ToArray());
+                                    else
+                                    {
+                                        for (int k = 0; k < ledge.Count; k++)
+                                        {
+                                            if (ledge[k].SecondaryFace == fc)
+                                            {
+                                                ledge[k].RemoveFace(fc);
+                                            }
+                                            if (ledge[k].PrimaryFace == fc)
+                                            {
+                                                ledge[k].RemoveFace(fc);
+                                            }
+                                            for (int l = 0; l < loops.Count; l++)
+                                            {
+                                                for (int m = 0; m < loops[l].Count; m++)
+                                                {
+                                                    if (loops[l][m].createdEdges.Contains(ledge[k])) loops[l][m].createdEdges.Remove(ledge[k]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    for (int k = 0; k < holes.Count; k++)
+                                    {   // all holes are inside this (single) outline
+                                        // holes cannot have seams (or poles?)
+                                        ledge.Clear();
+                                        area = 0.0;
+                                        for (int j = 0; j < looplist[holes[k]].Count; j++)
+                                        {
 
+                                            StepEdgeDescriptor sed = null;
+                                            int crvs3dind = -1;
+                                            bool unsplitted = false;
+                                            if (looplist[holes[k]][j].UserData.Contains("EdgeDescriptor"))
+                                            {
+                                                sed = looplist[holes[k]][j].UserData["EdgeDescriptor"] as StepEdgeDescriptor;
+                                                crvs3dind = (int)looplist[holes[k]][j].UserData["Curves3DIndex"];
+                                                unsplitted = (bool)looplist[holes[k]][j].UserData["Unsplitted"];
+                                            }
+                                            if (crvs3dind >= 0)
+                                            {
+                                                // part of an StepEdgeDescriptor
+
+                                                Edge edg;
+                                                if (sed.createdEdges.Count == 1 && unsplitted)
+                                                {
+                                                    sed.createdEdges[0].SetSecondary(fc, looplist[holes[k]][j], sed.forward);
+                                                    edg = sed.createdEdges[0];
+                                                }
+                                                else
+                                                {
+                                                    edg = new Edge(fc, crvs3d[crvs3dind], fc, looplist[holes[k]][j], sed.forward);
+                                                    edg.UseVertices(allVertices, minLength * 0.1);
+                                                    sed.createdEdges.Add(edg);
+                                                }
+                                                if (edg.Vertex1 != edg.Vertex2 || (edg.Curve3D != null && edg.Curve3D.Length < minLength / 2) || (edg.Curve3D == null)) ledge.Add(edg);
+                                                area += looplist[holes[k]][j].GetArea();
+                                            }
+                                            else
+                                            {   // this should never happen
+                                                ledge.Clear();
+                                                break;
+                                                // throw new ApplicationException("error in splitting face with step import");
+                                            }
+                                        }
+                                        if (ledge.Count > 0 && area < -ext.Size * 1e-6) outlineAndHoles.Add(ledge.ToArray());
+                                    }
+                                    if (outlineAndHoles.Count > 0)
+                                    {
+                                        fc.Set(surface.Clone(), outlineAndHoles.ToArray()); // we need to clone the surface so that two faces don't have the same surface (in case we will revers or modify it)
+                                        res.Add(fc);
+                                    }
+                                    else
+                                    {
+
+                                    }
                                 }
                             }
                         }
-                    }
-                if (splittedByPoles.Count > 0)
-                {
-                    // still to implement: splitted by poles, see above
-                }
-                for (int i = 0; i < loops.Count; i++)
-                {
-                    for (int j = 0; j < loops[i].Count; j++)
+                    if (splittedByPoles.Count > 0)
                     {
-                        if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 2)
+                        // still to implement: splitted by poles, see above
+                    }
+                    for (int i = 0; i < loops.Count; i++)
+                    {
+                        for (int j = 0; j < loops[i].Count; j++)
                         {
-                            // this edge has been split and maybe existed befor as a single edge
-                            // this single edge must now be replaced by its splitted parts
-                            // only the first edge in createdEdges can belong to a different face 
-                            // the new created edges must use the vertices of the already defined edges
-                            if (!res.Contains(loops[i][j].createdEdges[0].PrimaryFace))
+                            if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 2)
                             {
-                                Edge onOtherFace = loops[i][j].createdEdges[0]; // this edges belongs to an other Face not to this splitted faces
-                                Edge[] replacementEdges = new Edge[loops[i][j].createdEdges.Count - 1];
-                                Set<Vertex> toUse = new Set<Vertex>();
-                                toUse.Add(onOtherFace.Vertex1);
-                                toUse.Add(onOtherFace.Vertex2);
-                                for (int k = 0; k < replacementEdges.Length; k++)
+                                // this edge has been split and maybe existed befor as a single edge
+                                // this single edge must now be replaced by its splitted parts
+                                // only the first edge in createdEdges can belong to a different face 
+                                // the new created edges must use the vertices of the already defined edges
+                                if (!res.Contains(loops[i][j].createdEdges[0].PrimaryFace))
                                 {
-                                    replacementEdges[k] = loops[i][j].createdEdges[k + 1];
-                                    replacementEdges[k].UseVertices(toUse.ToArray());
-                                    toUse.Add(replacementEdges[k].Vertex1);
-                                    toUse.Add(replacementEdges[k].Vertex2);
-                                    ICurve2D projC2d = onOtherFace.PrimaryFace.Surface.GetProjectedCurve(replacementEdges[k].Curve3D, 0.0);
-                                    SurfaceHelper.AdjustPeriodic(onOtherFace.PrimaryFace.Surface, onOtherFace.PrimaryFace.Area.GetExtent(), projC2d);
-                                    bool forward = !replacementEdges[k].Forward(replacementEdges[k].PrimaryFace);
-                                    if (!forward) projC2d.Reverse();
-                                    double pos1 = replacementEdges[k].Curve3D.PositionOf(onOtherFace.PrimaryFace.Surface.PointAt(projC2d.StartPoint));
-                                    double pos2 = replacementEdges[k].Curve3D.PositionOf(onOtherFace.PrimaryFace.Surface.PointAt(projC2d.EndPoint));
-                                    forward = pos1 < pos2;
-                                    replacementEdges[k].SetSecondary(onOtherFace.PrimaryFace, projC2d, forward);
-
-                                }
-                                SortEdges(onOtherFace.PrimaryFace, onOtherFace.StartVertex(onOtherFace.PrimaryFace), onOtherFace.EndVertex(onOtherFace.PrimaryFace), replacementEdges);
-                                GeoVector2D dir1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).StartDirection;
-                                GeoVector2D dir2 = onOtherFace.Curve2D(onOtherFace.PrimaryFace).StartDirection;
-                                GeoPoint2D sp1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).StartPoint;
-                                GeoPoint2D ep1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).EndPoint;
-                                GeoPoint2D sp2 = onOtherFace.Curve2D(onOtherFace.PrimaryFace).StartPoint;
-                                if ((ep1 | sp2) < (sp1 | sp2))
-                                {
+                                    Edge onOtherFace = loops[i][j].createdEdges[0]; // this edges belongs to an other Face not to this splitted faces
+                                    Edge[] replacementEdges = new Edge[loops[i][j].createdEdges.Count - 1];
+                                    Set<Vertex> toUse = new Set<Vertex>();
+                                    toUse.Add(onOtherFace.Vertex1);
+                                    toUse.Add(onOtherFace.Vertex2);
                                     for (int k = 0; k < replacementEdges.Length; k++)
                                     {
-                                        replacementEdges[k].Reverse(replacementEdges[k].SecondaryFace);
+                                        replacementEdges[k] = loops[i][j].createdEdges[k + 1];
+                                        replacementEdges[k].UseVertices(toUse.ToArray());
+                                        toUse.Add(replacementEdges[k].Vertex1);
+                                        toUse.Add(replacementEdges[k].Vertex2);
+                                        ICurve2D projC2d = onOtherFace.PrimaryFace.Surface.GetProjectedCurve(replacementEdges[k].Curve3D, 0.0);
+                                        SurfaceHelper.AdjustPeriodic(onOtherFace.PrimaryFace.Surface, onOtherFace.PrimaryFace.Area.GetExtent(), projC2d);
+                                        bool forward = !replacementEdges[k].Forward(replacementEdges[k].PrimaryFace);
+                                        if (!forward) projC2d.Reverse();
+                                        double pos1 = replacementEdges[k].Curve3D.PositionOf(onOtherFace.PrimaryFace.Surface.PointAt(projC2d.StartPoint));
+                                        double pos2 = replacementEdges[k].Curve3D.PositionOf(onOtherFace.PrimaryFace.Surface.PointAt(projC2d.EndPoint));
+                                        forward = pos1 < pos2;
+                                        replacementEdges[k].SetSecondary(onOtherFace.PrimaryFace, projC2d, forward);
+
                                     }
-                                }
-                                // Für nach dem Urlaub (4.4.19)
-                                // in RAMPS-mount-1.step onOtherFace.PrimaryFace.GetHashCode()==3: beim ersten Durchlauf wird die einzige Edge (Kreis) von hole[0] mit 3 edges ersetzt: (37, 32, 36). 
-                                // Das ist richtig.
-                                // beim 2. Durchlauf wird die einzieg Edge von hole[1] auch richtig mit 3 Edges ersetzt, ABER in hole[0] ist mittlerweile die Reihenfolge verdreht: wer war das?
-                                for (int k = 0; k < replacementEdges.Length; k++)
-                                {
-                                    if (replacementEdges[k].Vertex1 == replacementEdges[k].Vertex2)
+                                    SortEdges(onOtherFace.PrimaryFace, onOtherFace.StartVertex(onOtherFace.PrimaryFace), onOtherFace.EndVertex(onOtherFace.PrimaryFace), replacementEdges);
+                                    GeoVector2D dir1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).StartDirection;
+                                    GeoVector2D dir2 = onOtherFace.Curve2D(onOtherFace.PrimaryFace).StartDirection;
+                                    GeoPoint2D sp1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).StartPoint;
+                                    GeoPoint2D ep1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).EndPoint;
+                                    GeoPoint2D sp2 = onOtherFace.Curve2D(onOtherFace.PrimaryFace).StartPoint;
+                                    if ((ep1 | sp2) < (sp1 | sp2))
                                     {
-                                        List<Edge> shortened = new List<Edge>(replacementEdges);
-                                        shortened.RemoveAt(k);
-                                        replacementEdges = shortened.ToArray();
-                                    }
-                                }
-                                onOtherFace.PrimaryFace.ReplaceEdge(onOtherFace, replacementEdges, true); // bug in RAMPS-mount-1.step Face 3
-#if DEBUG
-                                bool cok = onOtherFace.PrimaryFace.CheckConsistency();
-#endif
-                            }
-                            else
-                            {   // sort the edges in createdEdges so that they start with loops[i][j].vertex1, are connected and end with loops[i][j].vertex2
-                                Vertex toStartWith = loops[i][j].vertex1;
-                                for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
-                                {
-                                    for (int l = k; l < loops[i][j].createdEdges.Count; l++)
-                                    {
-                                        if (loops[i][j].createdEdges[l].Vertex1 == toStartWith)
+                                        for (int k = 0; k < replacementEdges.Length; k++)
                                         {
-                                            if (l != k)
+                                            replacementEdges[k].Reverse(replacementEdges[k].SecondaryFace);
+                                        }
+                                    }
+                                    // Für nach dem Urlaub (4.4.19)
+                                    // in RAMPS-mount-1.step onOtherFace.PrimaryFace.GetHashCode()==3: beim ersten Durchlauf wird die einzige Edge (Kreis) von hole[0] mit 3 edges ersetzt: (37, 32, 36). 
+                                    // Das ist richtig.
+                                    // beim 2. Durchlauf wird die einzieg Edge von hole[1] auch richtig mit 3 Edges ersetzt, ABER in hole[0] ist mittlerweile die Reihenfolge verdreht: wer war das?
+                                    for (int k = 0; k < replacementEdges.Length; k++)
+                                    {
+                                        if (replacementEdges[k].Vertex1 == replacementEdges[k].Vertex2)
+                                        {
+                                            List<Edge> shortened = new List<Edge>(replacementEdges);
+                                            shortened.RemoveAt(k);
+                                            replacementEdges = shortened.ToArray();
+                                        }
+                                    }
+                                    onOtherFace.PrimaryFace.ReplaceEdge(onOtherFace, replacementEdges, true); // bug in RAMPS-mount-1.step Face 3
+#if DEBUG
+                                    bool cok = onOtherFace.PrimaryFace.CheckConsistency();
+#endif
+                                }
+                                else
+                                {   // sort the edges in createdEdges so that they start with loops[i][j].vertex1, are connected and end with loops[i][j].vertex2
+                                    Vertex toStartWith = loops[i][j].vertex1;
+                                    for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
+                                    {
+                                        for (int l = k; l < loops[i][j].createdEdges.Count; l++)
+                                        {
+                                            if (loops[i][j].createdEdges[l].Vertex1 == toStartWith)
                                             {
-                                                Edge tmp = loops[i][j].createdEdges[l];
-                                                loops[i][j].createdEdges[l] = loops[i][j].createdEdges[k];
-                                                loops[i][j].createdEdges[k] = tmp;
+                                                if (l != k)
+                                                {
+                                                    Edge tmp = loops[i][j].createdEdges[l];
+                                                    loops[i][j].createdEdges[l] = loops[i][j].createdEdges[k];
+                                                    loops[i][j].createdEdges[k] = tmp;
+                                                }
+                                                toStartWith = loops[i][j].createdEdges[k].Vertex2;
+                                                break;
                                             }
-                                            toStartWith = loops[i][j].createdEdges[k].Vertex2;
-                                            break;
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                    foreach (Face fc in res)
+                    {
+                        fc.ReduceVertices(); // in rare cases the vertices are defined multiple times in STEP. We need to have unique vertices
+                        fc.MakeArea();
+                    }
+                    return res.ToArray(); // the splitted parts of the face. The parts have no seams, no edges, that are used twice in a single face.
                 }
-                foreach (Face fc in res)
-                {
-                    fc.ReduceVertices(); // in rare cases the vertices are defined multiple times in STEP. We need to have unique vertices
-                    fc.MakeArea();
-                }
-                return res.ToArray(); // the splitted parts of the face. The parts have no seams, no edges, that are used twice in a single face.
-            }
+            } // end of locking all the edges in case of parallel creation of faces
         }
 
         internal void SetOutline(Edge[] outline)
@@ -5639,6 +5644,7 @@ namespace CADability.GeoObject
                 {
                     GeoPoint2D[][][] multiPolyLines = SubdevidePolylines(polylines.ToArray(), eps);
                     for (int i = 0; i < multiPolyLines.Length; ++i)
+
                     {
                         try
                         {
@@ -6115,7 +6121,7 @@ namespace CADability.GeoObject
             }
         }
         static int maxtime = 0;
-        private void AssureTriangles(double precision)
+        internal void AssureTriangles(double precision)
         {
             lock (lockTriangulationRecalc)
             {   // hier gelocked, damit der der warten muss dann das richtige Ergebnis bekommt
@@ -6373,14 +6379,24 @@ namespace CADability.GeoObject
         public override BoundingRect GetExtent(Projection projection, ExtentPrecision extentPrecision)
         {
             BoundingRect res = BoundingRect.EmptyBoundingRect;
-            TryAssureTriangles(projection.Precision);
-            lock (lockTriangulationData)
+            if (extentPrecision == ExtentPrecision.Raw)
             {
-                if (trianglePoint != null)
+                for (int i = 0; i < Vertices.Length; i++)
                 {
-                    for (int i = 0; i < trianglePoint.Length; ++i)
+                    res.MinMax(projection.ProjectUnscaled(Vertices[i].Position));
+                }
+            }
+            else
+            {
+                TryAssureTriangles(projection.Precision);
+                lock (lockTriangulationData)
+                {
+                    if (trianglePoint != null)
                     {
-                        res.MinMax(projection.ProjectUnscaled(trianglePoint[i]));
+                        for (int i = 0; i < trianglePoint.Length; ++i)
+                        {
+                            res.MinMax(projection.ProjectUnscaled(trianglePoint[i]));
+                        }
                     }
                 }
             }

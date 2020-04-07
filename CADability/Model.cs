@@ -472,7 +472,7 @@ namespace CADability
                 octTree.RemoveObject(go);
             }
         }
-        private void InitOctTree()
+        internal void InitOctTree()
         {
             if (octTree == null)
             {
@@ -482,21 +482,17 @@ namespace CADability
                 }
 
                 octTree = new OctTree<IGeoObject>(Extent, displayListPrecision);
-                if (Settings.GlobalSettings.GetBoolValue("Experimental.ParallelOcttree", false))
+#if PARALLEL
+                Parallel.For(0, geoObjects.Count, i =>
                 {
-                    Parallel.For(0, geoObjects.Count, i =>
-                      {
-                          AddOctreeObjectsParallel(geoObjects[i], octTree);
-                      }
-                     );
-                }
-                else
+                    AddOctreeObjectsParallel(geoObjects[i], octTree);
+                });
+#else
+                for (int i = 0; i < geoObjects.Count; ++i)
                 {
-                    for (int i = 0; i < geoObjects.Count; ++i)
-                    {
-                        AddOctreeObjects(geoObjects[i], octTree);
-                    }
+                    AddOctreeObjects(geoObjects[i], octTree);
                 }
+#endif
             }
         }
         /// <summary>
@@ -1175,6 +1171,49 @@ namespace CADability
         /// <returns>The extent projected to 2D</returns>
         public delegate BoundingRect CalculateExtentForZoomTotalDelegate(Model m, Projection pr);
         public event CalculateExtentForZoomTotalDelegate CalculateExtentForZoomTotalEvent;
+        private void ParallelTriangulation(IGeoObject go, double precision)
+        {
+            if (go is Solid sld)
+            {
+                for (int i = 0; i < sld.Shells.Length; i++)
+                {
+                    ParallelTriangulation(sld.Shells[i], precision);
+                }
+            }
+            else if (go is Shell shl)
+            {
+                Parallel.For(0, shl.Faces.Length, i =>
+                {
+                    try
+                    {
+                        shl.Faces[i].AssureTriangles(precision);
+                    }
+                    catch { }
+                });
+            }
+            else if (go is Face fc)
+            {
+                try
+                {
+                    fc.AssureTriangles(precision);
+                }
+                catch { }
+            }
+            else if (go is Block blk)
+            {
+                Parallel.For(0, blk.NumChildren, i =>
+                {
+                    ParallelTriangulation(blk.Child(i), precision);
+                });
+            }
+        }
+        public void ParallelTriangulation(double precision)
+        {
+            Parallel.For(0, geoObjects.Count, i =>
+            {
+                ParallelTriangulation(geoObjects[i], precision);
+            });
+        }
         internal BoundingRect GetExtentForZoomTotal(Projection pr)
         {
             if (CalculateExtentForZoomTotalEvent != null) return CalculateExtentForZoomTotalEvent(this, pr);

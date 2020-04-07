@@ -303,6 +303,13 @@ namespace CADability.UserInterface
         void SetClipboardData(GeoObjectList objects, bool copy);
         object GetClipboardData(Type typeOfData);
         bool HasClipboardData(Type typeOfData);
+        /// <summary>
+        /// Shows or hides a progress bar. 
+        /// </summary>
+        /// <param name="show">true: show, false: hide</param>
+        /// <param name="percent">progress percentage (0..100)</param>
+        /// <param name="Title">title of the progress bar, null: don't change the current title</param>
+        void ShowProgressBar(bool show, double percent = 0.0, string title = null);
     }
 
 }

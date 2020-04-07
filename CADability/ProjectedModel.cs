@@ -561,7 +561,7 @@ namespace CADability
             //{
             //    gdiResources.DisplayMode = GDIResources.EDisplayMode.normal;
             //}
-            ActiveFrame.Frame.ActiveView.Canvas.Cursor = "WaitCursor";
+            FrameImpl.MainFrame.ActiveView.Canvas.Cursor = "WaitCursor";
 
             for (int i = 0; i < model.Count; ++i)
             {

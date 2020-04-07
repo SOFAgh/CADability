@@ -307,7 +307,7 @@ namespace CADability.UserInterface
             get
             {
                 if (propertyPage != null) frame = propertyPage.Frame;
-                if (frame == null) frame = ActiveFrame.Frame;
+                if (frame == null) frame = FrameImpl.MainFrame;
                 return frame;
             }
             set

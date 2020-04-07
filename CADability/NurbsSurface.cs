@@ -1257,7 +1257,7 @@ namespace CADability.GeoObject
                                 else axis = latcnt[0] - latcnt[2];
                             }
                             GeoPoint center = Geometry.DropPL(loncnt[0], latcnt[0], axis);
-                            axis.Length = center | latcnt[0];
+                            axis.Length = center | loncnt[0];
                             double minerror = GaussNewtonMinimizer.TorusFit(samples.Linear(), center,axis,lonrad[0], precision, out ToroidalSurface ts);
                             if (minerror < precision) found = ts;
                             else

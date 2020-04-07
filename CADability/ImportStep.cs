@@ -380,6 +380,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
         Tokenizer tk;
         List<Item> definitions;
+        private int numFaces, createdFaces;
+
         //StepEdgeCollection edgeCollection; // collects the edges during face and shell construction to reuse already created edges
         private context context; // convert angle to radian, usually angles are provided as radian, so this factor is 1.0
         HashSet<Item> products = new HashSet<Item>();
@@ -1234,6 +1236,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             // presentationLayerAssignment
             // mechanicalDesignGeometricPresentationRepresentation
 
+            System.Diagnostics.Trace.WriteLine("Starting step read" + Environment.TickCount.ToString());
+
             roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation] = new List<int>(); // das scheint mir der root zu sein
             roots[Item.ItemType.shapeDefinitionRepresentation] = new List<int>(); // manchmal auch das
             roots[Item.ItemType.presentationStyleAssignment] = new List<int>();
@@ -1246,10 +1250,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             {
                 try
                 {
+                    FrameImpl.MainFrame.UIService.ShowProgressBar(true, 0.0, "importing step file");
                     while (!tk.EndOfFile)
                     {
                         if (!Statement(roots)) throw new SyntaxError("general syntax error reading step file");
                     }
+                    createdFaces = numFaces = 0;
                     for (int i = 0; i < definitions.Count; i++)
                     {
                         if (definitions[i] != null)
@@ -1257,6 +1263,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             definitions[i].definingIndex = i;
                             definitions[i].Resolve(definitions);
                             if (definitions[i].type == Item.ItemType.productDefinition) productDefinitions.Add(definitions[i]);
+                            if (definitions[i].type == Item.ItemType.advancedFace || definitions[i].type == Item.ItemType.faceSurface
+                                || definitions[i].type == Item.ItemType.curveBoundedSurface) ++numFaces; // for progress
                         }
                     }
 #if DEBUG
@@ -1323,22 +1331,19 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     // *shapeRepresentation* muss sich das Objekt merken, denn contextDependentShapeRepresentation(5490)->representationRelationship(5489)->shapeRepresentation(5473)
                     // ist das Einfügen selbst. Das sind die wichtigen roots: shapeDefinitionRepresentation, contextDependentShapeRepresentation, shapeRepresentationRelationship
 #endif
-                    if (Settings.GlobalSettings.GetBoolValue("Experimental.ParallelStepImport", false))
+#if PARALLEL
+                    Parallel.For(0, roots[Item.ItemType.shapeDefinitionRepresentation].Count, i =>
                     {
-                        Parallel.For(0, roots[Item.ItemType.shapeDefinitionRepresentation].Count, i =>
-                        {
-                            Item item = definitions[roots[Item.ItemType.shapeDefinitionRepresentation][i]];
-                            object so = CreateEntity(item);
-                        });
-                    }
-                    else
+                        Item item = definitions[roots[Item.ItemType.shapeDefinitionRepresentation][i]];
+                        object so = CreateEntity(item);
+                    });
+#else
+                    for (int i = 0; i < roots[Item.ItemType.shapeDefinitionRepresentation].Count; i++)
                     {
-                        for (int i = 0; i < roots[Item.ItemType.shapeDefinitionRepresentation].Count; i++)
-                        {
-                            Item item = definitions[roots[Item.ItemType.shapeDefinitionRepresentation][i]];
-                            object so = CreateEntity(item);
-                        }
+                        Item item = definitions[roots[Item.ItemType.shapeDefinitionRepresentation][i]];
+                        object so = CreateEntity(item);
                     }
+#endif
                     for (int i = 0; i < roots[Item.ItemType.shapeRepresentationRelationship].Count; i++)
                     {
                         Item item = definitions[roots[Item.ItemType.shapeRepresentationRelationship][i]];
@@ -1435,6 +1440,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     importProblems[0] = "SyntaxError: " + e.Message;
                 }
             }
+            FrameImpl.MainFrame.UIService.ShowProgressBar(false);
+            System.Diagnostics.Trace.WriteLine("Finished step read" + Environment.TickCount.ToString());
             return res;
         }
 #if DEBUG
@@ -1590,6 +1597,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             return res.ToArray();
         }
         Set<Item.ItemType> ignoreInSubTree;
+
         private string SubTree(Item item, int deepth, string name, string prefix, Set<Item> used)
         {
             if (ignoreInSubTree.Contains(item.type)) return "";
@@ -1819,7 +1827,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (8355 == item.definingIndex) // || 4535 == item.definingIndex)
+            if (19041 == item.definingIndex) // || 4535 == item.definingIndex)
             {
 
             }
@@ -1827,6 +1835,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             lock (item)
             {
                 if (!(item.val is List<Item>)) return item.val; // already created, maybe null
+                if (item.type == Item.ItemType.advancedFace || item.type == Item.ItemType.faceSurface || item.type == Item.ItemType.curveBoundedSurface) CreatingFace();
                 switch (item.type)
                 {
                     case Item.ItemType.mechanicalDesignGeometricPresentationRepresentation: // name, items, context
@@ -2073,13 +2082,24 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             List<Item> lst = item.SubList(1);
                             List<Face> faces = new List<Face>();
-
+#if PARALLEL
+                            Parallel.For(0, lst.Count, i =>
+                            {
+                                object o = CreateEntity(lst[i]);
+                                lock (faces)
+                                {
+                                    if (o is Face) faces.Add(o as Face);
+                                    if (o is Face[]) faces.AddRange(o as Face[]);
+                                }
+                            });
+#else
                             for (int i = 0; i < lst.Count; i++)
                             {
                                 object o = CreateEntity(lst[i]);
                                 if (o is Face) faces.Add(o as Face);
                                 if (o is Face[]) faces.AddRange(o as Face[]);
                             }
+#endif
                             Shell.connectFaces(faces.ToArray(), Precision.eps);
                             Shell shell = Shell.MakeShell(faces.ToArray());
                             shell.Name = item.SubString(0);
@@ -2114,12 +2134,24 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             List<Item> lst = item.SubList(1);
                             List<Face> faces = new List<Face>();
+#if PARALLEL
+                            Parallel.For(0, lst.Count, i =>
+                            {
+                                object o = CreateEntity(lst[i]);
+                                lock (faces)
+                                {
+                                    if (o is Face) faces.Add(o as Face);
+                                    if (o is Face[]) faces.AddRange(o as Face[]);
+                                }
+                            });
+#else
                             for (int i = 0; i < lst.Count; i++)
                             {
                                 object o = CreateEntity(lst[i]);
                                 if (o is Face) faces.Add(o as Face);
                                 if (o is Face[]) faces.AddRange(o as Face[]);
                             }
+#endif
                             Shell.connectFaces(faces.ToArray(), Precision.eps);
                             Shell shell = Shell.MakeShell(faces.ToArray());
                             shell.Name = item.SubString(0);
@@ -3530,6 +3562,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
                 return item.val; // has now been created
             } // end lock
+        }
+
+        private void CreatingFace()
+        {
+            ++createdFaces;
+            FrameImpl.MainFrame.UIService.ShowProgressBar(true, 100.0 * createdFaces / numFaces);
         }
 
         private ModOp GetTransformation(Item origin, Item target, Item origContext, Item targContext)

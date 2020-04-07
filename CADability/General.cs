@@ -72,7 +72,7 @@ namespace CADability
         public virtual void ItemIsUsed()
         {
 
-            if (DialogResult.No == ActiveFrame.Frame.UIService.ShowMessageBox(StringTable.GetFormattedString(ResourceID + ".ItemIsUsed", Name), StringTable.GetString(ResourceID + ".Label"), MessageBoxButtons.YesNo))
+            if (DialogResult.No == FrameImpl.MainFrame.UIService.ShowMessageBox(StringTable.GetFormattedString(ResourceID + ".ItemIsUsed", Name), StringTable.GetString(ResourceID + ".Label"), MessageBoxButtons.YesNo))
             {
                 Refuse = true;
             }
@@ -82,7 +82,7 @@ namespace CADability
         /// </summary>
         public virtual void DontRemoveLastItem()
         {
-            ActiveFrame.Frame.UIService.ShowMessageBox(StringTable.GetString(ResourceID + ".DontRemoveLastItem"), StringTable.GetString(ResourceID + ".Label"), MessageBoxButtons.OK);
+            FrameImpl.MainFrame.UIService.ShowMessageBox(StringTable.GetString(ResourceID + ".DontRemoveLastItem"), StringTable.GetString(ResourceID + ".Label"), MessageBoxButtons.OK);
             Refuse = true;
         }
     }

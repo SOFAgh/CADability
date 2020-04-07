@@ -267,7 +267,7 @@ namespace CADability.Curve2D
             if (interpol.Length > maxTriangleCount)
             {
                 maxTriangleCount = interpol.Length;
-                System.Diagnostics.Trace.WriteLine("MaxTraingleCount: " + maxTriangleCount.ToString());
+                //System.Diagnostics.Trace.WriteLine("MaxTraingleCount: " + maxTriangleCount.ToString());
             }
 #endif
         }

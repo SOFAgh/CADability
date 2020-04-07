@@ -180,7 +180,7 @@ namespace CADability.Forms
         {
             get
             {
-                return view.AllowDrop;
+                return (view != null) ? view.AllowDrop : false;
             }
             set
             {

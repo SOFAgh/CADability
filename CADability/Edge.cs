@@ -57,22 +57,22 @@ namespace CADability
     }
 
     /// <summary>
-    /// Describes an edge as imported from a step file. the edge may be decomposed into multiple edges for CADability faces
+    /// Describes an edge as imported from a step file. The edge may be decomposed into multiple edges for CADability faces
     /// in case of periodic faces.
     /// </summary>
     internal class StepEdgeDescriptor
     {
 #if DEBUG
-        static int idCounter = 0;
-        int id;
         public int stepDefiningIndex;
 #endif
+        private static string lockStatic = ""; // a private static object to assure each instance has a unique id
+        private static int idCounter = 0;
+        public int id;
         public ICurve curve;
         public Vertex vertex1, vertex2;
         public bool forward;
         public bool isSeam = false; // is part of a seam, the same edge exists in different directions on the same face
         public ICurve2D curve2d;
-        // public Edge createdEdge; // the CADability Edge corresponding to the step edge.
         public List<Edge> createdEdges; // With periodic surfaces the edge might be splitted. Then we have two (ore even more) edges corresponding to a single step edge.
         public StepEdgeDescriptor(ICurve curve)
         {
@@ -81,9 +81,10 @@ namespace CADability
             this.vertex2 = null;
             this.forward = true;
             this.createdEdges = new List<Edge>(1); // empty list, so that clones use the same list
-#if DEBUG
-            id = idCounter++;
-#endif
+            lock (lockStatic)
+            {
+                this.id = idCounter++;
+            }
         }
         public StepEdgeDescriptor(ICurve curve, Vertex vertex1, Vertex vertex2, bool forward)
         {
@@ -92,31 +93,33 @@ namespace CADability
             this.vertex2 = vertex2;
             this.forward = forward;
             this.createdEdges = new List<Edge>(1); // empty list, so that clones use the same list
-#if DEBUG
-            id = idCounter++;
-#endif
-#if DEBUG
-            if (curve != null)
+            lock (lockStatic)
             {
-                if (curve.IsClosed)
-                {
-                    if ((curve.StartPoint | vertex1.Position) > 1e-6)
-                    {
-                        curve = curve.CloneModified(ModOp.Translate(vertex1.Position - curve.StartPoint));
-                    }
-                }
-                else
-                {
-                    if ((curve.StartPoint | vertex1.Position) > 1e-6)
-                    {
-                        curve.StartPoint = vertex1.Position;
-                    }
-                    if ((curve.EndPoint | vertex2.Position) > 1e-6)
-                    {
-                        curve.EndPoint = vertex2.Position;
-                    }
-                }
+                id = idCounter++;
             }
+#if DEBUG
+            // don't make functional code conditional!
+            //if (curve != null)
+            //{
+            //    if (curve.IsClosed)
+            //    {
+            //        if ((curve.StartPoint | vertex1.Position) > 1e-6)
+            //        {
+            //            curve = curve.CloneModified(ModOp.Translate(vertex1.Position - curve.StartPoint));
+            //        }
+            //    }
+            //    else
+            //    {
+            //        if ((curve.StartPoint | vertex1.Position) > 1e-6)
+            //        {
+            //            curve.StartPoint = vertex1.Position;
+            //        }
+            //        if ((curve.EndPoint | vertex2.Position) > 1e-6)
+            //        {
+            //            curve.EndPoint = vertex2.Position;
+            //        }
+            //    }
+            //}
 #endif
         }
         public StepEdgeDescriptor(StepEdgeDescriptor toClone, Vertex vertex1, Vertex vertex2, bool forward)
@@ -128,27 +131,30 @@ namespace CADability
             this.forward = forward;
 #if DEBUG
             this.stepDefiningIndex = toClone.stepDefiningIndex;
-            id = idCounter++;
 #endif
+            lock (lockStatic)
+            {
+                id = idCounter++;
+            }
 #if DEBUG
-            if (curve.IsClosed)
-            {
-                if ((curve.StartPoint | vertex1.Position) > 1e-6)
-                {
-                    curve = curve.CloneModified(ModOp.Translate(vertex1.Position - curve.StartPoint));
-                }
-            }
-            else
-            {
-                if ((curve.StartPoint | vertex1.Position) > 1e-6)
-                {
-                    curve.StartPoint = vertex1.Position;
-                }
-                if ((curve.EndPoint | vertex2.Position) > 1e-6)
-                {
-                    curve.EndPoint = vertex2.Position;
-                }
-            }
+            //if (curve.IsClosed)
+            //{
+            //    if ((curve.StartPoint | vertex1.Position) > 1e-6)
+            //    {
+            //        curve = curve.CloneModified(ModOp.Translate(vertex1.Position - curve.StartPoint));
+            //    }
+            //}
+            //else
+            //{
+            //    if ((curve.StartPoint | vertex1.Position) > 1e-6)
+            //    {
+            //        curve.StartPoint = vertex1.Position;
+            //    }
+            //    if ((curve.EndPoint | vertex2.Position) > 1e-6)
+            //    {
+            //        curve.EndPoint = vertex2.Position;
+            //    }
+            //}
 #endif
         }
         public StepEdgeDescriptor(Edge edge, bool forward)
@@ -159,11 +165,11 @@ namespace CADability
             vertex1 = edge.Vertex1;
             vertex2 = edge.Vertex2;
             this.forward = forward;
-#if DEBUG
-            id = idCounter++;
-#endif
+            lock (lockStatic)
+            {
+                id = idCounter++;
+            }
         }
-
         internal void MakeVertices()
         {
             vertex1 = new Vertex(curve.StartPoint);

@@ -7,7 +7,7 @@ using System.Windows.Forms;
 namespace CADability.Forms
 {
 
-    class PropertiesExplorer : Control, IControlCenter
+    internal class PropertiesExplorer : Control, IControlCenter
     {
         private List<PropertyPage> tabPages; // the TabPages with titleId and iconId
         TabControl tabControl; // the TabControl containing the tab pages

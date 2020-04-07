@@ -15,36 +15,17 @@ using CADability.Substitutes;
 namespace CADability
 {
 
-    internal class FrameStatic
+    /// <summary>
+    /// This class provides access to the current active frame (IFrame) object.
+    /// It is typically the one and only SingleDocumentFrame in the application but
+    /// may be different in future, when there will be a MultiDocumenFrame.
+    /// </summary>
+    public class ActiveFrame
     {
-        internal static void ExportToSTL(CADability.Project project, string fileName)
-        {
-            Model m = project.GetActiveModel();
-
-            using (PaintToSTL pstl = new PaintToSTL(fileName, Settings.GlobalSettings.GetDoubleValue("Export.STL.Precision", 0.005)))
-            {
-                pstl.Init();
-                for (int i = 0; i < m.Count; i++)
-                {
-                    m[i].PaintTo3D(pstl);
-                }
-            }
-        }
-        internal static void ExportToWebGl(CADability.Project project, string fileName)
-        {
-            ExportToWebGl wgl = new ExportToWebGl(project.GetActiveModel());
-            if (ActiveFrame.Frame != null && ActiveFrame.Frame.ActiveView != null)
-            {
-                GeoVector pdir = ActiveFrame.Frame.ActiveView.Projection.Direction;
-                wgl.InitialProjectionDirection = pdir;
-            }
-            Assembly ThisAssembly = Assembly.GetExecutingAssembly();
-            int lastSlash = ThisAssembly.Location.LastIndexOf('\\');
-            string path = ThisAssembly.Location.Substring(0, lastSlash) + "\\WebGLS.html";
-            wgl.HtmlTemplatePath = path;
-            wgl.WriteToFile(fileName);
-        }
-
+        /// <summary>
+        /// Gets the currently active frame (IFrame), may be null
+        /// </summary>
+        public static IFrame Frame;
     }
 
     /// <summary>
@@ -298,9 +279,10 @@ namespace CADability
             }
         }
         private ICanvas canvas;
-
+        public static IFrame MainFrame; // there is usually only one frame and sometimes we need services like the active view or the UIServices that we can get from here
         public FrameImpl()
         {
+            MainFrame = this;
             actionStack = new ActionStack(this);
             modelViews = new Dictionary<string, ModelView>();
             layoutViews = new Dictionary<string, LayoutView>();
@@ -310,8 +292,8 @@ namespace CADability
             Settings settings = Settings.GlobalSettings; // to initiate load
             Settings.GlobalSettings.SetValue("UseNewStepImport", true);
             Settings.GlobalSettings.SetValue("UseNewBrepOperations", true); // should not be used later
+            Settings.GlobalSettings.SetValue("Experimental.ParallelOcttree", true);
         }
-
         public FrameImpl(IControlCenter cc, ICanvas canvas) : this()
         {
             cc.Frame = this;
@@ -394,7 +376,6 @@ namespace CADability
                 ViewsChangedEvent?.Invoke(this);
             }
         }
-
         public abstract IUIService UIService { get; }
         public IView[] AllViews
         {
@@ -2205,15 +2186,25 @@ namespace CADability
                     Project = newproject;
                     FileNameChangedEvent?.Invoke(fileName);
                     if (fileext != "cdb")
-                    {   // bei nicht cdb Dateien auf den extent zoomen
+                    {   
+                        // get a raw model extent to know a precision for the triangulation
+                        // parallel triangulate all faces with this precision to show a progress bar
+                        // then zoom total 
                         ModelView mv = FirstModelView;
                         // den ersten ModelView anzeigen
                         if (mv != null)
                         {
-                            int tc0 = System.Environment.TickCount;
+                            Projection fromTop = Projection.FromTop;
+                            BoundingRect ext = mv.Model.GetExtent(fromTop);
+                            System.Diagnostics.Trace.WriteLine("Starting ParallelTriangulation" + Environment.TickCount.ToString());
+                            fromTop.SetPlacement(mv.DisplayRectangle, ext);
+                            double precision = 1.0 / fromTop.WorldToDeviceFactor;
+                            mv.Model.ParallelTriangulation(precision);
+                            System.Diagnostics.Trace.WriteLine("Starting OctTree" + Environment.TickCount.ToString());
+                            mv.Model.InitOctTree();
+                            System.Diagnostics.Trace.WriteLine("OctTree done" + Environment.TickCount.ToString());
                             mv.ZoomTotal(1.1);
-                            int tc1 = System.Environment.TickCount - tc0;
-                            System.Diagnostics.Trace.WriteLine("Zoom Total: " + tc1.ToString());
+                            System.Diagnostics.Trace.WriteLine("ZoomTotal done" + Environment.TickCount.ToString());
                             // mv.ZoomToModelExtent(condorScrollableCtrls[activeControl].ClientRectangle, 1.1);
                         }
                     }

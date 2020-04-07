@@ -1195,7 +1195,7 @@ namespace CADability
                 case "wrl":
                     break;
                 case "stl":
-                    FrameStatic.ExportToSTL(this, fileName);
+                    ExportToSTL(fileName);
                     break;
                 case "brep":
                     break;
@@ -1206,6 +1206,33 @@ namespace CADability
                     break;
             }
             return false;
+        }
+        public void ExportToSTL(string fileName)
+        {
+            Model m = GetActiveModel();
+
+            using (PaintToSTL pstl = new PaintToSTL(fileName, Settings.GlobalSettings.GetDoubleValue("Export.STL.Precision", 0.005)))
+            {
+                pstl.Init();
+                for (int i = 0; i < m.Count; i++)
+                {
+                    m[i].PaintTo3D(pstl);
+                }
+            }
+        }
+        public void ExportToWebGl(string fileName)
+        {
+            ExportToWebGl wgl = new ExportToWebGl(GetActiveModel());
+            if (FrameImpl.MainFrame != null && FrameImpl.MainFrame.ActiveView != null)
+            {
+                GeoVector pdir = FrameImpl.MainFrame.ActiveView.Projection.Direction;
+                wgl.InitialProjectionDirection = pdir;
+            }
+            Assembly ThisAssembly = Assembly.GetExecutingAssembly();
+            int lastSlash = ThisAssembly.Location.LastIndexOf('\\');
+            string path = ThisAssembly.Location.Substring(0, lastSlash) + "\\WebGLS.html";
+            wgl.HtmlTemplatePath = path;
+            wgl.WriteToFile(fileName);
         }
 
         private class CondorSerializationBinder : SerializationBinder
@@ -1585,13 +1612,11 @@ namespace CADability
             }
             return res;
         }
-
         private static Project ReadFromJson(FileStream stream)
         {
             JsonSerialize js = new JsonSerialize();
             return js.FromStream(stream) as Project;
         }
-
         private static Project ReadConvertedFile(string FileName, bool useProgress)
         {
             Project res = null;
@@ -1622,7 +1647,6 @@ namespace CADability
             if (res != null) res.WriteToFile(FileName); // und gleich wieder rausschreiben, denn an den konvertierten Objekten hängt die falsche DLL
             return res;
         }
-
         private static Project ImportDirectDwg(string filename)
         {
             throw new NotImplementedException();
@@ -1766,7 +1790,7 @@ namespace CADability
         public event ModelsChangedDelegate ModelsChangedEvent;
         internal static void InsertDebugLine(GeoPoint sp, GeoPoint ep, Color clr)
         {
-            IFrame fr = ActiveFrame.Frame;
+            IFrame fr = FrameImpl.MainFrame;
             Model m = fr.Project.GetActiveModel();
             Line l = Line.Construct();
             l.SetTwoPoints(sp, ep);
@@ -1776,7 +1800,7 @@ namespace CADability
         }
         internal static void InsertDebugLine(GeoPoint2D sp, GeoPoint2D ep, Color clr)
         {
-            IFrame fr = ActiveFrame.Frame;
+            IFrame fr = FrameImpl.MainFrame;
             Model m = fr.Project.GetActiveModel();
             Line l = Line.Construct();
             l.SetTwoPoints(Plane.XYPlane.ToGlobal(sp), Plane.XYPlane.ToGlobal(ep));
@@ -1786,7 +1810,7 @@ namespace CADability
         }
         internal static void InsertDebugCurve2D(CADability.Curve2D.ICurve2D c2d, Color clr)
         {
-            IFrame fr = ActiveFrame.Frame;
+            IFrame fr = FrameImpl.MainFrame;
             Model m = fr.Project.GetActiveModel();
             IGeoObject go = c2d.MakeGeoObject(Plane.XYPlane);
             ColorDef cd = new ColorDef("Debug:" + clr.ToString(), clr);
