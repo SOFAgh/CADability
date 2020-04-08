@@ -60,7 +60,7 @@ namespace CADability
     /// </summary>
     // created by MakeClassComVisible
     [Serializable()]
-    public class UserData : ISerializable, IDictionary<string, object>, IDictionary
+    public class UserData : ISerializable, IDictionary<string, object>, IDictionary, IJsonSerialize
     {
         public delegate void UserDataAddedDelegate(string name, object value);
         public delegate void UserDataRemovedDelegate(string name, object value);
@@ -478,6 +478,39 @@ namespace CADability
         public void CopyTo(Array array, int index)
         {
             ((IDictionary)data).CopyTo(array, index);
+        }
+
+        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        {
+            foreach (KeyValuePair<string, object> de in this.data)
+            {	
+                // since the keys must be unique, we use the keys as property names
+                if (de.Value != null && !de.Value.GetType().IsGenericType)
+                {
+                    // so kann man feststellen, ob de.Value serialisierbar ist
+                    SerializableAttribute sa = (SerializableAttribute)System.Attribute.GetCustomAttribute(de.Value.GetType(), typeof(SerializableAttribute));
+                    if (de.Value is IJsonSerialize || sa != null)
+                    {
+                        data.AddProperty(de.Key, de.Value);
+                    }
+                    else if (de.Value.GetType().IsArray)
+                    {
+                        sa = (SerializableAttribute)System.Attribute.GetCustomAttribute(de.Value.GetType().GetElementType(), typeof(SerializableAttribute));
+                        if (sa != null || de.Value.GetType().GetElementType().GetInterface("IJsonSerialize") != null)
+                        {
+                            data.AddProperty(de.Key, de.Value);
+                        }
+                    }
+
+                }
+            }
+        }
+        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        {
+            foreach (KeyValuePair<string,object> item in data)
+            {
+                this.data[item.Key] = item.Value;
+            }   
         }
 
         #endregion

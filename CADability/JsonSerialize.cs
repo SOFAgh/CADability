@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 
 namespace CADability
 {
@@ -55,6 +56,7 @@ namespace CADability
         T GetPropertyOrDefault<T>(string name);
         int Version { get; }
         void RegisterForSerializationDoneCallback(IJsonSerializeDone toCall);
+        Dictionary<string, object>.Enumerator GetEnumerator();
     }
     public interface IJsonReadStruct
     {
@@ -413,7 +415,15 @@ namespace CADability
             {
                 root.RegisterForSerializationDoneCallback(toCall);
             }
+            Dictionary<string, object>.Enumerator IJsonReadData.GetEnumerator()
+            {
+                return this.GetEnumerator();
+            }
+
             public int Version { get; set; }
+
+            int IJsonReadData.Version => Version;
+
         }
 
         private void RegisterForSerializationDoneCallback(IJsonSerializeDone toCall)
@@ -1441,7 +1451,7 @@ namespace CADability
             return "";
         }
 #endif
-        #region IJsonWriteData implementation
+#region IJsonWriteData implementation
         void IJsonWriteData.AddProperty(string name, object value)
         {
             WriteProperty(name);
@@ -1465,7 +1475,7 @@ namespace CADability
             }
             EndObject();
         }
-        #endregion
+#endregion
     }
 
     interface IJsonConvert

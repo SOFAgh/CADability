@@ -269,12 +269,12 @@ namespace CADability.Forms
         bool IUIService.HasClipboardData(Type typeOfdata)
         {
             IDataObject data = Clipboard.GetDataObject();
-            string[] formats = data.GetFormats(false);
-            for (int i = 0; i < formats.Length; i++)
-            {
-                if (formats[i] == typeOfdata.FullName) return true;
-            }
-            return false;
+            return data.GetDataPresent(typeOfdata);
+            //for (int i = 0; i < formats.Length; i++)
+            //{
+            //    if (formats[i] == typeOfdata.FullName) return true;
+            //}
+            //return false;
         }
         event EventHandler IUIService.ApplicationIdle
         {
