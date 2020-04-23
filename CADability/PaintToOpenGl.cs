@@ -159,7 +159,7 @@ namespace CADability
         /// </summary>
         /// <param name="points"></param>
         /// <param name="size"></param>
-        void Points(GeoPoint[] points, float size);
+        void Points(GeoPoint[] points, float size, PointSymbol pointSymbol);
         /// <summary>
         /// Draw a set of solid-filled triangles with the current color.
         /// </summary>
@@ -175,6 +175,11 @@ namespace CADability
         /// <param name="textString">String to be painted</param>
         /// <param name="fontStyle">Additional font style (bold, italic, etc.)</param>
         void PrepareText(string fontName, string textString, FontStyle fontStyle);
+        /// <summary>
+        /// Assure that the point symbol is loaded
+        /// </summary>
+        /// <param name="pointSymbol"></param>
+        void PreparePointSymbol(PointSymbol pointSymbol);
         /// <summary>
         /// Assure that the <paramref name="icon"/> will be available when <see cref="DisplayIcon"/> will subsequently be called.
         /// (Some implementations cache the icon or transform it into an convenient format)

@@ -2429,7 +2429,7 @@ namespace CADability
             throw new NotImplementedException("The method or operation is not implemented.");
         }
 
-        void IPaintTo3D.Points(GeoPoint[] points, float size)
+        void IPaintTo3D.Points(GeoPoint[] points, float size, PointSymbol pointSymbol)
         {
             
         }
@@ -2855,6 +2855,11 @@ namespace CADability
         internal void SetGeoObject(IGeoObject go)
         {
             geoObjectBeeingRendered = go;
+        }
+
+        void IPaintTo3D.PreparePointSymbol(PointSymbol pointSymbol)
+        {
+            
         }
 #endif
     }

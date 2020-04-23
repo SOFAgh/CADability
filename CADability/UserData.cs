@@ -489,19 +489,18 @@ namespace CADability
                 {
                     // so kann man feststellen, ob de.Value serialisierbar ist
                     SerializableAttribute sa = (SerializableAttribute)System.Attribute.GetCustomAttribute(de.Value.GetType(), typeof(SerializableAttribute));
-                    if (de.Value is IJsonSerialize || sa != null)
+                    if (de.Value.GetType().IsPrimitive || de.Value is IJsonSerialize || sa != null)
                     {
                         data.AddProperty(de.Key, de.Value);
                     }
                     else if (de.Value.GetType().IsArray)
                     {
                         sa = (SerializableAttribute)System.Attribute.GetCustomAttribute(de.Value.GetType().GetElementType(), typeof(SerializableAttribute));
-                        if (sa != null || de.Value.GetType().GetElementType().GetInterface("IJsonSerialize") != null)
+                        if (sa != null || de.Value.GetType().GetElementType().IsPrimitive || de.Value.GetType().GetElementType().GetInterface("IJsonSerialize") != null)
                         {
                             data.AddProperty(de.Key, de.Value);
                         }
                     }
-
                 }
             }
         }

@@ -66,6 +66,55 @@ namespace CADability.Forms
         byte accumBits = 0, colorBits = 32, depthBits = 16, stencilBits = 0;
         static IntPtr MainRenderContext = IntPtr.Zero;
         static IntPtr LastRenderContext = IntPtr.Zero;
+        private static List<System.Drawing.Bitmap> bitmapList = null;
+        internal static List<System.Drawing.Bitmap> BitmapList
+        {
+            get
+            {
+                if (bitmapList == null)
+                {
+                    bitmapList = new List<System.Drawing.Bitmap>();
+                    System.Drawing.Bitmap bmp;
+                    bmp = BitmapTable.GetBitmap("PointSymbols.bmp");
+                    // PointSymbols.bmp and PointSymbolsB.bmp (B for bold) must have this form:
+                    // 6 square pointsymbols horizontally placed with and odd number of pixels.
+                    // the upper left pixel is the transparent color
+                    Color clr = bmp.GetPixel(0, 0);
+                    if (clr.A != 0) bmp.MakeTransparent(clr);
+                    int h = bmp.Height;
+                    ImageList imageList = new ImageList();
+                    imageList.ImageSize = new Size(h, h);
+                    imageList.Images.AddStrip(bmp); // the non-bold symbols
+                    if (Settings.GlobalSettings.GetBoolValue("PointSymbolsBold", false))
+                    {
+                        bmp = BitmapTable.GetBitmap("PointSymbolsB.bmp"); // the bold symbols
+                        clr = bmp.GetPixel(0, 0);
+                        if (clr.A != 0) bmp.MakeTransparent(clr);
+                        imageList.Images.AddStrip(bmp);
+                    }
+                    else
+                    {   // again the non bold symbols
+                        imageList.Images.AddStrip(bmp);
+                    }
+                    // full black square for selecting
+                    bmp = new Bitmap(h, h);
+                    for (int i = 0; i < h; i++)
+                    {
+                        for (int j = 0; j < h; j++)
+                        {
+                            bmp.SetPixel(i, j, Color.Black);
+                        }
+                    }
+                    imageList.Images.Add(bmp);
+                    for (int i = 0; i < imageList.Images.Count; ++i)
+                    {
+                        bitmapList.Add(imageList.Images[i] as System.Drawing.Bitmap);
+                    }
+                }
+                return bitmapList;
+            }
+        }
+
         // für Fonts:
         struct CharacterDisplayList
         {
@@ -944,16 +993,80 @@ namespace CADability.Forms
             Gl.glEnd();
             CheckError();
         }
-        void IPaintTo3D.Points(GeoPoint[] points, float size)
+        void IPaintTo3D.Points(GeoPoint[] points, float size, PointSymbol pointSymbol)
         {
-            if (currentList != null) currentList.SetHasContents();
-            Gl.glDisable(Gl.GL_LIGHTING);
-            Gl.glBegin(Gl.GL_POINTS);
-            for (int i = 0; i < points.Length; ++i)
+            if (pointSymbol == PointSymbol.Dot)
             {
-                Gl.glVertex3d(points[i].x, points[i].y, points[i].z);
+                if (currentList != null) currentList.SetHasContents();
+                Gl.glDisable(Gl.GL_LIGHTING);
+                Gl.glBegin(Gl.GL_POINTS);
+                for (int i = 0; i < points.Length; ++i)
+                {
+                    Gl.glVertex3d(points[i].x, points[i].y, points[i].z);
+                }
+                Gl.glEnd();
             }
-            Gl.glEnd();
+            else
+            {
+                System.Drawing.Bitmap bmp = null;
+                if ((pointSymbol & CADability.GeoObject.PointSymbol.Select) != 0)
+                {
+                    bmp = BitmapList[12];
+                    if (bmp != null)
+                    {
+                        for (int i = 0; i < points.Length; ++i) (this as IPaintTo3D).DisplayIcon(points[i], bmp);
+                    }
+                    return; // nur das volle Quadrat anzeigen, sonst nichts
+                }
+
+                int offset = 0;
+                if ((this as IPaintTo3D).UseLineWidth) offset = 6; // so wird gesteuert dass bei nur dünn die dünnen Punkte und bei
+                                                                   // mit Linienstärke ggf. die dicken Punkte angezeigt werden (Forderung PFOCAD)
+                switch ((GeoObject.PointSymbol)((int)pointSymbol & 0x07))
+                {
+                    case CADability.GeoObject.PointSymbol.Empty:
+                        bmp = null;
+                        break;
+                    case CADability.GeoObject.PointSymbol.Dot:
+                        {
+                            bmp = BitmapList[0 + offset];
+                        }
+                        break;
+                    case CADability.GeoObject.PointSymbol.Plus:
+                        {
+                            bmp = BitmapList[1 + offset];
+                        }
+                        break;
+                    case CADability.GeoObject.PointSymbol.Cross:
+                        {
+                            bmp = BitmapList[2 + offset];
+                        }
+                        break;
+                    case CADability.GeoObject.PointSymbol.Line:
+                        {
+                            bmp = BitmapList[3 + offset];
+                        }
+                        break;
+                }
+                if (bmp != null)
+                {
+                    for (int i = 0; i < points.Length; ++i) (this as IPaintTo3D).DisplayIcon(points[i], bmp);
+                }
+                bmp = null;
+                if ((pointSymbol & CADability.GeoObject.PointSymbol.Circle) != 0)
+                {
+                    bmp = BitmapList[5 + offset];
+                }
+                if ((pointSymbol & CADability.GeoObject.PointSymbol.Square) != 0)
+                {
+                    bmp = BitmapList[4 + offset];
+                }
+                if (bmp != null)
+                {
+                    for (int i = 0; i < points.Length; ++i) (this as IPaintTo3D).DisplayIcon(points[i], bmp);
+                }
+
+            }
             CheckError();
         }
         void IPaintTo3D.Triangle(GeoPoint[] vertex, GeoVector[] normals, int[] indextriples)
@@ -1106,6 +1219,60 @@ namespace CADability.Forms
             CheckError();
         }
         int dbgNumChar;
+        void IPaintTo3D.PreparePointSymbol(PointSymbol symbol)
+        {
+            int offset = 0;
+            if ((this as IPaintTo3D).UseLineWidth) offset = 6; // so wird gesteuert dass bei nur dünn die dünnen Punkte und bei
+            // mit Linienstärke ggf. die dicken Punkte angezeigt werden (Forderung PFOCAD)
+            System.Drawing.Bitmap bmp = null;
+            switch ((GeoObject.PointSymbol)((int)symbol & 0x07))
+            {
+                case CADability.GeoObject.PointSymbol.Empty:
+                    bmp = null;
+                    break;
+                case CADability.GeoObject.PointSymbol.Dot:
+                    {
+                        bmp = BitmapList[0 + offset];
+                    }
+                    break;
+                case CADability.GeoObject.PointSymbol.Plus:
+                    {
+                        bmp = BitmapList[1 + offset];
+                    }
+                    break;
+                case CADability.GeoObject.PointSymbol.Cross:
+                    {
+                        bmp = BitmapList[2 + offset];
+                    }
+                    break;
+                case CADability.GeoObject.PointSymbol.Line:
+                    {
+                        bmp = BitmapList[3 + offset];
+                    }
+                    break;
+            }
+            if (bmp != null)
+            {
+                (this as IPaintTo3D).PrepareIcon(bmp);
+            }
+            bmp = null;
+            if ((symbol & CADability.GeoObject.PointSymbol.Circle) != 0)
+            {
+                bmp = BitmapList[5 + offset];
+            }
+            if ((symbol & CADability.GeoObject.PointSymbol.Square) != 0)
+            {
+                bmp = BitmapList[4 + offset];
+            }
+            if ((symbol & CADability.GeoObject.PointSymbol.Select) != 0)
+            {
+                bmp = BitmapList[12];
+            }
+            if (bmp != null)
+            {
+                (this as IPaintTo3D).PrepareIcon(bmp);
+            }
+        }
         void IPaintTo3D.PrepareBitmap(System.Drawing.Bitmap bitmap)
         {   // Mechanismus zum Entfernen aus dem Dictionary und vor allem aus OpenGL fehlt noch.
             // man bräuchte eine Art OnDispose vom Bitmap, aber das gibt es nicht...
@@ -1897,6 +2064,7 @@ namespace CADability.Forms
     internal class OpenGlList : IPaintTo3DList
     {
         static List<int> toDelete = new List<int>();
+
         public OpenGlList(int listNr)
         {
             ListNumber = listNr;

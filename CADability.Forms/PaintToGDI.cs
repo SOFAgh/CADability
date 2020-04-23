@@ -486,7 +486,7 @@ namespace CADability.Forms
         {
         }
 
-        void IPaintTo3D.Points(GeoPoint[] points, float size)
+        void IPaintTo3D.Points(GeoPoint[] points, float size, PointSymbol pointSymbol)
         {
         }
 
@@ -1159,6 +1159,11 @@ namespace CADability.Forms
         #region IDisposable Members
         public virtual void Dispose()
         {
+        }
+
+        void IPaintTo3D.PreparePointSymbol(PointSymbol pointSymbol)
+        {
+            
         }
         #endregion
     }

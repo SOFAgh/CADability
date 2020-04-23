@@ -224,8 +224,8 @@ namespace CADability.GeoObject
         /// <param name="paintTo3D"></param>
         public override void PrePaintTo3D(IPaintTo3D paintTo3D)
         {
-            CADability.PaintTo3D.PreparePointSymbol(paintTo3D, this.symbol);
-            CADability.PaintTo3D.PreparePointSymbol(paintTo3D, this.symbol | PointSymbol.Select);
+            paintTo3D.PreparePointSymbol(this.symbol);
+            paintTo3D.PreparePointSymbol(this.symbol | PointSymbol.Select);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.PaintTo3D (IPaintTo3D)"/>
@@ -243,18 +243,11 @@ namespace CADability.GeoObject
                 // paintTo3D.Points(new GeoPoint[] { this.location }, (float)this.size);
                 // im Selectmode gibts Abstürze bei "0901_06_01_0.dxf", wenn man eine Bemaßung markiert
                 // und die normale Darstellung verwendet
-                CADability.PaintTo3D.PointSymbol(paintTo3D, this.location, this.size, this.symbol | PointSymbol.Select);
+                paintTo3D.Points(new GeoPoint[] { location }, (float)size, this.symbol | PointSymbol.Select);
             }
             else
             {
-                if (symbol == PointSymbol.Dot)
-                {
-                    paintTo3D.Points(new GeoPoint[] { location }, 1.0f);
-                }
-                else
-                {
-                    CADability.PaintTo3D.PointSymbol(paintTo3D, this.location, this.size, this.symbol);
-                }
+                paintTo3D.Points(new GeoPoint[] { location }, 1.0f, symbol);
                 // folgendes geht viel schneller:
                 //paintTo3D.Polyline(new GeoPoint[] { location - size * GeoVector.XAxis, location + size * GeoVector.XAxis });
                 //paintTo3D.Polyline(new GeoPoint[] { location - size * GeoVector.YAxis, location + size * GeoVector.YAxis });

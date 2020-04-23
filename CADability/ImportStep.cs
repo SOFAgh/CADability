@@ -1827,7 +1827,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (19041 == item.definingIndex) // || 4535 == item.definingIndex)
+            if (23092 == item.definingIndex)// || 22608 == item.definingIndex)
             {
 
             }
@@ -2231,7 +2231,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                             ISurface surface = CreateEntity(item.parameter["face_geometry"]) as ISurface;
 #if DEBUG
-                            if (12895 == item.definingIndex || 14757 == item.definingIndex)
+                            if (1136 == item.definingIndex)
                             {
                                 // Face dbgf = Face.MakeFace(surface, new BoundingRect(0.1, 0.1, 0.9, 0.9));
                             }
@@ -2684,6 +2684,15 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                                 if (sp > 1e-6 && sp < 1 - 1e-6)
                                                 {
                                                     crv = (crv as BSpline).SetCyclicalStartPoint(sp);
+                                                }
+                                            }
+                                            else if (crv is Line)
+                                            {
+                                                if (sp < ep) crv.Trim(sp, ep);
+                                                else
+                                                {   // this should never happen, not sure whether first crv.Trim(sp, ep); and then reverse
+                                                    crv.Reverse();
+                                                    crv.Trim(ep, sp);
                                                 }
                                             }
                                         }

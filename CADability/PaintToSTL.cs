@@ -181,11 +181,6 @@ namespace CADability
 
         }
 
-        void IPaintTo3D.Points(GeoPoint[] points, float size)
-        {
-
-        }
-
         void IPaintTo3D.Triangle(GeoPoint[] vertex, GeoVector[] normals, int[] indextriples)
         {
             string format = "0.#";
@@ -406,6 +401,14 @@ namespace CADability
         {
             stream.WriteLine("endsolid " + fileName);
             stream.Close();
+        }
+
+        void IPaintTo3D.Points(GeoPoint[] points, float size, PointSymbol pointSymbol)
+        {
+        }
+
+        void IPaintTo3D.PreparePointSymbol(PointSymbol pointSymbol)
+        {
         }
     }
 }

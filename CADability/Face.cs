@@ -46,8 +46,7 @@ namespace CADability.GeoObject
                 List<MenuWithHandler> menuWithHandlers = new List<MenuWithHandler>();
 
                 face.GetAdditionalContextMenue(this, Frame, menuWithHandlers);
-                if (menuWithHandlers.Count > 0) return menuWithHandlers.ToArray();
-                else return null;
+                return menuWithHandlers.ToArray();
             }
         }
         public override int SubEntriesCount

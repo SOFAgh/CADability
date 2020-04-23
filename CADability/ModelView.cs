@@ -2117,11 +2117,11 @@ namespace CADability
                         PaintToBackground.SetColor(clrgrd);
                         if (pr.Grid.DisplayMode == Grid.Appearance.dots)
                         {
-                            PaintToBackground.Points(points, 1.0f);
+                            PaintToBackground.Points(points, 1.0f, PointSymbol.Dot);
                         }
                         else
                         {
-                            PaintToBackground.Points(points, 2.0f);
+                            PaintToBackground.Points(points, 2.0f, PointSymbol.Dot);
                         }
                         break;
                     case Grid.Appearance.lines:

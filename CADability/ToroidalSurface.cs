@@ -1852,8 +1852,11 @@ namespace CADability.GeoObject
         {
             if (curve is Ellipse)
             {
+#if DEBUG
+                GeoObjectList dbgg = this.DebugGrid;
+#endif
                 Ellipse e = curve as Ellipse;
-                if (precision == 0.0) precision = Precision.eps;
+                if (precision == 0.0) precision = (MinorRadius + XAxis.Length) * 1e-6;
                 // in welche Richtung geht der Kreisbogen und in welcher Richtung geht der Torus an dieser Stelle
                 // in u bzw. v? Gleiche Richtung: Absolutbetrag von sweepparameter dazuaddieren
                 // verschiedene Richtung: abziehen. Der Absolutbetrag sieht auf den ersten Moment komisch aus
@@ -1875,7 +1878,9 @@ namespace CADability.GeoObject
                             {
                                 // beides gleiche Richtung
                                 Line2D res = new Line2D(new GeoPoint2D(uv.x, uv.y), new GeoPoint2D(uv.x + Math.Abs(e.SweepParameter), uv.y));
+#if DEBUG
                                 ICurve dbg = Make3dCurve(res);
+#endif
                                 return res;
                             }
                             else
@@ -2422,7 +2427,7 @@ namespace CADability.GeoObject
                 double umax = 6.0; // leave a little gap, so you can see where u starts
                 double vmin = 0;
                 double vmax = 6.0;  // leave a little gap, so you can see where u starts
-                int n = 50;
+                int n = 25;
                 for (int i = 0; i <= n; i++)
                 {   // über die Diagonale
                     GeoPoint[] pu = new GeoPoint[n + 1];

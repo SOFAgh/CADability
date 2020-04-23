@@ -201,6 +201,10 @@
     <EmbeddedResource Include="Bitmaps\Buttons5.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CADability.DXF\CADability.DXF.csproj">
+      <Project>{13aaffab-3425-43ba-b93d-6c63b1bf68ef}</Project>
+      <Name>CADability.DXF</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CADability\CADability.csproj">
       <Project>{b234840a-1f1c-4c53-9789-4eeb82349f98}</Project>
       <Name>CADability</Name>
