@@ -181,6 +181,8 @@ namespace netDxf.Entities
         private double startAngle;
         private double endAngle;
         private double thickness;
+        // CADability: we need the start and endparameter as specified in the dxf file
+        private double startParameter, endParameter;
 
         #endregion
 
@@ -299,6 +301,9 @@ namespace netDxf.Entities
             get { return this.endAngle; }
             set { this.endAngle = MathHelper.NormalizeAngle(value); }
         }
+        public double StartParameter { get => startParameter; set => startParameter = value; }
+        public double EndParameter { get => endParameter; set => endParameter = value; }
+
 
         /// <summary>
         /// Gets or sets the ellipse thickness.

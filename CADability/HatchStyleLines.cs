@@ -162,6 +162,17 @@ namespace CADability.Attribute
                 offset = value;
             }
         }
+        protected Angle AOffset // we need AOffset to be able to manipulate Offset as an AngleProperty
+        {
+            get
+            {
+                return offset;
+            }
+            set
+            {
+                offset = value;
+            }
+        }
         public bool Alternate
         {
             get
@@ -258,7 +269,7 @@ namespace CADability.Attribute
                     subEntries[2] = mp;
                     IntegerProperty on = new IntegerProperty(this, "Number", "HatchStyleLines.OffsetNumber");
                     subEntries[3] = on;
-                    AngleProperty of = new AngleProperty(this, "Offset", "HatchStyleLines.Offset", base.propertyTreeView.GetFrame(), false);
+                    AngleProperty of = new AngleProperty(this, "AOffset", "HatchStyleLines.Offset", base.propertyTreeView.GetFrame(), false);
                     subEntries[4] = of;
                     BooleanProperty al = new BooleanProperty(this, "Alternate", "HatchStyleLines.Alternate");
                     subEntries[5] = al;

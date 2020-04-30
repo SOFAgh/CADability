@@ -189,7 +189,22 @@ namespace CADability.Forms
         }
         protected override void OnPaint(PaintEventArgs e)
         {
-            if (view != null && paintTo3D != null) view.OnPaint(Subst(e));
+            if (view != null && paintTo3D != null)
+            {
+                view.OnPaint(Subst(e));
+                // maybe we need because of OpenGL list
+                //if (this.InvokeRequired)
+                //{
+                //    this.BeginInvoke((Action)delegate ()
+                //    {
+                //        view.OnPaint(Subst(e));
+                //    });
+                //}
+                //else
+                //{
+                //    view.OnPaint(Subst(e));
+                //}
+            }
             else e.Graphics.FillRectangle(new SolidBrush(Color.BlanchedAlmond), e.ClipRectangle);
             OnPaintDone?.Invoke(this);
         }

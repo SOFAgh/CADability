@@ -70,7 +70,10 @@ namespace CADability.Forms
             UpdateCommand();
             base.OnPopup(e);
         }
-
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+        }
         public void SetCommandHandler(ICommandHandler hc)
         {
             foreach (MenuItem mi in MenuItems)
@@ -84,7 +87,6 @@ namespace CADability.Forms
             }
             this.commandHandler = hc;
         }
-
         private void SetCommandHandler(MenuItemWithHandler miid, ICommandHandler hc)
         {
             foreach (MenuItem mi in miid.MenuItems)
@@ -103,7 +105,6 @@ namespace CADability.Forms
         {
             if (MenuItemSelectedEvent != null) MenuItemSelectedEvent(menuId);
         }
-
         private bool ProcessShortCut(Keys keys, MenuItem mi)
         {
             if (mi.IsParent)
@@ -166,6 +167,21 @@ namespace CADability.Forms
         {
             MenuWithHandler definition = (Tag as MenuWithHandler);
             if (definition.Target != null) definition.Target.OnCommand(definition.ID);
+            // Sometimes all menu texts are blank. This is not reproducable. I guess, it is because the menus are not disposed. I debugged by overriding Dispose of ContextMenuWithHandler
+            // If a menu item is clicked, the menu disappears and can be disposed. This is forced here. But if the menue disappears because of some other reason (ESC, click somewhere else)
+            // Dispose doesn't get called until maybe much later or when the form closes.
+            ContextMenuWithHandler toDispose = null;
+            Menu parent = this.Parent;
+            while (parent != null)
+            {
+                if (parent is ContextMenuWithHandler cmh)
+                {
+                    toDispose = cmh;
+                    break;
+                }
+                if (parent is MenuItem mi) parent = mi.Parent;
+            }
+            toDispose?.Dispose();
         }
         protected override void OnMeasureItem(System.Windows.Forms.MeasureItemEventArgs e)
         {

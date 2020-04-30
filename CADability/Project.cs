@@ -218,7 +218,7 @@ namespace CADability
                 VisibleLayers = new ArrayList();
                 modelView = null;
             }
-#region ISerializable Members
+            #region ISerializable Members
             public ModelViewDescription(SerializationInfo info, StreamingContext context)
             {
                 Name = (string)info.GetValue("Name", typeof(string));
@@ -265,7 +265,7 @@ namespace CADability
                 if (VisibleLayers != null) info.AddValue("VisibleLayers", VisibleLayers, typeof(ArrayList));
                 info.AddValue("OnlyThinLines", OnlyThinLines, typeof(bool));
             }
-#endregion
+            #endregion
         }
         //private ArrayList modelViews; // Liste von ModelViewDescription
         private int activeModelIndex;
@@ -968,7 +968,7 @@ namespace CADability
         {
             if (IsModified)
             {
-                
+
                 string msg = StringTable.GetString("Project.SaveModified");
                 if (!Settings.GlobalSettings.GetBoolValue("DontUse.WindowsForms", false))
                 {
@@ -1647,9 +1647,27 @@ namespace CADability
             if (res != null) res.WriteToFile(FileName); // und gleich wieder rausschreiben, denn an den konvertierten Objekten hängt die falsche DLL
             return res;
         }
-        private static Project ImportDirectDwg(string filename)
+        private static Project ImportDXF(string filename)
         {
-            throw new NotImplementedException();
+            try
+            {
+                Assembly dxfImport = Assembly.Load("CADability.DXF");
+                if (dxfImport != null)
+                {
+                    Type tp = dxfImport.GetType("CADability.DXF.Import");
+                    if (tp != null)
+                    {
+                        ConstructorInfo ci = tp.GetConstructor(new Type[] { typeof(string) });
+                        object import = ci.Invoke(new object[] { filename });
+                        Project res = import.GetType().GetProperty("Project").GetGetMethod(false).Invoke(import, null) as Project;
+                        return res;
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return null;
         }
         public static Project ReadFromFile(string FileName, string Format, bool useProgress, bool makeCompounds = true)
         {
@@ -1669,23 +1687,14 @@ namespace CADability
             switch (Format)
             {
                 case "cdb": return ReadFromFile(FileName, useProgress);
-                case "dxf":
-                case "dwg":
-                case "dxb": return ImportDirectDwg(FileName);
-                case "igs":
-                case "iges":
-                    break;
+                case "dxf": return ImportDXF(FileName);
                 case "step":
                 case "stp":
-                    if (Settings.GlobalSettings.GetBoolValue("UseNewStepImport", false))
-                    {
-                        ImportStep importStep = new ImportStep();
-                        GeoObjectList list = importStep.Read(FileName);
-                        Project res = Project.CreateSimpleProject();
-                        res.GetActiveModel().Add(list);
-                        return res;
-                    }
-                    break;
+                    ImportStep importStep = new ImportStep();
+                    GeoObjectList list = importStep.Read(FileName);
+                    Project res = Project.CreateSimpleProject();
+                    res.GetActiveModel().Add(list);
+                    return res;
                 case "brep":
                     break;
                 case "stl":
@@ -1702,7 +1711,7 @@ namespace CADability
         {
             return ReadFromFile(FileName, Format, true);
         }
-#region IShowPropertyImpl Overrides
+        #region IShowPropertyImpl Overrides
         private IShowProperty[] ShowProperties; // die Anzeige wird hier lokal gehalten, um die TabIndizes setzen zu können
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
@@ -1781,7 +1790,7 @@ namespace CADability
                 return ShowProperties;
             }
         }
-#endregion
+        #endregion
         public delegate void RefreshDelegate(object sender, EventArgs args);
         public event RefreshDelegate RefreshEvent;
         public delegate void ViewChangedDelegate(Project sender, IView viewWhichChanged);
@@ -1817,7 +1826,7 @@ namespace CADability
             (go as IColorDef).ColorDef = cd;
             m.Add(go);
         }
-#region IAttributeListContainer
+        #region IAttributeListContainer
         IAttributeList IAttributeListContainer.GetList(string keyName)
         {
             return attributeLists[keyName] as IAttributeList;
@@ -1959,8 +1968,8 @@ namespace CADability
         {	// wird aufgerufen, wenn eine Liste ein Item entfernen möchte
             if (list.Count < 2)
             {
-                    Frame.UIService.ShowMessageBox(StringTable.GetString(resourceId + ".DontRemoveLastItem"),
-                    StringTable.GetString(resourceId + ".Label"), MessageBoxButtons.OK);
+                Frame.UIService.ShowMessageBox(StringTable.GetString(resourceId + ".DontRemoveLastItem"),
+                StringTable.GetString(resourceId + ".Label"), MessageBoxButtons.OK);
                 return false; // nicht entfernen
             }
             bool used = false;
@@ -1995,7 +2004,7 @@ namespace CADability
                 }
         }
 
-#endregion
+        #endregion
         private bool deferRefresh;
         public bool DeferRefresh
         {
@@ -2084,7 +2093,7 @@ namespace CADability
 
         }
 #endif
-#region ISerializable Members
+        #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -2308,8 +2317,8 @@ namespace CADability
             IShowProperty[] dbg = namedValues.SubEntries;
 #endif
         }
-#endregion
-#region ICommandHandler Members
+        #endregion
+        #region ICommandHandler Members
         private void OnNewLayout()
         {
             int i = 1;
@@ -2455,8 +2464,8 @@ namespace CADability
             }
             return false;
         }
-#endregion
-#region IEnumerable
+        #endregion
+        #region IEnumerable
         public void Add(object toAdd)
         {
         }
@@ -2464,8 +2473,8 @@ namespace CADability
         {
             return models.GetEnumerator();
         }
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
 
         void IDeserializationCallback.OnDeserialization(object sender)
         {
@@ -2577,6 +2586,6 @@ namespace CADability
             }
         }
 
-#endregion
+        #endregion
     }
 }

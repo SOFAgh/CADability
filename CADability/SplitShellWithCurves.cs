@@ -109,7 +109,7 @@ namespace CADability.GeoObject
                     }
                 }
             }
-            GeoObjectList res = Make3D.SewFacesAndShells(new GeoObjectList(resultingFaces.ToArray()), this.precision);
+            GeoObjectList res = Make3D.SewFacesAndShells(new GeoObjectList(resultingFaces.ToArray()));
             if (res.Count == 1) return res[0] as Shell;
             return null;
         }

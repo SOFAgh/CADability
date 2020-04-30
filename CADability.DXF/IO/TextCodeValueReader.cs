@@ -406,8 +406,8 @@ namespace netDxf.IO
             {
                 return test.ToString("X");
             }
-
-            throw new Exception(string.Format("Value {0} not valid at line {1}", valueString, this.currentPosition));
+            return "";
+            // throw new Exception(string.Format("Value {0} not valid at line {1}", valueString, this.currentPosition));
         }
 
         #endregion

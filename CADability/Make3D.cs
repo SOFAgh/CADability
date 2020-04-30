@@ -650,7 +650,7 @@ namespace CADability.GeoObject
             }
             else
             {
-            throw new NotImplementedException();
+                throw new NotImplementedException();
             }
         }
         /// <summary>
@@ -669,7 +669,7 @@ namespace CADability.GeoObject
             }
             else
             {
-            throw new NotImplementedException();
+                throw new NotImplementedException();
             }
         }
         /// <summary>
@@ -991,7 +991,7 @@ namespace CADability.GeoObject
                         GeoVector normal = alongParts[i].StartDirection ^ alongParts[i].EndDirection;
                         if (Precision.IsNullVector(normal))
                         {
-                            if (alongParts[i].GetPlanarState()==PlanarState.Planar)
+                            if (alongParts[i].GetPlanarState() == PlanarState.Planar)
                             {
                                 normal = alongParts[i].GetPlane().Normal;
                             }
@@ -1741,36 +1741,18 @@ namespace CADability.GeoObject
         /// <returns>resulting objects</returns>
         public static GeoObjectList SewFacesAndShells(GeoObjectList select)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
+            List<Face> faces = new List<GeoObject.Face>();
+            for (int i = 0; i < select.Count; i++)
             {
-                List<Face> faces = new List<GeoObject.Face>();
-                for (int i = 0; i < select.Count; i++)
-                {
-                    if (select[i] is Face) faces.Add(select[i] as Face);
-                    else if (select[i] is Shell) faces.AddRange((select[i] as Shell).Faces);
-                }
-                if (faces.Count > 1)
-                {
-                    Shell[] res = SewFaces(faces.ToArray());
-                    return new GeoObjectList(res);
-                }
-                else return null;
+                if (select[i] is Face) faces.Add(select[i] as Face);
+                else if (select[i] is Shell) faces.AddRange((select[i] as Shell).Faces);
             }
-            else
+            if (faces.Count > 1)
             {
-                return SewFacesAndShells(select, Precision.eps);
+                Shell[] res = SewFaces(faces.ToArray());
+                return new GeoObjectList(res);
             }
-        }
-        /// <summary>
-        /// Takes all faces and shells from the given list and tries to sew them together. When two or more faces have
-        /// common edges they are connected to shells. Shells with no free edges are converted to solids.
-        /// </summary>
-        /// <param name="select">faces and shells to sew</param>
-        /// <param name="precision">maximum gap that is allowed between the edges</param>
-        /// <returns>resulting objects</returns>
-        public static GeoObjectList SewFacesAndShells(GeoObjectList select, double precision)
-        {
-            throw new NotImplementedException();
+            else return null;
         }
         public static Shell[] SewFaces(Face[] faces, bool edgesArUnambiguous = false)
         {

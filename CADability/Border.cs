@@ -588,7 +588,7 @@ namespace CADability.Shapes
         /// </summary>
         /// <param name="segments"></param>
         /// <returns></returns>
-        internal static Border FromUnorientedList(ICurve2D[] segments, bool forceClosed)
+        public static Border FromUnorientedList(ICurve2D[] segments, bool forceClosed)
         {
 #if DEBUG
             DebuggerContainer dc = new DebuggerContainer();
@@ -3673,7 +3673,7 @@ namespace CADability.Shapes
             }
             return false; // nix verändert
         }
-        internal double[] GetSelfIntersection(double precision)
+        public double[] GetSelfIntersection(double precision)
         {
             List<double[]> resList = new List<double[]>();
             for (int i = 0; i < segment.Length; i++)
