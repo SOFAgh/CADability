@@ -180,6 +180,7 @@ namespace CADability.Forms
                     break;
                 }
                 if (parent is MenuItem mi) parent = mi.Parent;
+                else break;
             }
             toDispose?.Dispose();
         }

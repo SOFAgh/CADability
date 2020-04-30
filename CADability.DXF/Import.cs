@@ -15,6 +15,10 @@ using System.Text;
 
 namespace CADability.DXF
 {
+    // ODAFileConverter "C:\Zeichnungen\DxfDwg\Stahl" "C:\Zeichnungen\DxfDwg\StahlConverted" "ACAD2010" "DWG" "0" "0"
+    /// <summary>
+    /// Imports a DXF file, converts it to a project
+    /// </summary>
     public class Import
     {
         private DxfDocument doc;
@@ -22,11 +26,15 @@ namespace CADability.DXF
         private Dictionary<string, GeoObject.Block> blockTable;
         private Dictionary<netDxf.Tables.Layer, ColorDef> layerColorTable;
         private Dictionary<netDxf.Tables.Layer, Attribute.Layer> layerTable;
+        /// <summary>
+        /// Create the Import instance. The document is beeing read and converted to netDXF objects.
+        /// </summary>
+        /// <param name="fileName"></param>
         public Import(string fileName)
         {
             doc = DxfDocument.Load(fileName);
         }
-        public void FillModelSpace(Model model)
+        private void FillModelSpace(Model model)
         {
             netDxf.Blocks.Block modelSpace = doc.Blocks["*Model_Space"];
             foreach (EntityObject item in modelSpace.Entities)
@@ -35,9 +43,19 @@ namespace CADability.DXF
                 if (geoObject != null) model.Add(geoObject);
             }
         }
-
+        private void FillPaperSpace(Model model)
+        {
+            netDxf.Blocks.Block modelSpace = doc.Blocks["*Paper_Space"];
+            foreach (EntityObject item in modelSpace.Entities)
+            {
+                IGeoObject geoObject = GeoObjectFromEntity(item);
+                if (geoObject != null) model.Add(geoObject);
+            }
+        }
+        /// <summary>
+        /// creates and returns the project
+        /// </summary>
         public Project Project { get => CreateProject(); }
-
         private Project CreateProject()
         {
             project = Project.CreateSimpleProject();
@@ -65,14 +83,12 @@ namespace CADability.DXF
                 }
                 project.LinePatternList.CreateOrFind(item.Name, pattern.ToArray());
             }
-            foreach (var item in doc.Hatches)
-            {
-
-            }
             FillModelSpace(project.GetModel(0));
+            Model paperSpace = new Model();
+            FillPaperSpace(paperSpace);
+            if (paperSpace.Count > 0) project.AddModel(paperSpace);
             return project;
         }
-
         private IGeoObject GeoObjectFromEntity(EntityObject item)
         {
             //if (item.Handle == "561E")
