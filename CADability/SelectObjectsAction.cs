@@ -572,6 +572,15 @@ namespace CADability.Actions
             return selectedObjectsProperty.focusedSelectedObject;
         }
         /// <summary>
+        /// Set the selected object which should get focus. This is only meaningful if several objects
+        /// are selected and the user navigates in the control center
+        /// </summary>
+        /// <param name="geoObject">The GeoObject which should get the focus</param>
+        public void SetFocusedSelectedObject(IGeoObject geoObject)
+        {
+            selectedObjectsProperty.Focus(geoObject);
+        }
+        /// <summary>
         /// Gets or sets the pickmode or selection mode for this SelectObjectsAction.
         /// </summary>
         public PickMode PickMode
