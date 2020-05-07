@@ -2371,13 +2371,16 @@ namespace CADability.GeoObject
             {
                 Set<Face> correctFaces = new Set<Face>();
                 correctFaces.Add(correctOriented);
+                SortedDictionary<Edge, Face> toOrient = new SortedDictionary<Edge, Face>(new EdgeLengthComparer());
                 foreach (Edge e in correctOriented.AllEdges)
                 {
                     if (!e.IsPeriodicEdge && !e.IsSingular())
                     {
-                        OrientFace(correctFaces, e.OtherFace(correctOriented), e);
+                        toOrient[e] = e.OtherFace(correctOriented);
+                        //OrientFace(correctFaces, e.OtherFace(correctOriented), e);
                     }
                 }
+                while (toOrient.Count > 0) OrientFaces(correctFaces, toOrient);
             }
             foreach (Face fc in faces) fc.OrientedOutward = true; // die sind jetzt alle richtig, egal was vorher drinstand
 
@@ -3428,6 +3431,41 @@ namespace CADability.GeoObject
             SplitShellWithCurves ssc = new SplitShellWithCurves(this, closedBorder, precision);
             return ssc.GetInsidePart();
 
+        }
+        private class EdgeLengthComparer: IComparer<Edge>
+        {
+            public int Compare(Edge e1, Edge e2)
+            {
+                return e2.Curve3D.Length.CompareTo(e1.Curve3D.Length);
+            }
+        }
+        private void OrientFaces(Set<Face> correctFaces, SortedDictionary<Edge, Face> toOrient)
+        {
+            List<KeyValuePair<Edge, Face>> l = new List<KeyValuePair<Edge, Face>>(toOrient);
+            toOrient.Clear();
+            foreach (KeyValuePair<Edge,Face> item in l)
+            {
+                if (item.Value != null && !correctFaces.Contains(item.Value))
+                {
+                    correctFaces.Add(item.Value);
+                    if (!item.Key.IsOrientedConnection)
+                    {
+                        item.Value.MakeInverseOrientation();
+                        foreach (Edge e in item.Value.AllEdges)
+                        {
+                            e.Orient();
+                        }
+                    }
+                    for (int i = 0; i < item.Value.AllEdges.Length; i++)
+                    {
+                        if (item.Value.AllEdges[i].Curve3D != null)
+                        {
+                            Face fc = item.Value.AllEdges[i].OtherFace(item.Value);
+                            if (!correctFaces.Contains(fc)) toOrient[item.Value.AllEdges[i]] = fc;
+                        }
+                    }
+                }
+            }
         }
 #if DEBUG
         static public Stack<Face> orienting = new Stack<Face>();

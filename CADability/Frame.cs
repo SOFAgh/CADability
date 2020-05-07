@@ -2129,6 +2129,7 @@ namespace CADability
             {
                 string filter = StringTable.GetString("File.CADability.Filter") + "|" +
                     StringTable.GetString("File.Dxf.Filter") + "|" +
+                    StringTable.GetString("File.Dwg.Filter") + "|" +
                     StringTable.GetString("File.STEP.Filter");
                 int filterIndex = lastFileType;
                 if (UIService.ShowOpenFileDlg("MenuId.File.Open", StringTable.GetString("MenuId.File.Open"), filter, ref filterIndex, out fileName) == Substitutes.DialogResult.OK)
@@ -2141,7 +2142,8 @@ namespace CADability
                     {
                         case 1: filetype = "cdb"; break;
                         case 2: filetype = "dxf"; break;
-                        case 3: filetype = "stp"; break;
+                        case 3: filetype = "dwg"; break;
+                        case 4: filetype = "stp"; break;
                     }
                     lastFileType = filterIndex;
                     newproject = Project.ReadFromFile(fileName, filetype);
@@ -2285,6 +2287,7 @@ namespace CADability
 
             string filter = StringTable.GetString("File.CADability.Filter") + "|" +
                 StringTable.GetString("File.Dxf.Filter") + "|" +
+                StringTable.GetString("File.Dwg.Filter") + "|" +
                 StringTable.GetString("File.STEP.Filter");
             int filterIndex = lastFileType;
             if (UIService.ShowOpenFileDlg("MenuId.Import", StringTable.GetString("MenuId.Import"), filter, ref filterIndex, out string fileName) == Substitutes.DialogResult.OK)
@@ -2296,7 +2299,8 @@ namespace CADability
                 {
                     case 1: newproject = CADability.Project.ReadFromFile(fileName, "cdb"); break;
                     case 2: newproject = CADability.Project.ReadFromFile(fileName, "dxf"); break;
-                    case 3: newproject = CADability.Project.ReadFromFile(fileName, "stp"); break;
+                    case 3: newproject = CADability.Project.ReadFromFile(fileName, "dwg"); break;
+                    case 4: newproject = CADability.Project.ReadFromFile(fileName, "stp"); break;
                 }
                 lastFileType = filterIndex;
                 if (newproject != null)

@@ -16,6 +16,7 @@ using System.Text;
 namespace CADability.DXF
 {
     // ODAFileConverter "C:\Zeichnungen\DxfDwg\Stahl" "C:\Zeichnungen\DxfDwg\StahlConverted" "ACAD2010" "DWG" "0" "0"
+    // only converts whole directories. 
     /// <summary>
     /// Imports a DXF file, converts it to a project
     /// </summary>
@@ -33,6 +34,11 @@ namespace CADability.DXF
         public Import(string fileName)
         {
             doc = DxfDocument.Load(fileName);
+        }
+        public static bool CanImportVersion(string fileName)
+        {
+            netDxf.Header.DxfVersion ver = DxfDocument.CheckDxfFileVersion(fileName);
+            return ver >= netDxf.Header.DxfVersion.AutoCad2000;
         }
         private void FillModelSpace(Model model)
         {
@@ -58,6 +64,7 @@ namespace CADability.DXF
         public Project Project { get => CreateProject(); }
         private Project CreateProject()
         {
+            if (doc == null) return null;
             project = Project.CreateSimpleProject();
             blockTable = new Dictionary<string, GeoObject.Block>();
             layerColorTable = new Dictionary<netDxf.Tables.Layer, ColorDef>();
@@ -115,6 +122,9 @@ namespace CADability.DXF
                 case netDxf.Entities.Dimension dxfDimension: res = CreateDimension(dxfDimension); break;
                 case netDxf.Entities.MText dxfMText: res = CreateMText(dxfMText); break;
                 case netDxf.Entities.Leader dxfLeader: res = CreateLeader(dxfLeader); break;
+                case netDxf.Entities.Polyline dxfPolyline: res = CreatePolyline(dxfPolyline); break;
+                case netDxf.Entities.Point dxfPoint: res = CreatePoint(dxfPoint); break;
+                case netDxf.Entities.Mesh dxfMesh: res = CreateMesh(dxfMesh); break;
                 default:
                     System.Diagnostics.Trace.WriteLine("dxf: not imported: " + item.ToString());
                     break;
@@ -148,7 +158,7 @@ namespace CADability.DXF
             //Scale Ax to unit length.
 
             GeoVector n = GeoVector(normal);
-            GeoVector ax = (normal.X < 1.0 / 64 && normal.Y < 1.0 / 64) ? CADability.GeoVector.YAxis ^ n : CADability.GeoVector.ZAxis ^ n;
+            GeoVector ax = (Math.Abs(normal.X) < 1.0 / 64 && Math.Abs(normal.Y) < 1.0 / 64) ? CADability.GeoVector.YAxis ^ n : CADability.GeoVector.ZAxis ^ n;
             GeoVector ay = n ^ ax;
             return new Plane(GeoPoint(center), ax, ay);
         }
@@ -315,7 +325,15 @@ namespace CADability.DXF
                 GeoVector no = GeoVector(line.Normal);
                 if (th != 0.0 && !no.IsNullVector())
                 {
-                    return Make3D.Extrude(l, th * no, null);
+                    if (l.Length < Precision.eps)
+                    {
+                        l.EndPoint += th * no;
+                        return l;
+                    }
+                    else
+                    {
+                        return Make3D.Extrude(l, th * no, null);
+                    }
                 }
                 return l;
             }
@@ -391,31 +409,45 @@ namespace CADability.DXF
         private IGeoObject CreateSpline(netDxf.Entities.Spline spline)
         {
             int degree = spline.Degree;
-            GeoPoint[] poles = new GeoPoint[spline.ControlPoints.Count];
-            double[] weights = new double[spline.ControlPoints.Count];
-            for (int i = 0; i < poles.Length; i++)
+            if (spline.ControlPoints.Count == 0 && spline.FitPoints.Count > 0)
             {
-                poles[i] = GeoPoint(spline.ControlPoints[i].Position);
-                weights[i] = spline.ControlPoints[i].Weight;
-            }
-            double[] kn = new double[spline.Knots.Count];
-            for (int i = 0; i < kn.Length; ++i)
-            {
-                kn[i] = spline.Knots[i];
-            }
-            if (poles.Length == 2 && degree > 1)
-            {   // damit geht kein vernünftiger Spline, höchstens mit degree=1
-                GeoObject.Line l = GeoObject.Line.Construct();
-                l.StartPoint = poles[0];
-                l.EndPoint = poles[1];
-                return l;
-            }
-            BSpline bsp = BSpline.Construct();
-            if (bsp.SetData(degree, poles, weights, kn, null, spline.IsPeriodic))
-            {
+                BSpline bsp = BSpline.Construct();
+                GeoPoint[] fp = new GeoPoint[spline.FitPoints.Count];
+                for (int i = 0; i < fp.Length; i++)
+                {
+                    fp[i] = GeoPoint(spline.FitPoints[i]);
+                }
+                bsp.ThroughPoints(fp, spline.Degree, spline.IsClosed);
                 return bsp;
             }
-            // es gibt in "bspline-closed-periodic.dxf" einen merkwürdigen Spline
+            else
+            {
+                GeoPoint[] poles = new GeoPoint[spline.ControlPoints.Count];
+                double[] weights = new double[spline.ControlPoints.Count];
+                for (int i = 0; i < poles.Length; i++)
+                {
+                    poles[i] = GeoPoint(spline.ControlPoints[i].Position);
+                    weights[i] = spline.ControlPoints[i].Weight;
+                }
+                double[] kn = new double[spline.Knots.Count];
+                for (int i = 0; i < kn.Length; ++i)
+                {
+                    kn[i] = spline.Knots[i];
+                }
+                if (poles.Length == 2 && degree > 1)
+                {   // damit geht kein vernünftiger Spline, höchstens mit degree=1
+                    GeoObject.Line l = GeoObject.Line.Construct();
+                    l.StartPoint = poles[0];
+                    l.EndPoint = poles[1];
+                    return l;
+                }
+                BSpline bsp = BSpline.Construct();
+                if (bsp.SetData(degree, poles, weights, kn, null, spline.IsPeriodic))
+                {
+                    return bsp;
+                }
+                // strange spline in "bspline-closed-periodic.dxf"
+            }
             return null;
         }
         private IGeoObject CreateFace(netDxf.Entities.Face3d face)
@@ -487,6 +519,10 @@ namespace CADability.DXF
             for (int i = 0; i < polyfacemesh.Faces.Count; i++)
             {
                 List<short> indices = polyfacemesh.Faces[i].VertexIndexes;
+                for (int j = 0; j < indices.Count; j++)
+                {
+                    indices[j] = (short)(Math.Abs(indices[j]) - 1); // why? what does it mean?
+                }
                 if (indices.Count <= 3 || indices[3] == indices[2])
                 {
                     if (indices[0] != indices[1] && indices[1] != indices[2])
@@ -707,7 +743,8 @@ namespace CADability.DXF
             }
             Path go = Path.Construct();
             go.Set(new GeoObjectList(path), false, 1e-6);
-            return go;
+            if (go.CurveCount>0) return go;
+            return null;
         }
         private IGeoObject CreateMLine(netDxf.Entities.MLine mLine)
         {
@@ -775,6 +812,7 @@ namespace CADability.DXF
             bool bold;
             bool italic;
             filename = txt.Style.FontFamilyName;
+            if (string.IsNullOrEmpty(filename)) filename = txt.Style.FontFile;
             name = txt.Style.Name;
             typeface = "";
             bold = txt.Style.FontStyle.HasFlag(netDxf.Tables.FontStyle.Bold);
@@ -885,11 +923,20 @@ namespace CADability.DXF
         }
         private IGeoObject CreateDimension(netDxf.Entities.Dimension dimension)
         {
-            GeoObject.Block block = FindBlock(dimension.Block);
-            if (block != null)
+            // we could create a CADability Dimension object usind the dimension data and setting the block with the FindBlock values.
+            // but then we would need a "CustomBlock" flag in the CADability Dimension object and also save this Block
+            if (dimension.Block != null)
             {
-                IGeoObject res = block.Clone();
-                return res;
+                GeoObject.Block block = FindBlock(dimension.Block);
+                if (block != null)
+                {
+                    IGeoObject res = block.Clone();
+                    return res;
+                }
+            }
+            else
+            {
+                // make a dimension from the dimension data
             }
             return null;
         }
@@ -932,6 +979,117 @@ namespace CADability.DXF
             pln.SetPoints(vtx, false);
             blk.Add(pln);
             return blk;
+        }
+        private IGeoObject CreatePolyline(netDxf.Entities.Polyline polyline)
+        {
+            bool hasWidth = false, hasBulges = false;
+            for (int i = 0; i < polyline.Vertexes.Count; i++)
+            {
+                hasBulges |= polyline.Vertexes[i].Bulge != 0.0;
+                hasWidth |= (polyline.Vertexes[i].StartWidth != 0.0) || (polyline.Vertexes[i].EndWidth != 0.0);
+            }
+            if (hasWidth && !hasBulges)
+            {
+
+            }
+            else
+            {
+                if (hasBulges)
+                {   // must be in a single plane
+
+                }
+                else
+                {
+                    GeoObject.Polyline res = GeoObject.Polyline.Construct();
+                    for (int i = 0; i < polyline.Vertexes.Count; ++i)
+                    {
+                        res.AddPoint(GeoPoint(polyline.Vertexes[i].Position));
+                    }
+                    res.IsClosed = polyline.IsClosed;
+                    if (res.GetExtent(0.0).Size < 1e-6) return null; // nur gleiche Punkte
+                    double th = polyline.Thickness;
+                    GeoVector no = GeoVector(polyline.Normal);
+                    if (th != 0.0 && !no.IsNullVector())
+                    {
+                        return Make3D.Extrude(res, th * no, null);
+                    }
+                    else
+                    {
+                        return res;
+                    }
+                }
+            }
+            return null;
+        }
+        private IGeoObject CreatePoint(netDxf.Entities.Point point)
+        {
+            CADability.GeoObject.Point p = CADability.GeoObject.Point.Construct();
+            p.Location = GeoPoint(point.Position);
+            p.Symbol = PointSymbol.Cross;
+            return p;
+        }
+        private IGeoObject CreateMesh(netDxf.Entities.Mesh mesh)
+        {
+            GeoPoint[] vertices = new GeoPoint[mesh.Vertexes.Count];
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertices[i] = GeoPoint(mesh.Vertexes[i]);
+            }
+            List<Face> faces = new List<Face>();
+            for (int i = 0; i < mesh.Faces.Count; i++)
+            {
+                int[] indices = mesh.Faces[i];
+                if (indices.Length <= 3 || indices[3] == indices[2])
+                    {
+                        if (indices[0] != indices[1] && indices[1] != indices[2])
+                        {
+                            Plane pln = new Plane(vertices[indices[0]], vertices[indices[1]], vertices[indices[2]]);
+                            PlaneSurface surf = new PlaneSurface(pln);
+                            Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[1]]), pln.Project(vertices[indices[2]]) });
+                            SimpleShape ss = new SimpleShape(bdr);
+                            Face fc = Face.MakeFace(surf, ss);
+                            faces.Add(fc);
+                        }
+                    }
+                    else
+                    {
+                        if (indices[0] != indices[1] && indices[1] != indices[2])
+                        {
+                            Plane pln = new Plane(vertices[indices[0]], vertices[indices[1]], vertices[indices[2]]);
+                            PlaneSurface surf = new PlaneSurface(pln);
+                            Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[1]]), pln.Project(vertices[indices[2]]) });
+                            SimpleShape ss = new SimpleShape(bdr);
+                            Face fc = Face.MakeFace(surf, ss);
+                            faces.Add(fc);
+                        }
+                        if (indices[2] != indices[3] && indices[3] != indices[0])
+                        {
+                            Plane pln = new Plane(vertices[indices[2]], vertices[indices[3]], vertices[indices[0]]);
+                            PlaneSurface surf = new PlaneSurface(pln);
+                            Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[3]]), pln.Project(vertices[indices[0]]) });
+                            SimpleShape ss = new SimpleShape(bdr);
+                            Face fc = Face.MakeFace(surf, ss);
+                            faces.Add(fc);
+                        }
+                    }
+            }
+            if (faces.Count > 1)
+            {
+                GeoObjectList sewed = Make3D.SewFacesAndShells(new GeoObjectList(faces.ToArray() as IGeoObject[]));
+                if (sewed.Count==1) return sewed[0];
+                else
+                {
+                    GeoObject.Block blk = GeoObject.Block.Construct();
+                    blk.Name = "Mesh";
+                    blk.Set(new GeoObjectList(faces));
+                    return blk;
+                }
+            }
+            else if (faces.Count == 1)
+            {
+                return faces[0];
+            }
+            else return null;
         }
     }
 }

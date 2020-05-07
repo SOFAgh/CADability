@@ -34,6 +34,7 @@ namespace netDxf.Entities
 
         private VertexTypeFlags flags;
         private Vector3 position;
+        private double startWidth, endWidth, bulge;
 
         #endregion
 
@@ -90,7 +91,10 @@ namespace netDxf.Entities
             get { return this.flags; }
             set { this.flags = value; }
         }
-
+        // CADability: added StartWidth and EndWidth
+        public double StartWidth { get => startWidth; set => startWidth = value; }
+        public double EndWidth { get => endWidth; set => endWidth = value; }
+        public double Bulge { get => bulge; set => bulge = value; }
         #endregion
 
         #region overrides

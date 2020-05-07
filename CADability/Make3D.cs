@@ -1815,7 +1815,7 @@ namespace CADability.GeoObject
                     ext.MinMax(v[j].Position);
                 }
             }
-            double precision = ext.Size * 1e-4; // ACHTUNG: wieder auf -6 ändern
+            double precision = ext.Size * 1e-6; 
             OctTree<Vertex> vtxs = new OctTree<Vertex>(ext, precision);
             for (int i = 0; i < allVertices.Count; i++)
             {

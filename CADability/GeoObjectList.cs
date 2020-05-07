@@ -63,6 +63,7 @@ namespace CADability.GeoObject
             AddRange(list.ToArray());
         }
         public GeoObjectList(ICollection list)
+            : this(list.Count)
         {
             AddRange(list);
         }

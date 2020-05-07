@@ -15,10 +15,10 @@ using Wintellect.PowerCollections;
 namespace CADability.GeoObject
 {
 
-    public class ShowPropertyFont : IShowPropertyImpl
+    public class ShowPropertyFont : PropertyEntryImpl
     {
         private Text text;
-        private IShowProperty[] showProperties;
+        private IPropertyEntry[] showProperties;
         public ShowPropertyFont(Text t)
         {
             text = t;
@@ -44,26 +44,14 @@ namespace CADability.GeoObject
             res.ValueChangedEvent += new ValueChangedDelegate(FontChanged);
             return res;
         }
-        #region IShowPropertyImpl Overrides
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return 5;
-            }
-        }
-
-        public override IShowProperty[] SubEntries
+        #region PropertyEntryImpl Overrides
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (showProperties == null)
                 {
-                    showProperties = new IShowPropertyImpl[5];
+                    showProperties = new IPropertyEntry[5];
                     showProperties[0] = initFontList();
                     showProperties[1] = new CADability.UserInterface.BooleanProperty(text, "Bold", "Text.Bold", "Text.Bold.Values");
                     showProperties[2] = new CADability.UserInterface.BooleanProperty(text, "Italic", "Text.Italic", "Text.Italic.Values");
@@ -77,11 +65,11 @@ namespace CADability.GeoObject
         /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
-        public override ShowPropertyEntryType EntryType
+        public override PropertyEntryType Flags
         {
             get
             {
-                return ShowPropertyEntryType.GroupTitle;
+                return PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
             }
         }
         #endregion

@@ -296,7 +296,6 @@ namespace CADability.UserInterface
         /// <returns></returns>
         System.Drawing.Bitmap GetBitmap(string name);
         event EventHandler ApplicationIdle;
-
         IPaintTo3D CreatePaintInterface(Bitmap paintToBitmap, double precision);
         DialogResult ShowPageSetupDlg(ref PrintDocument printDocument1, PageSettings pageSettings, out int width, out int height, out bool landscape);
         DialogResult ShowPrintDlg(ref PrintDocument printDocument);
@@ -310,6 +309,14 @@ namespace CADability.UserInterface
         /// <param name="percent">progress percentage (0..100)</param>
         /// <param name="Title">title of the progress bar, null: don't change the current title</param>
         void ShowProgressBar(bool show, double percent = 0.0, string title = null);
+        /// <summary>
+        /// Currently used to import dxf and dwg files, but other options might be possible in future.
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="Format"></param>
+        /// <param name="flags"></param>
+        /// <returns></returns>
+        Project Import(string fileName, string format, uint flags = 0);
     }
 
 }

@@ -1649,25 +1649,13 @@ namespace CADability
         }
         private static Project ImportDXF(string filename)
         {
-            try
-            {
-                Assembly dxfImport = Assembly.Load("CADability.DXF");
-                if (dxfImport != null)
-                {
-                    Type tp = dxfImport.GetType("CADability.DXF.Import");
-                    if (tp != null)
-                    {
-                        ConstructorInfo ci = tp.GetConstructor(new Type[] { typeof(string) });
-                        object import = ci.Invoke(new object[] { filename });
-                        Project res = import.GetType().GetProperty("Project").GetGetMethod(false).Invoke(import, null) as Project;
-                        return res;
-                    }
-                }
-            }
-            catch
-            {
-            }
-            return null;
+            IFrame fr = FrameImpl.MainFrame;
+            return fr.UIService.Import(filename, "dxf", 0);
+        }
+        private static Project ImportDWG(string filename)
+        {
+            IFrame fr = FrameImpl.MainFrame;
+            return fr.UIService.Import(filename, "dwg", 0);
         }
         public static Project ReadFromFile(string FileName, string Format, bool useProgress, bool makeCompounds = true)
         {
@@ -1688,6 +1676,7 @@ namespace CADability
             {
                 case "cdb": return ReadFromFile(FileName, useProgress);
                 case "dxf": return ImportDXF(FileName);
+                case "dwg": return ImportDWG(FileName);
                 case "step":
                 case "stp":
                     ImportStep importStep = new ImportStep();

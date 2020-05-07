@@ -26,7 +26,7 @@ namespace CADability.Forms
             #region DebuggerPlayground, you can remove this region
             // in the following lines a "DebuggerPlayground" object is created via reflection. This class is a playground to write testcode
             // which is not included in the sources. This is why it is constructed via reflection, there is no need to have this class in the project.
-            Type dbgplygnd = Type.GetType("CADability.Forms.DebuggerPlaground", false);
+            Type dbgplygnd = Type.GetType("CADability.Forms.DebuggerPlayground", false);
             if (dbgplygnd != null)
             {
                 MethodInfo connect = dbgplygnd.GetMethod("Connect");

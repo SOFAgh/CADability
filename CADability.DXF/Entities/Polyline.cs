@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using netDxf.Collections;
 using netDxf.Tables;
+using Wintellect.PowerCollections;
 
 namespace netDxf.Entities
 {
@@ -39,6 +40,7 @@ namespace netDxf.Entities
         private readonly ObservableCollection<PolylineVertex> vertexes;
         private PolylineTypeFlags flags;
         private PolylineSmoothType smoothType;
+        private double thickness; // CADability: added thickness
 
         #endregion
 
@@ -160,6 +162,7 @@ namespace netDxf.Entities
             }
         }
 
+        public double Thickness { get => thickness; set => thickness = value; }
         #endregion
 
         #region internal properties
@@ -230,11 +233,11 @@ namespace netDxf.Entities
 
                 entities.Add(new Line
                 {
-                    Layer = (Layer) this.Layer.Clone(),
-                    Linetype = (Linetype) this.Linetype.Clone(),
-                    Color = (AciColor) this.Color.Clone(),
+                    Layer = (Layer)this.Layer.Clone(),
+                    Linetype = (Linetype)this.Linetype.Clone(),
+                    Color = (AciColor)this.Color.Clone(),
                     Lineweight = this.Lineweight,
-                    Transparency = (Transparency) this.Transparency.Clone(),
+                    Transparency = (Transparency)this.Transparency.Clone(),
                     LinetypeScale = this.LinetypeScale,
                     Normal = this.Normal,
                     StartPoint = start,
@@ -298,11 +301,11 @@ namespace netDxf.Entities
             Polyline entity = new Polyline
             {
                 //EntityObject properties
-                Layer = (Layer) this.Layer.Clone(),
-                Linetype = (Linetype) this.Linetype.Clone(),
-                Color = (AciColor) this.Color.Clone(),
+                Layer = (Layer)this.Layer.Clone(),
+                Linetype = (Linetype)this.Linetype.Clone(),
+                Color = (AciColor)this.Color.Clone(),
                 Lineweight = this.Lineweight,
-                Transparency = (Transparency) this.Transparency.Clone(),
+                Transparency = (Transparency)this.Transparency.Clone(),
                 LinetypeScale = this.LinetypeScale,
                 Normal = this.Normal,
                 IsVisible = this.IsVisible,
@@ -311,10 +314,10 @@ namespace netDxf.Entities
             };
 
             foreach (PolylineVertex vertex in this.vertexes)
-                entity.Vertexes.Add((PolylineVertex) vertex.Clone());
+                entity.Vertexes.Add((PolylineVertex)vertex.Clone());
 
             foreach (XData data in this.XData.Values)
-                entity.XData.Add((XData) data.Clone());
+                entity.XData.Add((XData)data.Clone());
 
             return entity;
         }

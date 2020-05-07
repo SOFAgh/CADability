@@ -6645,16 +6645,16 @@ namespace CADability.GeoObject
                     return true;
             }
 
-            // argument of the face being connected ?? this lloks strange!!!
-            if ((bc.Xmin <= fbc.Xmin && fbc.Xmax <= bc.Xmax
-                    && bc.Ymin <= fbc.Ymin && fbc.Ymax <= bc.Ymax)
-                || (bc.Xmin <= fbc.Xmin && fbc.Xmax <= bc.Xmax
-                    && bc.Zmin <= fbc.Zmin && fbc.Zmax <= bc.Zmax)
-                || (bc.Zmin <= fbc.Zmin && fbc.Zmax <= bc.Zmax
-                    && bc.Ymin <= fbc.Ymin && fbc.Ymax <= bc.Ymax))
-            {
-                return true;
-            }
+            // argument of the face being connected ?? this looks strange!!!
+            //if ((bc.Xmin <= fbc.Xmin && fbc.Xmax <= bc.Xmax
+            //        && bc.Ymin <= fbc.Ymin && fbc.Ymax <= bc.Ymax)
+            //    || (bc.Xmin <= fbc.Xmin && fbc.Xmax <= bc.Xmax
+            //        && bc.Zmin <= fbc.Zmin && fbc.Zmax <= bc.Zmax)
+            //    || (bc.Zmin <= fbc.Zmin && fbc.Zmax <= bc.Zmax
+            //        && bc.Ymin <= fbc.Ymin && fbc.Ymax <= bc.Ymax))
+            //{
+            //    return true;
+            //}
             // any edge interfering the cube?
             Edge[] e = AllEdges;
             for (int i = 0; i < e.Length; ++i)

@@ -181,7 +181,6 @@ namespace CADability.Forms
         {
             mainForm.ProgressForm.ShowProgressBar(show, percent, title);
         }
-
         /// <summary>
         /// Returns a bitmap from the specified embeded resource. the name is in the form filename:index
         /// </summary>
@@ -207,7 +206,6 @@ namespace CADability.Forms
             }
             return null;
         }
-
         IPaintTo3D IUIService.CreatePaintInterface(Bitmap paintToBitmap, double precision)
         {
             System.Drawing.Graphics gr = System.Drawing.Graphics.FromImage(paintToBitmap);
@@ -216,7 +214,6 @@ namespace CADability.Forms
             paintTo3D.Init(dc, paintToBitmap.Width, paintToBitmap.Height, true);
             return paintTo3D;
         }
-
         Substitutes.DialogResult IUIService.ShowPageSetupDlg(ref PrintDocument printDocument, PageSettings pageSettings, out int width, out int height, out bool landscape)
         {
             PageSetupDialog psd = new PageSetupDialog();
@@ -239,7 +236,6 @@ namespace CADability.Forms
             }
             return res;
         }
-
         Substitutes.DialogResult IUIService.ShowPrintDlg(ref PrintDocument printDocument)
         {
             PrintDialog printDialog = new PrintDialog();
@@ -255,12 +251,10 @@ namespace CADability.Forms
             }
             return res;
         }
-
         void IUIService.SetClipboardData(GeoObjectList objects, bool copy)
         {
             Clipboard.SetDataObject(objects, copy);
         }
-
         object IUIService.GetClipboardData(Type typeOfdata)
         {
             IDataObject data = Clipboard.GetDataObject();
@@ -286,6 +280,78 @@ namespace CADability.Forms
             remove
             {
                 throw new NotImplementedException();
+            }
+        }
+        private class ConvertToDxfAutoCad2000 : IDisposable
+        {
+            private string folderOrg, folderConverted;
+            public string DxfFileName;
+            public ConvertToDxfAutoCad2000(string fileName, string format)
+            {
+                if ((format.Equals("dxf", StringComparison.OrdinalIgnoreCase) && !DXF.Import.CanImportVersion(fileName)) || format.Equals("dwg", StringComparison.OrdinalIgnoreCase))
+                {
+                    string converter = Settings.GlobalSettings.GetStringValue("DwgDxfConverter", null);
+                    if (String.IsNullOrEmpty(converter))
+                    {
+                        //converter = @"C:\Program Files\ODA\ODAFileConverter_title 21.3.0\ODAFileConverter.exe";
+                        string programfiles = System.Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + System.IO.Path.DirectorySeparatorChar + "ODA";
+                        string[] oda = Directory.GetFiles(programfiles, "odafileconverter.exe", SearchOption.AllDirectories);
+                        for (int i = 0; i < oda.Length; i++)
+                        {
+                            string fn = System.IO.Path.GetDirectoryName(oda[i]);
+                            if (!string.IsNullOrEmpty(converter))
+                            {
+                                string fnc = System.IO.Path.GetDirectoryName(converter);
+                                if (string.Compare(fnc, fn, true) < 0) converter = oda[i];
+                            }
+                            else
+                            {
+                                converter = oda[i];
+                            }
+                        }
+                    }
+                    if (!String.IsNullOrEmpty(converter))
+                    {
+                        folderOrg = GetTemporaryDirectory();
+                        folderConverted = GetTemporaryDirectory();
+                        Directory.CreateDirectory(folderOrg);
+                        Directory.CreateDirectory(folderConverted);
+                        File.Copy(fileName, System.IO.Path.Combine(folderOrg, System.IO.Path.GetFileName(fileName)));
+                        DxfFileName = System.IO.Path.Combine(folderConverted, System.IO.Path.GetFileNameWithoutExtension(fileName) + ".dxf");
+                        System.Diagnostics.Process process = new System.Diagnostics.Process();
+                        // Configure the process using the StartInfo properties.
+                        process.StartInfo.FileName = converter;
+                        process.StartInfo.Arguments = "\"" + folderOrg + "\" " + "\"" + folderConverted + "\" " + "ACAD2000 DXF 0 0";
+                        process.Start();
+                        process.WaitForExit();// Waits here for the process to exit.                    }
+                    }
+                }
+                else
+                {
+                    DxfFileName = fileName;
+                }
+            }
+            private string GetTemporaryDirectory()
+            {
+                string tempDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+                Directory.CreateDirectory(tempDirectory);
+                return tempDirectory;
+            }
+            void IDisposable.Dispose()
+            {
+                if (folderOrg != null)
+                {
+                    Directory.Delete(folderOrg, true);
+                    Directory.Delete(folderConverted, true);
+                }
+            }
+        }
+        Project IUIService.Import(string fileName, string format, uint flags)
+        {
+            using (ConvertToDxfAutoCad2000 converted = new ConvertToDxfAutoCad2000(fileName, format))
+            {
+                CADability.DXF.Import import = new DXF.Import(converted.DxfFileName);
+                return import.Project;
             }
         }
         #endregion

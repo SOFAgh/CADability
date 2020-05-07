@@ -162,7 +162,11 @@ namespace netDxf.Collections
             KeyValuePair<TKey, TValue> add = new KeyValuePair<TKey, TValue>(key, value);
             if (this.BeforeAddItemEvent(add))
                 return;
-            this.innerDictionary.Add(key, value);
+            try // CADability: experimental, ignore same key
+            {
+                this.innerDictionary.Add(key, value);
+            }
+            catch { }
             this.AddItemEvent(add);
         }
 

@@ -160,18 +160,19 @@ namespace netDxf.Entities
         internal Spline(List<SplineVertex> controlPoints, List<double> knots, short degree, List<Vector3> fitPoints, SplineCreationMethod method, bool isPeriodic)
             : base(EntityType.Spline, DxfObjectCode.Spline)
         {
-            if (degree < 1 || degree > 10)
-                throw new ArgumentOutOfRangeException(nameof(degree), degree, "The spline degree valid values range from 1 to 10.");
-            if (controlPoints == null)
-                throw new ArgumentNullException(nameof(controlPoints));
-            if (controlPoints.Count < 2)
-                throw new ArgumentException("The number of control points must be equal or greater than 2.");
-            if (controlPoints.Count < degree + 1)
-                throw new ArgumentException("The number of control points must be equal or greater than the spline degree + 1.");
-            if (knots == null)
-                throw new ArgumentNullException(nameof(knots));
-            if (knots.Count != controlPoints.Count + degree + 1)
-                throw new ArgumentException("The number of knots must be equals to the number of control points + spline degree + 1.");
+            // CADability: we do consistency checks in CADability and may correct some invalid dxf splines
+            //if (degree < 1 || degree > 10)
+            //    throw new ArgumentOutOfRangeException(nameof(degree), degree, "The spline degree valid values range from 1 to 10.");
+            //if (controlPoints == null)
+            //    throw new ArgumentNullException(nameof(controlPoints));
+            //if (controlPoints.Count < 2)
+            //    throw new ArgumentException("The number of control points must be equal or greater than 2.");
+            //if (controlPoints.Count < degree + 1)
+            //    throw new ArgumentException("The number of control points must be equal or greater than the spline degree + 1.");
+            //if (knots == null)
+            //    throw new ArgumentNullException(nameof(knots));
+            //if (knots.Count != controlPoints.Count + degree + 1)
+            //    throw new ArgumentException("The number of knots must be equals to the number of control points + spline degree + 1.");
 
             this.fitPoints = fitPoints;
             this.controlPoints = controlPoints;
@@ -187,7 +188,9 @@ namespace netDxf.Entities
             }
             else
             {
-                this.isClosed = controlPoints[0].Position.Equals(controlPoints[controlPoints.Count - 1].Position);
+                // CADability: controlPoints may be empty
+                if (controlPoints.Count>0) this.isClosed = controlPoints[0].Position.Equals(controlPoints[controlPoints.Count - 1].Position);
+                else if (fitPoints.Count>0) this.isClosed = fitPoints[0].Equals(fitPoints[fitPoints.Count - 1]);
                 this.flags = this.isClosed ? SplineTypeFlags.Closed | SplineTypeFlags.Rational : SplineTypeFlags.Rational;
             }
         }
