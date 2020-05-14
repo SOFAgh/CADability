@@ -504,7 +504,30 @@ namespace CADability
 
         public string CurrentMenuId { get; set; }
 
-        public GeoObjectList SelectedObjects { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public GeoObjectList SelectedObjects
+        {
+            get
+            {
+                if (actionStack.ActiveAction is SelectObjectsAction)
+                {
+                    return (actionStack.ActiveAction as SelectObjectsAction).GetSelectedObjects();
+                }
+                return null;
+            }
+            set
+            {
+                if (actionStack.ActiveAction is SelectObjectsAction)
+                {
+                    (actionStack.ActiveAction as SelectObjectsAction).SetSelectedObjects(value, false);
+                }
+                else
+                {
+                    SelectObjectsAction soa = actionStack.FindAction(typeof(SelectObjectsAction)) as SelectObjectsAction;
+                    if (soa != null) soa.SetSelectedObjects(value, false);
+                }
+            }
+        }
+
 
         public bool DesignMode => throw new NotImplementedException();
 
@@ -1443,17 +1466,17 @@ namespace CADability
                         }
                     }
                     return true;
-                case "MenuId.Constr.Solid.Fuse":
-                    {
-                        if (actionStack.ActiveAction is SelectObjectsAction)
-                        {
-                            GeoObjectList sel = (actionStack.ActiveAction as SelectObjectsAction).GetSelectedObjects().Clone();
-                            if (sel.Count > 0)
-                            {
-                            }
-                        }
-                    }
-                    return true;
+                //case "MenuId.Constr.Solid.Fuse":
+                //    {
+                //        if (actionStack.ActiveAction is SelectObjectsAction)
+                //        {
+                //            GeoObjectList sel = (actionStack.ActiveAction as SelectObjectsAction).GetSelectedObjects().Clone();
+                //            if (sel.Count > 0)
+                //            {
+                //            }
+                //        }
+                //    }
+                //    return true;
                 case "MenuId.Constr.Solid.ShellToSolid":
                     if (actionStack.ActiveAction is SelectObjectsAction)
                     {

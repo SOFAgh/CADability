@@ -106,9 +106,9 @@ namespace CADability.GeoObject
             return "MenuId.Object.Shell";
         }
 
-#endregion
+        #endregion
 
-#region ICommandHandler Members
+        #region ICommandHandler Members
 
         bool ICommandHandler.OnCommand(string MenuId)
         {
@@ -175,7 +175,7 @@ namespace CADability.GeoObject
             return false;
         }
 
-#endregion
+        #endregion
     }
 
     // created by MakeClassComVisible
@@ -186,7 +186,7 @@ namespace CADability.GeoObject
         private Edge[] edges; // sekundär: alle gesammelten edges
         private string name; // aus STEP oder IGES kommen benannte solids (Shells, Faces?)
         private bool orientedAndSeamless; // soll bedeuten, dass alle Faces "outwardoriented" sind und es keine Säume gibt (Kanten, die ein Face mit sich verbinden)
-#region polymorph construction
+        #region polymorph construction
         public delegate Shell ConstructionDelegate();
         public static ConstructionDelegate Constructor;
         public static Shell Construct()
@@ -201,7 +201,7 @@ namespace CADability.GeoObject
         {
             if (Constructed != null) Constructed(this);
         }
-#endregion
+        #endregion
         /// <summary>
         /// Returns all the edges of this Shell. Each egde is unique in the array 
         /// but may belong to two different faces.
@@ -420,7 +420,7 @@ namespace CADability.GeoObject
                     {
                         CompoundShape tmp = CompoundShape.Union(res, new CompoundShape(sh), prec);
                         // die neue Fläche kann ja eigentlich nicht kleiner sein, wenn doch ist es ein Fehler (oder Rundungsgenauigkeit bei identischen Flächen)
-                        if (tmp.Area >= res.Area*0.9999 && tmp.Area <= (res.Area + sh.Area)*1.0001) res = tmp;
+                        if (tmp.Area >= res.Area * 0.9999 && tmp.Area <= (res.Area + sh.Area) * 1.0001) res = tmp;
                         else
                         {
 
@@ -656,15 +656,13 @@ namespace CADability.GeoObject
         }
 #endif
 
-#region IGeoObject Members
+        #region IGeoObject Members
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.Modify (ModOp)"/>
         /// </summary>
         /// <param name="m"></param>
         public override void Modify(ModOp m)
-        {
-            // die surfce der faces und die 3D Kurven der edges verändern
-            // die 2D Kurven bleiben unverändert.
+        {   // the surfaces of the faces get modified as well as the 3d curves of the edges and the vertex positions
             using (new Changing(this, "ModifyInverse", m))
             {
                 for (int i = 0; i < faces.Length; ++i)
@@ -675,14 +673,10 @@ namespace CADability.GeoObject
                 for (int i = 0; i < Edges.Length; ++i)
                 {
                     IGeoObject go = edges[i].Curve3D as IGeoObject;
-                    if (go != null)
-                        go.Modify(m);
+                    if (go != null) go.Modify(m);
                     edges[i].SetVerticesPositions();
+                    edges[i].ReflectModification(); // ProjectedCurves must be updated
                 }
-                //for (int i = 0; i < Vertices.Length; i++)
-                //{
-                //    Vertices[i].Modify(m);
-                //}
             }
         }
 
@@ -696,29 +690,23 @@ namespace CADability.GeoObject
             return simplified;
         }
 
-        internal void ModifyNoEdges(ModOp m)
-        {
-            for (int i = 0; i < faces.Length; ++i)
-            {
-                faces[i].ModifySurface(m);
-            }
-        }
-        internal Shell Clone(Dictionary<Edge, Edge> clonedEdges)
+        internal Shell Clone(Dictionary<Edge, Edge> clonedEdges, Dictionary<Vertex, Vertex> clonedVertices = null)
         {   // hier kann es sich um ein unabhängiges oder um ein von einem Solid abhängiges Shell handeln.
             // im letzteren Fall bleiben die edges undefiniert
+            if (clonedVertices == null) clonedVertices = new Dictionary<Vertex, Vertex>();
             Shell res = Shell.Construct();
             res.CopyAttributes(this); // damit die Faces ihre Attribute beibehalten
             res.Name = Name;
             res.faces = new Face[faces.Length];
             for (int i = 0; i < faces.Length; ++i)
             {
-                res.faces[i] = faces[i].Clone(clonedEdges);
+                res.faces[i] = faces[i].Clone(clonedEdges, clonedVertices);
                 res.faces[i].Owner = res;
-#if DEBUG
-                // SimpleShape ss = res.faces[i].Area;
-#endif
             }
-            res.RecalcVertices();
+#if DEBUG
+            bool ok = res.CheckConsistency();
+#endif
+            // res.RecalcVertices(); not needed any more, since cloning already sets the vertices
             return res;
         }
         /// <summary>
@@ -1915,8 +1903,8 @@ namespace CADability.GeoObject
             return decomp;
         }
 
-#endregion
-#region IOctTreeInsertable members
+        #endregion
+        #region IOctTreeInsertable members
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetExtent (double)"/>
         /// </summary>
@@ -2009,8 +1997,8 @@ namespace CADability.GeoObject
             }
             return res;
         }
-#endregion
-#region ISerializable Members
+        #endregion
+        #region ISerializable Members
         protected Shell(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
@@ -2049,8 +2037,8 @@ namespace CADability.GeoObject
             info.AddValue("OrientedAndSeamless", orientedAndSeamless);
         }
 
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
             for (int i = 0; i < faces.Length; ++i)
@@ -2061,7 +2049,7 @@ namespace CADability.GeoObject
             //RecalcVertices();
             //Repair();
         }
-#endregion
+        #endregion
 #if DEBUG
 #endif
         public void FreeCachedMemory()
@@ -2071,7 +2059,7 @@ namespace CADability.GeoObject
                 faces[i].FreeCachedMemory();
             }
         }
-#region IColorDef Members
+        #region IColorDef Members
         private ColorDef colorDef;
         public ColorDef ColorDef
         {
@@ -2115,7 +2103,7 @@ namespace CADability.GeoObject
                 }
             }
         }
-#endregion
+        #endregion
         /// <summary>
         /// Returns true if there is an edge that belongs to a single face. If there are no free edges the shell
         /// can be used for a solid.
@@ -3432,18 +3420,20 @@ namespace CADability.GeoObject
             return ssc.GetInsidePart();
 
         }
-        private class EdgeLengthComparer: IComparer<Edge>
+        private class EdgeLengthComparer : IComparer<Edge>
         {
             public int Compare(Edge e1, Edge e2)
             {
-                return e2.Curve3D.Length.CompareTo(e1.Curve3D.Length);
+                int res = e2.Curve3D.Length.CompareTo(e1.Curve3D.Length);
+                if (res == 0) res = e1.GetHashCode().CompareTo(e2.GetHashCode()); // never return "equal" except for identical edges
+                return res;
             }
         }
         private void OrientFaces(Set<Face> correctFaces, SortedDictionary<Edge, Face> toOrient)
         {
             List<KeyValuePair<Edge, Face>> l = new List<KeyValuePair<Edge, Face>>(toOrient);
             toOrient.Clear();
-            foreach (KeyValuePair<Edge,Face> item in l)
+            foreach (KeyValuePair<Edge, Face> item in l)
             {
                 if (item.Value != null && !correctFaces.Contains(item.Value))
                 {
@@ -3507,7 +3497,7 @@ namespace CADability.GeoObject
             orienting.Pop();
 #endif
         }
-#region IGetSubShapes Members
+        #region IGetSubShapes Members
         IGeoObject IGetSubShapes.GetEdge(int[] id, int index)
         {
             for (int i = 0; i < Edges.Length; ++i)
@@ -3527,8 +3517,8 @@ namespace CADability.GeoObject
             }
             return null; // sollte nicht vorkommen
         }
-#endregion
-#region IGeoObjectOwner Members
+        #endregion
+        #region IGeoObjectOwner Members
         void IGeoObjectOwner.Remove(IGeoObject toRemove)
         {
             // Remove sollte nicht drankommen, es sei denn beim Zerlegen.
@@ -3538,7 +3528,7 @@ namespace CADability.GeoObject
         {
             // Add machen wir nur selbst, wenn das Objekt erzeugt wird, da bleibt hier nichts zu tun
         }
-#endregion
+        #endregion
 #if DEBUG
         internal DebuggerContainer DebugOrientation
         {
@@ -4184,9 +4174,10 @@ namespace CADability.GeoObject
 
         internal bool CheckConsistency()
         {
-            foreach (Face fc in Faces)
+            for (int i = 0; i < Faces.Length; i++)
             {
-                if (!fc.CheckConsistency()) return false;
+                if (!Faces[i].CheckConsistency()) return false;
+
             }
             return true;
         }
@@ -4461,9 +4452,10 @@ namespace CADability.GeoObject
             // hier wird ein deep clone der Faces gemacht, denn copyGeometry geht nicht als undo, da die Anzahl der Faces sich ändert
             Face[] clonedFaces = (Face[])faces.Clone();
             Dictionary<Edge, Edge> clonedEdges = new Dictionary<Edge, Edge>();
+            Dictionary<Vertex, Vertex> clonedVertices = new Dictionary<Vertex, Vertex>();
             for (int i = 0; i < clonedFaces.Length; i++)
             {
-                clonedFaces[i] = clonedFaces[i].Clone(clonedEdges);
+                clonedFaces[i] = clonedFaces[i].Clone(clonedEdges, clonedVertices);
             }
             Set<Face> allFaces = new Set<Face>(faces);
 #if DEBUG
@@ -4590,6 +4582,7 @@ namespace CADability.GeoObject
                     if (!face.CheckConsistency())
                     {
                     }
+                    int dbgedgecount = face.AllEdgesCount;
 #endif
 #if DEBUG
                     if (dbgface != null && !dbgface.CheckConsistency())
@@ -4915,10 +4908,11 @@ namespace CADability.GeoObject
                     if (CollectFaces(testFeature, barrier))
                     {   // there is a true subset of this shell isolated by the barrier, which makes the feature
                         Dictionary<Edge, Edge> clonedEdges = new Dictionary<Edge, Edge>();
+                        Dictionary<Vertex, Vertex> clonedVertices = new Dictionary<Vertex, Vertex>();
                         List<Face> clonedFeature = new List<Face>(); // clone the result to make it independat from this shell
                         foreach (Face fc in testFeature)
                         {
-                            clonedFeature.Add(fc.Clone(clonedEdges));
+                            clonedFeature.Add(fc.Clone(clonedEdges, clonedVertices));
                         }
                         for (int j = 0; j < loops.Count; j++) // for each loop construct a face which closes the open loop of the feature
                         {

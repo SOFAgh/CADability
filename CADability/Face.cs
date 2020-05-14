@@ -224,7 +224,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 90)
+            if (hashCode == 1140)
             {
 
             }
@@ -330,7 +330,7 @@ namespace CADability.GeoObject
                 }
                 // self intersecting loop. Of course a loop cannot intersect itself, but in some files they do (83855_elp11b.stp)
                 // We try here to remove smaller parts
-                double vprec = Math.Min(precision, minCurveLength / 2.0);
+                double vprec = Math.Min(precision, minCurveLength / 10.0);
                 Set<Vertex> allVertices = new Set<Vertex>();
                 for (int i = 0; i < loops.Count; i++)
                 {
@@ -4593,7 +4593,7 @@ namespace CADability.GeoObject
         {
             return new ShowPropertyFace(this, Frame);
         }
-        public Face Clone(Dictionary<Edge, Edge> clonedEdges)
+        public Face Clone(Dictionary<Edge, Edge> clonedEdges, Dictionary<Vertex, Vertex> clonedVertices)
         {   // das kann von einer Shell aufgerufen werden, so dass die Kanten ggf nur einmal gekloned werden
             Face res = Face.Construct();
             res.surface = surface.Clone();
@@ -4652,7 +4652,7 @@ namespace CADability.GeoObject
                 }
                 else
                 {
-                    Edge e = outline[i].Clone();
+                    Edge e = outline[i].Clone(clonedVertices);
                     clonedEdges[outline[i]] = e;
                     if (e.Curve3D is InterpolatedDualSurfaceCurve)
                     {
@@ -4724,7 +4724,7 @@ namespace CADability.GeoObject
                     }
                     else
                     {
-                        Edge e = holes[j][i].Clone();
+                        Edge e = holes[j][i].Clone(clonedVertices);
                         clonedEdges[holes[j][i]] = e;
                         if (e.Curve3D is InterpolatedDualSurfaceCurve)
                         {
@@ -4859,7 +4859,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override IGeoObject Clone()
         {
-            Face res = this.Clone(new Dictionary<Edge, Edge>());
+            Face res = this.Clone(new Dictionary<Edge, Edge>(), new Dictionary<Vertex, Vertex>());
             // res.area = Area.Clone();
             // SimpleShape forceArea = res.Area; // dauert zu lange, ist area.clone ok? es sind dann nicht die 2d
             Vertex[] vtxs = res.Vertices;
@@ -4869,7 +4869,7 @@ namespace CADability.GeoObject
         internal Face CloneWithVertices()
         {
             Dictionary<Edge, Edge> ed = new Dictionary<Edge, Edge>();
-            Face res = this.Clone(ed);
+            Face res = this.Clone(ed, new Dictionary<Vertex, Vertex>());
             foreach (KeyValuePair<Edge, Edge> kv in ed)
             {
                 kv.Value.UseVertices(kv.Key.Vertex1, kv.Key.Vertex2);
@@ -4882,21 +4882,19 @@ namespace CADability.GeoObject
             return res;
         }
         public void ModifySurface(ModOp m)
-        {   // wird von Shell aufgerufen (kommt auch von Solid). Shell und Solid kümmern sich aber selbst
-            // um die Edges und rufen daher nicht Modify auf. Die Dreiecke, so vorhanden, müssen aber hier 
-            // verändert werden
+        {   
+            // ususally called from Shell, which modifies the edges seperately
 #if DEBUG
             int tc0 = System.Environment.TickCount;
 #endif
             using (new Changing(this, false)) // no undo necessary
-            {   // das Changing wird hier benötigt um bei einem selektierten Face korrekt auf
-                // ein Modify reagieren zu können. Das wird zwar nicht von CADability ausgelöst
-                // aber von Anwendungssoftware
+            {   // not sure, why changing is needed here
                 BoundingRect ext = (surface as ISurfaceImpl).usedArea;
                 surface = surface.GetModified(m);
-                (surface as ISurfaceImpl).usedArea = ext; // sonst undefiniert und BoxedSurface crasht!
-                                                          // nicht surface.Modify, denn die selbe surface kann auch von InterpolatedDualSurfaceCurve
-                                                          // verwendet werden
+                (surface as ISurfaceImpl).usedArea = ext; // needed for BoxedSurface
+                // we don't modify the surface directly but get a new copy of the modified surface
+                // Edges with InterpolatedDualSurfaceCurves (hopefully) can deal with this
+                // The caller must ensure that the edges ReflectModification is beeing called
                 lock (lockTriangulationData)
                 {
                     if (trianglePoint != null)
@@ -9010,22 +9008,31 @@ namespace CADability.GeoObject
                 }
             }
         }
+        /// <summary>
+        /// Combine two edges into a single edge, if they are connected and have the same pair of faces
+        /// </summary>
+        /// <param name="edg1"></param>
+        /// <param name="edg2"></param>
+        /// <returns></returns>
         internal bool combineEdges(Edge edg1, Edge edg2)
         {
             Face otherface = edg1.OtherFace(this);
-            if (edg2.OtherFace(this) != otherface) return false; // nicht möglich
+            if (edg2.OtherFace(this) != otherface) return false; // the other face of both edges must be the same
+            if (edg1.EndVertex(this) != edg2.StartVertex(this)) return false; // edg2 must be the follower of edg1
             if (!edg1.Forward(this)) edg1.ReverseCurve3D();
             if (!edg2.Forward(this)) edg2.ReverseCurve3D();
-            if (edg1.EndVertex(this) != edg2.StartVertex(this))
-            {
-                if (edg1.StartVertex(this) != edg2.EndVertex(this)) return false; // hängen nicht zusammen
-                Edge tmp = edg1;
-                edg1 = edg2;
-                edg2 = tmp;
-            }
+            // the following should not be necessary, since edg2 follows edg1
+            //if (edg1.EndVertex(this) != edg2.StartVertex(this))
+            //{
+            //    if (edg1.StartVertex(this) != edg2.EndVertex(this)) return false; // hängen nicht zusammen
+            //    Edge tmp = edg1;
+            //    edg1 = edg2;
+            //    edg2 = tmp;
+            //}
             if ((edg1.EndVertex(this) == edg2.StartVertex(this)) && (edg1.StartVertex(this) == edg2.EndVertex(this))) return false; // do not create closed edges
             // now edg1 and edg2 are both forward oriented on this face and edg1 precedes edg2
             ICurve combined = Curves.Combine(edg1.Curve3D, edg2.Curve3D, Precision.eps);
+            if (combined == null && edg1.Curve3D is BSpline && edg2.Curve3D is BSpline) return false; // BSplines need to be implemented in Curves.Combine, but make problems in the else case
             if (combined != null)
             {
                 ICurve2D c2dThis = this.surface.GetProjectedCurve(combined, Precision.eps);
@@ -9476,7 +9483,7 @@ namespace CADability.GeoObject
             return res.ToArray();
         }
 #if DEBUG
-        public Face CloneNonPeriodic(Dictionary<Edge, Edge> clonedEdges)
+        public Face CloneNonPeriodic(Dictionary<Edge, Edge> clonedEdges, Dictionary<Vertex,Vertex> clonedVertices)
         {
             ISurface nps = surface.GetNonPeriodicSurface(area.Outline);
             if (nps != null && nps is INonPeriodicSurfaceConversion)
@@ -9552,7 +9559,7 @@ namespace CADability.GeoObject
             }
             else
             {
-                return this.Clone(clonedEdges);
+                return this.Clone(clonedEdges, clonedVertices);
             }
         }
 #endif
@@ -9877,10 +9884,6 @@ namespace CADability.GeoObject
 
         internal bool CheckConsistency()
         {   // Konsistenzcheck
-            for (int i = 0; i < outline.Length; i++)
-            {
-                if (outline[i].GetHashCode() == 283) outline[i].Orient();
-            }
             for (int i = 0; i < outline.Length; i++)
             {
                 int next = i + 1;

@@ -105,10 +105,11 @@ namespace CADability.Actions
                 return (actionStack.ActiveAction == this);
             }
         }
+        private IView currentMouseView;
         /// <summary>
         /// The view from which the last OnMouseMove/Up/Down was evoked
         /// </summary>
-        protected IView CurrentMouseView;
+        protected IView CurrentMouseView { get => currentMouseView == null ? Frame.ActiveView : currentMouseView; set => currentMouseView = value; }
         internal void SetCurrentMouseView(IView vw)
         {
             CurrentMouseView = vw;

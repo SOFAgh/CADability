@@ -343,11 +343,14 @@ namespace CADability
         {
             // We use a GaussNewtonMinimizer with the following parameters: n: normal of the plane (nx,ny,nz)
             // d distance of the plane from the origin, nx*px+ny*py+nz*pz=d
+            // this is not good, because nx==ny==nz==d==0 is always a solution, so
+            // sqr(c * pz + b * py + a * px - d) + sqr(a * a + b * b + c * c - 1); ( with (a,b,c)=(nx,ny,nz))
+            // also forces the normal vector to have a length of 1
 
             void efunc(double[] parameters, out double[] values)
             {
                 // error: a * px + b * py - c * pz - d (this may be positive or negative. It seems to be ok)
-
+                // a * px + b * py - c * pz - d)^2+(a^2+b^2+c^2-1)^2;
                 values = new double[points.Length];
                 double a = parameters[0];
                 double b = parameters[1];
@@ -358,7 +361,7 @@ namespace CADability
                     double px = points[i].x;
                     double py = points[i].y;
                     double pz = points[i].z;
-                    values[i] = sqr(c * pz + b * py + a * px - d);
+                    values[i] = sqr(c * pz + b * py + a * px - d) + sqr(a * a + b * b + c * c - 1);
                 }
             }
             void jfunc(double[] parameters, out Matrix derivs)
@@ -375,10 +378,11 @@ namespace CADability
                     double px = points[i].x;
                     double py = points[i].y;
                     double pz = points[i].z;
-                    derivs[i, 0] = 2 * px * (c * pz + b * py + a * px - d);
-                    derivs[i, 1] = 2 * py * (c * pz + b * py + a * px - d);
-                    derivs[i, 2] = 2 * pz * (c * pz + b * py + a * px - d);
-                    derivs[i, 3] = -2 * (c * pz + b * py + a * px - d);
+                    
+                    derivs[i, 0] = 2 * px * (-c * pz + b * py + a * px - d) + 4 * a * (c * c + b * b + a * a - 1);
+                    derivs[i, 1] = 2 * py * (-c * pz + b * py + a * px - d) + 4 * b * (c * c + b * b + a * a - 1);
+                    derivs[i, 2] = 2 * pz * (-c * pz + b * py + a * px - d) + 4 * c * (c * c + b * b + a * a - 1);
+                    derivs[i, 3] = -2 * (-c * pz + b * py + a * px - d);
                 }
             }
             double[] sparams = new double[4];

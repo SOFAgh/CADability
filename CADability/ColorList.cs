@@ -765,9 +765,9 @@ namespace CADability.Attribute
         }
         private void GetAllColorDefs(Hashtable collect, IGeoObject go)
         {
-            if (go is IColorDef)
+            if (go is IColorDef cd && cd.ColorDef!=null)
             {
-                collect[(go as IColorDef).ColorDef] = null; // Hastable wird als set verwendet
+                collect[cd.ColorDef] = null; // Hastable wird als set verwendet
             }
             else if (go is Block)
             {

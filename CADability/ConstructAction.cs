@@ -2567,19 +2567,17 @@ namespace CADability.Actions
                 return point;
             }
             private void ShowPropertyOnSetGeoPoint(GeoPointProperty sender, GeoPoint p)
-            {	// in der geoPointProperty wurde der Punkt (durch Tastatureingabe) verändert
-                // oder durch eine untergeordnoete Aktion
+            {	// this is beeing called by the controlcenter, either when the value is edited or subentries are beeing edited or a subaction changed the point
                 partiallyFixed = (int)sender.InputFromSubEntries;
-                if (partiallyFixed == 7) partiallyFixed = 0; // alle drei, also komplett gefixed
-                if (partiallyFixed != 0)
+                if (partiallyFixed == 7) partiallyFixed = 0; // all subcomponents have been fixed
+                if (partiallyFixed == 0) // this was "!= 0" but i think it must be "== 0", because when typing in the edit field of the point, it should be marked as fixed
                 {
                     (this as IInputObject).SetFixed(true);
                 }
                 geoPointProperty.IsModifyingWithMouse = false;
                 SetGeoPoint(p, SnapPointFinder.DidSnapModes.KeyboardInput);
                 if (DefinesBasePoint) constructAction.BasePoint = p;
-                // BasePoint wird hier gesetzt, denn sonst wird er nur bei
-                // MouseUp gesetzt und das genügt nicht
+                // we need to set BasePoint because we also set "fixed"
                 if (defaultGeoPoint != null) defaultGeoPoint.Point = p;
                 constructAction.RefreshDependantProperties();
             }

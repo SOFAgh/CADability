@@ -1,4 +1,5 @@
-﻿using CADability.GeoObject;
+﻿using CADability.Curve2D;
+using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
@@ -35,7 +36,7 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                SomeTestCode();
+                TestCollision();
                 return true;
             }
             return false;
@@ -94,6 +95,21 @@ namespace CADability.Forms
             if (sld != null && face != null)
             {
                 bool ok = face.HitBoundingCube(sld.GetBoundingCube());
+            }
+        }
+
+        void TestCollision()
+        {
+            if (frame.SelectedObjects.Count==2 && frame.SelectedObjects[0] is Solid sld1 && frame.SelectedObjects[1] is Solid sld2)
+            {
+                int tc0 = System.Environment.TickCount;
+                CollisionDetection cd = new CollisionDetection(sld1.Shells[0], sld2.Shells[0]);
+                int tc1 = System.Environment.TickCount;
+                int dt = tc1 - tc0;
+                tc1 = System.Environment.TickCount;
+                bool collision = cd.GetResult(1e-6, out GeoPoint cp);
+                int tc2 = System.Environment.TickCount;
+                dt = tc2 - tc0;
             }
         }
     }
