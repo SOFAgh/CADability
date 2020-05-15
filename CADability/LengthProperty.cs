@@ -9,7 +9,7 @@ namespace CADability.UserInterface
     /// <summary>
     /// Implements a hotspot <see cref="IHotSpot"/> to manipulate a lenth via a length property
     /// </summary>
-    public class LengthHotSpot : IHotSpot
+    public class LengthHotSpot : IHotSpot, ICommandHandler
     {
         private LengthProperty lengthProperty;
         public GeoPoint Position;
@@ -61,6 +61,16 @@ namespace CADability.UserInterface
         }
         public bool Hidden { get { return lengthProperty.ReadOnly; } }
         #endregion
+
+        public bool OnCommand(string MenuId)
+        {
+            return ((ICommandHandler)lengthProperty).OnCommand(MenuId);
+        }
+
+        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        {
+            return ((ICommandHandler)lengthProperty).OnUpdateCommand(MenuId, CommandState);
+        }
     }
 
 

@@ -6,7 +6,7 @@ using Action = CADability.Actions.Action;
 
 namespace CADability.UserInterface
 {
-    public class GeoVectorHotSpot : IHotSpot
+    public class GeoVectorHotSpot : IHotSpot, ICommandHandler
     {
         private GeoVectorProperty geoVectorProperty;
         public GeoPoint Position;
@@ -54,6 +54,15 @@ namespace CADability.UserInterface
         }
         public bool Hidden { get { return geoVectorProperty.ReadOnly; } }
         #endregion
+        public bool OnCommand(string MenuId)
+        {
+            return ((ICommandHandler)geoVectorProperty).OnCommand(MenuId);
+        }
+
+        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        {
+            return ((ICommandHandler)geoVectorProperty).OnUpdateCommand(MenuId, CommandState);
+        }
     }
 
     public class GeoVectorProperty : EditableProperty<GeoVector>, IUserData, ICommandHandler
