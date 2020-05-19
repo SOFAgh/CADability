@@ -184,7 +184,7 @@ namespace CADability.UserInterface
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             dimension.DidChangeEvent += new ChangeDelegate(DimensionDidChange);
             dimension.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);
@@ -426,7 +426,7 @@ namespace CADability.UserInterface
             dimension.DimLineDirection = v;
         }
 
-        private bool OnModifyPointWithMouse(IShowProperty sender, int index)
+        private bool OnModifyPointWithMouse(IPropertyEntry sender, int index)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(index), dimension);
             gpa.UserData.Add("Mode", "Point");
@@ -558,7 +558,7 @@ namespace CADability.UserInterface
             dimension.SetTextPos(ind, l);
         }
 
-        private void ModifyDimLineRef(IShowProperty sender, bool StartModifying)
+        private void ModifyDimLineRef(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.DimLineRef, dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
@@ -588,7 +588,7 @@ namespace CADability.UserInterface
             }
         }
 
-        private void ModifyTextPosWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyTextPosWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             int ind = (int)(sender as DoubleProperty).UserData.GetData("Index");
             GeoPoint p = dimension.GetTextPosCoordinate(ind, frame.ActiveView.Projection);
@@ -683,7 +683,7 @@ namespace CADability.UserInterface
             dimension.Radius = Geometry.Dist(dimension.GetPoint(0), NewValue);
         }
 
-        private void ModifyRadiusWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyRadiusWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(0), dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
@@ -705,7 +705,7 @@ namespace CADability.UserInterface
             dimension.SetPoint(0, NewValue);
         }
 
-        private void ModifyCenterWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyCenterWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(0), dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
@@ -728,7 +728,7 @@ namespace CADability.UserInterface
             dimension.SetPoint(1, dimension.GetPoint(0) + r * dir);
         }
 
-        private void ModifyStartAngleWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyStartAngleWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(1), dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
@@ -756,7 +756,7 @@ namespace CADability.UserInterface
             dimension.SetPoint(2, dimension.GetPoint(0) + r * dir);
         }
 
-        private void ModifyEndAngleWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyEndAngleWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(2), dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;

@@ -816,27 +816,35 @@ namespace CADability.GeoObject
         {
             get { return poles.Length; }
         }
-        internal GeoPoint[] Poles
+        public GeoPoint[] Poles
         {
             get
             {
                 return poles;
             }
         }
-        internal double[] Knots
+        public double[] Knots
         {
             get
             {
                 return knots;
             }
         }
-        internal int[] Multiplicities
+        public int[] Multiplicities
         {
             get
             {
                 return multiplicities;
             }
         }
+        public double[] Weights
+        {
+            get
+            {
+                return weights;
+            }
+        }
+        public int Degree { get => degree; }
         public void GetData(out int degree, out GeoPoint[] poles, out double[] weights, out double[] knots, out int[] multiplicities)
         {
             degree = this.degree;
@@ -3898,7 +3906,7 @@ namespace CADability.GeoObject
             return (this as ICurve).GetProjectedCurve(projection.ProjectionPlane).GetExtent();
         }
 
-        internal bool HasWeights
+        public bool HasWeights
         {
             get
             {

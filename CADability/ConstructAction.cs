@@ -1180,7 +1180,7 @@ namespace CADability.Actions
                     angle = a;
                 }
             }
-            private void OnModifyWithMouse(IShowProperty sender, bool StartModifying)
+            private void OnModifyWithMouse(IPropertyEntry sender, bool StartModifying)
             {
                 (this as IInputObject).SetFixed(false);
                 constructAction.SetCurrentInputIndex(this, true);
@@ -1604,7 +1604,7 @@ namespace CADability.Actions
                     length = Length; // Wert auch übernehemen wenn kein SetLengthEvent gesetzt ist
                 }
             }
-            private void OnModifyWithMouse(IShowProperty sender, bool StartModifying)
+            private void OnModifyWithMouse(IPropertyEntry sender, bool StartModifying)
             {
                 (this as IInputObject).SetFixed(false);
                 constructAction.SetCurrentInputIndex(this, true);
@@ -2293,7 +2293,7 @@ namespace CADability.Actions
                 }
                 return false;
             }
-            private void OnModifyWithMouse(IShowProperty sender, bool StartModifying)
+            private void OnModifyWithMouse(IPropertyEntry sender, bool StartModifying)
             {
                 (this as IInputObject).SetFixed(false);
                 constructAction.SetCurrentInputIndex(this, true);
@@ -2743,7 +2743,7 @@ namespace CADability.Actions
                     vector = v;
                 }
             }
-            private void OnModifyWithMouse(IShowProperty sender, bool StartModifying)
+            private void OnModifyWithMouse(IPropertyEntry sender, bool StartModifying)
             {
                 (this as IInputObject).SetFixed(false);
                 constructAction.SetCurrentInputIndex(this, true);
@@ -4075,7 +4075,7 @@ namespace CADability.Actions
                 return forwardTo.MayDelete(Index);
             }
 #endregion
-            private bool OnModifyWithMouse(IShowProperty sender, int index)
+            private bool OnModifyWithMouse(IPropertyEntry sender, int index)
             {
                 activeIndex = index;
                 activeIndexIsNewPoint = false;

@@ -684,7 +684,7 @@ namespace CADability.GeoObject
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
             resourceId = "PlanarSurface";
@@ -733,11 +733,6 @@ namespace CADability.GeoObject
             }
         }
         #endregion
-        public override void Added(IPropertyPage pp)
-        {
-            base.Added(pp);
-            resourceId = "PlanarSurface";
-        }
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             // #171=AXIS2_PLACEMENT_3D('Plane Axis2P3D',#168,#169,#170) ;

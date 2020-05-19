@@ -98,15 +98,15 @@ namespace CADability.UserInterface
                 return subEntries;
             }
         }
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
-            propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
+            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
         }
         public override void Removed(IPropertyTreeView propertyTreeView)
         {
             base.Removed(propertyTreeView);
-            propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
+            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
         }
         void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
         {

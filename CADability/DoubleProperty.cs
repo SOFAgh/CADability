@@ -228,7 +228,7 @@ namespace CADability.UserInterface
         {
             add
             {
-                ModifyWithMouse = delegate (IShowProperty pe, bool start)
+                ModifyWithMouse = delegate (IPropertyEntry pe, bool start)
                 {
                     value(this, start);
                 };

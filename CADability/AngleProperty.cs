@@ -9,7 +9,7 @@ namespace CADability.UserInterface
     /// Implements a hotspot <see cref="IHotSpot"/> to manipulate an angle via an angle property
     /// </summary>
 
-    public class AngleHotSpot : IHotSpot
+    public class AngleHotSpot : IHotSpot, ICommandHandler
     {
         private AngleProperty angleProperty;
         /// <summary>
@@ -57,6 +57,16 @@ namespace CADability.UserInterface
         }
         bool IHotSpot.Hidden { get { return angleProperty.ReadOnly; } }
         #endregion
+
+        public bool OnCommand(string MenuId)
+        {
+            return ((ICommandHandler)angleProperty).OnCommand(MenuId);
+        }
+
+        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        {
+            return ((ICommandHandler)angleProperty).OnUpdateCommand(MenuId, CommandState);
+        }
     }
     /// <summary>
     /// Exception thrown by <see cref="AngleProperty"/>.
@@ -270,7 +280,7 @@ namespace CADability.UserInterface
         {
             add
             {
-                ModifyWithMouse = delegate (IShowProperty pe, bool start)
+                ModifyWithMouse = delegate (IPropertyEntry pe, bool start)
                 {
                     value(this, start);
                 };

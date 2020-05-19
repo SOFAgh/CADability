@@ -38,7 +38,7 @@ namespace CADability.GeoObject
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
             if (positionProp == null)
@@ -122,7 +122,7 @@ namespace CADability.GeoObject
             blockRef.RefPoint = p;
         }
 
-        private void OnPositionModifyWithMouse(IShowProperty sender, bool StartModifying)
+        private void OnPositionModifyWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(positionProp, blockRef);
             frame.SetAction(gpa);

@@ -283,7 +283,7 @@ namespace CADability.UserInterface
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             //propertyTreeView.InfoPopup.Add(numericUpDown,resourceId);
             //propertyTreeView.InfoPopup.Add(textBox, resourceId);

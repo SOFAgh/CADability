@@ -188,7 +188,7 @@ namespace CADability.Actions
     public class SelectObjectsAction : Action
     {
         private enum Mode { NoAction, TestDragRect, DragRect, DragWidth, DragHeight, DragSize, DragMove, DragRotate, DragObjectProperty, TestHotSpot }
-        private enum CursorPosition { EmptySpace, OverObject, OverSelectedObject, OverHandleLB, OverHandleLM, OverHandleLT, OverHandleMB, OverHandleMM, OverHandleMT, OverHandleRB, OverHandleRM, OverHandleRT, OverFixPoint, OverHotSpot }
+        public enum CursorPosition { EmptySpace, OverObject, OverSelectedObject, OverHandleLB, OverHandleLM, OverHandleLT, OverHandleMB, OverHandleMM, OverHandleMT, OverHandleRB, OverHandleRM, OverHandleRT, OverFixPoint, OverHotSpot }
         private Mode mode; // der Zustand, in dem sich die Aktion gerade befindet
         private CursorPosition lastCursorPosition; // die letzte gemessene Cursorposition, wird in den DragXxx Modi nicht berechnet
         private System.Drawing.Point downPoint; // Position des letzten MouseDown
@@ -2624,6 +2624,23 @@ namespace CADability.Actions
                 }
             }
             SetSelectedObjects(toSelect);
+        }
+
+        /// <summary>
+        /// Get the last hotspot under the cursor
+        /// </summary>
+        public IHotSpot LastCursorHotspot
+        { 
+            get { return lastCursorHotspot; } 
+        }
+
+        /// <summary>
+        /// Get the area the cursor is currently over.
+        /// e.g. EmptySpace or Hotspot
+        /// </summary>
+        public CursorPosition LastCursorPosition
+        { 
+            get { return lastCursorPosition; } 
         }
     }
 }

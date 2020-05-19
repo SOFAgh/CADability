@@ -131,10 +131,10 @@ namespace CADability
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
-            propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
+            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Removed"/>
@@ -142,7 +142,7 @@ namespace CADability
         /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
         public override void Removed(IPropertyTreeView propertyTreeView)
         {
-            propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
+            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
             base.Removed(propertyTreeView);
         }
 

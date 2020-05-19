@@ -36,7 +36,8 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                TestCollision();
+
+                ExportDxf();
                 return true;
             }
             return false;
@@ -98,19 +99,11 @@ namespace CADability.Forms
             }
         }
 
-        void TestCollision()
+        private void ExportDxf()
         {
-            if (frame.SelectedObjects.Count==2 && frame.SelectedObjects[0] is Solid sld1 && frame.SelectedObjects[1] is Solid sld2)
-            {
-                int tc0 = System.Environment.TickCount;
-                CollisionDetection cd = new CollisionDetection(sld1.Shells[0], sld2.Shells[0]);
-                int tc1 = System.Environment.TickCount;
-                int dt = tc1 - tc0;
-                tc1 = System.Environment.TickCount;
-                bool collision = cd.GetResult(1e-6, out GeoPoint cp);
-                int tc2 = System.Environment.TickCount;
-                dt = tc2 - tc0;
-            }
+            DXF.Export exp = new DXF.Export(netDxf.Header.DxfVersion.AutoCad2000);
+            exp.WriteToFile(frame.Project, @"C:\Zeichnungen\DxfDwg\testNetDxfOut.dxf");
+
         }
     }
 }

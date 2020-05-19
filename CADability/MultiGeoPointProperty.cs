@@ -202,7 +202,7 @@ namespace CADability.UserInterface
         //    }
         //}
 #region IShowPropertyImpl Overrides
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
             // hier kann man refreshen, weil Frame gesetzt ist:
@@ -314,13 +314,13 @@ namespace CADability.UserInterface
         /// <param name="sender">this object</param>
         /// <param name="index">index of the point that is modified</param>
         /// <returns>true: accepted, false: not accepted</returns>
-        public delegate bool ModifyWithMouseIndexDelegate(IShowProperty sender, int index);
+        public delegate bool ModifyWithMouseIndexDelegate(IPropertyEntry sender, int index);
         /// <summary>
         /// Provide a method here if you need to notified about modification of any point
         /// in this list with the mouse
         /// </summary>
         public event ModifyWithMouseIndexDelegate ModifyWithMouseEvent;
-        private void ModifyWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             if (ModifyWithMouseEvent != null)
             {

@@ -335,7 +335,7 @@ namespace CADability.UserInterface
 #endregion
 
 
-        private bool OnModifyVertexWithMouse(IShowProperty sender, int index)
+        private bool OnModifyVertexWithMouse(IPropertyEntry sender, int index)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(polyline.GetPoint(index), polyline);
             gpa.UserData.Add("Mode", "Point");
@@ -379,7 +379,7 @@ namespace CADability.UserInterface
         {
             polyline.ParallelogramLocation = p;
         }
-        private void ModifyLocationWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyLocationWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(sender as GeoPointProperty, polyline);
             frame.SetAction(gpa);
@@ -411,7 +411,7 @@ namespace CADability.UserInterface
                 polyline.ParallelogramWidth = l;
             }
         }
-        private void ModifyWidthWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyWidthWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gpa = new GeneralLengthAction(sender as LengthProperty, polyline.RectangleLocation, polyline.ParallelogramSecondaryDirection, polyline);
             frame.SetAction(gpa);
@@ -429,7 +429,7 @@ namespace CADability.UserInterface
                 polyline.RectangleHeight = l;
             }
         }
-        private void ModifyHeightWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyHeightWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gpa = new GeneralLengthAction(sender as LengthProperty, polyline.RectangleLocation, polyline.ParallelogramMainDirection, polyline);
             frame.SetAction(gpa);
@@ -448,7 +448,7 @@ namespace CADability.UserInterface
             polyline.ParallelogramMainDirection = v; // übernimmt nicht die Länge!
         }
 
-        private void ModifyDirectionXWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyDirectionXWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, polyline.RectangleLocation, polyline);
             frame.SetAction(gva);
@@ -472,7 +472,7 @@ namespace CADability.UserInterface
             //			polyline.ParallelogramMainDirection = v; // übernimmt nicht die Länge!
         }
 
-        private void ModifyDirectionXParallelWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyDirectionXParallelWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, polyline.ParallelogramLocation, polyline);
             frame.SetAction(gva);

@@ -12,7 +12,7 @@ namespace CADability.UserInterface
     /// Wird mit StartModifying==false aufgerufen, wenn der Anwender in das Editfeld eintippt.
     /// Dann soll die MausAktion für diesen Punkt abgebrochen werden.
     /// </summary>
-    public delegate void ModifyWithMouseDelegate(IShowProperty sender, bool StartModifying);
+    public delegate void ModifyWithMouseDelegate(IPropertyEntry sender, bool StartModifying);
     public delegate void EditingDelegate(IShowProperty sender, char KeyPressed);
     public delegate void FocusChangedDelegate(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus);
 

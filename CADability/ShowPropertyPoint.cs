@@ -92,7 +92,7 @@ namespace CADability.UserInterface
             }
             base.Opened(IsOpen);
         }
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
             this.point.DidChangeEvent += new ChangeDelegate(OnPointDidChange);
@@ -122,7 +122,7 @@ namespace CADability.UserInterface
         {
             point.Location = p;
         }
-        private void ModifyLocationWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyLocationWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(locationProperty, point);
             frame.SetAction(gpa);

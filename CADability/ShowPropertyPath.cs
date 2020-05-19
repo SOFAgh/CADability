@@ -185,7 +185,7 @@ namespace CADability.UserInterface
                 else return IShowPropertyImpl.Concat(subEntries, attributeProperties);
             }
         }
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
             path.DidChangeEvent += new ChangeDelegate(PathDidChange);
@@ -280,7 +280,7 @@ namespace CADability.UserInterface
             }
             // path.SetPoint(indexEndPoint, indexStartPoint, p);
         }
-        private void ModifyVertexWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyVertexWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(sender as GeoPointProperty, path);
             frame.SetAction(gpa);

@@ -9,7 +9,7 @@ namespace CADability.UserInterface
     {
         protected string resourceId;
         protected string labelText;
-
+        private IFrame frame;
         private readonly IShowPropertyImpl dumy = null; // will never be set. Dumy implementation of IShowProperty
 
         public PropertyEntryImpl()
@@ -28,7 +28,21 @@ namespace CADability.UserInterface
         {
             PropertyEntryChangedStateEvent?.Invoke(this, args);
         }
-        protected IFrame Frame => propertyPage != null ? propertyPage.Frame : null;
+        protected IFrame Frame
+        {
+            get
+            {
+                if (frame != null) return frame;
+                if (propertyPage != null && propertyPage.Frame != null) return propertyPage.Frame;
+                if (Parent != null && Parent is PropertyEntryImpl pei) return pei.Frame;
+                if (Parent != null && Parent is IPropertyPage pp) return pp.Frame;
+                return null;
+            }
+            set
+            {
+                frame = value;
+            }
+        }
         public void Refresh()
         {
             propertyPage?.Refresh(this);
@@ -97,7 +111,7 @@ namespace CADability.UserInterface
         /// </summary>
         public virtual MenuWithHandler[] ContextMenu => null;
 
-        public virtual bool DeferUpdate { get; set ; }
+        public virtual bool DeferUpdate { get; set; }
 
         public event PropertyEntryChangedStateDelegate PropertyEntryChangedStateEvent;
 
@@ -210,12 +224,12 @@ namespace CADability.UserInterface
         /// <param name="editValue"></param>
         public virtual void StartEdit(bool editValue)
         {
-            
+
         }
 
         public virtual void UnSelected(IPropertyEntry nowSelected)
         {
-            
+
         }
         public virtual bool ReadOnly { get; set; }
         #endregion

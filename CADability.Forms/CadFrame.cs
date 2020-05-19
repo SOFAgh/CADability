@@ -354,6 +354,12 @@ namespace CADability.Forms
                 return import.Project;
             }
         }
+        void IUIService.Export(Project toExport, string fileName, string format, uint flags = 0)
+        {
+            CADability.DXF.Export export = new DXF.Export(netDxf.Header.DxfVersion.AutoCad2000);
+            export.WriteToFile(toExport, fileName);
+        }
+
         #endregion
     }
 }

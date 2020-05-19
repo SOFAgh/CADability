@@ -336,7 +336,7 @@ namespace CADability.UserInterface
         {
             circle.Center = p;
         }
-        private void ModifyCenterWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyCenterWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(centerProperty, circle);
             frame.SetAction(gpa);
@@ -361,7 +361,7 @@ namespace CADability.UserInterface
         {
             circle.Radius = l / 2.0;
         }
-        private void ModifyRadiusWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyRadiusWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gla = new GeneralLengthAction(radiusProperty, circle.Center, circle);
             frame.SetAction(gla);
@@ -374,7 +374,7 @@ namespace CADability.UserInterface
         {
             circle.StartParameter = a.Radian;
         }
-        private void ModifyStartAngleWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyStartAngleWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralAngleAction gaa = new GeneralAngleAction(startAngleProperty, circle.Plane);
             frame.SetAction(gaa);
@@ -403,7 +403,7 @@ namespace CADability.UserInterface
                 if (circle.SweepParameter > 0.0) (circle as ICurve).Reverse();
             }
         }
-        private void ModifyEndAngleWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyEndAngleWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralAngleAction gaa = new GeneralAngleAction(endAngleProperty, circle.Plane);
             frame.SetAction(gaa);
