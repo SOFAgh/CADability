@@ -107,8 +107,8 @@ namespace CADability.GeoObject
             return "MenuId.Object.Solid";
         }
 
-#endregion
-#region ICommandHandler Members
+        #endregion
+        #region ICommandHandler Members
 
         bool ICommandHandler.OnCommand(string MenuId)
         {
@@ -155,7 +155,7 @@ namespace CADability.GeoObject
             return false;
         }
 
-#endregion
+        #endregion
     }
 
 
@@ -202,7 +202,7 @@ namespace CADability.GeoObject
                 return edges;
             }
         }
-#region polymorph construction
+        #region polymorph construction
         public delegate Solid ConstructionDelegate();
         public static ConstructionDelegate Constructor;
         public static Solid Construct()
@@ -212,7 +212,7 @@ namespace CADability.GeoObject
         }
         public delegate void ConstructedDelegate(Solid justConstructed);
         public static ConstructedDelegate Constructed;
-#endregion
+        #endregion
         protected Solid()
             : base()
         {
@@ -246,9 +246,10 @@ namespace CADability.GeoObject
         {   // nur wg. Undo
             Face[] clonedFaces = (Face[])sh.Faces.Clone();
             Dictionary<Edge, Edge> clonedEdges = new Dictionary<Edge, Edge>();
+            Dictionary<Vertex, Vertex> clonedVertices = new Dictionary<Vertex, Vertex>();
             for (int i = 0; i < clonedFaces.Length; i++)
             {
-                clonedFaces[i] = clonedFaces[i].Clone(clonedEdges);
+                clonedFaces[i] = clonedFaces[i].Clone(clonedEdges, clonedVertices);
             }
             using (new Changing(this, "SetFaces", sh, clonedFaces))
             {
@@ -305,7 +306,7 @@ namespace CADability.GeoObject
                 return 0.0;
             }
         }
-#region IGeoObject Members
+        #region IGeoObject Members
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetShowProperties (IFrame)"/>
         /// </summary>
@@ -328,22 +329,7 @@ namespace CADability.GeoObject
             {
                 for (int i = 0; i < shells.Length; ++i)
                 {
-                    shells[i].ModifyNoEdges(m);
-                }
-                for (int i = 0; i < Edges.Length; ++i)
-                {
-                    IGeoObject go = edges[i].Curve3D as IGeoObject;
-                    if (go != null)
-                    {
-                        go.Modify(m);
-                    }
-                }
-                for (int i = 0; i < shells.Length; ++i)
-                {
-                    foreach (Vertex vtx in shells[i].Vertices)
-                    {
-                        vtx.Modify(m);
-                    }
+                    shells[i].Modify(m);
                 }
             }
         }
@@ -524,8 +510,8 @@ namespace CADability.GeoObject
                 return StringTable.GetString("Solid.Object");
             }
         }
-#endregion
-#region IOctTreeInsertable members
+        #endregion
+        #region IOctTreeInsertable members
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetExtent (double)"/>
         /// </summary>
@@ -625,7 +611,7 @@ namespace CADability.GeoObject
             }
             return res;
         }
-#endregion
+        #endregion
 #if DEBUG
         internal void Debug()
         {
@@ -682,7 +668,7 @@ namespace CADability.GeoObject
             }
             else
             {
-            return null;
+                return null;
             }
         }
         /// <summary>
@@ -777,7 +763,7 @@ namespace CADability.GeoObject
             }
             return res;
         }
-#region ISerializable Members
+        #region ISerializable Members
         protected Solid(SerializationInfo info, StreamingContext context)
             : base(context)
         {
@@ -840,8 +826,8 @@ namespace CADability.GeoObject
             data.AddProperty("Name", name);
             data.AddProperty("Flags", flags);
         }
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
             for (int i = 0; i < shells.Length; ++i)
@@ -860,8 +846,8 @@ namespace CADability.GeoObject
             }
             if (Constructed != null) Constructed(this);
         }
-#endregion
-#region IColorDef Members
+        #endregion
+        #region IColorDef Members
         private ColorDef colorDef;
         public ColorDef ColorDef
         {
@@ -902,8 +888,8 @@ namespace CADability.GeoObject
                 }
             }
         }
-#endregion
-#region IGetSubShapes Members
+        #endregion
+        #region IGetSubShapes Members
         IGeoObject IGetSubShapes.GetEdge(int[] id, int index)
         {
             for (int i = 0; i < shells.Length; ++i)
@@ -922,8 +908,8 @@ namespace CADability.GeoObject
             }
             return null; // sollte nicht vorkommen
         }
-#endregion
-#region IGeoObjectOwner Members
+        #endregion
+        #region IGeoObjectOwner Members
         void IGeoObjectOwner.Remove(IGeoObject toRemove)
         {
             // Remove sollte nicht drankommen, es sei denn beim Zerlegen.
@@ -933,7 +919,7 @@ namespace CADability.GeoObject
         {
             // Add machen wir nur selbst, wenn das Objekt erzeugt wird, da bleibt hier nichts zu tun
         }
-#endregion
+        #endregion
 
         internal void AssertOutwardOrientation()
         {
@@ -961,7 +947,7 @@ namespace CADability.GeoObject
             //#254 = ADVANCED_BREP_SHAPE_REPRESENTATION( 'A0501_SASIL_plus_00_50_185_3_polig', ( #733 ), #4 );
             //#9 = SHAPE_DEFINITION_REPRESENTATION( #253, #254 );
             int product = export.WriteDefinition("PRODUCT( '" + NameOrEmpty + "','" + NameOrEmpty + "','',(#2))");
-            int pdf = export.WriteDefinition("PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE( ' ', 'NONE', #"+product.ToString()+", .NOT_KNOWN. )");
+            int pdf = export.WriteDefinition("PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE( ' ', 'NONE', #" + product.ToString() + ", .NOT_KNOWN. )");
             int pd = export.WriteDefinition("PRODUCT_DEFINITION( 'NONE', 'NONE', #" + pdf.ToString() + ", #3 )");
             int pds = export.WriteDefinition("PRODUCT_DEFINITION_SHAPE( 'NONE', 'NONE', #" + pd.ToString() + " )");
             int brep = export.WriteDefinition("ADVANCED_BREP_SHAPE_REPRESENTATION('" + NameOrEmpty + "', ( #" + msb.ToString() + "), #4 )");

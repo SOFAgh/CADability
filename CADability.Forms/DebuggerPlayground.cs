@@ -1,4 +1,5 @@
-﻿using CADability.GeoObject;
+﻿using CADability.Curve2D;
+using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
@@ -35,6 +36,7 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
+
                 ExportDxf();
                 return true;
             }
@@ -96,10 +98,12 @@ namespace CADability.Forms
                 bool ok = face.HitBoundingCube(sld.GetBoundingCube());
             }
         }
+
         private void ExportDxf()
         {
             DXF.Export exp = new DXF.Export(netDxf.Header.DxfVersion.AutoCad2000);
             exp.WriteToFile(frame.Project, @"C:\Zeichnungen\DxfDwg\testNetDxfOut.dxf");
+
         }
     }
 }

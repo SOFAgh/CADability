@@ -565,7 +565,7 @@ namespace CADability
     /// exact for of the curve than we get, when we approximate the curve in 2d.
     /// </summary>
     [Serializable()]
-    internal class ProjectedCurve : TriangulatedCurve2D, ISerializable
+    public class ProjectedCurve : TriangulatedCurve2D, ISerializable
     {
         private double startParam; // auf der 3D Kurve, gibt auch die Richtung an
         private double endParam; // auf der 3D Kurve
@@ -575,9 +575,16 @@ namespace CADability
         GeoPoint2D startPoint2d, endPoint2d;
         bool startPointIsPole, endPointIsPole;
         bool spu, epu; // starting or ending pole in u
+#if DEBUG
+        static int debugCounter = 0;
+        private int debugCount; // to identify instance when debugging
+#endif
 
         public ProjectedCurve(ICurve curve3D, ISurface surface, bool forward, BoundingRect domain)
         {
+#if DEBUG
+            debugCount = debugCounter++;
+#endif
             this.curve3D = curve3D; // sollte man hier clonen um Unabhängigkeit von surface und curve3D zu erzeugen?
             this.surface = surface;
             List<GeoPoint> lpoles = new List<GeoPoint>();
@@ -663,6 +670,9 @@ namespace CADability
         }
         public ProjectedCurve(ICurve curve3D, ISurface surface, double startParam, double endParam, BoundingRect domain)
         {
+#if DEBUG
+            debugCount = debugCounter++;
+#endif
             this.curve3D = curve3D;
             this.surface = surface;
             this.startParam = startParam;
@@ -803,6 +813,13 @@ namespace CADability
                 dir = GeoVector2D.NullVector;
             }
         }
+
+        internal void ReflectModification(ISurface surface, ICurve curve3d)
+        {   // a face has been modified, in 2d there are no changes, but the surface and the 3d curve must be adopted
+            this.surface = surface;
+            this.curve3D = curve3d;
+        }
+
         public override GeoVector2D DirectionAt(double Position)
         {
             GeoPoint2D loc;
@@ -911,6 +928,9 @@ namespace CADability
         protected ProjectedCurve(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
+#if DEBUG
+            debugCount = debugCounter++;
+#endif
             curve3D = info.GetValue("Curve3D", typeof(ICurve)) as ICurve;
             surface = info.GetValue("Surface", typeof(ISurface)) as ISurface;
             startParam = info.GetDouble("StartParam");
@@ -949,6 +969,7 @@ namespace CADability
                 for (int i = 0; i < pnts.Length; i++)
                 {
                     pnts[i] = Plane.XYPlane.ToGlobal(PointAt(i / 99.0));
+
                 }
                 Polyline res = Polyline.Construct();
                 res.SetPoints(pnts, false);

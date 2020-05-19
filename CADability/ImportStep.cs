@@ -1827,7 +1827,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (23092 == item.definingIndex)// || 22608 == item.definingIndex)
+            if (64 == item.definingIndex || 67 == item.definingIndex)
             {
 
             }

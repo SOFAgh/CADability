@@ -619,6 +619,13 @@ namespace CADability.Actions
                 if (selObj[0] is Solid)
                 {
                     ok = (selObj[0] as Solid).Shells[0].CheckConsistency();
+                    //Shell sh = (selObj[0] as Solid).Shells[0].Clone() as Shell;
+                    //sh.RecalcVertices();
+                    //sh.CombineConnectedFaces();
+                    //ok = sh.CheckConsistency();
+                    string serialized = JsonSerialize.ToString(selObj[0] as Solid);
+                    Solid dbg = JsonSerialize.FromString(serialized) as Solid;
+                    ok = dbg.Shells[0].CheckConsistency();
                     //foreach (Edge edg in (selObj[0] as Solid).Shells[0].Edges)
                     //{
 
@@ -2000,30 +2007,32 @@ namespace CADability.Actions
                     {
                         GeoObjectList select = new GeoObjectList(selectedObjects);
                         Solid s1 = null;
+                        Solid s2 = null;
                         for (int i = 0; i < select.Count; ++i)
                         {
                             if (select[i] is Solid)
                             {
-                                if (s1 == null)
+                                if (s1 == null) s1 = select[i] as Solid;
+                                else
                                 {
-                                    s1 = select[i] as Solid;
+                                    s2 = select[i] as Solid;
                                     break;
                                 }
                             }
                         }
-                        GeoObjectList toAdd = Make3D.Union(select);
-                        if (toAdd != null && toAdd.Count > 0)
+                        if (s2 != null)
                         {
-                            for (int i = 0; i < toAdd.Count; ++i)
+                            Solid toAdd = Solid.Unite(s1, s2);
+                            if (toAdd != null)
                             {
-                                toAdd[i].CopyAttributes(s1);
-                            }
-                            ClearSelectedObjects();
-                            using (Frame.Project.Undo.UndoFrame)
-                            {
-                                Frame.ActiveView.Model.Remove(select);
-                                Frame.ActiveView.Model.Add(toAdd);
-                                SetSelectedObjects(toAdd);
+                                    toAdd.CopyAttributes(s1);
+                                ClearSelectedObjects();
+                                using (Frame.Project.Undo.UndoFrame)
+                                {
+                                    Frame.ActiveView.Model.Remove(select);
+                                    Frame.ActiveView.Model.Add(toAdd);
+                                    SetSelectedObjects(new GeoObjectList(toAdd));
+                                }
                             }
                         }
                     }

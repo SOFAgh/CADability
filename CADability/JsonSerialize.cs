@@ -1001,7 +1001,7 @@ namespace CADability
             return entities[(int)index];
         }
 
-        public bool ToStream(Stream stream, object toSerialize)
+        public bool ToStream(Stream stream, object toSerialize, bool closeStream = true)
         {
             outStream = new FormattingStreamWriter(stream);
             firstEntry = new Stack<bool>();
@@ -1041,7 +1041,7 @@ namespace CADability
             EndObject();
             //}
             outStream.Flush();
-            outStream.Close();
+            if (closeStream) outStream.Close();
             return true;
         }
         private void BeginObject()
@@ -1442,16 +1442,36 @@ namespace CADability
             js.ToStream(stream, pr);
             stream.Close();
         }
-        public static string DebugWrite(IJsonSerialize ser)
-        {
-            Stream stream = File.Open(@"C:\Temp\json.json", FileMode.Create);
-            JsonSerialize js = new JsonSerialize();
-            js.ToStream(stream, ser);
-            stream.Close();
-            return "";
-        }
 #endif
-#region IJsonWriteData implementation
+        public static string ToString(object ser)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                JsonSerialize js = new JsonSerialize();
+                js.ToStream(ms, ser, false); // don't close the memory stream
+                ms.Seek(0, SeekOrigin.Begin);
+                StreamReader sr = new StreamReader(ms);
+                string res = sr.ReadToEnd();
+                sr.Close();
+                return res;
+            }
+        }
+        public static object FromString(string ser)
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new StreamWriter(stream))
+            {
+                writer.Write(ser);
+                writer.Flush();
+                stream.Position = 0;
+                JsonSerialize js = new JsonSerialize();
+                object res = js.FromStream(stream);
+                stream.Close();
+                return res;
+            }
+        }
+
+        #region IJsonWriteData implementation
         void IJsonWriteData.AddProperty(string name, object value)
         {
             WriteProperty(name);
@@ -1475,7 +1495,7 @@ namespace CADability
             }
             EndObject();
         }
-#endregion
+        #endregion
     }
 
     interface IJsonConvert

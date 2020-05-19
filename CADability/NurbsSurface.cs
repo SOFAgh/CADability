@@ -1204,6 +1204,7 @@ namespace CADability.GeoObject
                     // now in each direction there are either 3 circles or 3 lines
                     if (uIsLine && vIsLine)
                     {   // a plane or a hyperboloid
+                        // Plane.FromPoints(samples.Linear().ToArray(), out double maxdist1, out bool islin1);
                         double minerror = GaussNewtonMinimizer.PlaneFit(samples.Linear(), precision, out Plane pln);
                         if (minerror < precision)
                         {

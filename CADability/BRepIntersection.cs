@@ -2055,8 +2055,8 @@ namespace CADability
         /// <param name="s2"></param>
         public CollisionDetection(Shell s1, Shell s2)
         {
-            s1.AssertOutwardOrientation();
-            s2.AssertOutwardOrientation();
+            //s1.AssertOutwardOrientation();
+            //s2.AssertOutwardOrientation();
             this.s1 = s1;
             this.s2 = s2;
         }
@@ -2291,7 +2291,9 @@ namespace CADability
                 of1.AddObject(fc);
             }
 
-
+#if DEBUG
+            int intscounter = 0;
+#endif
             foreach (Edge edge in s2.Edges)
             {
                 if (edge.Curve3D == null) continue;
@@ -2305,6 +2307,9 @@ namespace CADability
                     double[] uOnCurve3D;
                     int tc0 = System.Environment.TickCount;
                     close[i].Intersect(edge, out ip, out uvOnFace, out uOnCurve3D);
+#if DEBUG
+                    ++intscounter;
+#endif
                     if (ip != null && ip.Length > 0)
                     {
                         for (int j = 0; j < ip.Length; j++)
@@ -2346,6 +2351,9 @@ namespace CADability
                     GeoPoint2D[] uvOnFace;
                     double[] uOnCurve3D;
                     close[i].Intersect(edge, out ip, out uvOnFace, out uOnCurve3D);
+#if DEBUG
+                    ++intscounter;
+#endif
                     if (ip != null && ip.Length > 0)
                     {
                         for (int j = 0; j < ip.Length; j++)

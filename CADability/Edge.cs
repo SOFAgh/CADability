@@ -715,6 +715,11 @@ namespace CADability
             if (v1 != null && curve3d != null) v1.Position = curve3d.StartPoint;
             if (v2 != null && curve3d != null) v2.Position = curve3d.EndPoint;
         }
+        internal void ReflectModification()
+        {
+            if (curveOnPrimaryFace is ProjectedCurve pcp) pcp.ReflectModification(primaryFace.Surface, curve3d);
+            if (curveOnSecondaryFace is ProjectedCurve pcs) pcs.ReflectModification(secondaryFace.Surface, curve3d);
+        }
 
         internal GeoPoint2D StartPosition(Face onThisFace)
         {
@@ -858,7 +863,7 @@ namespace CADability
             // alles bleibt null;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 6848)
+            if (hashCode == 170 || hashCode==173)
             {
             }
 #endif
@@ -1646,6 +1651,27 @@ namespace CADability
                 //if (v1 != null) v1.AddEdge(res);
                 //if (v2 != null) v2.AddEdge(res);
             }
+            return res;
+        }
+        public Edge Clone(Dictionary<Vertex,Vertex> clonedVertices)
+        {
+            Edge res = new Edge();
+            if (curve3d != null)
+            {
+                res.curve3d = curve3d.Clone();
+                (res.curve3d as IGeoObject).Owner = res;
+            }
+            if (!clonedVertices.TryGetValue(v1, out Vertex cv1))
+            {
+                cv1 = new Vertex(v1.Position);
+                clonedVertices[v1] = cv1;
+            }
+            if (!clonedVertices.TryGetValue(v2, out Vertex cv2))
+            {
+                cv2 = new Vertex(v2.Position);
+                clonedVertices[v2] = cv2;
+            }
+            res.SetVertices(cv1, cv2);
             return res;
         }
 
