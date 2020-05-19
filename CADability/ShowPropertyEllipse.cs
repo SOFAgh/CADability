@@ -191,7 +191,7 @@ namespace CADability.UserInterface
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
             ellipse.DidChangeEvent += new ChangeDelegate(OnGeoObjectDidChange);
@@ -351,12 +351,12 @@ namespace CADability.UserInterface
         }
 
 #endregion
-        private void ModifyCenterWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyCenterWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(centerProperty, ellipse);
             frame.SetAction(gpa);
         }
-        private void ModifyMajorAxisWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyMajorAxisWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(majorAxisProperty, ellipse.Center, ellipse);
             frame.SetAction(gva);
@@ -374,7 +374,7 @@ namespace CADability.UserInterface
             majorAxisProperty.SetHotspotPosition(ellipse.Center + ellipse.MajorAxis);
             minorAxisProperty.SetHotspotPosition(ellipse.Center + ellipse.MinorAxis);
         }
-        private void ModifyMinorAxisWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyMinorAxisWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(ellipse.Center, ellipse);
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetMinorAxis);
@@ -419,7 +419,7 @@ namespace CADability.UserInterface
         {
             return ellipse.MajorRadius;
         }
-        private void ModifyMajorRadiusWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyMajorRadiusWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gla = new GeneralLengthAction(majorRadiusProperty, ellipse.Center, ellipse);
             frame.SetAction(gla);
@@ -432,7 +432,7 @@ namespace CADability.UserInterface
         {
             return ellipse.MinorRadius;
         }
-        private void ModifyMinorRadiusWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyMinorRadiusWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gla = new GeneralLengthAction(minorRadiusProperty, ellipse.Center, ellipse);
             frame.SetAction(gla);
@@ -481,7 +481,7 @@ namespace CADability.UserInterface
                 if (ellipse.IsArc) ellipse.SweepParameter = sa.Radian;
             }
         }
-        private void ModifyStartAngleWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyStartAngleWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralAngleAction gaa = new GeneralAngleAction(startAngleProperty, ellipse.Center);
             gaa.CalculateAngleEvent += new CADability.Actions.GeneralAngleAction.CalculateAngleDelegate(OnCalculateEllipseParameter);
@@ -496,7 +496,7 @@ namespace CADability.UserInterface
             SweepAngle sa = new SweepAngle(new Angle(ellipse.StartParameter), a, ellipse.SweepParameter > 0.0);
             ellipse.SweepParameter = sa.Radian;
         }
-        private void ModifyEndAngleWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyEndAngleWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralAngleAction gaa = new GeneralAngleAction(endAngleProperty, ellipse.Center);
             gaa.CalculateAngleEvent += new CADability.Actions.GeneralAngleAction.CalculateAngleDelegate(OnCalculateEllipseParameter);

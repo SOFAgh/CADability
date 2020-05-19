@@ -317,6 +317,7 @@ namespace CADability.UserInterface
         /// <param name="flags"></param>
         /// <returns></returns>
         Project Import(string fileName, string format, uint flags = 0);
+        void Export(Project toExport, string fileName, string format, uint flags = 0);
     }
 
 }

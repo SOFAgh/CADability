@@ -1180,6 +1180,7 @@ namespace CADability
                 case "html":
                     return true;
                 case "dxf":
+                    Frame.UIService.Export(this, fileName, "dxf", 0);
                     return true;
                 case "dwg":
                     return true;

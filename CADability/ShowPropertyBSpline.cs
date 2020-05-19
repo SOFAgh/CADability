@@ -230,7 +230,7 @@ namespace CADability.UserInterface
                 return items.ToArray();
             }
         }
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             bSpline.DidChangeEvent += new ChangeDelegate(OnGeoObjectDidChange);
             bSpline.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);
@@ -311,7 +311,7 @@ namespace CADability.UserInterface
                 return bSpline.PointAtParam(par);
             }
         }
-        private bool OnModifyPolesWithMouse(IShowProperty sender, int index)
+        private bool OnModifyPolesWithMouse(IPropertyEntry sender, int index)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(bSpline.GetPole(index), bSpline);
             gpa.UserData.Add("Mode", "Pole");
@@ -321,7 +321,7 @@ namespace CADability.UserInterface
             frame.SetAction(gpa);
             return false;
         }
-        private bool OnModifyThroughPointsWithMouse(IShowProperty sender, int index)
+        private bool OnModifyThroughPointsWithMouse(IPropertyEntry sender, int index)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(bSpline.GetThroughPoint(index), bSpline);
             gpa.UserData.Add("Mode", "ThroughPoint");

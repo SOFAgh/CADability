@@ -177,15 +177,15 @@ namespace CADability.Attribute
         public event RemovingFromListDelegate RemovingFromListEvent;
         public event CADability.DidModifyDelegate DidModifyEvent;
         #region IShowProperty Members
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
-            propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
+            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
         }
         public override void Removed(IPropertyTreeView propertyTreeView)
         {
             base.Removed(propertyTreeView);
-            propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
+            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
         }
         //public override string InfoText
         //{

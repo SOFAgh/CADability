@@ -114,6 +114,7 @@ namespace CADability.UserInterface
 
         private void InitFormat(IFrame frame)
         {
+            Frame = frame;
             numberFormatInfo = (NumberFormatInfo)CultureInfo.CurrentCulture.NumberFormat.Clone();
             int decsym = Settings.GlobalSettings.GetIntValue("Formatting.Decimal", 0); // Systemeinstellung | Punkt | Komma
             if (decsym == 1) numberFormatInfo.NumberDecimalSeparator = ".";
@@ -452,7 +453,7 @@ namespace CADability.UserInterface
         {
             add
             {
-                ModifyWithMouse = delegate (IShowProperty pe, bool start)
+                ModifyWithMouse = delegate (IPropertyEntry pe, bool start)
                 {
                     value(this, start);
                 };

@@ -35,7 +35,7 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                SomeTestCode();
+                ExportDxf();
                 return true;
             }
             return false;
@@ -95,6 +95,11 @@ namespace CADability.Forms
             {
                 bool ok = face.HitBoundingCube(sld.GetBoundingCube());
             }
+        }
+        private void ExportDxf()
+        {
+            DXF.Export exp = new DXF.Export(netDxf.Header.DxfVersion.AutoCad2000);
+            exp.WriteToFile(frame.Project, @"C:\Zeichnungen\DxfDwg\testNetDxfOut.dxf");
         }
     }
 }

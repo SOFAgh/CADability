@@ -191,24 +191,24 @@ namespace CADability.UserInterface
         // ausgewählt wurde. Ebenso wird beim Ziehen eines Hotspots über IHotSpot.StartDrag
         // die entsprechende IShowProperty zu diesem Event veranlasst. Es werden GeneralXxxActions
         // gestartet, die über die IShowProperties kommunizieren.
-        private void ModifyStartPointWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyStartPointWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(startPointProperty, line);
             frame.SetAction(gpa);
         }
 
-        private void ModifyEndPointWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyEndPointWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(endPointProperty, line);
             frame.SetAction(gpa);
         }
-        private void ModifyLengthWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyLengthWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gla = new GeneralLengthAction(lengthProperty, line.StartPoint, line);
             frame.SetAction(gla);
         }
 
-        private void ModifyDirectionWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyDirectionWithMouse(IPropertyEntry sender, bool StartModifying)
         {   // wird entweder durch Menueauswahl in der GeoVectorProperty oder durch ziehen am HotSpot
             // (läuft auch über die GeoVectorProperty) ausgelöst. Die GeneralGeoVectorAction arbeitet
             // direkt über die GeoVectorProperty, so dass keine weiteren Events nötig sind.

@@ -48,6 +48,7 @@ namespace CADability.DXF
                 IGeoObject geoObject = GeoObjectFromEntity(item);
                 if (geoObject != null) model.Add(geoObject);
             }
+            model.Name = "*Model_Space";
         }
         private void FillPaperSpace(Model model)
         {
@@ -57,6 +58,7 @@ namespace CADability.DXF
                 IGeoObject geoObject = GeoObjectFromEntity(item);
                 if (geoObject != null) model.Add(geoObject);
             }
+            model.Name = "*Paper_Space";
         }
         /// <summary>
         /// creates and returns the project
@@ -145,7 +147,7 @@ namespace CADability.DXF
         {
             return new GeoVector(p.X, p.Y, p.Z);
         }
-        private static Plane Plane(Vector3 center, Vector3 normal)
+        internal static Plane Plane(Vector3 center, Vector3 normal)
         {
             // this is AutoCADs arbitrary axis algorithm we must use here to get the correct plane
             // because sometimes we need the correct x-axis, y-axis orientation

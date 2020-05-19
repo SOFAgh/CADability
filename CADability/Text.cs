@@ -216,7 +216,7 @@ namespace CADability.GeoObject
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
             locationProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(locationProperty_ModifyWithMouse);
@@ -387,7 +387,7 @@ namespace CADability.GeoObject
             stringProperty.Refresh();
             lineDirectionProperty.Refresh();
         }
-        private void locationProperty_ModifyWithMouse(IShowProperty sender, bool StartModifying)
+        private void locationProperty_ModifyWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(locationProperty, text);
             frame.SetAction(gpa);
@@ -408,12 +408,12 @@ namespace CADability.GeoObject
             //    text.GlyphAngle = a;
             //}
         }
-        private void DirPropModifyWithMouse(IShowProperty sender, bool StartModifying)
+        private void DirPropModifyWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gpa = new GeneralGeoVectorAction(sender as GeoVectorProperty, text.Location);
             frame.SetAction(gpa);
         }
-        private void sizePropModifyWithMouse(IShowProperty sender, bool StartModifying)
+        private void sizePropModifyWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeoVector vl = text.LineDirection;
             GeoVector vg = text.GlyphDirection;

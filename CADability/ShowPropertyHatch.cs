@@ -79,7 +79,7 @@ namespace CADability.UserInterface
                 return items.ToArray();
             }
         }
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
             hatch.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);

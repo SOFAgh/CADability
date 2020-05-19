@@ -557,18 +557,18 @@ namespace CADability.GeoObject
             }
         }
 
-        void OnModifyDirHeightWithMouse(IShowProperty sender, bool StartModifying)
+        void OnModifyDirHeightWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, picture.Location, picture);
             frame.SetAction(gva);
         }
-        void OnModifyDirWidthWithMouse(IShowProperty sender, bool StartModifying)
+        void OnModifyDirWidthWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, picture.Location, picture);
             frame.SetAction(gva);
         }
 
-        void OnModifyLocationWithMouse(IShowProperty sender, bool StartModifying)
+        void OnModifyLocationWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(location, picture);
             frame.SetAction(gpa);
@@ -593,7 +593,7 @@ namespace CADability.GeoObject
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyTreeView propertyTreeView)
+        public override void Added(IPropertyPage propertyTreeView)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
             picture.DidChangeEvent += new ChangeDelegate(OnGeoObjectDidChange);
