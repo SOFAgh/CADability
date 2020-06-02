@@ -740,6 +740,7 @@ namespace CADability.GeoObject
 
             nubs.InitDerivS();
         }
+
         private NurbsSurface(Nurbs<GeoPointH, GeoPointHPole> nurbs)
         {
             this.nurbs = nurbs;

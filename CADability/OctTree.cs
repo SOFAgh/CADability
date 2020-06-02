@@ -1,6 +1,7 @@
 ﻿using CADability.GeoObject;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Wintellect.PowerCollections;
 
 namespace CADability
@@ -113,6 +114,8 @@ namespace CADability
         /// The root <see cref="Node&lt;T&gt;"/> of this octtree
         /// </summary>
         protected Node<T> node;
+        private readonly SplitTestFunction splitTest;
+
         /// <summary>
         /// Definition of a node of this octtree.
         /// </summary>
@@ -557,13 +560,27 @@ namespace CADability
                 {
                     if (list != null)
                     {
-                        for (int i = 0; i < list.Count; ++i)
+                        lock (addToList)
                         {
-                            addToList.Add(list[i]);
+                            for (int i = 0; i < list.Count; ++i)
+                            {
+                                addToList.Add(list[i]);
+                            }
                         }
                     }
                     else
                     {
+#if PARALLEL
+                        Parallel.Invoke(
+                        () => ppp.GetObjectsCloseTo(closeToThis, addToList),
+                        () => mpp.GetObjectsCloseTo(closeToThis, addToList),
+                        () => pmp.GetObjectsCloseTo(closeToThis, addToList),
+                        () => mmp.GetObjectsCloseTo(closeToThis, addToList),
+                        () => ppm.GetObjectsCloseTo(closeToThis, addToList),
+                        () => mpm.GetObjectsCloseTo(closeToThis, addToList),
+                        () => pmm.GetObjectsCloseTo(closeToThis, addToList),
+                        () => mmm.GetObjectsCloseTo(closeToThis, addToList));
+#else
                         ppp.GetObjectsCloseTo(closeToThis, addToList);
                         mpp.GetObjectsCloseTo(closeToThis, addToList);
                         pmp.GetObjectsCloseTo(closeToThis, addToList);
@@ -572,6 +589,7 @@ namespace CADability
                         mpm.GetObjectsCloseTo(closeToThis, addToList);
                         pmm.GetObjectsCloseTo(closeToThis, addToList);
                         mmm.GetObjectsCloseTo(closeToThis, addToList);
+#endif
                     }
                 }
             }
@@ -918,7 +936,7 @@ namespace CADability
                 }
                 return null;
             }
-            #region IComparer<Node<TT>> Members
+#region IComparer<Node<TT>> Members
 
             public int Compare(Node<TT> x, Node<TT> y)
             {
@@ -928,7 +946,7 @@ namespace CADability
                 return res;
             }
 
-            #endregion
+#endregion
             internal void Split()
             {
                 double halfSize = Geometry.NextDouble(size / 2.0);
@@ -978,7 +996,7 @@ namespace CADability
                 else if (smaller.center.z > bigger.center.z + bigger.size) p.z -= w;
                 return bigger.cube.Contains(p);
             }
-            #region IComparable<Node<TT>> Members
+#region IComparable<Node<TT>> Members
 
             int IComparable<Node<TT>>.CompareTo(Node<TT> other)
             {
@@ -988,7 +1006,7 @@ namespace CADability
                 return res;
             }
 
-            #endregion
+#endregion
 
             internal void GetAllObjects(Set<T> addToList)
             {
@@ -1095,7 +1113,8 @@ namespace CADability
         /// </summary>
         /// <param name="ext">Initial size of the tree. Objects beeng added later may exceed this cube</param>
         /// <param name="precision">Precision, used internally</param>
-        public OctTree(BoundingCube ext, double precision)
+        public delegate bool SplitTestFunction(Node<T> node, T objectToAdd);
+        public OctTree(BoundingCube ext, double precision, SplitTestFunction splitTest = null)
         {
             this.precision = precision;
             double size = ext.MaxSide / 2.0;
@@ -1108,6 +1127,7 @@ namespace CADability
                 // Zeichnung die Objekte nicht alle genau auf der Fläche zwischen oberer und unterer Hälfte liegen
             }
             node = new Node<T>(this, center, size * 1.01); // 1% größer
+            this.splitTest = splitTest;
         }
         /// <summary>
         /// Add the provided object to the tree. This may split some nodes and cause calls to the method of other objects already in the tree.
@@ -1551,6 +1571,7 @@ namespace CADability
         /// <returns>true, if node should be splitted, false otherwise</returns>
         protected virtual bool SplitNode(Node<T> node, T objectToAdd)
         {
+            if (splitTest != null) return splitTest(node, objectToAdd);
             return node.list.Count > (1 << (node.deepth)); // dynamische Anpassung der Listenlänge
             // evtl. kann hier ein Faktor mit eingehen, jetzt sind im Root nur ein Objekt
             // und in der n-ten Tiefe 2 hoch n Objekte erlaubt

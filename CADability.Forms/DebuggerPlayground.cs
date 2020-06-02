@@ -37,7 +37,7 @@ namespace CADability.Forms
             if (MenuId == "DebuggerPlayground.Debug")
             {
 
-                ExportDxf();
+                TestCollision();
                 return true;
             }
             return false;
@@ -105,5 +105,34 @@ namespace CADability.Forms
             exp.WriteToFile(frame.Project, @"C:\Zeichnungen\DxfDwg\testNetDxfOut.dxf");
 
         }
+        void TestCollision()
+        {
+            if (frame.SelectedObjects.Count>2)
+            {
+                List<Solid> tools = new List<Solid>();
+                Solid body = null;
+                for (int i = 0; i < frame.SelectedObjects.Count; i++)
+                {
+                    if (frame.SelectedObjects[i] is Solid sld)
+                    {
+                        if (sld.Name != null && sld.Name == "1583424708") body = sld;
+                        else tools.Add(sld);
+                    }
+                }
+                if (body != null && tools.Count > 0)
+                {
+                    int tc0 = System.Environment.TickCount;
+                    for (int i = 0; i < tools.Count; i++)
+                    {
+                        CollisionDetection cd = new CollisionDetection(tools[i].Shells[0], body.Shells[0]);
+                        bool collision = cd.GetResult(1e-6, false, out GeoPoint cp, out GeoObjectList collidingFaces, true);
+                    }
+                    int tc1 = System.Environment.TickCount;
+                    int dt = tc1 - tc0;
+                    System.Diagnostics.Trace.WriteLine("CollisionDetection: " + dt.ToString());
+                }
+            }
+        }
+
     }
 }

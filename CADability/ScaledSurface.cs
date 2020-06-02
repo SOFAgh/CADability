@@ -330,5 +330,16 @@ namespace CADability
         {
             return original.GetCanonicalForm(precision, bounds);
         }
+
+        public int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions)
+        {
+            // the 2d points cannot be transformed, because maybe one component is NaN
+            return original.GetExtremePositions(thisBounds, other, otherBounds, out extremePositions);
+        }
+
+        public IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions = null)
+        {
+            return original.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
+        }
     }
 }

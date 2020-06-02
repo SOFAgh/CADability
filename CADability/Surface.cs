@@ -406,7 +406,7 @@ namespace CADability.GeoObject
         /// <param name="surface2"></param>
         /// <param name="bounds2"></param>
         /// <returns></returns>
-        IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds);
+        IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions = null);
         /// <summary>
         /// Returns a List of self intersection curves in the u/v system
         /// </summary>
@@ -428,7 +428,16 @@ namespace CADability.GeoObject
         /// <param name="precision">maximal allowed deviation of the new surface</param>
         /// <returns></returns>
         ISurface GetCanonicalForm(double precision, BoundingRect? bounds = null);
-
+        /// <summary>
+        /// Find positions in the uv system, where the connection of the points are perpendicular on both surfaces. the resulting list <paramref name="extremePositions"/> may be 
+        /// only partially filled, the missing uv values may be double.NaN, because this is what we need in most cases.
+        /// </summary>
+        /// <param name="thisBounds"></param>
+        /// <param name="other"></param>
+        /// <param name="otherBounds"></param>
+        /// <param name="extremePositions"></param>
+        /// <returns></returns>
+        int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
     }
 
     /// <summary>
@@ -2111,7 +2120,7 @@ namespace CADability.GeoObject
     /// </summary>
 
     public abstract class ISurfaceImpl : IShowPropertyImpl, ISurface, IOctTreeInsertable
-        ,IPropertyEntry
+        , IPropertyEntry
     {
         protected GeoPoint2D[] extrema; // Achtung, muss bei Modify auf null gesetzt werden
         internal BoxedSurface boxedSurface;
@@ -3219,11 +3228,9 @@ namespace CADability.GeoObject
         /// <param name="otherBounds"></param>
         /// <returns></returns>
         public virtual ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
-        {   // nach und nach selbst implementieren, bei den einzelnen Flächen und hier generell
-            // Im generellen Fall eine Art OctTree verwenden, die surface muss also HitTest(BoungCube)
-            // implementieren, und die Würfelchen immer kleiner machen um ggf. zwei Kurven zu trennen
-            // dann Polylinie erzeugen...
-            throw new NotImplementedException();
+        {
+            GetExtremePositions(thisBounds, other, otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
+            return BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null, extremePositions);
         }
         public virtual ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)
         {
@@ -3576,6 +3583,46 @@ namespace CADability.GeoObject
             GeoPoint2D res = PositionOf(p);
             SurfaceHelper.AdjustPeriodic(this, domain, ref res);
             return res;
+        }
+        public virtual int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions)
+        {
+            extremePositions = new List<Tuple<double, double, double, double>>();
+            GeoPoint2D uv11 = thisBounds.GetCenter();
+            GeoPoint2D uv22 = otherBounds.GetCenter();
+            double maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv11, ref uv22);
+            if (maxerror < Precision.eps)
+            {
+                if ((this.PointAt(uv11) | other.PointAt(uv22)) < Precision.eps)
+                {
+                    // this is an intersection point. try to find another intersection point and take the point in the middle
+                    // this will not be an extreme point but a good additional point for BoxedSurface.Intersect additionalSearchPositions
+                    foreach (GeoPoint2D uv111 in new GeoPoint2D[] { thisBounds.GetLowerLeft(), thisBounds.GetLowerRight(), thisBounds.GetUpperLeft(), thisBounds.GetUpperRight() })
+                    {   // try with different starting points to find more intersection points
+                        GeoPoint2D uv2 = other.PositionOf(this.PointAt(uv111));
+                        GeoPoint2D uv1 = uv111;
+                        maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv1, ref uv2);
+                        if (maxerror < Precision.eps && (uv1 | uv11) > Precision.eps && (uv2 | uv22) > Precision.eps)
+                        {   //we have another intersection point and we will use the point in between
+                            if ((this.PointAt(uv1) | other.PointAt(uv2)) < Precision.eps)
+                            {   // a second intersection point
+                                extremePositions.Add(new Tuple<double, double, double, double>((uv1.x + uv11.x) / 2.0, (uv1.y + uv11.y) / 2.0, (uv2.x + uv22.x) / 2.0, (uv2.y + uv22.y) / 2.0));
+                            }
+                            else
+                            {   // a real extreme point, which is not an intersection point
+                                extremePositions.Add(new Tuple<double, double, double, double>(uv1.x, uv1.y, uv2.x, uv2.y));
+                            }
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    if (thisBounds.Contains(uv11)) extremePositions.Add(new Tuple<double, double, double, double>(uv11.x, uv11.y, double.NaN, double.NaN));
+                    if (otherBounds.Contains(uv22)) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, uv22.x, uv22.y));
+                }
+            }
+            // else: search with different starting points
+            return extremePositions.Count;
         }
 
 #if DEBUG
@@ -4319,7 +4366,7 @@ namespace CADability.GeoObject
             throw new Exception("The method or operation is not implemented.");
         }
 
-        public virtual IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds)
+        public virtual IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {
             if (this is ISurfaceOfRevolution && other is ISurfaceOfRevolution && !(this is SurfaceOfRevolution) && !(other is SurfaceOfRevolution)) // SurfaceOfRevolution rotates in v!
             {
@@ -4399,7 +4446,7 @@ namespace CADability.GeoObject
             // sollte für Ebene, Cylinder, Kegel, Kugel, Torus überschrieben werden
             ModOp2D mop;
             if (SameGeometry(thisBounds, other, otherBounds, Precision.eps, out mop)) return new IDualSurfaceCurve[0]; // surfaces are identical, no intersection
-            ICurve[] cvs = BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, seeds);
+            ICurve[] cvs = BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, seeds, extremePositions);
             DualSurfaceCurve[] res = new DualSurfaceCurve[cvs.Length];
             for (int i = 0; i < res.Length; i++)
             {
@@ -4589,7 +4636,7 @@ namespace CADability.GeoObject
                 bounds1.MinMax(paramsuvsurf1[j]);
                 bounds2.MinMax(paramsuvsurf2[j]);
             }
-            IDualSurfaceCurve[] dscs = surface1.GetDualSurfaceCurves(bounds1, surface2, bounds2, points);
+            IDualSurfaceCurve[] dscs = surface1.GetDualSurfaceCurves(bounds1, surface2, bounds2, points, null);
             // if there are closed curves in the result we try to split them
             List<IDualSurfaceCurve> brokenClosedCurves = new List<IDualSurfaceCurve>();
             List<int> toRemove = new List<int>();
@@ -5196,17 +5243,99 @@ namespace CADability.GeoObject
             // return false;
         }
 
-        internal static ICurve[] IntersectInner(ISurface surface1, BoundingRect ext1, ISurface surface2, BoundingRect ext2)
+        internal static IDualSurfaceCurve[] IntersectInner(ISurface surface1, BoundingRect ext1, ISurface surface2, BoundingRect ext2)
         {
-            ICurve[] candidates = surface1.Intersect(ext1, surface2, ext2);
-            List<ICurve> res = new List<ICurve>();
+            int ep = surface1.GetExtremePositions(ext1, surface2, ext2, out List<Tuple<double, double, double, double>> extremePositions);
+            IDualSurfaceCurve[] candidates = surface1.GetDualSurfaceCurves(ext1, surface2, ext2, null, extremePositions);
+            List<IDualSurfaceCurve> res = new List<IDualSurfaceCurve>();
             for (int i = 0; i < candidates.Length; i++)
             {
-                if (candidates[i].IsClosed) res.Add(candidates[i]);
-                else if (Precision.Equals(candidates[i].StartPoint, candidates[i].EndPoint)) res.Add(candidates[i]);
+                if (candidates[i].Curve3D.IsClosed) res.Add(candidates[i]);
+                else if (Precision.Equals(candidates[i].Curve3D.StartPoint, candidates[i].Curve3D.EndPoint)) res.Add(candidates[i]);
+            }
+            if (res.Count==0 && ep==-1)
+            {
+                // GetExtremePositions is not implemented for all surface combinations. If it fails (returns -1) and GetDualSurfaceCurves didnt return anything
+                // then we have to use burte force to get a seed point
+                GeoPoint seed = IntersectionSeedPoint(surface1, ext1, surface2, ext2);
+                if (seed.IsValid)
+                {
+                    GeoPoint2D uv1 = surface1.PositionOf(seed);
+                    SurfaceHelper.AdjustPeriodic(surface1, ext1, ref uv1);
+                    GeoPoint2D uv2 = surface1.PositionOf(seed);
+                    SurfaceHelper.AdjustPeriodic(surface2, ext2, ref uv2);
+                    if (!ext1.Contains(uv1)) uv1 = GeoPoint2D.Invalid;
+                    if (!ext2.Contains(uv2)) uv2 = GeoPoint2D.Invalid;
+                    if (uv1.IsValid || uv2.IsValid)
+                    {
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        extremePositions.Add(new Tuple<double, double, double, double>(uv1.x, uv1.y, uv2.x, uv2.y));
+                        candidates = surface1.GetDualSurfaceCurves(ext1, surface2, ext2, null, extremePositions);
+                        res = new List<IDualSurfaceCurve>();
+                        for (int i = 0; i < candidates.Length; i++)
+                        {
+                            if (candidates[i].Curve3D.IsClosed) res.Add(candidates[i]);
+                            else if (Precision.Equals(candidates[i].Curve3D.StartPoint, candidates[i].Curve3D.EndPoint)) res.Add(candidates[i]);
+                        }
+                    }
+                }
             }
             return res.ToArray();
         }
+        private static GeoPoint IntersectionSeedPoint(ISurface surface1, BoundingRect ext1, ISurface surface2, BoundingRect ext2)
+        {
+            Face fc1 = Face.MakeFace(surface1, new SimpleShape(ext1.ToBorder()));
+            Face fc2 = Face.MakeFace(surface2, new SimpleShape(ext2.ToBorder()));
+            BoundingCube ext = fc1.GetExtent(0.0) + fc1.GetExtent(0.0);
+            bool found = false;
+            GeoPoint seed = GeoPoint.Invalid;
+            bool SplitTestFunction(OctTree<Face>.Node<Face> node, Face objectToAdd)
+            {
+                if (found) return false;
+                if (node.list != null && node.list.Count > 0 && node.list[0] != objectToAdd)
+                {
+                    if (node.size > ext.Size * 1e-3) return true;
+                    GeoPoint testPoint = node.center;
+                    if (NewtonIntersect(surface1,ext1,surface2,ext2,ref testPoint))
+                    {
+                        found = true;
+                        seed = testPoint;
+                        return false;
+                    }
+                }
+                return false;
+            }
+            OctTree<Face> ot = new OctTree<Face>(ext, Precision.eps, SplitTestFunction);
+            ot.AddObject(fc1);
+            ot.AddObject(fc2);
+            return seed;
+        }
+
+        private static bool NewtonIntersect(ISurface surface1, BoundingRect ext1, ISurface surface2, BoundingRect ext2, ref GeoPoint testPoint)
+        {
+            GeoPoint2D uv1 = surface1.PositionOf(testPoint);
+            SurfaceHelper.AdjustPeriodic(surface1, ext1, ref uv1);
+            GeoPoint2D uv2 = surface2.PositionOf(testPoint);
+            SurfaceHelper.AdjustPeriodic(surface2, ext2, ref uv2);
+            double dist = surface1.PointAt(uv1) | surface2.PointAt(uv2);
+            while (dist > Precision.eps)
+            {
+                Plane pln1 = new Plane(surface1.PointAt(uv1), surface1.GetNormal(uv1));
+                Plane pln2 = new Plane(surface2.PointAt(uv2), surface2.GetNormal(uv2));
+                if (pln1.Intersect(pln2, out GeoPoint loc, out GeoVector dir))
+                {
+                    testPoint = Geometry.DropPL(testPoint, loc, dir);
+                    uv1 = surface1.PositionOf(testPoint);
+                    uv2 = surface2.PositionOf(testPoint);
+                    double newdist = surface1.PointAt(uv1) | surface2.PointAt(uv2);
+                    if (newdist > dist) return false;
+                    else dist = newdist;
+                }
+                else break;
+            }
+            return (dist <= Precision.eps);
+        }
+
         internal static bool NewtonPerpendicular(ISurface surface, ref GeoPoint2D uv, BoundingRect ext, GeoVector dir)
         {
 
@@ -11376,7 +11505,7 @@ namespace CADability.GeoObject
                 return -1; // kommt nicht vor
             }
         }
-        internal ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds)
+        internal ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> additionalSearchPositions = null)
         {
             List<ICurve> res = new List<GeoObject.ICurve>();
             // die u bzw. v Werte, die von den sich evtl schneidenden ParEpi verwendet werden
@@ -11407,6 +11536,18 @@ namespace CADability.GeoObject
                             }
                         }
                     }
+                }
+            }
+            if (seeds == null && additionalSearchPositions != null)
+            {   // this is a special case: typically this is called to find intersections of two faces, where the edge/face intersections already have been calculated and are provided in the seeds.
+                // But it is possible that two faces have closed loops of intersection curves, which do not cross their bounds (edges). (E.g. two spheres intersect without edge intersection)
+                // If so, there must be some u or v parameters for additional checks provided. These "additionalSearchPositions" may have u or v values on this or the other surface.
+                for (int i = 0; i < additionalSearchPositions.Count; i++)
+                {
+                    if (!double.IsNaN(additionalSearchPositions[i].Item1)) addOrAdjust(uVal1, additionalSearchPositions[i].Item1);
+                    if (!double.IsNaN(additionalSearchPositions[i].Item2)) addOrAdjust(vVal1, additionalSearchPositions[i].Item2);
+                    if (!double.IsNaN(additionalSearchPositions[i].Item3)) addOrAdjust(uVal2, additionalSearchPositions[i].Item3);
+                    if (!double.IsNaN(additionalSearchPositions[i].Item4)) addOrAdjust(vVal2, additionalSearchPositions[i].Item4);
                 }
             }
             if (uVal1.Count == 0) return res.ToArray(); // nichts, keine Überlappung
@@ -12551,6 +12692,28 @@ namespace CADability.GeoObject
             return res;
         }
 
+        private void addOrAdjust(SortedSet<double> ssd, double val)
+        {   // add this new value to the set. If there is a similar value, replace it, except if it is a minimum or maximum, then don't add it
+            if (val < ssd.Min || val > ssd.Max) return; // don't add a value outside the bounds
+            double prec = (ssd.Max - ssd.Min) * 1e-4;
+            SortedSet<double> found = ssd.GetViewBetween(val - prec, val + prec); // there should be only one at maximum
+            if (found.Count == 0)
+            {
+                ssd.Add(val);
+            }
+            else
+            {
+                double foundval = found.Min; // there is probably only one
+                if (foundval == ssd.Min) return; // don't modify the minimum
+                else if (foundval == ssd.Max) return; // don't modify the maximum
+                else
+                {
+                    ssd.Remove(foundval); // replace this one by the new value
+                    ssd.Add(val);
+                }
+            }
+        }
+
         internal ICurve[] IntersectOld(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint[] seeds)
         {
             // IntersectNew(thisBounds, other, otherBounds, seeds);
@@ -13104,6 +13267,27 @@ namespace CADability.GeoObject
             }
             return res;
         }
+        internal GeoPoint2D[] PositionOfNormal(GeoVector normal)
+        {
+            List<GeoPoint2D> res = new List<GeoPoint2D>();
+            foreach (ParEpi pe in octtree.GetAllObjects())
+            {
+                bool check = false; // check, whether normal is in the span of normals of this patch
+                GeoVector span = Geometry.ReBase(normal, pe.nll, pe.nlr, pe.nur);
+                if ((span.x >= 0 && span.y >= 0 && span.z >= 0) || (span.x <= 0 && span.y <= 0 && span.z <= 0)) check = true;
+                if (!check)
+                {
+                    span = Geometry.ReBase(normal, pe.nll, pe.nur, pe.nul);
+                    if ((span.x >= 0 && span.y >= 0 && span.z >= 0) || (span.x <= 0 && span.y <= 0 && span.z <= 0)) check = true;
+                }
+                if (check)
+                {
+                    // to implement: use GaussNewtonMinimizer to calculate a uv value, where normal is normal to the surface
+                }
+            }
+            return res.ToArray();
+        }
+
 
     }
 

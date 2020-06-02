@@ -3239,6 +3239,24 @@ namespace CADability
             }
             else throw new GeometryException("no solution: linear dependant coordinate system");
         }
+        /// <summary>
+        /// Computes the vector <paramref name="toRebase"/> in the base given by <paramref name="sysDirx"/>, <paramref name="sysDiry"/> and <paramref name="sysDirz"/>.
+        /// </summary>
+        /// <param name="toRebase"></param>
+        /// <param name="sysDirx"></param>
+        /// <param name="sysDiry"></param>
+        /// <param name="sysDirz"></param>
+        /// <returns></returns>
+        public static GeoVector ReBase(GeoVector toRebase, GeoVector sysDirx, GeoVector sysDiry, GeoVector sysDirz)
+        {
+            Matrix m = new Matrix(sysDirx, sysDiry, sysDirz);
+            Matrix s = m.SaveSolveTranspose(new Matrix(toRebase));
+            if (s != null)
+            {
+                return new GeoVector(s[0, 0], s[1, 0], s[2,0]);
+            }
+            else throw new GeometryException("no solution: linear dependant coordinate system");
+        }
         public static GeoVector2D Dir2D(GeoVector dirx, GeoVector diry, GeoVector toConvert)
         {
             ModOp fromUnitPlane = new ModOp(dirx, diry, dirx ^ diry, GeoPoint.Origin);

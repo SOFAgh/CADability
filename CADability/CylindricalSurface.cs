@@ -309,14 +309,17 @@ namespace CADability.GeoObject
                 }
                 else
                 {   // ein paar spezielle Lösungen (mit Ellipsen als Ergebnis) abfangen. BoxedSurfaceEx.Intersect ist aber auch gut!
-                    double dpar1, dpar2;
-                    double adist = Geometry.DistLL(this.Location, this.Axis, cyl2.Location, cyl2.Axis, out dpar1, out dpar2);
-                    if (adist < Precision.eps)
                     {
+                        double dpar1, dpar2;
+                        double adist = Geometry.DistLL(this.Location, this.Axis, cyl2.Location, cyl2.Axis, out dpar1, out dpar2);
+                        if (adist < Precision.eps)
+                        {
 
+                        }
+                        GetExtremePositions(thisBounds, other, otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
+                        ICurve[] res = BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null, extremePositions);
+                        return res;
                     }
-                    ICurve[] res = BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null);
-                    return res;
                     InterpolatedDualSurfaceCurve.SurfacePoint[] basePoints = new InterpolatedDualSurfaceCurve.SurfacePoint[5];
                     // wir brauchen 4 Punkte (der 5. ist der 1.)
                     // zwei Ebenen sind gegeben durch die Achse eines Zylinder und der Senkrechten auf beide Achsen, dgl. mit dem anderen Zylinder
@@ -371,8 +374,10 @@ namespace CADability.GeoObject
                     }
                 }
             }
-            return BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null); // allgemeine Lösung
-            return null;
+            {
+                GetExtremePositions(thisBounds, other, otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
+                return BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null, extremePositions); // allgemeine Lösung
+            }
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.Intersect (ICurve, BoundingRect, out GeoPoint[], out GeoPoint2D[], out double[])"/>
@@ -739,7 +744,7 @@ namespace CADability.GeoObject
                 return new ICurve2D[] { c2dpl };
             }
         }
-        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds)
+        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {   // hier sollten die Schnitte mit Ebene und Cylinder gelöst werden
             // mit höheren Flächen sollte bei diesen (also z.B. Kugel) implementiert werden
             if (other is PlaneSurface)
@@ -765,7 +770,7 @@ namespace CADability.GeoObject
                         {
                             double u = new Angle(ips[i].x, ips[i].y).Radian;
                             SurfaceHelper.AdjustUPeriodic(this, thisBounds, ref u);
-                            if (u >= thisBounds.Left-1e-10 && u <= thisBounds.Right+1e-10)
+                            if (u >= thisBounds.Left - 1e-10 && u <= thisBounds.Right + 1e-10)
                             {
                                 Line2D l1 = new Line2D(new GeoPoint2D(u, thisBounds.Bottom), new GeoPoint2D(u, thisBounds.Top));
                                 Line l = Line.TwoPoints(PointAt(l1.StartPoint), PointAt(l1.EndPoint));
@@ -1339,14 +1344,14 @@ namespace CADability.GeoObject
                                 {
                                     seedsij.Add(seeds[n]);
                                 }
-                                res.AddRange(base.GetDualSurfaceCurves(thisParts[i], other, otherParts[j], seedsij));
+                                res.AddRange(base.GetDualSurfaceCurves(thisParts[i], other, otherParts[j], seedsij, null));
                             }
                         }
                     }
                     return res.ToArray();
                 }
             }
-            return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds);
+            return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
 
         private static (int below, int above) FindClosestIndex(double[] pars, double closeTo, bool isPeriodic)
@@ -1699,7 +1704,7 @@ namespace CADability.GeoObject
                                 res = s2cx;
                             }
                         }
-                        if (minDist<(RadiusX+RadiusY)*1e-5) return res;
+                        if (minDist < (RadiusX + RadiusY) * 1e-5) return res;
                     }
                 }
             }
@@ -1915,6 +1920,77 @@ namespace CADability.GeoObject
             // ACHTUNG: zyklisch wird hier nicht berücksichtigt, wird aber vom aufrufenden Kontext (Triangulierung) berücksichtigt
             // ansonsten wäre ja auch nicht klar, welche 2d-Linie gemeint ist
             return Geometry.DistPL(PointAt(mp), PointAt(sp), PointAt(ep));
+        }
+        public override int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions)
+        {
+            switch (other)
+            {
+                case PlaneSurface ps:
+                    {
+                        other.GetExtremePositions(otherBounds, this, thisBounds, out extremePositions);
+                        if (extremePositions != null)
+                        {
+                            for (int i = 0; i < extremePositions.Count; i++)
+                            {
+                                extremePositions[i] = new Tuple<double, double, double, double>(extremePositions[i].Item3, extremePositions[i].Item4, extremePositions[i].Item1, extremePositions[i].Item2);
+                            }
+                            return extremePositions.Count;
+                        }
+                        return 0;
+                    }
+                case CylindricalSurface cs:
+                    {
+                        Geometry.DistLL(Location, ZAxis, cs.Location, cs.ZAxis, out double par1, out double par2);
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        if (par1 >= thisBounds.Bottom && par1 <= thisBounds.Top) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, par1, double.NaN, double.NaN));
+                        if (par2 >= otherBounds.Bottom && par2 <= otherBounds.Top) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, double.NaN, par2));
+                        // these are fixed u curves (circles) on both cylinders
+                        return extremePositions.Count;
+                    }
+                case ConicalSurface cos:
+                    {
+                        Geometry.DistLL(Location, ZAxis, cos.Location, cos.ZAxis, out double par1, out double par2);
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        GeoPoint cp = Location + par1 * ZAxis; // point on the cylinder axis closest to cone axis
+                        GeoPoint2D [] fpOnCone = cos.PerpendicularFoot(cp); // perpendicular from this point onto the cone
+                        for (int i = 0; i < fpOnCone.Length; i++)
+                        {
+                            SurfaceHelper.AdjustPeriodic(cos, otherBounds, ref fpOnCone[i]);
+                            if (otherBounds.Contains(fpOnCone[i])) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, fpOnCone[i].x, fpOnCone[i].y));
+                        }
+                        if (par1 >= thisBounds.Bottom && par1 <= thisBounds.Top) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, par1, double.NaN, double.NaN));
+                        return extremePositions.Count;
+                    }
+                case SphericalSurface ss:
+                    {
+                        GeoPoint fp = Geometry.DropPL(ss.Location, this.Location, this.ZAxis);
+                        GeoPoint2D[] ip = ss.GetLineIntersection(ss.Location, fp - ss.Location);
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        for (int i = 0; i < ip.Length; i++)
+                        {
+                            SurfaceHelper.AdjustPeriodic(ss, otherBounds, ref ip[i]);
+                            if (otherBounds.Contains(ip[i])) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, ip[i].x, ip[i].y));
+                        }
+                        return extremePositions.Count;
+                    }
+                case ToroidalSurface ts:
+                    {
+                        GeoPoint[] fp = Geometry.CircleLinePerpDist(ts.GetAxisEllipse(), Location, ZAxis); // fp are points on the axis-circle of the torus
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        for (int i = 0; i < fp.Length; i++)
+                        {
+                            GeoPoint2D uv = ts.PositionOf(fp[i]);
+                            SurfaceHelper.AdjustPeriodic(ts, otherBounds, ref uv); // use small circles of the torus
+                            if (otherBounds.Left <= uv.x && otherBounds.Right >= uv.x) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, uv.x, double.NaN));
+                            uv = PositionOf(fp[i]); // on this cylinder
+                            if (thisBounds.Contains(uv)) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, uv.y, double.NaN, double.NaN));
+                        }
+                        return extremePositions.Count;
+                    }
+            }
+            // otherwise: boxedsurface
+            extremePositions = null;
+            return -1; // means: no implementation for this combination
         }
         #endregion
         #region ISerializable Members

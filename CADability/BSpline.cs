@@ -145,204 +145,208 @@ namespace CADability.GeoObject
         }
         private void MakeNurbsHelper()
         {
-            // Knotenliste ist von allem anderen unabhängig
-            if (periodic)
-            {   // folgendes wurde notwendig wg. "Ele_matrice.stp". Dort gibt es Splines vom Grad 9 und periodic
-                // denen ein Pol fehlt. Aber durch zufügen des ersten Pols werden Sie nicht ganz richtig.
-                int msum = 0;
-                for (int i = 0; i < multiplicities.Length; i++)
-                {
-                    msum += multiplicities[i];
-                }
-                while (msum - degree - 1 < poles.Length)
-                {
-                    if (multiplicities[0] < multiplicities[multiplicities.Length - 1])
-                    {
-                        ++multiplicities[0];
-                    }
-                    else
-                    {
-                        ++multiplicities[multiplicities.Length - 1];
-                    }
-                    ++msum;
-                }
-                if (msum - degree - 1 < poles.Length)
-                {
-                    List<GeoPoint> lpoles = new List<GeoPoint>(poles);
-                    lpoles.Add(poles[0]);
-                    poles = lpoles.ToArray();
-                    if (weights != null)
-                    {
-                        List<double> lweights = new List<double>(weights);
-                        lweights.Add(weights[0]);
-                        weights = lweights.ToArray();
-                    }
-                }
-            }
-            List<double> knotslist = new List<double>();
-            for (int i = 0; i < knots.Length; ++i)
+            lock (this)
             {
-                for (int j = 0; j < multiplicities[i]; ++j)
-                {
-                    knotslist.Add(knots[i]);
-                }
-            }
-            if (periodic && poles.Length > 2)
-            {
-                double dknot = knots[knots.Length - 1] - knots[0];
-                // letztlich ist es komisch, dass zwei knoten vornedran müssen
-                //for (int i = 0; i < 1; ++i) // 
-                //{
-                //    knotslist.Insert(0, knotslist[knotslist.Count - degree - i] - dknot);
-                //}
-                //for (int i = 0; i < 2 * degree - 2; ++i)
-                //{
-                //    knotslist.Add(knotslist[2 * (degree - 1) + i] + dknot);
-                //}
-                // neue Idee: 
-                // 1. es werden immer "degree" poles hinten angehängt
-                // 2. der 1. Knoten muss immer degree+1 mal vorkommen ( siehe STEP/piece0: dort sind alle Knoten 4-fach
-                //    bei degree=5 und FindSpan muss immer eine Stelle finden, an der es gerade wechselt
-                // 3. es werden soviele Knoten hinten angehängt, dass "knotslist.Length-degree-1 ==  poles.length" gilt
-                //for (int i = 0; i < 1; ++i) // 
-                //{
-                //    knotslist.Insert(0, knotslist[knotslist.Count - degree - i] - dknot);
-                //}
-                int secondknotindex = multiplicities[0];
-                for (int i = 0; i <= degree - multiplicities[0]; ++i)
-                {
-                    knotslist.Insert(0, knotslist[knotslist.Count - degree - i] - dknot);
-                    ++secondknotindex;
-                }
-                while (knotslist.Count - degree - 1 < poles.Length + degree)
-                {
-                    knotslist.Add(knotslist[secondknotindex] + dknot);
-                    ++secondknotindex;
-                }
-            }
-            if ((this as ICurve).GetPlanarState() == PlanarState.Planar)
-            {   // in Wirklichkeit ein 2d spline, nur im Raum gelegen
-                if (weights == null)
-                {
-                    GeoPoint2D[] npoles;
-                    if (periodic)
+                if (nurbsHelper) return; // has already been calculated
+                // Knotenliste ist von allem anderen unabhängig
+                if (periodic)
+                {   // folgendes wurde notwendig wg. "Ele_matrice.stp". Dort gibt es Splines vom Grad 9 und periodic
+                    // denen ein Pol fehlt. Aber durch zufügen des ersten Pols werden Sie nicht ganz richtig.
+                    int msum = 0;
+                    for (int i = 0; i < multiplicities.Length; i++)
                     {
-                        npoles = new GeoPoint2D[poles.Length + degree];
-                        for (int i = 0; i < poles.Length; ++i)
+                        msum += multiplicities[i];
+                    }
+                    while (msum - degree - 1 < poles.Length)
+                    {
+                        if (multiplicities[0] < multiplicities[multiplicities.Length - 1])
                         {
-                            npoles[i] = plane.Value.Project(poles[i]);
+                            ++multiplicities[0];
                         }
-                        for (int i = 0; i < degree; ++i)
+                        else
                         {
-                            npoles[poles.Length + i] = plane.Value.Project(poles[i]);
+                            ++multiplicities[multiplicities.Length - 1];
                         }
+                        ++msum;
+                    }
+                    if (msum - degree - 1 < poles.Length)
+                    {
+                        List<GeoPoint> lpoles = new List<GeoPoint>(poles);
+                        lpoles.Add(poles[0]);
+                        poles = lpoles.ToArray();
+                        if (weights != null)
+                        {
+                            List<double> lweights = new List<double>(weights);
+                            lweights.Add(weights[0]);
+                            weights = lweights.ToArray();
+                        }
+                    }
+                }
+                List<double> knotslist = new List<double>();
+                for (int i = 0; i < knots.Length; ++i)
+                {
+                    for (int j = 0; j < multiplicities[i]; ++j)
+                    {
+                        knotslist.Add(knots[i]);
+                    }
+                }
+                if (periodic && poles.Length > 2)
+                {
+                    double dknot = knots[knots.Length - 1] - knots[0];
+                    // letztlich ist es komisch, dass zwei knoten vornedran müssen
+                    //for (int i = 0; i < 1; ++i) // 
+                    //{
+                    //    knotslist.Insert(0, knotslist[knotslist.Count - degree - i] - dknot);
+                    //}
+                    //for (int i = 0; i < 2 * degree - 2; ++i)
+                    //{
+                    //    knotslist.Add(knotslist[2 * (degree - 1) + i] + dknot);
+                    //}
+                    // neue Idee: 
+                    // 1. es werden immer "degree" poles hinten angehängt
+                    // 2. der 1. Knoten muss immer degree+1 mal vorkommen ( siehe STEP/piece0: dort sind alle Knoten 4-fach
+                    //    bei degree=5 und FindSpan muss immer eine Stelle finden, an der es gerade wechselt
+                    // 3. es werden soviele Knoten hinten angehängt, dass "knotslist.Length-degree-1 ==  poles.length" gilt
+                    //for (int i = 0; i < 1; ++i) // 
+                    //{
+                    //    knotslist.Insert(0, knotslist[knotslist.Count - degree - i] - dknot);
+                    //}
+                    int secondknotindex = multiplicities[0];
+                    for (int i = 0; i <= degree - multiplicities[0]; ++i)
+                    {
+                        knotslist.Insert(0, knotslist[knotslist.Count - degree - i] - dknot);
+                        ++secondknotindex;
+                    }
+                    while (knotslist.Count - degree - 1 < poles.Length + degree)
+                    {
+                        knotslist.Add(knotslist[secondknotindex] + dknot);
+                        ++secondknotindex;
+                    }
+                }
+                if ((this as ICurve).GetPlanarState() == PlanarState.Planar)
+                {   // in Wirklichkeit ein 2d spline, nur im Raum gelegen
+                    if (weights == null)
+                    {
+                        GeoPoint2D[] npoles;
+                        if (periodic)
+                        {
+                            npoles = new GeoPoint2D[poles.Length + degree];
+                            for (int i = 0; i < poles.Length; ++i)
+                            {
+                                npoles[i] = plane.Value.Project(poles[i]);
+                            }
+                            for (int i = 0; i < degree; ++i)
+                            {
+                                npoles[poles.Length + i] = plane.Value.Project(poles[i]);
+                            }
 
+                        }
+                        else
+                        {
+                            npoles = new GeoPoint2D[poles.Length];
+                            for (int i = 0; i < poles.Length; ++i)
+                            {
+                                npoles[i] = plane.Value.Project(poles[i]);
+                            }
+                        }
+                        this.nubs2d = new Nurbs<GeoPoint2D, GeoPoint2DPole>(degree, npoles, knotslist.ToArray());
+                        nubs2d.InitDeriv1();
                     }
                     else
                     {
-                        npoles = new GeoPoint2D[poles.Length];
-                        for (int i = 0; i < poles.Length; ++i)
+                        GeoPoint2DH[] npoles;
+                        if (periodic && poles.Length > 2)
                         {
-                            npoles[i] = plane.Value.Project(poles[i]);
+                            npoles = new GeoPoint2DH[poles.Length + degree];
+                            for (int i = 0; i < poles.Length; ++i)
+                            {
+                                npoles[i] = new GeoPoint2DH(plane.Value.Project(poles[i]), weights[i]);
+                            }
+                            for (int i = 0; i < degree; ++i)
+                            {
+                                npoles[poles.Length + i] = new GeoPoint2DH(plane.Value.Project(poles[i]), weights[i]);
+                            }
                         }
+                        else
+                        {
+                            npoles = new GeoPoint2DH[poles.Length];
+                            for (int i = 0; i < poles.Length; ++i)
+                            {
+                                npoles[i] = new GeoPoint2DH(plane.Value.Project(poles[i]), weights[i]);
+                            }
+                        }
+                        this.nurbs2d = new Nurbs<GeoPoint2DH, GeoPoint2DHPole>(degree, npoles, knotslist.ToArray());
+                        //int dbg = nurbs2d.CurveKnotIns(knotslist[0], degree, out double[] newkn, out GeoPoint2DH[] newpo);
+                        nurbs2d.InitDeriv1();
                     }
-                    this.nubs2d = new Nurbs<GeoPoint2D, GeoPoint2DPole>(degree, npoles, knotslist.ToArray());
-                    nubs2d.InitDeriv1();
                 }
                 else
-                {
-                    GeoPoint2DH[] npoles;
-                    if (periodic && poles.Length > 2)
+                {   // echte 3d Kurve
+                    if (weights == null)
                     {
-                        npoles = new GeoPoint2DH[poles.Length + degree];
-                        for (int i = 0; i < poles.Length; ++i)
+                        GeoPoint[] npoles;
+                        if (periodic && poles.Length > 2)
                         {
-                            npoles[i] = new GeoPoint2DH(plane.Value.Project(poles[i]), weights[i]);
+                            npoles = new GeoPoint[poles.Length + 2 * degree - 2];
+                            for (int i = 0; i < poles.Length; ++i)
+                            {
+                                npoles[i] = poles[i];
+                            }
+                            for (int i = 0; i < 2 * degree - 2; ++i)
+                            {
+                                npoles[poles.Length + i] = poles[i];
+                            }
                         }
-                        for (int i = 0; i < degree; ++i)
+                        else
                         {
-                            npoles[poles.Length + i] = new GeoPoint2DH(plane.Value.Project(poles[i]), weights[i]);
+                            npoles = new GeoPoint[poles.Length];
+                            for (int i = 0; i < poles.Length; ++i)
+                            {
+                                npoles[i] = poles[i];
+                            }
                         }
+                        this.nubs3d = new Nurbs<GeoPoint, GeoPointPole>(degree, npoles, knotslist.ToArray());
+                        nubs3d.InitDeriv1();
                     }
                     else
                     {
-                        npoles = new GeoPoint2DH[poles.Length];
-                        for (int i = 0; i < poles.Length; ++i)
+                        GeoPointH[] npoles;
+                        if (periodic && poles.Length > 2)
                         {
-                            npoles[i] = new GeoPoint2DH(plane.Value.Project(poles[i]), weights[i]);
+                            npoles = new GeoPointH[poles.Length + degree];
+                            for (int i = 0; i < poles.Length; ++i)
+                            {
+                                npoles[i] = new GeoPointH(poles[i], weights[i]);
+                            }
+                            for (int i = 0; i < degree; ++i)
+                            {
+                                npoles[poles.Length + i] = new GeoPointH(poles[i], weights[i]);
+                            }
+                            // war vorher so, gab aber mitunter falsch Anzahl von Poles zu knots
+                            //npoles = new GeoPointH[poles.Length + 2 * degree - 2];
+                            //for (int i = 0; i < poles.Length; ++i)
+                            //{
+                            //    npoles[i] = new GeoPointH(poles[i], weights[i]);
+                            //}
+                            //for (int i = 0; i < 2 * degree - 2; ++i)
+                            //{
+                            //    npoles[poles.Length + i] = new GeoPointH(poles[i], weights[i]);
+                            //}
                         }
+                        else
+                        {
+                            npoles = new GeoPointH[poles.Length];
+                            for (int i = 0; i < poles.Length; ++i)
+                            {
+                                npoles[i] = new GeoPointH(poles[i], weights[i]);
+                            }
+                        }
+                        this.nurbs3d = new Nurbs<GeoPointH, GeoPointHPole>(degree, npoles, knotslist.ToArray());
+                        nurbs3d.InitDeriv1();
                     }
-                    this.nurbs2d = new Nurbs<GeoPoint2DH, GeoPoint2DHPole>(degree, npoles, knotslist.ToArray());
-                    //int dbg = nurbs2d.CurveKnotIns(knotslist[0], degree, out double[] newkn, out GeoPoint2DH[] newpo);
-                    nurbs2d.InitDeriv1();
                 }
+                nurbsHelper = true;
             }
-            else
-            {   // echte 3d Kurve
-                if (weights == null)
-                {
-                    GeoPoint[] npoles;
-                    if (periodic && poles.Length > 2)
-                    {
-                        npoles = new GeoPoint[poles.Length + 2 * degree - 2];
-                        for (int i = 0; i < poles.Length; ++i)
-                        {
-                            npoles[i] = poles[i];
-                        }
-                        for (int i = 0; i < 2 * degree - 2; ++i)
-                        {
-                            npoles[poles.Length + i] = poles[i];
-                        }
-                    }
-                    else
-                    {
-                        npoles = new GeoPoint[poles.Length];
-                        for (int i = 0; i < poles.Length; ++i)
-                        {
-                            npoles[i] = poles[i];
-                        }
-                    }
-                    this.nubs3d = new Nurbs<GeoPoint, GeoPointPole>(degree, npoles, knotslist.ToArray());
-                    nubs3d.InitDeriv1();
-                }
-                else
-                {
-                    GeoPointH[] npoles;
-                    if (periodic && poles.Length > 2)
-                    {
-                        npoles = new GeoPointH[poles.Length + degree];
-                        for (int i = 0; i < poles.Length; ++i)
-                        {
-                            npoles[i] = new GeoPointH(poles[i], weights[i]);
-                        }
-                        for (int i = 0; i < degree; ++i)
-                        {
-                            npoles[poles.Length + i] = new GeoPointH(poles[i], weights[i]);
-                        }
-                        // war vorher so, gab aber mitunter falsch Anzahl von Poles zu knots
-                        //npoles = new GeoPointH[poles.Length + 2 * degree - 2];
-                        //for (int i = 0; i < poles.Length; ++i)
-                        //{
-                        //    npoles[i] = new GeoPointH(poles[i], weights[i]);
-                        //}
-                        //for (int i = 0; i < 2 * degree - 2; ++i)
-                        //{
-                        //    npoles[poles.Length + i] = new GeoPointH(poles[i], weights[i]);
-                        //}
-                    }
-                    else
-                    {
-                        npoles = new GeoPointH[poles.Length];
-                        for (int i = 0; i < poles.Length; ++i)
-                        {
-                            npoles[i] = new GeoPointH(poles[i], weights[i]);
-                        }
-                    }
-                    this.nurbs3d = new Nurbs<GeoPointH, GeoPointHPole>(degree, npoles, knotslist.ToArray());
-                    nurbs3d.InitDeriv1();
-                }
-            }
-            nurbsHelper = true;
         }
         private void MakeInterpol()
         {   // die Interpolation geht mindestens durch die Knotenpunkte
@@ -3910,7 +3914,7 @@ namespace CADability.GeoObject
         {
             get
             {
-                if (weights!=null)
+                if (weights != null)
                 {
                     for (int i = 0; i < weights.Length; i++)
                     {

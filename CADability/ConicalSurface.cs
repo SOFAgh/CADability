@@ -152,6 +152,7 @@ namespace CADability.GeoObject
             uv.y += voffset; // voffset sollte jetzt immer 0 sein. Nein, unmittelbar nach dem Erzeugen aus OCas ist es das nicht und PointAt kommt schon dran
             return toCone * new GeoPoint(uv.y * Math.Cos(uv.x), uv.y * Math.Sin(uv.x), uv.y);
         }
+
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.PositionOf (GeoPoint)"/>
         /// </summary>
@@ -308,6 +309,15 @@ namespace CADability.GeoObject
         public override GeoVector VDirection(GeoPoint2D uv)
         {
             return toCone * new GeoVector(Math.Cos(uv.x), Math.Sin(uv.x), 1.0);
+        }
+        public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
+        {
+            location = PointAt(uv); // GeoPoint(uv.y * Math.Cos(uv.x), uv.y * Math.Sin(uv.x), uv.y);
+            du = toCone * new GeoVector(-uv.y * Math.Sin(uv.x), uv.y * Math.Cos(uv.x), 0.0);
+            dv = toCone * new GeoVector(Math.Cos(uv.x), Math.Sin(uv.x), 1.0);
+            duu = toCone * new GeoVector(-uv.y * Math.Cos(uv.x), -uv.y * Math.Sin(uv.x), 0.0);
+            dvv = toCone * new GeoVector(0.0, 0.0, 0.0);
+            duv = toCone * new GeoVector(-Math.Sin(uv.x), Math.Cos(uv.x), 0.0);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNormal (GeoPoint2D)"/>
@@ -1504,14 +1514,14 @@ namespace CADability.GeoObject
 #endif
             return res;
         }
-        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds)
+        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {
             if (other is PlaneSurface)
             {
                 return GetPlaneIntersection(other as PlaneSurface, thisBounds.Left, thisBounds.Right, thisBounds.Bottom, thisBounds.Top, Precision.eps);
 
             }
-            return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds);
+            return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
         public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
         {
@@ -1643,6 +1653,91 @@ namespace CADability.GeoObject
                 }
             }
             return base.GetProjectedCurve(curve, precision);
+        }
+        public override int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions)
+        {
+            switch (other)
+            {
+                case PlaneSurface _:
+                case CylindricalSurface _:
+                    {
+                        int res = other.GetExtremePositions(otherBounds, this, thisBounds, out extremePositions);
+                        for (int i = 0; i < extremePositions.Count; i++)
+                        {
+                            extremePositions[i] = new Tuple<double, double, double, double>(extremePositions[i].Item3, extremePositions[i].Item4, extremePositions[i].Item1, extremePositions[i].Item2);
+                        }
+                        return res;
+                    }
+                case ConicalSurface cs:
+                    {
+                        // we are looking for a connection line of the two axis where the angle of the connection line to the axis is perpendicular to the semi angle of the cone
+                        // i.e. this line is perpendicular to both cone surfaces
+                        // maybe this is too time-consuming and we should use a new GaussNewtonMinimizer for finding a perpendicular connection of two surfaces
+                        GeoVector nzaxis1 = ZAxis.Normalized;
+                        GeoVector nzaxis2 = cs.ZAxis.Normalized;
+                        Geometry.DistLL(Location, nzaxis1, cs.Location, nzaxis2, out double s1, out double s2);
+                        GeoPoint p1 = Location + s1 * nzaxis1; // good starting positions for "LineConnection", which starts with s1 and s2 == 0
+                        GeoPoint p2 = cs.Location + s2 * nzaxis2;
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        for (int i = 0; i < 4; i++)
+                        {
+                            double a1, a2;
+                            switch (i)
+                            {
+                                case 0:
+                                    a1 = Math.Cos(Math.PI / 2.0 + OpeningAngle / 2.0);
+                                    a2 = Math.Cos(Math.PI / 2.0 + cs.OpeningAngle / 2.0);
+                                    break;
+                                case 1:
+                                    a1 = Math.Cos(-Math.PI / 2.0 + OpeningAngle / 2.0);
+                                    a2 = Math.Cos(Math.PI / 2.0 + cs.OpeningAngle / 2.0);
+                                    break;
+                                case 2:
+                                    a1 = Math.Cos(Math.PI / 2.0 + OpeningAngle / 2.0);
+                                    a2 = Math.Cos(-Math.PI / 2.0 + cs.OpeningAngle / 2.0);
+                                    break;
+                                default:
+                                case 3:
+                                    a1 = Math.Cos(-Math.PI / 2.0 + OpeningAngle / 2.0);
+                                    a2 = Math.Cos(-Math.PI / 2.0 + cs.OpeningAngle / 2.0);
+                                    break;
+                            }
+                            GaussNewtonMinimizer.LineConnection(p1, nzaxis1, p2, nzaxis2, a1, a2, out s1, out s2);
+                            Line intsLine = Line.TwoPoints(p1 + s1 * nzaxis1, p2 + s2 * nzaxis2);
+                            GeoPoint2D[] ips = this.GetLineIntersection(intsLine.StartPoint, intsLine.StartDirection); // two points, one is perpendicular
+                            if (ips.Length == 2)
+                            {
+                                GeoPoint2D found;
+                                if (Math.Abs(VDirection(ips[0]) * intsLine.StartDirection) < Math.Abs(VDirection(ips[1]) * intsLine.StartDirection)) found = ips[0];
+                                else found = ips[1];
+                                SurfaceHelper.AdjustPeriodic(this, thisBounds, ref found);
+                                if (thisBounds.Contains(found)) extremePositions.Add(new Tuple<double, double, double, double>(found.x, found.y, double.NaN, double.NaN));
+                            }
+                            ips = cs.GetLineIntersection(intsLine.StartPoint, intsLine.StartDirection);
+                            if (ips.Length == 2)
+                            {
+                                GeoPoint2D found;
+                                if (Math.Abs(cs.VDirection(ips[0]) * intsLine.StartDirection) < Math.Abs(cs.VDirection(ips[1]) * intsLine.StartDirection)) found = ips[0];
+                                else found = ips[1];
+                                SurfaceHelper.AdjustPeriodic(other, otherBounds, ref found);
+                                if (otherBounds.Contains(found)) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, found.x, found.y));
+                            }
+                        }
+                        return extremePositions.Count;
+                    }
+                case SphericalSurface ss:
+                    {
+                        GeoPoint2D[] fp = PerpendicularFoot(ss.Location);
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        for (int i = 0; i < fp.Length; i++)
+                        {
+                            SurfaceHelper.AdjustPeriodic(this, thisBounds, ref fp[i]);
+                            if (otherBounds.Contains(fp[i])) extremePositions.Add(new Tuple<double, double, double, double>(fp[i].x, fp[i].y, double.NaN, double.NaN));
+                        }
+                        return extremePositions.Count;
+                    }
+            }
+            return base.GetExtremePositions(thisBounds, other, otherBounds, out extremePositions);
         }
         #endregion
         #region ISerializable Members

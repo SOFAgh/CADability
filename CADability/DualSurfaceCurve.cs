@@ -17,6 +17,7 @@ namespace CADability
         ISurface Surface2 { get; }
         ICurve2D Curve2D2 { get; }
         void SwapSurfaces();
+        IDualSurfaceCurve[] Split(double v);
     }
 
 
@@ -60,6 +61,46 @@ namespace CADability
                 curve2D1 = t2;
                 curve2D2 = t1;
             }
+        }
+
+        IDualSurfaceCurve[] IDualSurfaceCurve.Split(double v)
+        {
+            ICurve[] splitted = curve3D.Split(v);
+            if (splitted == null || splitted.Length != 2) return null;
+            IDualSurfaceCurve dsc1 = null, dsc2 = null;
+            if (curve3D is InterpolatedDualSurfaceCurve)
+            {
+                dsc1 = new DualSurfaceCurve(splitted[0], surface1, (splitted[0] as InterpolatedDualSurfaceCurve).CurveOnSurface1, surface2, (splitted[0] as InterpolatedDualSurfaceCurve).CurveOnSurface2);
+                dsc2 = new DualSurfaceCurve(splitted[1], surface1, (splitted[1] as InterpolatedDualSurfaceCurve).CurveOnSurface1, surface2, (splitted[1] as InterpolatedDualSurfaceCurve).CurveOnSurface2);
+            }
+            else
+            {
+                dsc1 = new DualSurfaceCurve(splitted[0], surface1, surface1.GetProjectedCurve(splitted[0], 0.0), surface2, surface2.GetProjectedCurve(splitted[0], 0.0));
+                dsc2 = new DualSurfaceCurve(splitted[1], surface1, surface1.GetProjectedCurve(splitted[1], 0.0), surface2, surface2.GetProjectedCurve(splitted[1], 0.0));
+            }
+            return new IDualSurfaceCurve[] { dsc1, dsc2 };
+
+            //GeoPoint2D uv1 = surface1.PositionOf(splitted[0].EndPoint);
+            //GeoPoint2D uv2 = surface2.PositionOf(splitted[0].EndPoint);
+            //double u1 = curve2D1.PositionOf(uv1);
+            //double u2 = curve2D2.PositionOf(uv2);
+
+            //GeoVector2D dir12d = curve2D1.DirectionAt(u1);
+            //GeoVector2D dir22d = curve2D2.DirectionAt(u2);
+            //GeoVector dir1 = dir12d.x*surface1.UDirection(uv1)+ dir12d.y * surface1.VDirection(uv1);
+            //GeoVector dir2 = dir22d.x*surface2.UDirection(uv2)+ dir22d.y * surface2.VDirection(uv2);
+            //GeoVector dir = curve3D.DirectionAt(v);
+            //// dir1 should be in direction of curve3d, dir2 in the opposite dierection
+            //if (dir1 * dir < 0) curve2D1.Reverse();
+            //if (dir2 * dir > 0) curve2D2.Reverse();
+            //ICurve2D[] splitted1 = curve2D1.Split(u1);
+            //ICurve2D[] splitted2 = curve2D2.Split(u2);
+            //if (splitted1 == null || splitted1.Length != 2) return null;
+            //if (splitted2 == null || splitted2.Length != 2) return null;
+            //IDualSurfaceCurve dsc1 = null, dsc2 = null;
+            //dsc1 = new DualSurfaceCurve(splitted[0], surface1, splitted1[0], surface2, splitted2[1]);
+            //dsc2 = new DualSurfaceCurve(splitted[1], surface1, splitted1[1], surface2, splitted2[0]);
+            //return new IDualSurfaceCurve[] { dsc1, dsc2 };
         }
 
         ICurve IDualSurfaceCurve.Curve3D
@@ -603,7 +644,7 @@ namespace CADability
                 periodicDomain.MinMax(mp);
                 for (int i = 1; i <= 5; i++)
                 {
-                    GeoPoint2D p2d = surface.PositionOf(curve3D.PointAt(0.5-i/10.0));
+                    GeoPoint2D p2d = surface.PositionOf(curve3D.PointAt(0.5 - i / 10.0));
                     SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref p2d);
                     periodicDomain.MinMax(p2d);
                     p2d = surface.PositionOf(curve3D.PointAt(0.5 + i / 10.0));

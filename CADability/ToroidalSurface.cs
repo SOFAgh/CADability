@@ -2203,7 +2203,7 @@ namespace CADability.GeoObject
             }
             return new double[0];
         }
-        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds)
+        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {
             if (other is ToroidalSurface)
             {   // two toroidal surfaces with the same axis may return two circles
@@ -2315,7 +2315,7 @@ namespace CADability.GeoObject
             //        double d = Geometry.DistPL(GeoPoint2D.Origin, loc2d, axis2d);
             //    }
             //}
-            return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds);
+            return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
 
         #endregion

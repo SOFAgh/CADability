@@ -640,7 +640,7 @@ namespace CADability.GeoObject
             }
             return res; // es wird nicht auf otherBounds geclippt
         }
-        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds)
+        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {
             // this is always implemented at the more complex surface:
             if (other is PlaneSurface)
@@ -656,6 +656,53 @@ namespace CADability.GeoObject
                 }
                 return res;
             }
+        }
+        public override int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions)
+        {
+            switch (other)
+            {
+                case SphericalSurface ss:
+                    {
+                        GeoPoint2D fp = PositionOf(ss.Location);
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        extremePositions.Add(new Tuple<double, double, double, double>(fp.x, fp.y, double.NaN, double.NaN));
+                        return 1;
+                    }
+                case ToroidalSurface ts:
+                    {
+                        GeoVector dir = (ts.ZAxis ^ Normal) ^ ts.ZAxis; // this is the direction of a line from the center of the torus where the u positions of the extereme position of the torus are
+                        GeoPoint2D[] ip = ts.GetLineIntersection(ts.Location, dir); // the result should be 4 points, but we are interested in u parameters only and this must be u and u+pi
+                        if (ip!=null && ip.Length>0)
+                        {
+                            extremePositions = new List<Tuple<double, double, double, double>>();
+                            double u = ip[0].x;
+                            SurfaceHelper.AdjustUPeriodic(ts, otherBounds, ref u);
+                            if (u>=otherBounds.Left && u<=otherBounds.Right) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, u, double.NaN));
+                            u += Math.PI;
+                            SurfaceHelper.AdjustUPeriodic(ts, otherBounds, ref u);
+                            if (u >= otherBounds.Left && u <= otherBounds.Right) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, u, double.NaN));
+                            return extremePositions.Count;
+                        }
+                    }
+                    break;
+                case PlaneSurface ps:
+                case CylindricalSurface cys:
+                case ConicalSurface cos:
+                    extremePositions = null;
+                    return 0;
+                case ISurfaceImpl ns:
+                    {
+                        GeoPoint2D[] normals = ns.BoxedSurfaceEx.PositionOfNormal(Normal);
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        for (int i = 0; i < normals.Length; i++)
+                        {
+                            if (otherBounds.Contains(normals[i])) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, normals[i].x, normals[i].y));
+                        }
+                    }
+                    break;
+            }
+            extremePositions = null;
+            return -1; // means: no implementation for this combination
         }
 
         #endregion

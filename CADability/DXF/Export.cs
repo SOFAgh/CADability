@@ -54,7 +54,7 @@ namespace CADability.DXF
                 case GeoObject.Text text: entity = ExportText(text); break;
                 case GeoObject.Block block: entity = ExportBlock(block); break;
             }
-            SetAttributes(entity, geoObject);
+            if (entity!=null) SetAttributes(entity, geoObject);
             return entity;
         }
 
@@ -79,7 +79,7 @@ namespace CADability.DXF
                 if (entity != null) entities.Add(entity);
             }
             string name = blk.Name;
-            if (doc.Blocks.Contains(name)) name = GetNextAnonymousBlockName();
+            if (name==null || doc.Blocks.Contains(name) || !TableObject.IsValidName(name)) name = GetNextAnonymousBlockName();
             netDxf.Blocks.Block block = new netDxf.Blocks.Block(name, entities);
             doc.Blocks.Add(block);
             return new netDxf.Entities.Insert(block);
@@ -280,7 +280,7 @@ namespace CADability.DXF
         }
         private string GetNextAnonymousBlockName()
         {
-            return "AnonBlock" + (++anonymousBlockCounter).ToString();
+            return "AnonymousBlock" + (++anonymousBlockCounter).ToString();
         }
     }
 }

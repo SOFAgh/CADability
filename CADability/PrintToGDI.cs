@@ -2473,7 +2473,10 @@ namespace CADability
         {
             throw new NotImplementedException("The method or operation is not implemented.");
         }
+        void IPaintTo3D.PreparePointSymbol(PointSymbol pointSymbol)
+        {
 
+        }
         void IPaintTo3D.Text(GeoVector lineDirection, GeoVector glyphDirection, GeoPoint location, string fontName, string textString, System.Drawing.FontStyle fontStyle, CADability.GeoObject.Text.AlignMode alignment, CADability.GeoObject.Text.LineAlignMode lineAlignment)
         {
             if (print2D)
@@ -2857,10 +2860,6 @@ namespace CADability
             geoObjectBeeingRendered = go;
         }
 
-        void IPaintTo3D.PreparePointSymbol(PointSymbol pointSymbol)
-        {
-            
-        }
 #endif
     }
 }

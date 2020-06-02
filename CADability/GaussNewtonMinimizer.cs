@@ -38,18 +38,24 @@ namespace CADability
     {
         public delegate void ErrorFunction(double[] parameters, out double[] errorValues);
         public delegate void JacobiFunction(double[] parameters, out Matrix partialDerivations);
+        public delegate bool CheckParameterFunction(double[] parameters);
+        public delegate void CurtailParameterFunction(double[] parameters);
 
         private ErrorFunction errorFunction;
         private JacobiFunction jacobiFunction;
+        private CheckParameterFunction checkParameter;
+        private CurtailParameterFunction curtailParameter;
         private Matrix Jacobi;
         private Matrix JacobiTJacobi;
         private double[] NegJacobiTError;
         private double[] Error;
 
-        public GaussNewtonMinimizer(ErrorFunction eFunction, JacobiFunction jFunction)
+        public GaussNewtonMinimizer(ErrorFunction eFunction, JacobiFunction jFunction, CheckParameterFunction checkParameter = null, CurtailParameterFunction curtailParameter = null)
         {
             this.errorFunction = eFunction;
             this.jacobiFunction = jFunction;
+            this.checkParameter = checkParameter;
+            this.curtailParameter = curtailParameter;
         }
 
         private double dot(double[] a, double[] b)
@@ -111,6 +117,7 @@ namespace CADability
             errorFunction(startParameters, out Error);
             minError = dot(Error, Error);
             double[] pCurrent = startParameters.Clone() as double[];
+            int numOutside = 0;
             for (numIterations = 1; numIterations < maxIterations; numIterations++)
             {
                 ComputeLinearSystemInputs(pCurrent);
@@ -145,6 +152,15 @@ namespace CADability
                 if (solved == null) break; // should not happen
                 pNext = pCurrent.Add(solved.Column(0));
 #endif
+                if (checkParameter != null && !checkParameter(pNext))
+                {
+                    curtailParameter?.Invoke(pNext);
+                    ++numOutside;
+                }
+                else
+                {
+                    numOutside = 0;
+                }
                 errorFunction(pNext, out Error);
                 double error = dot(Error, Error);
                 if (error < minError)
@@ -154,13 +170,14 @@ namespace CADability
                     //minUpdateLength = Math.Sqrt(dot(NegJacobiTError, NegJacobiTError));
                     minLocation = pNext;
                     minError = error;
+                    // don't stop, if the convergation is still strong
                     if (error <= errorTolerance && convergence > 0.25) // || minUpdateLength <= updateLengthTolerance)
                     {
                         parameters = pNext;
                         return true;
                     }
                 }
-                else if (numIterations > 5) // the first few steps may diverge
+                else if (numIterations > 5 || numOutside > 3) // the first few steps may diverge, up to three continuous locations may be outside the bounds (if given)
                 {
                     parameters = pCurrent;
                     return error <= errorTolerance; // maybe the last step couldn't improve the result, so we take the last result (which was better)
@@ -378,7 +395,7 @@ namespace CADability
                     double px = points[i].x;
                     double py = points[i].y;
                     double pz = points[i].z;
-                    
+
                     derivs[i, 0] = 2 * px * (-c * pz + b * py + a * px - d) + 4 * a * (c * c + b * b + a * a - 1);
                     derivs[i, 1] = 2 * py * (-c * pz + b * py + a * px - d) + 4 * b * (c * c + b * b + a * a - 1);
                     derivs[i, 2] = 2 * pz * (-c * pz + b * py + a * px - d) + 4 * c * (c * c + b * b + a * a - 1);
@@ -779,7 +796,7 @@ namespace CADability
                 }
             }
             GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
-            bool ok = gnm.Solve(new double[] { center.x, center.y, center.z, radius }, 30, 1e-6, precision*precision, out double minError, out int numiter, out double[] result);
+            bool ok = gnm.Solve(new double[] { center.x, center.y, center.z, radius }, 30, 1e-6, precision * precision, out double minError, out int numiter, out double[] result);
             if (ok)
             {
                 center = new GeoPoint(result[0], result[1], result[2]);
@@ -903,6 +920,195 @@ namespace CADability
                 return double.MaxValue;
             }
 
+        }
+        /// <summary>
+        /// p1,d1 and p2,d2 define two lines. Find a point on each line (s1,s2) so that the connection of these two points has the angle a1 to the first and a2 to the second line. 
+        /// a1 and a2 are provided as cosinus of the angles
+        /// </summary>
+        /// <param name="p1"></param>
+        /// <param name="d1"></param>
+        /// <param name="p2"></param>
+        /// <param name="d2"></param>
+        /// <param name="a1"></param>
+        /// <param name="a2"></param>
+        /// <param name="s1"></param>
+        /// <param name="s2"></param>
+        /// <returns></returns>
+        public static double LineConnection(GeoPoint p1, GeoVector d1, GeoPoint p2, GeoVector d2, double a1, double a2, out double s1, out double s2)
+        {
+            // a1 is the cosine of the angle
+            // function: ((p1+s1*d1)-(p2*s2*d2))*d1/|(p1+s1*d1)-(p2*s2*d2)| == a1, ((p1+s1*d1)-(p2*s2*d2))*d2/|(p1+s1*d1)-(p2*s2*d2)| == a2
+            // parameters: s1, s2, values = ((p1+s1*d1)-(p2*s2*d2))*d1/|(p1+s1*d1)-(p2*s2*d2)| - a1 and ((p1+s1*d1)-(p2*s2*d2))*d2/|(p1+s1*d1)-(p2*s2*d2)| - a2
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[2];
+                double t1 = parameters[0];
+                double t2 = parameters[1];
+                GeoVector c = (p1 + t1 * d1) - (p2 + t2 * d2);
+                values[0] = sqr(c * d1 / c.Length - a1);
+                values[1] = sqr((-c) * d2 / c.Length - a2);
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(2, 2); // Jacobi Matrix 
+                double t1 = parameters[0];
+                double t2 = parameters[1];
+                //derivs[0, 0] = (sqr(d1.z) + sqr(d1.y) + sqr(d1.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (2.0 * d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + 2.0 * d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + 2.0 * d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))));
+                //derivs[1, 0] = ((-d1.z) * d2.z - d1.y * d2.y - d1.x * d2.x) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (((-2.0) * d2.z) * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) - 2.0 * d2.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) - 2.0 * d2.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))));
+                //derivs[0, 1] = ((-d1.z) * d2.z - d1.y * d2.y - d1.x * d2.x) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((2.0 * d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + 2.0 * d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + 2.0 * d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (d2.z * (d2.z * t2 - d1.z * t1 + p2.z - p1.z) + d2.y * (d2.y * t2 - d1.y * t1 + p2.y - p1.y) + d2.x * (d2.x * t2 - d1.x * t1 + p2.x - p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))));
+                //derivs[1, 1] = (sqr(d2.z) + sqr(d2.y) + sqr(d2.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((((-2.0) * d2.z) * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) - 2.0 * d2.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) - 2.0 * d2.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (d2.z * (d2.z * t2 - d1.z * t1 + p2.z - p1.z) + d2.y * (d2.y * t2 - d1.y * t1 + p2.y - p1.y) + d2.x * (d2.x * t2 - d1.x * t1 + p2.x - p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))));
+                derivs[0, 0] = (2.0 * ((sqr(d1.z) + sqr(d1.y) + sqr(d1.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (2.0 * d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + 2.0 * d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + 2.0 * d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))))))) * ((d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - a1);
+                derivs[0, 1] = (2.0 * (((-d1.z) * d2.z - d1.y * d2.y - d1.x * d2.x) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (((-2.0) * d2.z) * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) - 2.0 * d2.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) - 2.0 * d2.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))))))) * ((d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - a1);
+                derivs[1, 0] = (2.0 * (((-d1.z) * d2.z - d1.y * d2.y - d1.x * d2.x) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((2.0 * d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + 2.0 * d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + 2.0 * d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (d2.z * (d2.z * t2 - d1.z * t1 + p2.z - p1.z) + d2.y * (d2.y * t2 - d1.y * t1 + p2.y - p1.y) + d2.x * (d2.x * t2 - d1.x * t1 + p2.x - p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))))))) * ((d2.z * (d2.z * t2 - d1.z * t1 + p2.z - p1.z) + d2.y * (d2.y * t2 - d1.y * t1 + p2.y - p1.y) + d2.x * (d2.x * t2 - d1.x * t1 + p2.x - p1.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - a2);
+                derivs[1, 1] = (2.0 * ((sqr(d2.z) + sqr(d2.y) + sqr(d2.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((((-2.0) * d2.z) * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) - 2.0 * d2.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) - 2.0 * d2.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (d2.z * (d2.z * t2 - d1.z * t1 + p2.z - p1.z) + d2.y * (d2.y * t2 - d1.y * t1 + p2.y - p1.y) + d2.x * (d2.x * t2 - d1.x * t1 + p2.x - p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))))))) * ((d2.z * (d2.z * t2 - d1.z * t1 + p2.z - p1.z) + d2.y * (d2.y * t2 - d1.y * t1 + p2.y - p1.y) + d2.x * (d2.x * t2 - d1.x * t1 + p2.x - p1.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - a2);
+            }
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
+            bool ok = gnm.Solve(new double[] { 0.0, 0.0 }, 30, 1e-6, 1e-6, out double minError, out int numiter, out double[] result);
+            s1 = result[0];
+            s2 = result[1];
+            return minError;
+        }
+        /// <summary>
+        /// Calculates a uv points on each provided surface, so that the connection of the two points is perpendicular to the surfaces at these points.
+        /// Starts a GaussNewton approximation in the center of the provided parameter bounds
+        /// </summary>
+        /// <param name="surface1"></param>
+        /// <param name="bounds1"></param>
+        /// <param name="surface2"></param>
+        /// <param name="bounds2"></param>
+        /// <param name="uv1"></param>
+        /// <param name="uv2"></param>
+        /// <returns></returns>
+        public static double SurfaceExtrema(ISurface surface1, BoundingRect bounds1, ISurface surface2, BoundingRect bounds2, ref GeoPoint2D uv1, ref GeoPoint2D uv2)
+        {
+            // see extremaSurfaces.wxmx
+            // parameters uv1.x, uv1.y, uv2.x, uv2.y
+            bool checkParameter(double[] parameters)
+            {
+                GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
+                GeoPoint2D uvs2 = new GeoPoint2D(parameters[2], parameters[3]);
+                return bounds1.ContainsEps(uvs1, bounds1.Size * 1e-6) && bounds2.ContainsEps(uvs2, bounds2.Size * 1e-6);
+            }
+            void curtailParameter(double[] parameters)
+            {
+                if (parameters[0] < bounds1.Left) parameters[0] = bounds1.Left;
+                if (parameters[0] > bounds1.Right) parameters[0] = bounds1.Right;
+                if (parameters[1] < bounds1.Bottom) parameters[1] = bounds1.Bottom;
+                if (parameters[1] > bounds1.Top) parameters[1] = bounds1.Top;
+                if (parameters[2] < bounds2.Left) parameters[2] = bounds2.Left;
+                if (parameters[2] > bounds2.Right) parameters[2] = bounds2.Right;
+                if (parameters[3] < bounds2.Bottom) parameters[3] = bounds2.Bottom;
+                if (parameters[3] > bounds2.Top) parameters[3] = bounds2.Top;
+            }
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[4];
+                GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
+                GeoPoint2D uvs2 = new GeoPoint2D(parameters[2], parameters[3]);
+                GeoPoint s = surface1.PointAt(uvs1);
+                GeoPoint r = surface2.PointAt(uvs2);
+                GeoVector sdu = surface1.UDirection(uvs1);
+                GeoVector sdv = surface1.VDirection(uvs1);
+                GeoVector rds = surface2.UDirection(uvs2);
+                GeoVector rdt = surface2.VDirection(uvs2);
+                GeoVector d = s - r;
+                d.NormIfNotNull();
+
+                // according to extremaSurfaces3.wxmx (doesn't converge close to intersectin points)
+                //values[0] = d * sdu;
+                //values[1] = d * sdv;
+                //values[2] = d * rds;
+                //values[3] = d * rdt;
+
+                // according to extremaSurfaces2.wxmx
+                values[0] = (s.z - r.z) * sdu.z + (s.y - r.y) * sdu.y + (s.x - r.x) * sdu.x;
+                values[1] = (s.z - r.z) * sdv.z + (s.y - r.y) * sdv.y + (s.x - r.x) * sdv.x;
+                values[2] = rds.z * (s.z - r.z) + rds.y * (s.y - r.y) + rds.x * (s.x - r.x);
+                values[3] = rdt.z * (s.z - r.z) + rdt.y * (s.y - r.y) + rdt.x * (s.x - r.x);
+
+                // according to extremaSurfaces1.wxmx
+                //values[0] = 2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x;
+                //values[1] = 2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x;
+                //values[2] = (-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x);
+                //values[3] = (-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x);
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(4, 4);
+                GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
+                GeoPoint2D uvs2 = new GeoPoint2D(parameters[2], parameters[3]);
+                surface1.Derivation2At(uvs1, out GeoPoint s, out GeoVector sdu, out GeoVector sdv, out GeoVector sduu, out GeoVector sdvv, out GeoVector sdudv);
+                surface2.Derivation2At(uvs2, out GeoPoint r, out GeoVector rds, out GeoVector rdt, out GeoVector rdss, out GeoVector rdtt, out GeoVector rdsdt);
+
+                // some regex: 
+                // ,([uvst]),2 -> d$1$1  
+                // ,([uvst]),1 -> d$1
+                // 'diff\(([sr])([xyz])([dstuv]*)\) -> $1$3.$2  
+                // (\((?>\((?<c>)|[^()]+|\)(?<-c>))*(?(c)(?!))\))\^\(3/2\) -> exp32$1
+                // (\((?>\((?<c>)|[^()]+|\)(?<-c>))*(?(c)(?!))\))\^2 -> sqr$1  
+                // , -> \r\n
+                // ([rs])([xyz]) -> $1.$2
+                // \([su],[tv]\) -> 
+
+                // according to extremaSurfaces3.wxmx
+                //derivs[0, 0] = ((s.z - r.z) * sduu.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdu.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.z - r.z) * sdu.z * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.y - r.y) * sdu.y * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * sdu.x * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.y - r.y) * sduu.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdu.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.x - r.x) * sduu.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdu.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[0, 1] = (-((s.z - r.z) * sdu.z * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - ((s.y - r.y) * sdu.y * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * sdu.x * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (sdu.z * sdv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.z - r.z) * sdudv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (sdu.y * sdv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.y - r.y) * sdudv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (sdu.x * sdv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.x - r.x) * sdudv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[0, 2] = (-(rds.z * sdu.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - ((s.z - r.z) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x)) * sdu.z) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.y * sdu.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.y - r.y) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x)) * sdu.y) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.x * sdu.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x)) * sdu.x) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[0, 3] = (-(rdt.z * sdu.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - ((s.z - r.z) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x)) * sdu.z) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.y * sdu.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.y - r.y) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x)) * sdu.y) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.x * sdu.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x)) * sdu.x) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[1, 0] = (-((s.z - r.z) * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x) * sdv.z) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) + (sdu.z * sdv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.z - r.z) * sdudv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.y - r.y) * sdv.y * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * sdv.x * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (sdu.y * sdv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.y - r.y) * sdudv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (sdu.x * sdv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.x - r.x) * sdudv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[1, 1] = ((s.z - r.z) * sdvv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.z - r.z) * sdv.z * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.y - r.y) * sdv.y * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * sdv.x * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.y - r.y) * sdvv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.x - r.x) * sdvv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[1, 2] = (-(rds.z * sdv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - ((s.z - r.z) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x)) * sdv.z) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.y * sdv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.y - r.y) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x)) * sdv.y) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.x * sdv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x)) * sdv.x) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[1, 3] = (-(rdt.z * sdv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - ((s.z - r.z) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x)) * sdv.z) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.y * sdv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.y - r.y) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x)) * sdv.y) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.x * sdv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x)) * sdv.x) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[2, 0] = (-(rds.z * (s.z - r.z) * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - (rds.y * (s.y - r.y) * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.x * (s.x - r.x) * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rds.z * sdu.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rds.y * sdu.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rds.x * sdu.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[2, 1] = (-(rds.z * (s.z - r.z) * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - (rds.y * (s.y - r.y) * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.x * (s.x - r.x) * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rds.z * sdv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rds.y * sdv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rds.x * sdv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[2, 2] = (rdss.z * (s.z - r.z)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdss.y * (s.y - r.y)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdss.x * (s.x - r.x)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - sqr(rds.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - sqr(rds.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - sqr(rds.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.z * (s.z - r.z) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.y * (s.y - r.y) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.x * (s.x - r.x) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[2, 3] = (rdsdt.z * (s.z - r.z)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdsdt.y * (s.y - r.y)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdsdt.x * (s.x - r.x)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.z * rdt.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.y * rdt.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.x * rdt.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.z * (s.z - r.z) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.y * (s.y - r.y) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.x * (s.x - r.x) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[3, 0] = (-(rdt.z * (s.z - r.z) * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - (rdt.y * (s.y - r.y) * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.x * (s.x - r.x) * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdt.z * sdu.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdt.y * sdu.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdt.x * sdu.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[3, 1] = (-(rdt.z * (s.z - r.z) * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x))) - (rdt.y * (s.y - r.y) * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.x * (s.x - r.x) * (2 * (s.z - r.z) * sdv.z + 2 * (s.y - r.y) * sdv.y + 2 * (s.x - r.x) * sdv.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdt.z * sdv.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdt.y * sdv.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdt.x * sdv.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[3, 2] = (rdsdt.z * (s.z - r.z)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdsdt.y * (s.y - r.y)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdsdt.x * (s.x - r.x)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.z * rdt.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.y * rdt.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rds.x * rdt.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.z * (s.z - r.z) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.y * (s.y - r.y) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.x * (s.x - r.x) * ((-2 * rds.z * (s.z - r.z)) - 2 * rds.y * (s.y - r.y) - 2 * rds.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+                //derivs[3, 3] = (rdtt.z * (s.z - r.z)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdtt.y * (s.y - r.y)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + (rdtt.x * (s.x - r.x)) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - sqr(rdt.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - sqr(rdt.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - sqr(rdt.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.z * (s.z - r.z) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.y * (s.y - r.y) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - (rdt.x * (s.x - r.x) * ((-2 * rdt.z * (s.z - r.z)) - 2 * rdt.y * (s.y - r.y) - 2 * rdt.x * (s.x - r.x))) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
+
+                // according to extremaSurfaces2.wxmx
+                derivs[0, 0] = (s.z - r.z) * sduu.z + sqr(sdu.z) + (s.y - r.y) * sduu.y + sqr(sdu.y) + (s.x - r.x) * sduu.x + sqr(sdu.x);
+                derivs[0, 1] = sdu.z * sdv.z + (s.z - r.z) * sdudv.z + sdu.y * sdv.y + (s.y - r.y) * sdudv.y + sdu.x * sdv.x + (s.x - r.x) * sdudv.x;
+                derivs[0, 2] = (-rds.z * sdu.z) - rds.y * sdu.y - rds.x * sdu.x;
+                derivs[0, 3] = (-rdt.z * sdu.z) - rdt.y * sdu.y - rdt.x * sdu.x;
+                derivs[1, 0] = sdu.z * sdv.z + (s.z - r.z) * sdudv.z + sdu.y * sdv.y + (s.y - r.y) * sdudv.y + sdu.x * sdv.x + (s.x - r.x) * sdudv.x;
+                derivs[1, 1] = (s.z - r.z) * sdvv.z + sqr(sdv.z) + (s.y - r.y) * sdvv.y + sqr(sdv.y) + (s.x - r.x) * sdvv.x + sqr(sdv.x);
+                derivs[1, 2] = (-rds.z * sdv.z) - rds.y * sdv.y - rds.x * sdv.x;
+                derivs[1, 3] = (-rdt.z * sdv.z) - rdt.y * sdv.y - rdt.x * sdv.x;
+                derivs[2, 0] = rds.z * sdu.z + rds.y * sdu.y + rds.x * sdu.x;
+                derivs[2, 1] = rds.z * sdv.z + rds.y * sdv.y + rds.x * sdv.x;
+                derivs[2, 2] = rdss.z * (s.z - r.z) + rdss.y * (s.y - r.y) + rdss.x * (s.x - r.x) - sqr(rds.z) - sqr(rds.y) - sqr(rds.x);
+                derivs[2, 3] = rdsdt.z * (s.z - r.z) + rdsdt.y * (s.y - r.y) + rdsdt.x * (s.x - r.x) - rds.z * rdt.z - rds.y * rdt.y - rds.x * rdt.x;
+                derivs[3, 0] = rdt.z * sdu.z + rdt.y * sdu.y + rdt.x * sdu.x;
+                derivs[3, 1] = rdt.z * sdv.z + rdt.y * sdv.y + rdt.x * sdv.x;
+                derivs[3, 2] = rdsdt.z * (s.z - r.z) + rdsdt.y * (s.y - r.y) + rdsdt.x * (s.x - r.x) - rds.z * rdt.z - rds.y * rdt.y - rds.x * rdt.x;
+                derivs[3, 3] = rdtt.z * (s.z - r.z) + rdtt.y * (s.y - r.y) + rdtt.x * (s.x - r.x) - sqr(rdt.z) - sqr(rdt.y) - sqr(rdt.x);
+
+                // according to extremaSurfaces1.wxmx
+                //derivs[0, 0] = 2 * (s.z - r.z) * sduu.z + 2 * sqr(sdu.z) + 2 * (s.y - r.y) * sduu.y + 2 * sqr(sdu.y) + 2 * (s.x - r.x) * sduu.x + 2 * sqr(sdu.x);
+                //derivs[0, 1] = 2 * sdu.z * sdv.z + 2 * (s.z - r.z) * sdudv.z + 2 * sdu.y * sdv.y + 2 * (s.y - r.y) * sdudv.y + 2 * sdu.x * sdv.x + 2 * (s.x - r.x) * sdudv.x;
+                //derivs[0, 2] = (-2 * rds.z * sdu.z) - 2 * rds.y * sdu.y - 2 * rds.x * sdu.x;
+                //derivs[0, 3] = (-2 * rdt.z * sdu.z) - 2 * rdt.y * sdu.y - 2 * rdt.x * sdu.x;
+                //derivs[1, 0] = 2 * sdu.z * sdv.z + 2 * (s.z - r.z) * sdudv.z + 2 * sdu.y * sdv.y + 2 * (s.y - r.y) * sdudv.y + 2 * sdu.x * sdv.x + 2 * (s.x - r.x) * sdudv.x;
+                //derivs[1, 1] = 2 * (s.z - r.z) * sdvv.z + 2 * sqr(sdv.z) + 2 * (s.y - r.y) * sdvv.y + 2 * sqr(sdv.y) + 2 * (s.x - r.x) * sdvv.x + 2 * sqr(sdv.x);
+                //derivs[1, 2] = (-2 * rds.z * sdv.z) - 2 * rds.y * sdv.y - 2 * rds.x * sdv.x;
+                //derivs[1, 3] = (-2 * rdt.z * sdv.z) - 2 * rdt.y * sdv.y - 2 * rdt.x * sdv.x;
+                //derivs[2, 0] = (-2 * rds.z * sdu.z) - 2 * rds.y * sdu.y - 2 * rds.x * sdu.x;
+                //derivs[2, 1] = (-2 * rds.z * sdv.z) - 2 * rds.y * sdv.y - 2 * rds.x * sdv.x;
+                //derivs[2, 2] = (-2 * rdss.z * (s.z - r.z)) - 2 * rdss.y * (s.y - r.y) - 2 * rdss.x * (s.x - r.x) + 2 * sqr(rds.z) + 2 * sqr(rds.y) + 2 * sqr(rds.x);
+                //derivs[2, 3] = (-2 * rdsdt.z * (s.z - r.z)) - 2 * rdsdt.y * (s.y - r.y) - 2 * rdsdt.x * (s.x - r.x) + 2 * rds.z * rdt.z + 2 * rds.y * rdt.y + 2 * rds.x * rdt.x;
+                //derivs[3, 0] = (-2 * rdt.z * sdu.z) - 2 * rdt.y * sdu.y - 2 * rdt.x * sdu.x;
+                //derivs[3, 1] = (-2 * rdt.z * sdv.z) - 2 * rdt.y * sdv.y - 2 * rdt.x * sdv.x;
+                //derivs[3, 2] = (-2 * rdsdt.z * (s.z - r.z)) - 2 * rdsdt.y * (s.y - r.y) - 2 * rdsdt.x * (s.x - r.x) + 2 * rds.z * rdt.z + 2 * rds.y * rdt.y + 2 * rds.x * rdt.x;
+                //derivs[3, 3] = (-2 * rdtt.z * (s.z - r.z)) - 2 * rdtt.y * (s.y - r.y) - 2 * rdtt.x * (s.x - r.x) + 2 * sqr(rdt.z) + 2 * sqr(rdt.y) + 2 * sqr(rdt.x);
+            }
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc, checkParameter, curtailParameter);
+            bool ok = gnm.Solve(new double[] { uv1.x, uv1.y, uv2.x, uv2.y }, 30, 1e-6, 1e-6, out double minError, out int numiter, out double[] result);
+            uv1 = new GeoPoint2D(result[0], result[1]);
+            uv2 = new GeoPoint2D(result[2], result[3]);
+            return minError;
         }
 #if DEBUG
         public static void DebugCone()

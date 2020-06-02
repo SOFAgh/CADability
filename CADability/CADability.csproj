@@ -6,7 +6,7 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;xPARALLEL</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;PARALLEL</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -16,6 +16,12 @@
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="CADability.DXF\**" />
+    <EmbeddedResource Remove="CADability.DXF\**" />
+    <None Remove="CADability.DXF\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Scripting.cs" />

@@ -6,6 +6,7 @@ using CADability.Shapes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Wintellect.PowerCollections;
 #if DEBUG
 #endif
@@ -2279,150 +2280,176 @@ namespace CADability
         public bool GetResult(double precision, bool checkAllFaces, out GeoPoint collisionPoint, out GeoObjectList collidingFaces, bool fullTest = false)
         {
             bool collisionDetected = false;
-            collisionPoint = GeoPoint.Origin;
-            collidingFaces = new GeoObjectList();
+            GeoPoint tmpCollisionPoint = GeoPoint.Origin;
+            GeoObjectList tmpCollidingFaces = new GeoObjectList();
 
             // zwei QuadTrees, die die Flächen enthalten
             // (es wäre für die Distance-Methode günstig, sie würden auch die kanten und Eckpunkte enthalten, tun sie aber z.Z. nicht)
             of1 = new OctTree<Face>(s1.GetBoundingCube(), precision);
             overlappingFaces = new Set<Pair<Face, Face>>();
+#if PARALLEL
+            Parallel.ForEach(s1.Faces, (Face fc) => of1.AddObjectAsync(fc));
+#else
             foreach (Face fc in s1.Faces)
             {
                 of1.AddObject(fc);
             }
+#endif
 
 #if DEBUG
             int intscounter = 0;
 #endif
-            foreach (Edge edge in s2.Edges)
-            {
-                if (edge.Curve3D == null) continue;
-                BoundingCube curveExt = edge.Curve3D.GetExtent();
-                Face[] close = of1.GetObjectsCloseTo(edge.Curve3D as IOctTreeInsertable);
-                for (int i = 0; i < close.Length; ++i)
-                {
-                    if (!curveExt.Interferes(close[i].GetExtent(0.0))) continue; // schneller Ausschlusstest
-                    GeoPoint[] ip;
-                    GeoPoint2D[] uvOnFace;
-                    double[] uOnCurve3D;
-                    int tc0 = System.Environment.TickCount;
-                    close[i].Intersect(edge, out ip, out uvOnFace, out uOnCurve3D);
-#if DEBUG
-                    ++intscounter;
+#if PARALLEL
+            Parallel.ForEach(s2.Edges, (Edge edge) =>
+#else
+            foreach (Edge edge in s1.Edges)
 #endif
-                    if (ip != null && ip.Length > 0)
+            {
+                if (edge.Curve3D != null && (checkAllFaces || !collisionDetected))
+                {
+                    BoundingCube curveExt = edge.Curve3D.GetExtent();
+                    Face[] close = of1.GetObjectsCloseTo(edge.Curve3D as IOctTreeInsertable);
+                    for (int i = 0; i < close.Length; ++i)
                     {
-                        for (int j = 0; j < ip.Length; j++)
+                        if (!curveExt.Interferes(close[i].GetExtent(0.0))) continue; // schneller Ausschlusstest
+                        GeoPoint[] ip;
+                        GeoPoint2D[] uvOnFace;
+                        double[] uOnCurve3D;
+                        close[i].Intersect(edge, out ip, out uvOnFace, out uOnCurve3D);
+#if DEBUG
+                        ++intscounter;
+#endif
+                        if (ip != null && ip.Length > 0)
                         {
-                            GeoVector v1 = edge.Curve3D.DirectionAt(uOnCurve3D[j]);
-                            GeoVector v2 = close[i].Surface.GetNormal(uvOnFace[j]);
-                            if (Math.Abs(v1 * v2) / (v1.Length * v2.Length) > 1e-4)
-                            {   // tangentiale Schnitte gelten nicht
-                                collisionPoint = ip[j];
-                                collidingFaces.Add(close[i]);
-                                collidingFaces.Add(edge.PrimaryFace);
-                                collidingFaces.Add(edge.SecondaryFace);
-                                //return true;
-                                collisionDetected = true;
-                                if (!checkAllFaces)
-                                    return collisionDetected;
-
+                            for (int j = 0; j < ip.Length; j++)
+                            {
+                                GeoVector v1 = edge.Curve3D.DirectionAt(uOnCurve3D[j]);
+                                GeoVector v2 = close[i].Surface.GetNormal(uvOnFace[j]);
+                                if (Math.Abs(v1 * v2) / (v1.Length * v2.Length) > 1e-4)
+                                {   // tangentiale Schnitte gelten nicht
+                                    lock (tmpCollidingFaces)
+                                    {
+                                        tmpCollisionPoint = ip[j];
+                                        tmpCollidingFaces.Add(close[i]);
+                                        tmpCollidingFaces.Add(edge.PrimaryFace);
+                                        tmpCollidingFaces.Add(edge.SecondaryFace);
+                                        collisionDetected = true;
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
+#if PARALLEL
+            );
+#endif
+            if (collisionDetected && !checkAllFaces)
+            {
+                collidingFaces = tmpCollidingFaces;
+                collisionPoint = tmpCollisionPoint;
+                return true;
+            }
 
             of2 = new OctTree<Face>(s2.GetBoundingCube(), precision);
+#if PARALLEL
+            Parallel.ForEach(s2.Faces, (Face fc) => of2.AddObjectAsync(fc));
+#else
             foreach (Face fc in s2.Faces)
             {
                 of2.AddObject(fc);
             }
-            // umgekehrte Rollen
-            foreach (Edge edge in s1.Edges)
-            {
-                if (edge.Curve3D == null) continue;
-                BoundingCube curveExt = edge.Curve3D.GetExtent();
-                Face[] close = of2.GetObjectsCloseTo(edge.Curve3D as IOctTreeInsertable);
-                for (int i = 0; i < close.Length; ++i)
-                {
-                    if (!curveExt.Interferes(close[i].GetExtent(0.0))) continue;
-                    GeoPoint[] ip;
-                    GeoPoint2D[] uvOnFace;
-                    double[] uOnCurve3D;
-                    close[i].Intersect(edge, out ip, out uvOnFace, out uOnCurve3D);
-#if DEBUG
-                    ++intscounter;
 #endif
-                    if (ip != null && ip.Length > 0)
+#if PARALLEL
+            Parallel.ForEach(s1.Edges, (Edge edge) =>
+#else
+            foreach (Edge edge in s1.Edges)
+#endif
+            {
+
+                if (edge.Curve3D != null && (checkAllFaces || !collisionDetected))
+                {
+                    BoundingCube curveExt = edge.Curve3D.GetExtent();
+                    Face[] close = of2.GetObjectsCloseTo(edge.Curve3D as IOctTreeInsertable);
+                    for (int i = 0; i < close.Length; ++i)
                     {
-                        for (int j = 0; j < ip.Length; j++)
+                        if (!curveExt.Interferes(close[i].GetExtent(0.0))) continue;
+                        GeoPoint[] ip;
+                        GeoPoint2D[] uvOnFace;
+                        double[] uOnCurve3D;
+                        close[i].Intersect(edge, out ip, out uvOnFace, out uOnCurve3D);
+#if DEBUG
+                        ++intscounter;
+#endif
+                        if (ip != null && ip.Length > 0)
                         {
-                            GeoVector v1 = edge.Curve3D.DirectionAt(uOnCurve3D[j]);
-                            GeoVector v2 = close[i].Surface.GetNormal(uvOnFace[j]);
-                            if (Math.Abs(v1 * v2) / (v1.Length * v2.Length) > 1e-4)
+                            for (int j = 0; j < ip.Length; j++)
                             {
-                                collisionPoint = ip[j];
-                                collidingFaces.Add(close[i]);
-                                collidingFaces.Add(edge.PrimaryFace);
-                                collidingFaces.Add(edge.SecondaryFace);
-                                //return true;
-                                collisionDetected = true;
-                                if (!checkAllFaces)
-                                    return collisionDetected;
+                                GeoVector v1 = edge.Curve3D.DirectionAt(uOnCurve3D[j]);
+                                GeoVector v2 = close[i].Surface.GetNormal(uvOnFace[j]);
+                                if (Math.Abs(v1 * v2) / (v1.Length * v2.Length) > 1e-4)
+                                {
+                                    lock (tmpCollidingFaces)
+                                    {
+                                        tmpCollisionPoint = ip[j];
+                                        tmpCollidingFaces.Add(close[i]);
+                                        tmpCollidingFaces.Add(edge.PrimaryFace);
+                                        tmpCollidingFaces.Add(edge.SecondaryFace);
+                                        collisionDetected = true;
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
+#if PARALLEL
+            );
+#endif
+            if (collisionDetected && !checkAllFaces)
+            {
+                collidingFaces = tmpCollidingFaces;
+                collisionPoint = tmpCollisionPoint;
+                return true;
             }
 
             if (fullTest)
             {
+#if PARALLEL
+                Parallel.ForEach(s2.Faces, (Face fc) =>
+#else
                 foreach (Face fc in s2.Faces)
+#endif
                 {
-                    Face[] close = of1.GetObjectsCloseTo(fc);
-                    for (int i = 0; i < close.Length; i++)
+                    if (collisionDetected && !checkAllFaces)
                     {
-                        ICurve[] icvs = close[i].Intersect(fc);
-                        if (icvs.Length > 0)
+                        Face[] close = of1.GetObjectsCloseTo(fc);
+                        for (int i = 0; i < close.Length; i++)
                         {
-                            if (!collisionDetected)
+                            ICurve[] icvs = close[i].GetInnerIntersection(fc);
+                            if (icvs.Length > 0)
                             {
-                                collisionPoint = icvs[0].StartPoint;
-                                collisionDetected = true;
-                                if (!checkAllFaces)
-                                    return collisionDetected;
+                                lock (tmpCollidingFaces)
+                                {
+                                    if (!collisionDetected)
+                                    {
+                                        tmpCollisionPoint = icvs[0].StartPoint;
+                                        collisionDetected = true;
+                                    }
+                                    tmpCollidingFaces.Add(close[i]);
+                                    tmpCollidingFaces.Add(fc);
+                                }
                             }
-                            collidingFaces.Add(close[i]);
-                            collidingFaces.Add(fc);
                         }
                     }
                 }
-                foreach (Face fc in s1.Faces)
-                {
-                    Face[] close = of2.GetObjectsCloseTo(fc);
-                    for (int i = 0; i < close.Length; i++)
-                    {
-                        ICurve[] icvs = close[i].Intersect(fc);
-                        if (icvs.Length > 0)
-                        {
-                            if (!collisionDetected)
-                            {
-                                collisionPoint = icvs[0].StartPoint;
-                                collisionDetected = true;
-                                if (!checkAllFaces)
-                                    return collisionDetected;
-                            }
-                            collidingFaces.Add(close[i]);
-                            collidingFaces.Add(fc);
-                        }
-                    }
-                }
-
+#if PARALLEL
+            );
+#endif
             }
+            collidingFaces = tmpCollidingFaces;
+            collisionPoint = tmpCollisionPoint;
             return collisionDetected;
-            //         collisionPoint = GeoPoint.Origin;
-            //return false;
         }
 
         //public bool GetResult(double precision, out GeoPoint collisionPoint)
@@ -2586,8 +2613,8 @@ namespace CADability
                 // aber noch nicht berücksichtigt wurde
                 Set<Face> fc1 = new Set<Face>(of1.GetObjectsFromBox(new BoundingCube(fromHere, Math.Abs(res))));
                 fc1.RemoveMany(fcs); // das sind die faces, die noch nicht untersucht sind und evtl. 
-                // näher liegen als das schon gefundene res
-                // alle noch nicht untersuchten Faces checken:
+                                     // näher liegen als das schon gefundene res
+                                     // alle noch nicht untersuchten Faces checken:
                 Set<Edge> edges = new Set<Edge>();  // sind leider nicht im OctTree
                 Set<Vertex> vertices = new Set<Vertex>(); // und die auch nicht
                 foreach (Face fc in fc1)
@@ -3402,7 +3429,7 @@ namespace CADability
             ext.Expand(extsize * 1e-3);
             ext = ext.Modify(new GeoVector(extsize * 1e-4, extsize * 1e-4, extsize * 1e-4));
             Initialize(ext, extsize * 1e-6); // der OctTree
-            // put all edges and faces into the octtree
+                                             // put all edges and faces into the octtree
             foreach (Edge edg in shell1.Edges)
             {
                 base.AddObject(new BRepItem(this, edg));
@@ -3450,8 +3477,7 @@ namespace CADability
                 combineVertices(); // alle geometrisch identischen Vertices werden zusammengefasst
                 removeIdenticalOppositeFaces(); // Paare von entgegengesetzt orientierten Faces mit identischer Fläche werden entfernt
                 createNewEdges(); // faceToIntersectionEdges wird gesetzt, also für jedes Face eine Liste der neuen Schnittkanten
-                // createInnerFaceIntersections(); // Schnittpunkte zweier Faces, deren Kanten sich aber nicht schneiden, finden
-                // createInnerFaceIntersections erstmal weglassen, macht noch zu viele probleme (Futter5.cdb)
+                createInnerFaceIntersections(); // Schnittpunkte zweier Faces, deren Kanten sich aber nicht schneiden, finden
                 combineEdges(); // hier werden intsEdgeToEdgeShell1, intsEdgeToEdgeShell2 und intsEdgeToIntsEdge gesetzt, die aber z.Z. noch nicht verwendet werden
 
             }
@@ -3499,7 +3525,7 @@ namespace CADability
             ext.MinMax(ext2);
             ext.Expand(ext.Size * 1e-6);
             Initialize(ext, ext.Size * 1e-6); // der OctTree
-            // Alle edges und faces in den OctTree einfügen
+                                              // Alle edges und faces in den OctTree einfügen
             foreach (Edge edg in shell1.Edges)
             {
                 base.AddObject(new BRepItem(this, edg));
@@ -3547,8 +3573,8 @@ namespace CADability
                 combineVertices(); // alle geometrisch identischen Vertices werden zusammengefasst
                 removeIdenticalOppositeFaces(); // Paare von entgegengesetzt orientierten Faces mit identischer Fläche werden entfernt
                 createNewEdges(); // faceToIntersectionEdges wird gesetzt, also für jedes Face eine Liste der neuen Schnittkanten
-                // createInnerFaceIntersections(); // Schnittpunkte zweier Faces, deren Kanten sich aber nicht schneiden, finden
-                // createInnerFaceIntersections erstmal weglassen, macht noch zu viele probleme (Futter5.cdb)
+                                  // createInnerFaceIntersections(); // Schnittpunkte zweier Faces, deren Kanten sich aber nicht schneiden, finden
+                                  // createInnerFaceIntersections erstmal weglassen, macht noch zu viele probleme (Futter5.cdb)
                 combineEdges(); // hier werden intsEdgeToEdgeShell1, intsEdgeToEdgeShell2 und intsEdgeToIntsEdge gesetzt, die aber z.Z. noch nicht verwendet werden
 
             }
@@ -3594,8 +3620,6 @@ namespace CADability
                                         if (df.face1.Surface is CylindricalSurface) continue;
                                         if (df.face1.Surface is ConicalSurface) continue;
                                     }
-                                    if ((df.face1.Surface is CylindricalSurface || df.face1.Surface is SphericalSurface || df.face1.Surface is ConicalSurface) &&
-                                        (df.face2.Surface is CylindricalSurface || df.face2.Surface is SphericalSurface || df.face1.Surface is ConicalSurface))
                                     {
                                         // zwei (Halb-)Zylinder oder (Halb-)Kugeln können nur eine innere Schnittkurve haben. Wenn durch die Kanten schon eine gefunden
                                         // wurde, dann  braucht hier nicht weiter getestet zu werden
@@ -3613,31 +3637,25 @@ namespace CADability
             }
             foreach (DoubleFaceKey df in candidates)
             {
+                if (!df.face1.GetExtent(0.0).Interferes(df.face2.GetExtent(0.0))) continue;
                 BoundingRect ext1, ext2;
                 ext1 = df.face1.Area.GetExtent();
                 ext2 = df.face2.Area.GetExtent();
-                ICurve[] innerCurves = Surfaces.IntersectInner(df.face1.Surface, ext1, df.face2.Surface, ext2);
+                IDualSurfaceCurve[] innerCurves = Surfaces.IntersectInner(df.face1.Surface, ext1, df.face2.Surface, ext2);
                 for (int i = 0; i < innerCurves.Length; i++)
                 {   // es handelt sich immer um geschlossene Kurven
                     // Da es sich um echte innere Kurven handeln muss, also keine Schnitte mit den Kanten, genügt es, auf einen inneren Punkt zu testen
-                    if (!df.face1.Area.Contains(df.face1.Surface.PositionOf(innerCurves[i].StartPoint), false)) continue;
-                    if (!df.face2.Area.Contains(df.face2.Surface.PositionOf(innerCurves[i].StartPoint), false)) continue;
+                    if (!df.face1.Area.Contains(df.face1.Surface.PositionOf(innerCurves[i].Curve3D.StartPoint), false)) continue;
+                    if (!df.face2.Area.Contains(df.face2.Surface.PositionOf(innerCurves[i].Curve3D.StartPoint), false)) continue;
                     // es scheint besser zu sein, die Kurve aufzuteilen und zwei Kanten zu erzeugen
-                    ICurve[] parts = innerCurves[i].Split(0.5);
-                    if (parts.Length != 2) continue; // kommt nicht vor
+                    IDualSurfaceCurve[] parts = innerCurves[i].Split(0.5);
+                    if (parts == null || parts.Length != 2) continue; // kommt nicht vor
                     Vertex v1 = null, v2 = null;
                     for (int j = 0; j < 2; j++)
                     {
 
-                        ICurve2D c2df1 = df.face1.Surface.GetProjectedCurve(parts[j], precision);
-                        ICurve2D c2df2 = df.face2.Surface.GetProjectedCurve(parts[j], precision);
-                        bool dir = ((df.face1.Surface.GetNormal(c2df1.StartPoint) ^ df.face2.Surface.GetNormal(c2df2.StartPoint)) * parts[j].StartDirection) > 0;
-                        GeoVector dbg1 = df.face1.Surface.GetNormal(c2df1.PointAt(0.5));
-                        GeoVector dbg2 = df.face2.Surface.GetNormal(c2df2.PointAt(0.5));
-                        GeoVector dbg3 = parts[j].StartDirection;
-                        if (dir) c2df2.Reverse();
-                        else c2df1.Reverse();
-                        Edge edge = new Edge(df.face1, parts[j], df.face1, c2df1, dir, df.face2, c2df2, !dir);
+                        bool dir = ((df.face1.Surface.GetNormal(parts[j].Curve2D1.StartPoint) ^ df.face2.Surface.GetNormal(parts[j].Curve2D2.StartPoint)) * parts[j].Curve3D.StartDirection) > 0;
+                        Edge edge = new Edge(df.face1, parts[j].Curve3D, df.face1, parts[j].Curve2D1, dir, df.face2, parts[j].Curve2D1, !dir);
                         if (j == 0)
                         {
                             edge.MakeVertices();
@@ -4372,7 +4390,7 @@ namespace CADability
                         if (!enclosedByHole)
                         {
                             // in order to use a hole, it must be contained in a outer, positive loop
-                            bool isContainedInOutline =  totalOutlineAdded;
+                            bool isContainedInOutline = totalOutlineAdded;
                             foreach (var loop in loops)
                             {
                                 if (loop.Key > 0) // an outline
@@ -4539,7 +4557,7 @@ namespace CADability
             // to avoid oppositeCommonFaces to be connected with the trimmedFaces, we destroy these faces
             foreach (Face fce in oppositeCommonFaces) fce.DisconnectAllEdges();
             foreach (Face fce in discardedFaces) fce.DisconnectAllEdges(); // to avoid connecting with discardedFaces
-            // if we have two open edges in the trimmed faces which are identical, connect them
+                                                                           // if we have two open edges in the trimmed faces which are identical, connect them
             Dictionary<DoubleVertexKey, Edge> trimmedEdges = new Dictionary<DoubleVertexKey, Edge>();
             foreach (Face fce in trimmedFaces)
             {
@@ -4701,7 +4719,7 @@ namespace CADability
             // What about "nonManifoldEdges"?
             // 
             List<Shell> res = new List<Shell>(); // the result of this method.
-            // allfaces now contains all the trimmed faces plus the faces, which are (directly or indirectly) connected (via edges) to the trimmed faces
+                                                 // allfaces now contains all the trimmed faces plus the faces, which are (directly or indirectly) connected (via edges) to the trimmed faces
             List<Face> nonManifoldParts = new List<Face>();
             while (allFaces.Count > 0)
             {
@@ -5864,12 +5882,12 @@ namespace CADability
                     ftc.AddMany(common.Keys);
                     if (!faceToCommonFaces.TryGetValue(ov.Key.face2, out ftc)) faceToCommonFaces[ov.Key.face2] = ftc = new Set<Face>();
                     ftc.AddMany(common.Keys); // use the same faces, if we make clones, these clones will not be used in the result, but still exist when collecting faces
-                    //foreach (Face fce in common.Keys)
-                    //{
-                    //    Face clone = fce.CloneWithVertices();
-                    //    clone.ReplaceSurface(ov.Key.face2.Surface, ov.Value);
-                    //    ftc.Add(clone);
-                    //}
+                                              //foreach (Face fce in common.Keys)
+                                              //{
+                                              //    Face clone = fce.CloneWithVertices();
+                                              //    clone.ReplaceSurface(ov.Key.face2.Surface, ov.Value);
+                                              //    ftc.Add(clone);
+                                              //}
                 }
                 foreach (KeyValuePair<Face, Set<Edge>> item in common)
                 {
@@ -6049,8 +6067,8 @@ namespace CADability
                     if (SameEdge(edgi, edg, precision))
                     {
                         if (reverseSecond != (edgi.StartVertex(face2) == edg.StartVertex(face1))) isInside = true; // same direction
-                        // else isOpposite = true;
-                        //break;
+                                                                                                                   // else isOpposite = true;
+                                                                                                                   //break;
                     }
                 }
                 if (!isInside && isOpposite) continue;
@@ -6081,8 +6099,8 @@ namespace CADability
                     if (SameEdge(edgi, edg, precision))
                     {
                         if (reverseSecond != (edgi.StartVertex(face1) == edg.StartVertex(face2))) isInside = true; // same direction
-                        // else isOpposite = true; // commented out because of breps2b
-                        // break;
+                                                                                                                   // else isOpposite = true; // commented out because of breps2b
+                                                                                                                   // break;
                     }
                 }
                 if (!isInside && isOpposite) continue;
@@ -6134,7 +6152,7 @@ namespace CADability
                 face.UserData.Add("PartOf", face1.GetHashCode() + 100000 * face2.GetHashCode());
 #endif
                 res[face] = new Set<Edge>(); // empty set, the common part cannot contain intersection edges, 
-                // because they would have to intersect both faces, which would mean a self intersection on one shell
+                                             // because they would have to intersect both faces, which would mean a self intersection on one shell
             }
             foreach (Edge edg in toDisconnect)
             {
@@ -9885,8 +9903,8 @@ namespace CADability
             GeoVector n1 = etr.PrimaryFace.Surface.GetNormal(uv1);
             GeoVector n2 = etr.SecondaryFace.Surface.GetNormal(uv2);
             if (Precision.SameDirection(n1, n2, false)) return null; // the faces are tangential
-            // The rounding surface is a circle, swept on a curve, which is the intersection curve of the two offset surfaces
-            // to which side have we to move the surfaces?
+                                                                     // The rounding surface is a circle, swept on a curve, which is the intersection curve of the two offset surfaces
+                                                                     // to which side have we to move the surfaces?
             GeoVector startDir;
             if (etr.Forward(etr.PrimaryFace)) startDir = etr.Curve3D.StartDirection;
             else startDir = -etr.Curve3D.EndDirection;

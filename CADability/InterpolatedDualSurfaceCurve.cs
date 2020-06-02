@@ -867,6 +867,10 @@ namespace CADability
 #if DEBUG
         internal void CheckSurfaceParameters()
         {   // check auf parameterfehler im 2d
+            if ((basePoints[basePoints.Length-1].p3d | basePoints[basePoints.Length - 2].p3d)==0.0 || (basePoints[0].p3d | basePoints[1].p3d) == 0.0)
+            {
+
+            }
             double d = 0.0;
             for (int i = 1; i < basePoints.Length; i++)
             {
@@ -1271,7 +1275,7 @@ namespace CADability
                 return res;
             }
         }
-        IGeoObject Debug100Points
+        internal IGeoObject Debug100Points
         {
             get
             {
@@ -2190,6 +2194,14 @@ namespace CADability
                 }
                 l1.Add(p1); // die 1. Liste hört mit dem neuen Punkt auf
             }
+            for (int i = l1.Count-1; i >0; --i)
+            {
+                if ((l1[i].p3d | l1[i - 1].p3d) == 0.0) l1.RemoveAt(i);
+            }
+            for (int i = l2.Count - 1; i > 0; --i)
+            {
+                if ((l2[i].p3d | l2[i - 1].p3d) == 0.0) l2.RemoveAt(i);
+            }
             InterpolatedDualSurfaceCurve dsc1 = new InterpolatedDualSurfaceCurve(surface1, surface2, l1.ToArray());
             InterpolatedDualSurfaceCurve dsc2 = new InterpolatedDualSurfaceCurve(surface1, surface2, l2.ToArray());
             return new ICurve[] { dsc1, dsc2 };
@@ -2637,6 +2649,17 @@ namespace CADability
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             return (ToBSpline(export.Precision) as IExportStep).Export(export, topLevel);
+        }
+
+        IDualSurfaceCurve[] IDualSurfaceCurve.Split(double v)
+        {
+            ICurve[] crvs = (this as ICurve).Split(v);
+            IDualSurfaceCurve[] res = new IDualSurfaceCurve[crvs.Length];
+            for (int i = 0; i < crvs.Length; i++)
+            {
+                res[i] = crvs[i] as IDualSurfaceCurve;
+            }
+            return res;
         }
 
         #endregion

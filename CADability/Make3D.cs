@@ -1815,7 +1815,7 @@ namespace CADability.GeoObject
                     ext.MinMax(v[j].Position);
                 }
             }
-            double precision = ext.Size * 1e-6; 
+            double precision = ext.Size * 1e-6;
             OctTree<Vertex> vtxs = new OctTree<Vertex>(ext, precision);
             for (int i = 0; i < allVertices.Count; i++)
             {
@@ -2243,7 +2243,36 @@ namespace CADability.GeoObject
         /// <returns></returns>
         static public Solid MakeCone(GeoPoint location, GeoVector directionX, GeoVector directionZ, double radius1, double radius2)
         {
-            throw new NotImplementedException();
+            if (radius1 == radius2) return null;
+            // directionX must be perpendicular to directionZ
+            directionX = ((directionZ ^ directionX) ^ directionZ).Normalized;
+            GeoVector directionY = (directionZ ^ directionX).Normalized;
+            GeoVector coneSurfaceLine = (location + radius1 * directionX) - (location + directionZ + radius2 * directionX);
+            GeoPoint apex = Geometry.IntersectLL(location, directionZ, location + radius1 * directionX, coneSurfaceLine);
+            Angle halfOpening = new Angle(directionZ, coneSurfaceLine);
+            if (halfOpening > Math.PI / 2.0) halfOpening = Math.PI - halfOpening;
+            ConicalSurface cs = new ConicalSurface(apex, directionX, directionY, directionZ.Normalized, halfOpening);
+            double vmin = cs.PositionOf(location).y;
+            double vmax = cs.PositionOf(location + directionZ).y;
+            if (vmin>vmax)
+            {
+                double tmp = vmin;
+                vmin = vmax;
+                vmax = tmp;
+            }
+            Face f1 = Face.MakeFace(cs, new SimpleShape(Border.MakeRectangle(0, Math.PI, vmin, vmax)));
+            Face f2 = Face.MakeFace(cs, new SimpleShape(Border.MakeRectangle(Math.PI, Math.PI * 2, vmin, vmax)));
+            Plane pln1 = new Plane(location, directionX, directionY);
+            Plane pln2 = new Plane(location + directionZ, directionX, directionY);
+            Border bdr1 = Border.MakeCircle(GeoPoint2D.Origin, radius1);
+            Border bdr2 = Border.MakeCircle(GeoPoint2D.Origin, radius2);
+            bdr1.SplitSingleCurve(); // makes two half circles, splitted at 180°
+            bdr2.SplitSingleCurve();
+            Face f3 = Face.MakeFace(new PlaneSurface(pln1), new SimpleShape(bdr1));
+            Face f4 = Face.MakeFace(new PlaneSurface(pln2), new SimpleShape(bdr2));
+            Shell[] sh = SewFaces(new Face[] { f1, f2, f3, f4 });
+            if (sh.Length == 1) return Solid.MakeSolid(sh[0]);
+            return null;
         }
         static public Solid MakeSphere(GeoPoint location, double radius)
         {
@@ -2254,7 +2283,6 @@ namespace CADability.GeoObject
             Shell[] sh = SewFaces(new Face[] { f1, f2 });
             if (sh.Length == 1) return Solid.MakeSolid(sh[0]);
             return null;
-            throw new NotImplementedException();
         }
         static public Solid MakeTorus(GeoPoint location, GeoVector normal, double radius1, double radius2)
         {

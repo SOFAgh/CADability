@@ -1180,7 +1180,8 @@ namespace CADability
                 case "html":
                     return true;
                 case "dxf":
-                    Frame.UIService.Export(this, fileName, "dxf", 0);
+                    CADability.DXF.Export export = new DXF.Export(netDxf.Header.DxfVersion.AutoCad2000);
+                    export.WriteToFile(this, fileName);
                     return true;
                 case "dwg":
                     return true;
@@ -1648,15 +1649,96 @@ namespace CADability
             if (res != null) res.WriteToFile(FileName); // und gleich wieder rausschreiben, denn an den konvertierten Objekten hängt die falsche DLL
             return res;
         }
+        /// <summary>
+        /// If necessary, a dxf or dwg file is converted to ACAD2000 dxf version and the temporary filename is returned. Upon Dispose, the temporary files are deleted.
+        /// There is a free converter program from open design https://www.opendesign.com/guestfiles/oda_file_converter (odafileconverter.exe).
+        /// if this program is installed on the computer and the global setting "DwgDxfConverter" contains the path and filename to this program, it will be automatically executed
+        /// and the dwg file will be converted to a dxf file, which can then be imported.
+        /// </summary>
+        private class ConvertToDxfAutoCad2000 : IDisposable
+        {
+            private string folderOrg, folderConverted;
+            public string DxfFileName;
+            public ConvertToDxfAutoCad2000(string fileName, string format)
+            {
+                if ((format.Equals("dxf", StringComparison.OrdinalIgnoreCase) && !DXF.Import.CanImportVersion(fileName)) || format.Equals("dwg", StringComparison.OrdinalIgnoreCase))
+                {
+                    string converter = Settings.GlobalSettings.GetStringValue("DwgDxfConverter", null);
+                    bool isInSetting = true;
+                    if (String.IsNullOrEmpty(converter))
+                    {
+                        isInSetting = false;
+                        //converter = @"C:\Program Files\ODA\ODAFileConverter_title 21.3.0\ODAFileConverter.exe";
+                        var pf86 = Environment.GetEnvironmentVariable("ProgramW6432") + System.IO.Path.DirectorySeparatorChar + "ODA";
+                        // string programfiles = System.Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + System.IO.Path.DirectorySeparatorChar + "ODA";
+                        string programfiles = System.Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + System.IO.Path.DirectorySeparatorChar + "ODA";
+                        string[] oda = Directory.GetFiles(programfiles, "odafileconverter.exe", SearchOption.AllDirectories);
+                        for (int i = 0; i < oda.Length; i++)
+                        {
+                            string fn = System.IO.Path.GetDirectoryName(oda[i]);
+                            if (!string.IsNullOrEmpty(converter))
+                            {
+                                string fnc = System.IO.Path.GetDirectoryName(converter);
+                                if (string.Compare(fnc, fn, true) > 0) converter = oda[i];
+                            }
+                            else
+                            {
+                                converter = oda[i];
+                            }
+                        }
+                    }
+                    if (!String.IsNullOrEmpty(converter))
+                    {
+                        folderOrg = GetTemporaryDirectory();
+                        folderConverted = GetTemporaryDirectory();
+                        Directory.CreateDirectory(folderOrg);
+                        Directory.CreateDirectory(folderConverted);
+                        File.Copy(fileName, System.IO.Path.Combine(folderOrg, System.IO.Path.GetFileName(fileName)));
+                        DxfFileName = System.IO.Path.Combine(folderConverted, System.IO.Path.GetFileNameWithoutExtension(fileName) + ".dxf");
+                        System.Diagnostics.Process process = new System.Diagnostics.Process();
+                        // Configure the process using the StartInfo properties.
+                        process.StartInfo.FileName = converter;
+                        process.StartInfo.Arguments = "\"" + folderOrg + "\" " + "\"" + folderConverted + "\" " + "ACAD2000 DXF 0 0";
+                        process.Start();
+                        process.WaitForExit();// Waits here for the process to exit.                    
+                        if (!isInSetting && process.ExitCode == 0) Settings.GlobalSettings.SetValue("DwgDxfConverter", converter);
+                    }
+                }
+                else
+                {
+                    DxfFileName = fileName;
+                }
+            }
+            private string GetTemporaryDirectory()
+            {
+                string tempDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+                Directory.CreateDirectory(tempDirectory);
+                return tempDirectory;
+            }
+            void IDisposable.Dispose()
+            {
+                if (folderOrg != null)
+                {
+                    Directory.Delete(folderOrg, true);
+                    Directory.Delete(folderConverted, true);
+                }
+            }
+        }
         private static Project ImportDXF(string filename)
         {
-            IFrame fr = FrameImpl.MainFrame;
-            return fr.UIService.Import(filename, "dxf", 0);
+            using (ConvertToDxfAutoCad2000 converted = new ConvertToDxfAutoCad2000(filename, "dxf"))
+            {
+                CADability.DXF.Import import = new DXF.Import(converted.DxfFileName);
+                return import.Project;
+            }
         }
         private static Project ImportDWG(string filename)
         {
-            IFrame fr = FrameImpl.MainFrame;
-            return fr.UIService.Import(filename, "dwg", 0);
+            using (ConvertToDxfAutoCad2000 converted = new ConvertToDxfAutoCad2000(filename, "dxf"))
+            {
+                CADability.DXF.Import import = new DXF.Import(converted.DxfFileName);
+                return import.Project;
+            }
         }
         public static Project ReadFromFile(string FileName, string Format, bool useProgress, bool makeCompounds = true)
         {

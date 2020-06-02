@@ -5723,12 +5723,23 @@ namespace CADability.GeoObject
         {
             vertices = null;
         }
-#if DEBUG
-        public ICurve[] Intersect(Face other)
-#else
-        internal ICurve[] Intersect(Face other)
-#endif
+        /// <summary>
+        /// Find inner intersection curves of two faces. This is only used to find intersection curves, which do not cross the edges of the faces. (but might also find and return such curves)
+        /// </summary>
+        /// <param name="other">the other face</param>
+        /// <returns>Array of inner intersection curves</returns>
+        public ICurve[] GetInnerIntersection(Face other)
         {
+            if (!this.GetBoundingCube().Interferes(other.GetBoundingCube())) return new ICurve[0];
+            if (surface is PlaneSurface)
+            {   // there is no inner intersection with a plane and one of these surfaces (i.e. all intersection curves must also intersect
+                if (other.surface is CylindricalSurface || other.surface is ConicalSurface || other.surface is SurfaceOfLinearExtrusion || other.surface is SurfaceOfRevolution) return new ICurve[0];
+            }
+            // and vice versa
+            if (other.surface is PlaneSurface)
+            {   // there is no inner intersection with a plane and one of these surfaces (i.e. all intersection curves must also intersect
+                if (surface is CylindricalSurface || surface is ConicalSurface || surface is SurfaceOfLinearExtrusion || surface is SurfaceOfRevolution) return new ICurve[0];
+            }
             // restriction on the Area of the faces are not calculated
             // there is no clipping done, since we do expect the curve to be totally inside both faces
             ICurve[] cvs = this.surface.Intersect(this.Area.GetExtent(), other.Surface, other.Area.GetExtent());
@@ -5742,6 +5753,12 @@ namespace CADability.GeoObject
                 }
             }
             return res.ToArray();
+        }
+
+        [Obsolete("Has been renamed to \"GetInnerIntersection\"")]
+        public ICurve[] Intersect(Face other)
+        {
+            return GetInnerIntersection(other);
         }
 
         public void GetSimpleTriangulation(double precision, bool noInnerPoints, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out int[] edgeIndizes)
@@ -9570,11 +9587,7 @@ namespace CADability.GeoObject
         /// <param name="p2"></param>
         /// <param name="p3"></param>
         /// <returns></returns>
-#if DEBUG
         public static Face MakeFace(GeoPoint p1, GeoPoint p2, GeoPoint p3)
-#else
-        internal static Face MakeFace(GeoPoint p1, GeoPoint p2, GeoPoint p3)
-#endif
         {
             Plane pln = new Plane(p1, p2 - p1, p3 - p1);
             GeoPoint2D p11 = pln.Project(p1);

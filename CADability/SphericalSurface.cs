@@ -321,7 +321,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override IDualSurfaceCurve[] GetPlaneIntersection(PlaneSurface pl, double umin, double umax, double vmin, double vmax, double precision)
         {
-            return GetDualSurfaceCurves(new BoundingRect(umin, vmin, umax, vmax), pl, BoundingRect.EmptyBoundingRect, null); // sit dort schon richtig implementiert
+            return GetDualSurfaceCurves(new BoundingRect(umin, vmin, umax, vmax), pl, BoundingRect.EmptyBoundingRect, null, null); // ist dort schon richtig implementiert
             // hier könnte man die oben beschriebene 2D Schnittkure erzeugen
             Plane pln = new Plane(toUnit * pl.Location, toUnit * pl.DirectionX, toUnit * pl.DirectionY);
             bool rotated = false;
@@ -800,9 +800,10 @@ namespace CADability.GeoObject
         }
         public override ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
         {
-            return BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null); // allgemeine Lösung
+            GetExtremePositions(thisBounds, other, otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
+            return BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null, extremePositions); // allgemeine Lösung
         }
-        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds)
+        public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {   // hier sollten die Schnitte mit Ebene, Cylinder, Kegel und Kugel gelöst werden
             // mit höheren Flächen sollte bei diesen (also z.B. Torus) implementiert werden
             if (other is PlaneSurface)
@@ -867,7 +868,7 @@ namespace CADability.GeoObject
                 }
                 return new IDualSurfaceCurve[0];
             }
-            return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds);
+            return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
         public override GeoPoint2D[] PerpendicularFoot(GeoPoint fromHere)
         {
@@ -961,8 +962,47 @@ namespace CADability.GeoObject
             }
             return base.GetProjectedCurve(curve, precision);
         }
+        public override int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions)
+        {
+            switch (other)
+            {
+                case PlaneSurface _:
+                case CylindricalSurface _:
+                case ConicalSurface _:
+                    {
+                        int res = other.GetExtremePositions(otherBounds, this, thisBounds, out extremePositions);
+                        for (int i = 0; i < extremePositions.Count; i++)
+                        {
+                            extremePositions[i] = new Tuple<double, double, double, double>(extremePositions[i].Item3, extremePositions[i].Item4, extremePositions[i].Item1, extremePositions[i].Item2);
+                        }
+                        return res;
+                    }
+                case SphericalSurface ss:
+                    {
+                        GeoVector connect = ss.Location - Location;
+                        extremePositions = new List<Tuple<double, double, double, double>>();
+                        if (!connect.IsNullVector())
+                        {
+                            GeoPoint2D[] ips = GetLineIntersection(Location, connect);
+                            for (int i = 0; i < ips.Length; i++)
+                            {
+                                SurfaceHelper.AdjustPeriodic(this, thisBounds, ref ips[i]);
+                                if (thisBounds.Contains(ips[i])) extremePositions.Add(new Tuple<double, double, double, double>(ips[i].x, ips[i].y, double.NaN, double.NaN));
+                            }
+                            ips = ss.GetLineIntersection(Location, connect);
+                            for (int i = 0; i < ips.Length; i++)
+                            {
+                                SurfaceHelper.AdjustPeriodic(other, otherBounds, ref ips[i]);
+                                if (otherBounds.Contains(ips[i])) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, ips[i].x, ips[i].y));
+                            }
+                        }
+                        return extremePositions.Count;
+                    }
+            }
+            extremePositions = null;
+            return -1; // means: no implementation for this combination
+        }
         #endregion
-
         #region ISerializable Members
         protected SphericalSurface(SerializationInfo info, StreamingContext context)
         {
