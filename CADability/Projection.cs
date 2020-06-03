@@ -416,8 +416,9 @@ namespace CADability
             }
             catch (CoordSysException) { } // ungültige Richtungen
         }
-        public void SetDirectionAnimated(GeoVector viewDirection, GeoVector TopDirection, Model model, bool zoomTotal, ICanvas ctrl)
+        public void SetDirectionAnimated(GeoVector viewDirection, GeoVector TopDirection, Model model, bool zoomTotal, ICanvas ctrl, GeoPoint fixPoint)
         {
+            if (!fixPoint.IsValid) zoomTotal = true;
             Rectangle clientRect = ctrl.ClientRectangle;
             float cx = (clientRect.Right + clientRect.Left) / 2.0f;
             float cy = (clientRect.Bottom + clientRect.Top) / 2.0f;
@@ -455,6 +456,13 @@ namespace CADability
             if (zoomTotal)
             {
                 animEndRect = model.GetExtentForZoomTotal(pr) * 1.1;
+            }
+            else
+            {   // we would need the fixpoint here to position the animEndRect
+                GeoPoint2D cnt2dstart = PointWorld2D(ProjectF(fixPoint));
+                GeoPoint2D cnt2dend = PointWorld2D(pr.ProjectF(fixPoint));
+                GeoVector2D offset = cnt2dstart - cnt2dend;
+                animEndRect.Move(-offset);
             }
             ctrl.Invalidate(); // damit wird (ohne Veränderung) neu gezeichnet und onPaintDone aufgerufen und der Animationszyklus gestartet
         }
@@ -819,6 +827,11 @@ namespace CADability
             return ProjectionPlane.Project(ProjectionPlane.Intersect(p1, p0 - p1));
             // für Parallelprojektion gilt einfacher:
             // return new GeoPoint2D((p.X - placementX) / placementFactor, -(p.Y - placementY) / placementFactor);
+        }
+        public GeoPoint2D PointWorld2D(PointF pf)
+        {
+            Point p = new Point((int)(pf.X), (int)(pf.Y));
+            return PointWorld2D(p);
         }
         public double DeviceToWorldFactor { get { return 1.0 / placementFactor; } }
         public double WorldToDeviceFactor { get { return placementFactor; } }
@@ -1382,7 +1395,7 @@ namespace CADability
                 return new double[,] { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } };
             }
         }
-#region Funktionen im Zusammenhang mit DrawingPlane
+        #region Funktionen im Zusammenhang mit DrawingPlane
         public Plane DrawingPlane
         {
             get { return drawingPlane; }
@@ -1430,8 +1443,8 @@ namespace CADability
             }
             return drawingPlane.Intersect(p0, Direction);
         }
-#endregion
-#region Umwandlung verschiedener Koordinatensysteme
+        #endregion
+        #region Umwandlung verschiedener Koordinatensysteme
         // alle anderen Umwandlungen sollen abgeschafft werden bzw. diese Methoden hier verwenden
         /// <summary>
         /// Returns a beam corresponding to the 2-dimensional mouse position. The mouse position corresponds to a beam
@@ -1534,9 +1547,9 @@ namespace CADability
                 return vaxis.Normalized;
             }
         }
-#endregion
+        #endregion
 
-#region ISerializable Members
+        #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -1625,8 +1638,8 @@ namespace CADability
             info.AddValue("Direction", direction);
         }
 
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
             // clientRect ist hier noch nicht gesetzt und das wird aber bei SetCoefficients benutzt
@@ -1641,7 +1654,7 @@ namespace CADability
                 SetCoefficients();
             }
         }
-#endregion
+        #endregion
 
         internal void Initialize()
         {

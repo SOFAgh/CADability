@@ -828,6 +828,10 @@ namespace CADability
                     }
                 }
             }
+            GeoPoint fixPoint = GeoPoint.Invalid;
+            {
+                if (ActiveView is ModelView mv && mv.FixPointValid) fixPoint = mv.FixPoint;
+            }
             switch (MenuId)
             {
                 case "MenuId.App.About":
@@ -901,7 +905,7 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ModelView.AnimateViewChange", true))
                     {
                         ActiveView.Projection.SetDirectionAnimated(-GeoVector.ZAxis, GeoVector.YAxis, ActiveView.Model, Settings.GlobalSettings.GetBoolValue("ModelView.AutoZoomTotal", false),
-                            ActiveView.Canvas);
+                            ActiveView.Canvas, fixPoint);
                     }
                     else
                     {
@@ -914,7 +918,7 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ModelView.AnimateViewChange", true))
                     {
                         ActiveView.Projection.SetDirectionAnimated(GeoVector.YAxis, GeoVector.ZAxis, ActiveView.Model, Settings.GlobalSettings.GetBoolValue("ModelView.AutoZoomTotal", false),
-                            ActiveView.Canvas);
+                            ActiveView.Canvas, fixPoint);
                     }
                     else
                     {
@@ -927,7 +931,7 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ModelView.AnimateViewChange", true))
                     {
                         ActiveView.Projection.SetDirectionAnimated(-GeoVector.YAxis, GeoVector.ZAxis, ActiveView.Model, Settings.GlobalSettings.GetBoolValue("ModelView.AutoZoomTotal", false),
-                            ActiveView.Canvas);
+                            ActiveView.Canvas, fixPoint);
                     }
                     else
                     {
@@ -940,7 +944,7 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ModelView.AnimateViewChange", true))
                     {
                         ActiveView.Projection.SetDirectionAnimated(GeoVector.XAxis, GeoVector.ZAxis, ActiveView.Model, Settings.GlobalSettings.GetBoolValue("ModelView.AutoZoomTotal", false),
-                            ActiveView.Canvas);
+                            ActiveView.Canvas, fixPoint);
                     }
                     else
                     {
@@ -953,7 +957,7 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ModelView.AnimateViewChange", true))
                     {
                         ActiveView.Projection.SetDirectionAnimated(-GeoVector.XAxis, GeoVector.ZAxis, ActiveView.Model, Settings.GlobalSettings.GetBoolValue("ModelView.AutoZoomTotal", false),
-                            ActiveView.Canvas);
+                            ActiveView.Canvas, fixPoint);
 
                     }
                     else
@@ -967,7 +971,7 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ModelView.AnimateViewChange", true))
                     {
                         ActiveView.Projection.SetDirectionAnimated(GeoVector.ZAxis, GeoVector.YAxis, ActiveView.Model, Settings.GlobalSettings.GetBoolValue("ModelView.AutoZoomTotal", false),
-                            ActiveView.Canvas);
+                            ActiveView.Canvas, fixPoint);
                     }
                     else
                     {
@@ -982,7 +986,7 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ModelView.AnimateViewChange", true))
                     {
                         ActiveView.Projection.SetDirectionAnimated(dir, GeoVector.ZAxis, ActiveView.Model, Settings.GlobalSettings.GetBoolValue("ModelView.AutoZoomTotal", false),
-                            ActiveView.Canvas);
+                            ActiveView.Canvas, fixPoint);
                     }
                     else
                     {
@@ -997,7 +1001,7 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ModelView.AnimateViewChange", true))
                     {
                         ActiveView.Projection.SetDirectionAnimated(iso, GeoVector.ZAxis, ActiveView.Model, Settings.GlobalSettings.GetBoolValue("ModelView.AutoZoomTotal", false),
-                            ActiveView.Canvas);
+                            ActiveView.Canvas, fixPoint);
                     }
                     else
                     {
