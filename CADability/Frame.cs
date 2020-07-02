@@ -557,7 +557,7 @@ namespace CADability
 
         public string GetActivePropertyDisplay()
         {
-            throw new NotImplementedException();
+            return "Action";
         }
 
         public bool GetBooleanSetting(string Name, bool Default)
@@ -2225,15 +2225,15 @@ namespace CADability
                         {
                             Projection fromTop = Projection.FromTop;
                             BoundingRect ext = mv.Model.GetExtent(fromTop);
-                            System.Diagnostics.Trace.WriteLine("Starting ParallelTriangulation" + Environment.TickCount.ToString());
+                            System.Diagnostics.Trace.WriteLine("Starting ParallelTriangulation " + Environment.TickCount.ToString());
                             fromTop.SetPlacement(mv.DisplayRectangle, ext);
                             double precision = 1.0 / fromTop.WorldToDeviceFactor;
                             mv.Model.ParallelTriangulation(precision);
-                            System.Diagnostics.Trace.WriteLine("Starting OctTree" + Environment.TickCount.ToString());
+                            System.Diagnostics.Trace.WriteLine("Starting OctTree " + Environment.TickCount.ToString());
                             mv.Model.InitOctTree();
-                            System.Diagnostics.Trace.WriteLine("OctTree done" + Environment.TickCount.ToString());
+                            System.Diagnostics.Trace.WriteLine("OctTree done " + Environment.TickCount.ToString());
                             mv.ZoomTotal(1.1);
-                            System.Diagnostics.Trace.WriteLine("ZoomTotal done" + Environment.TickCount.ToString());
+                            System.Diagnostics.Trace.WriteLine("ZoomTotal done " + Environment.TickCount.ToString());
                             // mv.ZoomToModelExtent(condorScrollableCtrls[activeControl].ClientRectangle, 1.1);
                         }
                     }

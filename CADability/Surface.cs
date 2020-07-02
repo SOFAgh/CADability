@@ -438,6 +438,12 @@ namespace CADability.GeoObject
         /// <param name="extremePositions"></param>
         /// <returns></returns>
         int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
+        /// <summary>
+        /// Returns the distance of the provided point <paramref name="p"/> to the (unlimited) surface.
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        double GetDistance(GeoPoint p);
     }
 
     /// <summary>
@@ -2612,45 +2618,60 @@ namespace CADability.GeoObject
                 }
                 if (umin != double.MinValue && vmin != double.MinValue) // das sollte als Gültigkeitsabfrage genügen
                 {
-                    double v = FixedU(umin, vmin, vmax).PositionOf(p);
-                    v = vmin + v * (vmax - vmin);
-                    GeoPoint2D p2d = new GeoPoint2D(umin, v);
-                    GeoPoint p0 = (this as ISurface).PointAt(p2d);
-                    double d = p0 | p;
-                    if (d < minerror)
+                    double u, v, d;
+                    GeoPoint2D p2d;
+                    GeoPoint p0;
+                    if (us.Length == 0 || Math.Abs(us[0] - umin) > 1e-6) // not a pole
                     {
-                        minerror = d;
-                        res = p2d;
+                        v = FixedU(umin, vmin, vmax).PositionOf(p);
+                        v = vmin + v * (vmax - vmin);
+                        p2d = new GeoPoint2D(umin, v);
+                        p0 = (this as ISurface).PointAt(p2d);
+                        d = p0 | p;
+                        if (d < minerror)
+                        {
+                            minerror = d;
+                            res = p2d;
+                        }
                     }
-                    v = FixedU(umax, vmin, vmax).PositionOf(p);
-                    v = vmin + v * (vmax - vmin);
-                    p2d = new GeoPoint2D(umax, v);
-                    p0 = (this as ISurface).PointAt(p2d);
-                    d = p0 | p;
-                    if (d < minerror)
+                    if (us.Length == 0 || Math.Abs(us[us.Length - 1] - umax) > 1e-6) // not a pole
                     {
-                        minerror = d;
-                        res = p2d;
+                        v = FixedU(umax, vmin, vmax).PositionOf(p);
+                        v = vmin + v * (vmax - vmin);
+                        p2d = new GeoPoint2D(umax, v);
+                        p0 = (this as ISurface).PointAt(p2d);
+                        d = p0 | p;
+                        if (d < minerror)
+                        {
+                            minerror = d;
+                            res = p2d;
+                        }
                     }
-                    double u = FixedV(vmin, umin, umax).PositionOf(p);
-                    u = umin + u * (umax - umin);
-                    p2d = new GeoPoint2D(u, vmin);
-                    p0 = (this as ISurface).PointAt(p2d);
-                    d = p0 | p;
-                    if (d < minerror)
+                    if (vs.Length == 0 || Math.Abs(vs[0] - vmin) > 1e-6) // not a pole
                     {
-                        minerror = d;
-                        res = p2d;
+                        u = FixedV(vmin, umin, umax).PositionOf(p);
+                        u = umin + u * (umax - umin);
+                        p2d = new GeoPoint2D(u, vmin);
+                        p0 = (this as ISurface).PointAt(p2d);
+                        d = p0 | p;
+                        if (d < minerror)
+                        {
+                            minerror = d;
+                            res = p2d;
+                        }
                     }
-                    u = FixedV(vmax, umin, umax).PositionOf(p);
-                    u = umin + u * (umax - umin);
-                    p2d = new GeoPoint2D(u, vmax);
-                    p0 = (this as ISurface).PointAt(p2d);
-                    d = p0 | p;
-                    if (d < minerror)
+                    if (vs.Length == 0 || Math.Abs(vs[vs.Length - 1] - vmax) > 1e-6) // not a pole
                     {
-                        minerror = d;
-                        res = p2d;
+                        u = FixedV(vmax, umin, umax).PositionOf(p);
+                        u = umin + u * (umax - umin);
+                        p2d = new GeoPoint2D(u, vmax);
+                        p0 = (this as ISurface).PointAt(p2d);
+                        d = p0 | p;
+                        if (d < minerror)
+                        {
+                            minerror = d;
+                            res = p2d;
+                        }
                     }
                     // hier liegt res auf einer Kante. In diesem Punkt legen wir jetzt die Tangentialebene an
                     // und bestimmen den Punkt auf dieser Ebene. Sonst kleben die Punkte außerhalb immer an der
@@ -3623,6 +3644,10 @@ namespace CADability.GeoObject
             }
             // else: search with different starting points
             return extremePositions.Count;
+        }
+        public virtual double GetDistance(GeoPoint p)
+        {
+            return PointAt(PositionOf(p)) | p;
         }
 
 #if DEBUG
@@ -4637,6 +4662,18 @@ namespace CADability.GeoObject
                 bounds2.MinMax(paramsuvsurf2[j]);
             }
             IDualSurfaceCurve[] dscs = surface1.GetDualSurfaceCurves(bounds1, surface2, bounds2, points, null);
+            if (points.Count > paramsuvsurf1.Length)
+            {   // there were points added by GetDualSurfaceCurves
+                paramsuvsurf1 = new GeoPoint2D[points.Count];
+                paramsuvsurf2 = new GeoPoint2D[points.Count];
+                for (int j = 0; j < points.Count; j++)
+                {
+                    paramsuvsurf1[j] = surface1.PositionOf(points[j]);
+                    paramsuvsurf2[j] = surface2.PositionOf(points[j]);
+                    SurfaceHelper.AdjustPeriodic(surface1, bounds1, ref paramsuvsurf1[j]);
+                    SurfaceHelper.AdjustPeriodic(surface2, bounds2, ref paramsuvsurf2[j]);
+                }
+            }
             // if there are closed curves in the result we try to split them
             List<IDualSurfaceCurve> brokenClosedCurves = new List<IDualSurfaceCurve>();
             List<int> toRemove = new List<int>();
@@ -5253,7 +5290,7 @@ namespace CADability.GeoObject
                 if (candidates[i].Curve3D.IsClosed) res.Add(candidates[i]);
                 else if (Precision.Equals(candidates[i].Curve3D.StartPoint, candidates[i].Curve3D.EndPoint)) res.Add(candidates[i]);
             }
-            if (res.Count==0 && ep==-1)
+            if (res.Count == 0 && ep == -1)
             {
                 // GetExtremePositions is not implemented for all surface combinations. If it fails (returns -1) and GetDualSurfaceCurves didnt return anything
                 // then we have to use burte force to get a seed point
@@ -5296,7 +5333,7 @@ namespace CADability.GeoObject
                 {
                     if (node.size > ext.Size * 1e-3) return true;
                     GeoPoint testPoint = node.center;
-                    if (NewtonIntersect(surface1,ext1,surface2,ext2,ref testPoint))
+                    if (NewtonIntersect(surface1, ext1, surface2, ext2, ref testPoint))
                     {
                         found = true;
                         seed = testPoint;

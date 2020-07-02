@@ -223,8 +223,13 @@ namespace CADability.GeoObject
                         ++secondknotindex;
                     }
                 }
-                if ((this as ICurve).GetPlanarState() == PlanarState.Planar)
+                if ((this as ICurve).GetPlanarState() == PlanarState.Planar || (this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
                 {   // in Wirklichkeit ein 2d spline, nur im Raum gelegen
+                    if ((this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
+                    {
+                        Plane tmp = new Plane(poles[0], poles[poles.Length - 1] - poles[0]);
+                        this.plane = new Plane(tmp.Location, tmp.DirectionX, tmp.Normal);
+                    }
                     if (weights == null)
                     {
                         GeoPoint2D[] npoles;
@@ -2848,81 +2853,88 @@ namespace CADability.GeoObject
         }
         PlanarState ICurve.GetPlanarState()
         {
-            if (this.IsSingular) return PlanarState.UnderDetermined;
-            double MaxDist;
-            bool isLinear;
-            Plane pln = Plane.FromPoints(poles, out MaxDist, out isLinear);
-            if (isLinear) return PlanarState.UnderDetermined;
-            if (MaxDist < Precision.eps)
+            lock (this)
             {
-                plane = pln;
-                return PlanarState.Planar;
-            }
-            else
-            {
-                plane = null;
-                if (poles.Length == 2) return PlanarState.UnderDetermined;
-                return PlanarState.NonPlanar;
-                // es gäbe noch den Spezialfall, dass alle poles auf einer Linie liegen
-                // es aber mehr als zwei poles gibt. Dann wäre man hier auch UnderDetermined
-                // es wird aber NonPlanar geliefert.
-                // Wichtig ist es hier nicht auf nurbs3d oder so zurückzugreifen, da MakeNurbsHelper
-                // auf Planarstate sich bezieht
+
+                if (this.IsSingular) return PlanarState.UnderDetermined;
+                double MaxDist;
+                bool isLinear;
+                Plane pln = Plane.FromPoints(poles, out MaxDist, out isLinear);
+                if (isLinear) return PlanarState.UnderDetermined;
+                if (MaxDist < Precision.eps)
+                {
+                    plane = pln;
+                    return PlanarState.Planar;
+                }
+                else
+                {
+                    plane = null;
+                    if (poles.Length == 2) return PlanarState.UnderDetermined;
+                    return PlanarState.NonPlanar;
+                    // es gäbe noch den Spezialfall, dass alle poles auf einer Linie liegen
+                    // es aber mehr als zwei poles gibt. Dann wäre man hier auch UnderDetermined
+                    // es wird aber NonPlanar geliefert.
+                    // Wichtig ist es hier nicht auf nurbs3d oder so zurückzugreifen, da MakeNurbsHelper
+                    // auf Planarstate sich bezieht
+                }
             }
         }
         Plane ICurve.GetPlane()
         {
-            if (plane.HasValue) return plane.Value;
-            double MaxDist;
-            bool isLinear;
-            Plane res = Plane.FromPoints(poles, out MaxDist, out isLinear);
-            if (MaxDist < Precision.eps) return res;
-            else if (isLinear)
+            lock (this)
             {
-                GeoVector v = (this as ICurve).DirectionAt(0.5);
-                if (Precision.IsNullVector(v))
-                {   // Länge ist 0.0
-                    return new Plane(poles[0], GeoVector.ZAxis);
-                }
-                Angle xy = new Angle(v, GeoVector.ZAxis);
-                Angle xz = new Angle(v, GeoVector.YAxis);
-                Angle yz = new Angle(v, GeoVector.XAxis);
-                xy = Math.Min(xy, Math.PI - xy);
-                xz = Math.Min(xz, Math.PI - xz);
-                yz = Math.Min(yz, Math.PI - yz);
-                if (xy < xz)
+                if (plane.HasValue) return plane.Value;
+                double MaxDist;
+                bool isLinear;
+                Plane res = Plane.FromPoints(poles, out MaxDist, out isLinear);
+                if (MaxDist < Precision.eps) return res;
+                else if (isLinear)
                 {
-                    if (xy < yz) return new Plane(poles[0], GeoVector.XAxis, v);
-                    else return new Plane(poles[0], GeoVector.YAxis, v);
+                    GeoVector v = (this as ICurve).DirectionAt(0.5);
+                    if (Precision.IsNullVector(v))
+                    {   // Länge ist 0.0
+                        return new Plane(poles[0], GeoVector.ZAxis);
+                    }
+                    Angle xy = new Angle(v, GeoVector.ZAxis);
+                    Angle xz = new Angle(v, GeoVector.YAxis);
+                    Angle yz = new Angle(v, GeoVector.XAxis);
+                    xy = Math.Min(xy, Math.PI - xy);
+                    xz = Math.Min(xz, Math.PI - xz);
+                    yz = Math.Min(yz, Math.PI - yz);
+                    if (xy < xz)
+                    {
+                        if (xy < yz) return new Plane(poles[0], GeoVector.XAxis, v);
+                        else return new Plane(poles[0], GeoVector.YAxis, v);
+                    }
+                    else
+                    {
+                        if (xz < yz) return new Plane(poles[0], GeoVector.XAxis, v);
+                        else return new Plane(poles[0], GeoVector.YAxis, v);
+                    }
                 }
                 else
                 {
-                    if (xz < yz) return new Plane(poles[0], GeoVector.XAxis, v);
-                    else return new Plane(poles[0], GeoVector.YAxis, v);
-                }
-            }
-            else
-            {
-                // es könnte eine Linie sein, das ist aber 
-                int m = poles.Length / 2;
-                GeoPoint p = (this as ICurve).PointAt(0.5);
-                GeoVector v = (this as ICurve).DirectionAt(0.5);
-                if (Precision.IsNullVector(v))
-                {   // Länge ist 0.0
-                    return new Plane(p, GeoVector.ZAxis);
-                }
-                for (int i = 0; i < poles.Length; i++)
-                {
-                    double d = Geometry.DistPL(poles[i], p, v);
-                    if (d > Precision.eps) return new Plane(poles[0], GeoVector.XAxis, GeoVector.YAxis);
-                }
-                if (Precision.SameDirection(v, GeoVector.ZAxis, false))
-                {
-                    return new Plane(p, v, GeoVector.XAxis);
-                }
-                else
-                {
-                    return new Plane(p, v, GeoVector.ZAxis ^ v);
+                    // es könnte eine Linie sein, das ist aber 
+                    int m = poles.Length / 2;
+                    GeoPoint p = (this as ICurve).PointAt(0.5);
+                    GeoVector v = (this as ICurve).DirectionAt(0.5);
+                    if (Precision.IsNullVector(v))
+                    {   // Länge ist 0.0
+                        return new Plane(p, GeoVector.ZAxis);
+                    }
+                    for (int i = 0; i < poles.Length; i++)
+                    {
+                        double d = Geometry.DistPL(poles[i], p, v);
+                        if (d > Precision.eps) return new Plane(poles[0], GeoVector.XAxis, GeoVector.YAxis);
+                    }
+                    if (Precision.SameDirection(v, GeoVector.ZAxis, false))
+                    {
+                        return new Plane(p, v, GeoVector.XAxis);
+                    }
+                    else
+                    {
+                        return new Plane(p, v, GeoVector.ZAxis ^ v);
+                    }
                 }
             }
         }

@@ -644,14 +644,7 @@ namespace CADability.GeoObject
         /// <returns>union of the two solids or null</returns>
         public static Solid Union(Solid s1, Solid s2)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
-            {
-                return Solid.Unite(s1, s2);
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+            return Solid.Unite(s1, s2);
         }
         /// <summary>
         /// Returns the difference of the two given <see cref="Solid"/>s. If the solids are disjunct, null will be returned.
@@ -1718,16 +1711,19 @@ namespace CADability.GeoObject
         }
         public static IGeoObject[] MakeFillet(Edge[] edges, double radius, out IGeoObject[] affectedShellsOrSolids)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
+            Shell sh = edges[0].PrimaryFace.Owner as Shell;
+            if (sh != null)
             {
-                Shell sh = edges[0].PrimaryFace.Owner as Shell;
-                if (sh != null)
-                {
-                    BRepRoundEdges brre = new BRepRoundEdges(sh, new Set<Edge>(edges));
-                    Shell shres = brre.Round(radius, true);
-                }
+                Shell res = BRepOperation.RoundEdges(sh, edges, radius);
+                affectedShellsOrSolids = new IGeoObject[] { sh };
+                if (res!=null) return new IGeoObject[] { res };
+                //BRepRoundEdges brre = new BRepRoundEdges(sh, new Set<Edge>(edges));
+                //Shell shres = brre.Round(radius, true);
+                //affectedShellsOrSolids = new IGeoObject[] { sh };
+                //return new IGeoObject[] { shres };
             }
-            throw new NotImplementedException();
+            affectedShellsOrSolids = null;
+            return null;
         }
         public static IGeoObject[] MakeChamfer(Face primaryFace, Edge[] edges, double primaryDist, double secondaryDist, out IGeoObject[] affectedShellsOrSolids)
         {
@@ -2254,7 +2250,7 @@ namespace CADability.GeoObject
             ConicalSurface cs = new ConicalSurface(apex, directionX, directionY, directionZ.Normalized, halfOpening);
             double vmin = cs.PositionOf(location).y;
             double vmax = cs.PositionOf(location + directionZ).y;
-            if (vmin>vmax)
+            if (vmin > vmax)
             {
                 double tmp = vmin;
                 vmin = vmax;
@@ -2936,7 +2932,7 @@ namespace CADability.GeoObject
                 Shell[] shells = SewFaces(faces.ToArray());
                 if (shells.Length == 1)
                 {
-                    if (shells[0].HasOpenEdgesEceptPoles()) return shells[0];
+                    if (shells[0].HasOpenEdgesExceptPoles()) return shells[0];
                     else return Solid.MakeSolid(shells[0]);
                 }
             }

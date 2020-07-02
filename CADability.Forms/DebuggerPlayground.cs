@@ -36,7 +36,7 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-
+                MakeSphere();
                 TestCollision();
                 return true;
             }
@@ -131,6 +131,41 @@ namespace CADability.Forms
                     int dt = tc1 - tc0;
                     System.Diagnostics.Trace.WriteLine("CollisionDetection: " + dt.ToString());
                 }
+            }
+        }
+
+        void MakeSphere()
+        {
+            List<GeoPoint> pnts = new List<GeoPoint>();
+            double radius = 0.0;
+            for (int i = 0; i < frame.SelectedObjects.Count; i++)
+            {
+                if (frame.SelectedObjects[i] is ICurve crv)
+                {
+                    if (crv is Ellipse elli)
+                    {
+                        radius = elli.MajorRadius;
+                    }
+                    bool found = false;
+                    for (int j = 0; j < pnts.Count; j++)
+                    {
+                        if ((pnts[j] | crv.StartPoint) < 1e-6) found = true;
+                    }
+                    if (!found) pnts.Add(crv.StartPoint);
+                    found = false;
+                    for (int j = 0; j < pnts.Count; j++)
+                    {
+                        if ((pnts[j] | crv.EndPoint) < 1e-6) found = true;
+                    }
+                    if (!found) pnts.Add(crv.EndPoint);
+                }
+            }
+            if (pnts.Count>=3)
+            {
+                GeoPoint cnt = new GeoPoint(pnts.ToArray());
+                GaussNewtonMinimizer.SphereRadiusFit(pnts.ToArray().ToIArray(), cnt, radius, 1e-6, out SphericalSurface ss);
+                Face fc = Face.MakeFace(ss, new BoundingRect(-Math.PI / 2, -Math.PI / 2, Math.PI / 2, Math.PI / 2));
+                Face fc1 = Face.MakeFace(ss, new BoundingRect(Math.PI / 2, -Math.PI / 2, 3*Math.PI / 2, Math.PI / 2));
             }
         }
 

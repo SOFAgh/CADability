@@ -286,6 +286,10 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
         {
+            if (other is PlaneSurface)
+            {
+                return other.Intersect(otherBounds, this, thisBounds);
+            }
             if (other is CylindricalSurface)
             {
                 CylindricalSurface cyl2 = other as CylindricalSurface;
@@ -373,6 +377,37 @@ namespace CADability.GeoObject
                         }
                     }
                 }
+            }
+            if (other is ToroidalSurface ts)
+            {
+                if (this.IsRealCylinder)
+                {
+                    GeoPoint cnt = toUnit * ts.Location;
+                    if (Math.Abs(cnt.x) < RadiusX * Precision.eps && Math.Abs(cnt.y) < RadiusX * Precision.eps)
+                    {
+                        // concentric
+                        if (Precision.SameDirection(this.ZAxis, ts.ZAxis, false))
+                        {   // same or opposite orientation should result in one or two circles
+                            if ((Math.Abs(ts.XAxis.Length + ts.MinorRadius - RadiusX) < Precision.eps) || // concentric, torus fits exactely inside cylinder
+                                (Math.Abs(ts.XAxis.Length - ts.MinorRadius - RadiusX) < Precision.eps)) // concentric, cylinderfits exactely inside torus 
+                            {
+                                GeoPoint c = toUnit * ts.Location;
+                                return new ICurve[] { this.FixedV(c.z, thisBounds.Left, thisBounds.Right) };
+                            }
+                            else if ((ts.XAxis.Length + ts.MinorRadius > RadiusX) &&(ts.XAxis.Length - ts.MinorRadius < RadiusX))
+                            {   // two circles
+                                GeoPoint2D[] ips = ts.GetLineIntersection(this.PointAt(thisBounds.GetLowerMiddle()), this.ZAxis);
+                                if (ips.Length==2)
+                                {
+                                    GeoPoint c1 = toUnit * ts.PointAt(ips[0]);
+                                    GeoPoint c2 = toUnit * ts.PointAt(ips[1]);
+                                    return new ICurve[] { this.FixedV(c1.z, thisBounds.Left, thisBounds.Right), this.FixedV(c2.z, thisBounds.Left, thisBounds.Right) };
+                                }
+                            }
+                        }
+                    }
+                }
+
             }
             {
                 GetExtremePositions(thisBounds, other, otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
@@ -486,6 +521,17 @@ namespace CADability.GeoObject
             {
                 ICurve res = (curve2d as Curve2DAspect).Get3DCurve(this);
                 if (res != null) return res;
+            }
+            if (curve2d is ProjectedCurve pc)
+            {
+                if (pc.Surface is CylindricalSurface)
+                {
+                    BoundingRect otherBounds = new BoundingRect(PositionOf(pc.Surface.PointAt(pc.StartPoint)), PositionOf(pc.Surface.PointAt(pc.EndPoint)));
+                    if (pc.Surface.SameGeometry(pc.GetExtent(), this, otherBounds, Precision.eps, out ModOp2D notneeded))
+                    {
+                        return pc.Curve3DFromParams; // if trimmed or reversed still returns the correct 3d curve (but trimmed and/or reversed)
+                    }
+                }
             }
             // wenn es eine Linie ist, dann kommt entweder eine Linie (v-Richtung) oder eine Ellipse (u-Richtung)
             // oder eine Schraubenlinie raus

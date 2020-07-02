@@ -167,6 +167,7 @@ namespace CADability
 
     /// <summary>
     /// Convert a simple one dimensional array to an IArray
+    /// Use someArray.ToIArray() 
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class ToIArray<T> : IArrayImpl<T>

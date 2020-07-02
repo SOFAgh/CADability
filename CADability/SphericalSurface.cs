@@ -278,6 +278,17 @@ namespace CADability.GeoObject
                 ICurve res = (curve2d as Curve2DAspect).Get3DCurve(this);
                 if (res != null) return res;
             }
+            if (curve2d is ProjectedCurve pc)
+            {
+                if (pc.Surface is SphericalSurface)
+                {
+                    BoundingRect otherBounds = new BoundingRect(PositionOf(pc.Surface.PointAt(pc.StartPoint)), PositionOf(pc.Surface.PointAt(pc.EndPoint)));
+                    if (pc.Surface.SameGeometry(pc.GetExtent(), this, otherBounds, Precision.eps, out ModOp2D notneeded))
+                    {
+                        return pc.Curve3DFromParams; // if trimmed or reversed still returns the correct 3d curve (but trimmed and/or reversed)
+                    }
+                }
+            }
             // return base.Make3dCurve(curve2d); warum stand das da?
             if (curve2d is Line2D)
             {
@@ -959,6 +970,10 @@ namespace CADability.GeoObject
                     }
                     return new Line2D(sp, ep);
                 }
+            }
+            if (curve is Ellipse)
+            {
+                return new ProjectedCurve(curve, this, true, this.usedArea);
             }
             return base.GetProjectedCurve(curve, precision);
         }

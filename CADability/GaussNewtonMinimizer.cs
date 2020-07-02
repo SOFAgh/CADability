@@ -442,6 +442,60 @@ namespace CADability
             }
         }
 
+
+        public static double ConeFitNew(IArray<GeoPoint> points, GeoPoint apex, GeoVector axis, double theta, double precision, out ConicalSurface cs)
+        {
+            // parameters: { lx,ly,lz,dx,dy,dz,t }
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[points.Length];
+                GeoPoint l = new GeoPoint(parameters[0], parameters[1], parameters[2]);
+                GeoVector d = new GeoVector(parameters[3], parameters[4], parameters[5]);
+                double dl = d.Length;
+                double t = parameters[6];
+                for (int i = 0; i < points.Length; i++)
+                {
+                    GeoPoint p = points[i];
+                    values[i] = sqr((d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x)) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - t);
+                }
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(points.Length, 7); // Jacobi Matrix 
+                GeoPoint l = new GeoPoint(parameters[0], parameters[1], parameters[2]);
+                GeoVector d = new GeoVector(parameters[3], parameters[4], parameters[5]);
+                double t = parameters[6];
+                for (int i = 0; i < points.Length; i++)
+                {
+                    GeoPoint p = points[i];
+                    double dl = d.Length;
+                    double pll2 = (p - l) * (p - l);
+                    double pll = (p - l).Length;
+                    derivs[i, 0] = 2 * ((p.x - l.x) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - (d.x * (d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x))) / (exp32(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x)))) * ((d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x)) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - t);
+                    derivs[i, 1] = 2 * ((p.y - l.y) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - (d.y * (d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x))) / (exp32(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x)))) * ((d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x)) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - t);
+                    derivs[i, 2] = 2 * ((p.z - l.z) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - (d.z * (d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x))) / (exp32(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x)))) * ((d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x)) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - t);
+                    derivs[i, 3] = 2 * (((p.x - l.x) * (d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x))) / (Math.Sqrt(dl) * exp32(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - d.x / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x)))) * ((d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x)) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - t);
+                    derivs[i, 4] = 2 * (((p.y - l.y) * (d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x))) / (Math.Sqrt(dl) * exp32(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - d.y / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x)))) * ((d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x)) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - t);
+                    derivs[i, 5] = 2 * (((p.z - l.z) * (d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x))) / (Math.Sqrt(dl) * exp32(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - d.z / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x)))) * ((d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x)) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - t);
+                    derivs[i, 6] = -2 * ((d.z * (p.z - l.z) + d.y * (p.y - l.y) + d.x * (p.x - l.x)) / (Math.Sqrt(dl) * Math.Sqrt(sqr(p.z - l.z) + sqr(p.y - l.y) + sqr(p.x - l.x))) - t);
+                }
+            }
+
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
+            bool ok = gnm.Solve(new double[] { apex.x, apex.y, apex.z, axis.x, axis.y, axis.z, Math.Cos(theta) }, 30, precision * precision * 0.01, precision * precision, out double minError, out int numiter, out double[] result);
+            if (ok)
+            {
+                Plane pln = new Plane(GeoPoint.Origin, new GeoVector(result[3], result[4], result[5])); // arbitrary x and y axis
+                cs = new ConicalSurface(new GeoPoint(result[0], result[1], result[2]), pln.DirectionX, pln.DirectionY, pln.Normal, Math.Acos(result[6]));
+                return Math.Sqrt(minError);
+            }
+            else
+            {
+                cs = null;
+                return double.MaxValue;
+            }
+        }
+
         public static double ConeFit(IArray<GeoPoint> points, GeoPoint apex, GeoVector axis, double theta, double precision, out ConicalSurface cs)
         {
             /*
@@ -809,7 +863,101 @@ namespace CADability
                 ss = null;
                 return double.MaxValue;
             }
+        }
 
+        public static double SphereRadiusFit(IArray<GeoPoint> pnts, GeoPoint center, double radius, double precision, out SphericalSurface ss)
+        {
+            // parameters: 0:cx, 1:cy, 2: cz
+            void efunc(double[] parameters, out double[] values)
+            {
+                // (pnts.x-cx)²+(pnts.y-cy)²+(pnts.z-cz)²==r²
+                values = new double[pnts.Length];
+                double cx = parameters[0];
+                double cy = parameters[1];
+                double cz = parameters[2];
+                for (int i = 0; i < pnts.Length; i++)
+                {
+                    values[i] = sqr(pnts[i].x - cx) + sqr(pnts[i].y - cy) + sqr(pnts[i].z - cz) - sqr(radius);
+                }
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(pnts.Length, 3); // Jacobi Matrix Ableitungen nach cx, cy, cz und r
+                                                     // (pnts.x-cx)²+(pnts.y-cy)²+(pnts.z-cz)²-r² == 0
+                double cx = parameters[0];
+                double cy = parameters[1];
+                double cz = parameters[2];
+
+                for (int i = 0; i < pnts.Length; i++)
+                {
+                    derivs[i, 0] = -2 * (pnts[i].x - cx);
+                    derivs[i, 1] = -2 * (pnts[i].y - cy);
+                    derivs[i, 2] = -2 * (pnts[i].z - cz);
+                }
+            }
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
+            bool ok = gnm.Solve(new double[] { center.x, center.y, center.z }, 30, 1e-6, precision * precision, out double minError, out int numiter, out double[] result);
+            if (ok)
+            {
+                center = new GeoPoint(result[0], result[1], result[2]);
+                ss = new SphericalSurface(center, radius * GeoVector.XAxis, radius * GeoVector.YAxis, radius * GeoVector.ZAxis);
+                return Math.Sqrt(minError);
+            }
+            else
+            {
+                ss = null;
+                return double.MaxValue;
+            }
+
+        }
+        public static double ThreeCurveIntersection(ICurve crv1, ICurve crv2, ICurve crv3, ref double u1, ref double u2, ref double u3)
+        {
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[3];
+                GeoPoint c = crv1.PointAt(parameters[0]);
+                GeoPoint d = crv2.PointAt(parameters[1]);
+                GeoPoint e = crv3.PointAt(parameters[2]);
+                values[0] = sqr(c.x - d.x) + sqr(d.x - e.x) + sqr(e.x - c.x);
+                values[1] = sqr(c.y - d.y) + sqr(d.y - e.y) + sqr(e.y - c.y);
+                values[2] = sqr(c.z - d.z) + sqr(d.z - e.z) + sqr(e.z - c.z);
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(3, 3);
+                double uu1 = parameters[0];
+                double uu2 = parameters[1];
+                double uu3 = parameters[2];
+                GeoPoint c = crv1.PointAt(parameters[0]);
+                GeoPoint d = crv2.PointAt(parameters[1]);
+                GeoPoint e = crv3.PointAt(parameters[2]);
+                GeoVector ct = crv1.DirectionAt(uu1);
+                GeoVector dt = crv2.DirectionAt(uu2);
+                GeoVector et = crv3.DirectionAt(uu3);
+
+                derivs[0, 0] = 2 * ct.x * (c.x - e.x) - 2 * (d.x - c.x) * ct.x;
+                derivs[1, 0] = 2 * ct.y * (c.y - e.y) - 2 * (d.y - c.y) * ct.y;
+                derivs[2, 0] = 2 * ct.z * (c.z - e.z) - 2 * (d.z - c.z) * ct.z;
+                derivs[0, 1] = 2 * dt.x * (d.x - e.x) - 2 * (c.x - d.x) * dt.x;
+                derivs[1, 1] = 2 * dt.y * (d.y - e.y) - 2 * (c.y - d.y) * dt.y;
+                derivs[2, 1] = 2 * dt.z * (d.z - e.z) - 2 * (c.z - d.z) * dt.z;
+                derivs[0, 2] = 2 * et.x * (e.x - c.x) - 2 * (d.x - e.x) * et.x;
+                derivs[1, 2] = 2 * et.y * (e.y - c.y) - 2 * (d.y - e.y) * et.y;
+                derivs[2, 2] = 2 * et.z * (e.z - c.z) - 2 * (d.z - e.z) * et.z;
+            }
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
+            bool ok = gnm.Solve(new double[] { u1, u2, u3 }, 30, 1e-6, 1e-12, out double minError, out int numiter, out double[] result);
+            if (ok)
+            {
+                u1 = result[0];
+                u2 = result[1];
+                u3 = result[2];
+                return Math.Sqrt(minError);
+            }
+            else
+            {
+                return double.MaxValue;
+            }
         }
         public static double CylinderFit(IArray<GeoPoint> pnts, GeoPoint center, GeoVector axis, double radius, double precision, out CylindricalSurface cs)
         {
@@ -1014,7 +1162,7 @@ namespace CADability
                 GeoVector d = s - r;
                 d.NormIfNotNull();
 
-                // according to extremaSurfaces3.wxmx (doesn't converge close to intersectin points)
+                // according to extremaSurfaces3.wxmx (doesn't converge close to intersection points)
                 //values[0] = d * sdu;
                 //values[1] = d * sdv;
                 //values[2] = d * rds;
@@ -1041,14 +1189,15 @@ namespace CADability
                 surface2.Derivation2At(uvs2, out GeoPoint r, out GeoVector rds, out GeoVector rdt, out GeoVector rdss, out GeoVector rdtt, out GeoVector rdsdt);
 
                 // some regex: 
+                // \([su],[tv]\) -> 
                 // ,([uvst]),2 -> d$1$1  
                 // ,([uvst]),1 -> d$1
                 // 'diff\(([sr])([xyz])([dstuv]*)\) -> $1$3.$2  
+                // 'diff\(([cde])([xyz]),([stu]),1\) -> $1$3.$2  
                 // (\((?>\((?<c>)|[^()]+|\)(?<-c>))*(?(c)(?!))\))\^\(3/2\) -> exp32$1
                 // (\((?>\((?<c>)|[^()]+|\)(?<-c>))*(?(c)(?!))\))\^2 -> sqr$1  
                 // , -> \r\n
                 // ([rs])([xyz]) -> $1.$2
-                // \([su],[tv]\) -> 
 
                 // according to extremaSurfaces3.wxmx
                 //derivs[0, 0] = ((s.z - r.z) * sduu.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdu.z) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.z - r.z) * sdu.z * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.y - r.y) * sdu.y * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) - ((s.x - r.x) * sdu.x * (2 * (s.z - r.z) * sdu.z + 2 * (s.y - r.y) * sdu.y + 2 * (s.x - r.x) * sdu.x)) / sqr(sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.y - r.y) * sduu.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdu.y) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + ((s.x - r.x) * sduu.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x)) + sqr(sdu.x) / (sqr(s.z - r.z) + sqr(s.y - r.y) + sqr(s.x - r.x));
@@ -1108,6 +1257,82 @@ namespace CADability
             bool ok = gnm.Solve(new double[] { uv1.x, uv1.y, uv2.x, uv2.y }, 30, 1e-6, 1e-6, out double minError, out int numiter, out double[] result);
             uv1 = new GeoPoint2D(result[0], result[1]);
             uv2 = new GeoPoint2D(result[2], result[3]);
+            return minError;
+        }
+        public static double SurfaceCurveExtrema(ISurface surface1, BoundingRect bounds1, ICurve surface2, double curveUmin, double curveUmax, ref GeoPoint2D uv1, ref double u2)
+        {
+            // see extremaSurfaces.wxmx
+            // parameters uv1.x, uv1.y, uv2.x, uv2.y
+            bool checkParameter(double[] parameters)
+            {
+                GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
+                double uc2 = parameters[2];
+                return bounds1.ContainsEps(uvs1, bounds1.Size * 1e-6) && uc2 > curveUmin - 1e-6 && uc2 < curveUmax + 1e-6;
+            }
+            void curtailParameter(double[] parameters)
+            {
+                if (parameters[0] < bounds1.Left) parameters[0] = bounds1.Left;
+                if (parameters[0] > bounds1.Right) parameters[0] = bounds1.Right;
+                if (parameters[1] < bounds1.Bottom) parameters[1] = bounds1.Bottom;
+                if (parameters[1] > bounds1.Top) parameters[1] = bounds1.Top;
+                if (parameters[2] < curveUmin) parameters[2] = curveUmin;
+                if (parameters[2] > curveUmax) parameters[2] = curveUmax;
+            }
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[3];
+                GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
+                double us2 = parameters[2];
+                GeoPoint s = surface1.PointAt(uvs1);
+                GeoPoint r = surface2.PointAt(us2);
+                GeoVector sdu = surface1.UDirection(uvs1);
+                GeoVector sdv = surface1.VDirection(uvs1);
+                GeoVector rds = surface2.DirectionAt(us2);
+
+                // according to extremaSurfaceCurve.wxmx
+                values[0] = (s.z - r.z) * sdu.z + (s.y - r.y) * sdu.y + (s.x - r.x) * sdu.x;
+                values[0] = (s.z - r.z) * sdv.z + (s.y - r.y) * sdv.y + (s.x - r.x) * sdv.x;
+                values[0] = rds.z * (s.z - r.z) + rds.y * (s.y - r.y) + rds.x * (s.x - r.x);
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(3, 3);
+                GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
+                double us2 = parameters[2];
+                surface1.Derivation2At(uvs1, out GeoPoint s, out GeoVector sdu, out GeoVector sdv, out GeoVector sduu, out GeoVector sdvv, out GeoVector sdudv);
+                if (!surface2.TryPointDeriv2At(us2, out GeoPoint r, out GeoVector rds, out GeoVector rdss))
+                {
+                    r = surface2.PointAt(us2);
+                    rds = surface2.DirectionAt(us2);
+                    rdss = GeoVector.NullVector; // ?? shold not be used, ok for lines
+                }
+
+                // some regex: 
+                // \([su],[tv]\) -> 
+                // ,([uvst]),2 -> d$1$1  
+                // ,([uvst]),1 -> d$1
+                // 'diff\(([sr])([xyz])([dstuv]*)\) -> $1$3.$2  
+                // (\((?>\((?<c>)|[^()]+|\)(?<-c>))*(?(c)(?!))\))\^\(3/2\) -> exp32$1
+                // (\((?>\((?<c>)|[^()]+|\)(?<-c>))*(?(c)(?!))\))\^2 -> sqr$1  
+                // , -> \r\n
+                // ([rs])([xyz]) -> $1.$2
+
+
+                // according to extremaSurfaces2.wxmx
+                derivs[0, 0] = (s.z - r.z) * sduu.z + sqr(sdu.z) + (s.y - r.y) * sduu.y + sqr(sdu.y) + (s.x - r.x) * sduu.x + sqr(sdu.x);
+                derivs[0, 1] = sdu.z * sdv.z + (s.z - r.z) * sdudv.z + sdu.y * sdv.y + (s.y - r.y) * sdudv.y + sdu.x * sdv.x + (s.x - r.x) * sdudv.x;
+                derivs[0, 2] = (-rds.z * sdu.z) - rds.y * sdu.y - rds.x * sdu.x;
+                derivs[1, 0] = sdu.z * sdv.z + (s.z - r.z) * sdudv.z + sdu.y * sdv.y + (s.y - r.y) * sdudv.y + sdu.x * sdv.x + (s.x - r.x) * sdudv.x;
+                derivs[1, 1] = (s.z - r.z) * sdvv.z + sqr(sdv.z) + (s.y - r.y) * sdvv.y + sqr(sdv.y) + (s.x - r.x) * sdvv.x + sqr(sdv.x);
+                derivs[1, 2] = (-rds.z * sdv.z) - rds.y * sdv.y - rds.x * sdv.x;
+                derivs[2, 0] = rds.z * sdu.z + rds.y * sdu.y + rds.x * sdu.x;
+                derivs[2, 1] = rds.z * sdv.z + rds.y * sdv.y + rds.x * sdv.x;
+                derivs[2, 2] = rdss.z * (s.z - r.z) + rdss.y * (s.y - r.y) + rdss.x * (s.x - r.x) - sqr(rds.z) - sqr(rds.y) - sqr(rds.x);
+            }
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc, checkParameter, curtailParameter);
+            bool ok = gnm.Solve(new double[] { uv1.x, uv1.y, u2 }, 30, 1e-6, 1e-6, out double minError, out int numiter, out double[] result);
+            uv1 = new GeoPoint2D(result[0], result[1]);
+            u2 = result[2];
             return minError;
         }
 #if DEBUG

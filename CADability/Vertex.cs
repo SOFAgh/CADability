@@ -28,7 +28,7 @@ namespace CADability
             uvposition = new Dictionary<Face, GeoPoint2D>();
             hashCode = hashCodeCounter++;
 #if DEBUG
-            if (hashCode == 1884)
+            if (hashCode == 665 || hashCode == 665)
             {
 
             }

@@ -804,6 +804,33 @@ namespace CADability
             GeoPoint2D ep = this.EndPoint;
         }
 #endif
+        public ICurve Curve3DFromParams
+        {
+            get
+            {
+                ICurve res;
+                res = curve3D.Clone();
+                if (IsReverse)
+                {
+                    res.Reverse();
+                    if (startParam == 0.0 && endParam == 1.0) return res;
+                    else
+                    {
+                        res.Trim(endParam, startParam);
+                        return res;
+                    }
+                }
+                else
+                {
+                    if (startParam == 0.0 && endParam == 1.0) return res;
+                    else
+                    {
+                        res.Trim(startParam, endParam);
+                        return res;
+                    }
+                }
+            }
+        }
         public ICurve Curve3D
         {
             get
@@ -818,7 +845,7 @@ namespace CADability
                 return surface;
             }
         }
-
+        public bool IsReverse { get => endParam < startParam; }
         #region ICurve2D Members
         private double Get3dParameter(double par)
         {

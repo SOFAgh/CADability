@@ -281,6 +281,34 @@ namespace CADability
                     isLinear = true;
                     return Plane.XYPlane;
                 }
+                // there must be a better way than this!
+                double mindist = double.MaxValue;
+                GeoVector dir=GeoVector.NullVector;
+                GeoPoint loc=GeoPoint.Origin;
+                for (int i = 0; i < Points.Length; i++)
+                {
+                    for (int j = i+1; j < Points.Length; j++)
+                    {
+                        GeoVector tdir = Points[i] - Points[j];
+                        if (tdir.Length<mindist)
+                        {
+                            mindist = tdir.Length;
+                            loc = Points[j];
+                            dir = tdir;
+                        }
+                    }
+                }
+                prec = 0;
+                for (int i = 0; i < Points.Length; i++)
+                {
+                    double d = Geometry.DistPL(Points[i], loc, dir);
+                    if (d > prec) prec = d;
+                }
+                if (prec < ext.Size * 1e-4)
+                {
+                    isLinear = true;
+                    return Plane.XYPlane;
+                }
             }
             GeoVector normal;
             if (det_x == det_max)

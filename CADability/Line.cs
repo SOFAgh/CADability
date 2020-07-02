@@ -507,33 +507,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public double PositionOf(GeoPoint p)
         {
-            // Betrachte die Linie in einer Achse, und zwar in der mit der größten Steigung.
-            // für Punkte auf der Linie liefert das die exakte Lösung, für andere Punkte
-            // nur ungefähr, da muss man halt vorher senkrecht projizieren.
-            // Liefert Werte zwischen 0 und 1
-            GeoVector dir = endPoint - StartPoint;
-            if (Math.Abs(dir.x) > Math.Abs(dir.y))
-            {
-                if (Math.Abs(dir.z) > Math.Abs(dir.x))
-                {	// z ist der größte
-                    return (p.z - startPoint.z) / dir.z;
-                }
-                else
-                {
-                    return (p.x - startPoint.x) / dir.x;
-                }
-            }
-            else
-            {
-                if (Math.Abs(dir.z) > Math.Abs(dir.y))
-                {	// z ist der größte
-                    return (p.z - startPoint.z) / dir.z;
-                }
-                else
-                {
-                    return (p.y - startPoint.y) / dir.y;
-                }
-            }
+            return Geometry.LinePar(startPoint, endPoint, p);
         }
         /// <summary>
         /// Implements <see cref="CADability.GeoObject.ICurve.PositionOf (GeoPoint, double)"/>

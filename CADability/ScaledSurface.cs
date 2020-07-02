@@ -341,5 +341,10 @@ namespace CADability
         {
             return original.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
+
+        public double GetDistance(GeoPoint p)
+        {
+            return original.GetDistance(p);
+        }
     }
 }

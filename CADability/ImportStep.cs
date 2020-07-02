@@ -1,4 +1,5 @@
 ﻿using CADability.Attribute;
+using CADability.Curve2D;
 using CADability.GeoObject;
 using CADability.LinearAlgebra;
 using System;
@@ -387,6 +388,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         HashSet<Item> products = new HashSet<Item>();
         HashSet<Item> mappedItems = new HashSet<Item>();
         private Dictionary<int, string> importProblems;
+        private List<Item> notImportedFaces;
         class Tokenizer : IDisposable
         {
             StreamReader sr;
@@ -1185,6 +1187,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         {
             definitions = new List<Item>();
             importProblems = new Dictionary<int, string>();
+            notImportedFaces = new List<Item>();
 #if DEBUG
             allNames = new SortedDictionary<string, int>();
             entityPattern = new Dictionary<string, HashSet<string>>();
@@ -1753,14 +1756,17 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
         }
 #endif
-        private List<GeoPoint> CreateGeoPointList(List<Item> lst)
+        private object CreateGeoPointList(List<Item> lst)
         {
             List<GeoPoint> res = new List<GeoPoint>();
+            List<GeoPoint2D> res2d = new List<GeoPoint2D>();
             for (int i = 0; i < lst.Count; i++)
             {
                 object o = CreateEntity(lst[i]);
                 if (o is GeoPoint) res.Add((GeoPoint)o);
+                if (o is GeoPoint2D) res2d.Add((GeoPoint2D)o);
             }
+            if (res2d.Count > 0) return res2d;
             return res;
         }
         private List<List<GeoPoint>> CreateGeoPointList2(List<Item> lst)
@@ -1770,7 +1776,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             {
                 if (lst[i].type == Item.ItemType.list)
                 {
-                    res.Add(CreateGeoPointList(lst[i].val as List<Item>));
+                    if (CreateGeoPointList(lst[i].val as List<Item>) is List<GeoPoint> l) res.Add(l); // no 2d lists here?
                 }
             }
             return res;
@@ -1827,7 +1833,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (64 == item.definingIndex || 67 == item.definingIndex)
+            if (1680 == item.definingIndex)
             {
 
             }
@@ -2110,7 +2116,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             {
                                 shell.TryConnectOpenEdges();
                             }
-                            if (!shell.HasOpenEdgesEceptPoles())
+                            if (!shell.HasOpenEdgesExceptPoles())
                             {
                                 Solid sld = Solid.Construct();
                                 sld.SetShell(shell);
@@ -2122,6 +2128,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                             else
                             {
+                                // Edge[] openEdges = shell.OpenEdgesExceptPoles;
                                 item.val = shell;
                                 importProblems[item.definingIndex] = "closedShell with open edges";
 #if DEBUG
@@ -2231,7 +2238,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                             ISurface surface = CreateEntity(item.parameter["face_geometry"]) as ISurface;
 #if DEBUG
-                            if (1136 == item.definingIndex)
+                            if (546 == item.definingIndex)
                             {
                                 // Face dbgf = Face.MakeFace(surface, new BoundingRect(0.1, 0.1, 0.9, 0.9));
                             }
@@ -2281,6 +2288,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     System.Diagnostics.Trace.WriteLine("Face not imported: " + item.definingIndex.ToString());
 #endif
                                     importProblems[item.definingIndex] = "face not imported";
+                                    notImportedFaces.Add(item);
                                 }
                             }
                             catch (Exception ex)
@@ -2294,6 +2302,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (ex == null) importProblems[item.definingIndex] = "exception on face import: null";
                                 else
                                     importProblems[item.definingIndex] = "exception on face import: " + ex.Message;
+                                notImportedFaces.Add(item);
                             }
                         }
                         break;
@@ -2370,6 +2379,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             object dir = CreateEntity(item.SubItem(1));
                             if (dir is GeoVector) item.val = item.SubFloat(2) * (GeoVector)dir;
+                            if (dir is GeoVector2D) item.val = item.SubFloat(2) * (GeoVector2D)dir;
                             else item.val = null;
                         }
                         break;
@@ -2405,6 +2415,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             object pnt = CreateEntity(item.SubItem(1));
                             object dir = CreateEntity(item.SubItem(2));
                             if (pnt is GeoPoint && dir is GeoVector) item.val = Line.MakeLine((GeoPoint)pnt, (GeoPoint)pnt + (GeoVector)dir);
+                            else if (pnt is GeoPoint2D && dir is GeoVector2D) item.val = new Line2D((GeoPoint2D)pnt, (GeoPoint2D)pnt + (GeoVector2D)dir);
                             else item.val = null;
                         }
                         break;
@@ -2610,11 +2621,46 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             bool uClosed = item.parameter["u_closed"].bval;
                             bool vClosed = item.parameter["v_closed"].bval;
                             bool selfIntersect = item.parameter["self_intersect"].bval;
-                            List<int> uMultiplicities = CreateIntList(item.parameter["u_multiplicities"].lval);
-                            List<int> vMultiplicities = CreateIntList(item.parameter["v_multiplicities"].lval);
-                            List<double> uKnots = CreateFloatList(item.parameter["u_knots"].lval); // is there also a bspline surface without knots???
-                            List<double> vKnots = CreateFloatList(item.parameter["v_knots"].lval);
-                            Knot_Type knotSpec = ParseEnum<Knot_Type>(item.parameter["knot_spec"].sval);
+                            List<int> uMultiplicities;
+                            List<int> vMultiplicities;
+                            List<double> uKnots;
+                            List<double> vKnots;
+                            if (item.parameter.TryGetValue("u_multiplicities", out Item dumy))
+                            {
+                                uMultiplicities = CreateIntList(item.parameter["u_multiplicities"].lval);
+                                vMultiplicities = CreateIntList(item.parameter["v_multiplicities"].lval);
+                                uKnots = CreateFloatList(item.parameter["u_knots"].lval); // is there also a bspline surface without knots???
+                                vKnots = CreateFloatList(item.parameter["v_knots"].lval);
+                                Knot_Type knotSpec = ParseEnum<Knot_Type>(item.parameter["knot_spec"].sval);
+                            }
+                            else
+                            {   // no knots given
+                                // knots.Length - degree - 1 != poles.Length
+                                int uknotslength = polesa.GetLength(0) + uDegree + 1 - 2 * (uDegree + 1); // first and last multiplicity is degree+1
+                                int vknotslength = polesa.GetLength(1) + vDegree + 1 - 2 * (vDegree + 1);
+                                uKnots = new List<double>(2 + uknotslength);
+                                vKnots = new List<double>(2 + vknotslength);
+                                uMultiplicities = new List<int>(2 + uknotslength);
+                                vMultiplicities = new List<int>(2 + vknotslength);
+                                uKnots.Add(0.0);
+                                uMultiplicities.Add(uDegree + 1);
+                                for (int i = 0; i < uknotslength; i++)
+                                {
+                                    uKnots.Add((double)i / (double)uknotslength);
+                                    uMultiplicities.Add(1);
+                                }
+                                uKnots.Add(1.0);
+                                uMultiplicities.Add(uDegree + 1);
+                                vKnots.Add(0.0);
+                                vMultiplicities.Add(vDegree + 1);
+                                for (int i = 0; i < vknotslength; i++)
+                                {
+                                    vKnots.Add((double)i / (double)vknotslength);
+                                    vMultiplicities.Add(1);
+                                }
+                                vKnots.Add(1.0);
+                                vMultiplicities.Add(vDegree + 1);
+                            }
                             double[,] weights = null;
                             if (item.parameter.TryGetValue("weights_data", out Item itWeights))
                             {
@@ -2797,22 +2843,29 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.edgeLoop: // name, list of oriented edges?
                         {
-                            List<StepEdgeDescriptor> le = new List<StepEdgeDescriptor>();
-                            foreach (Item sub in item.parameter["edge_list"].lval)
+                            if (item.parameter.ContainsKey("edge_list"))
                             {
-                                object o = CreateEntity(sub);
-                                if (o is StepEdgeDescriptor)
+                                List<StepEdgeDescriptor> le = new List<StepEdgeDescriptor>();
+                                foreach (Item sub in item.parameter["edge_list"].lval)
                                 {
-                                    StepEdgeDescriptor edg = o as StepEdgeDescriptor;
-                                    le.Add(edg);
+                                    object o = CreateEntity(sub);
+                                    if (o is StepEdgeDescriptor)
+                                    {
+                                        StepEdgeDescriptor edg = o as StepEdgeDescriptor;
+                                        le.Add(edg);
+                                    }
+                                    else if (o is ICurve)
+                                    {
+                                        StepEdgeDescriptor edg = new StepEdgeDescriptor(o as ICurve);
+                                        le.Add(edg);
+                                    }
                                 }
-                                else if (o is ICurve)
-                                {
-                                    StepEdgeDescriptor edg = new StepEdgeDescriptor(o as ICurve);
-                                    le.Add(edg);
-                                }
+                                item.val = le;
                             }
-                            item.val = le;
+                            else
+                            {
+                                item.val = null;
+                            }
                         }
                         break;
                     case Item.ItemType.faceBound:
@@ -2954,7 +3007,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.bSplineCurve: // name, degree, control_points_list, curve_form, closed_curve, self_intersect, weights
                         {
                             int degree = item.parameter["degree"].ival;
-                            List<GeoPoint> poles = CreateGeoPointList(item.parameter["control_points_list"].lval);
+                            object opoles = CreateGeoPointList(item.parameter["control_points_list"].lval);
+                            List<GeoPoint> poles = opoles as List<GeoPoint>;
+                            List<GeoPoint2D> poles2d = opoles as List<GeoPoint2D>;
+                            int count;
+                            if (poles != null) count = poles.Count;
+                            else count = poles2d.Count;
                             BSplineCurveForm form = ParseEnum<BSplineCurveForm>(item.parameter["curve_form"].sval);
                             bool closed = item.parameter["closed_curve"].bval;
                             bool selfIntersect = item.parameter["self_intersect"].bval;
@@ -2971,7 +3029,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 //-	on a non-periodic curve, the number of poles is equal to the sum of the multiplicity coefficients, minus Degree, minus 1,
                                 multiplicities = new List<int>();
                                 multiplicities.Add(degree + 1);
-                                for (int i = 0; i < poles.Count - degree - 1; i++)
+                                for (int i = 0; i < count - degree - 1; i++)
                                 {
                                     multiplicities.Add(1);
                                 }
@@ -2984,11 +3042,20 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                             double[] weights = null;
                             if (item.parameter.TryGetValue("weights_data", out Item witem)) weights = CreateFloatList(witem.lval).ToArray();
-                            BSpline bsp = BSpline.Construct();
                             double plen = 0.0;
-                            for (int i = 1; i < poles.Count; i++)
+                            if (poles != null)
                             {
-                                plen += poles[i] | poles[i - 1];
+                                for (int i = 1; i < poles.Count; i++)
+                                {
+                                    plen += poles[i] | poles[i - 1];
+                                }
+                            }
+                            else
+                            {
+                                for (int i = 1; i < poles2d.Count; i++)
+                                {
+                                    plen += poles2d[i] | poles2d[i - 1];
+                                }
                             }
                             double eps = Precision.eps;
                             // in X08011002.stp we need the short splines
@@ -3001,8 +3068,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             else
                             {
                                 // always create open BSplines, because BSpline fiddels around with closed BSplines, SimplifyBSpline does a much better job
-                                bsp.SetData(degree, poles.ToArray(), weights, knots.ToArray(), multiplicities.ToArray(), false);
-                                item.val = SimplifyBSpline(bsp, form, closed);
+                                if (poles != null)
+                                {
+                                    BSpline bsp = BSpline.Construct();
+                                    bsp.SetData(degree, poles.ToArray(), weights, knots.ToArray(), multiplicities.ToArray(), false);
+                                    item.val = SimplifyBSpline(bsp, form, closed);
+                                }
+                                else
+                                {
+                                    item.val = new BSpline2D(poles2d.ToArray(), weights, knots.ToArray(), multiplicities.ToArray(), degree, false, knots[0], knots[knots.Count - 1]);
+                                }
                             }
                         }
                         break;
@@ -3048,9 +3123,19 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.polyline: // name, points
                         {
-                            List<GeoPoint> points = CreateGeoPointList(item.parameter["points"].lval);
-                            Polyline pl = Polyline.FromPoints(points.ToArray(), false);
-                            item.val = pl;
+                            object opoints = CreateGeoPointList(item.parameter["points"].lval);
+                            List<GeoPoint> points = opoints as List<GeoPoint>;
+                            List<GeoPoint2D> points2d = opoints as List<GeoPoint2D>;
+                            if (points != null)
+                            {
+                                Polyline pl = Polyline.FromPoints(points.ToArray(), false);
+                                item.val = pl;
+                            }
+                            else
+                            {
+                                Polyline2D pl = new Polyline2D(points2d.ToArray());
+                                item.val = pl;
+                            }
                         }
                         break;
                     case Item.ItemType.outerBoundaryCurve: // name, points
@@ -3340,7 +3425,67 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.geometricRepresentationItem:
                     case Item.ItemType.curve: // name, curve_3d, associated_geometry, master_representation
                         {
-                            item.val = CreateEntity(item.parameter["curve_3d"]);
+                            switch(item.parameter["master_representation"].sval)
+                            {
+                                case "CURVE_3D":
+                                    item.val = CreateEntity(item.parameter["curve_3d"]);
+                                    break;
+                                case "PCURVE_S1":
+                                    if (item.parameter["associated_geometry"].lval[0].type==Item.ItemType.pcurve)
+                                    {
+                                        object o = CreateEntity(item.parameter["associated_geometry"].lval[0]);
+                                        if (o is ICurve) item.val = o;
+                                    }
+                                    break;
+                                case "PCURVE_S2":
+                                    if (item.parameter["associated_geometry"].lval[1].type == Item.ItemType.pcurve)
+                                    {
+                                        object o = CreateEntity(item.parameter["associated_geometry"].lval[1]);
+                                        if (o is ICurve) item.val = o;
+                                    }
+                                    break;
+                            }
+                            
+                        }
+                        break;
+                    case Item.ItemType.pcurve: // basis_surface, reference_to_curve
+                        {
+                            ISurface srf = CreateEntity(item.parameter["basis_surface"]) as ISurface;
+                            object o = CreateEntity(item.parameter["reference_to_curve"]);
+                            if (o is List<object> lst)
+                            {
+                                for (int i = 0; i < lst.Count; i++)
+                                {   // what would multiple items mean?
+                                    if (lst[i] is ICurve2D || lst[i] is ICurve)
+                                    {
+                                        o = lst[i];
+                                        break;
+                                    }
+                                }
+                            }
+                            if (o is ICurve2D c2d)
+                            {
+                                item.val = srf.Make3dCurve(c2d);
+                            }
+                            else if (o is ICurve c3d)
+                            {
+                                item.val = c3d;
+                            } 
+                            else
+                            {
+                                item.val = null; // should not happen
+                            }
+                        }
+                        break;
+                    case Item.ItemType.definitionalRepresentation: // name, items, context_of_items
+                        {
+                            List<object> res = new List<object>();
+                            foreach (Item subitem in item.parameter["items"].lval)
+                            {
+                                object o = CreateEntity(subitem);
+                                if (o != null) res.Add(o);
+                            }
+                            item.val = res;
                         }
                         break;
                     case Item.ItemType.presentationStyleAssignment:
@@ -3450,8 +3595,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.trimmedCurve: // name, basis_curve, trim_1, trim_2, sense_agreement, master_representation
                         {
                             string nm = item.SubString(0);
-                            ICurve basisCurve = CreateEntity(item.SubItem(1)) as ICurve;
-                            if (basisCurve != null)
+                            object oo = CreateEntity(item.SubItem(1));
+                            if (oo is ICurve basisCurve)
                             {
                                 basisCurve = basisCurve.Clone();
                                 double startParameter = double.MinValue;
@@ -3505,6 +3650,66 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     basisCurve.Trim(startPos, endPos);
                                     if (!sense) basisCurve.Reverse();
                                     item.val = basisCurve;
+                                }
+                            } else if (oo is ICurve2D basisCurve2d)
+                            {
+                                basisCurve2d = basisCurve2d.Clone();
+                                double startParameter = double.MinValue;
+                                double endParameter = double.MinValue;
+                                GeoPoint2D startPoint = GeoPoint2D.Invalid;
+                                GeoPoint2D endPoint = GeoPoint2D.Invalid;
+                                if (item.SubItem(2).type == Item.ItemType.list)
+                                {
+                                    List<Item> lst = (item.SubItem(2).val as List<Item>);
+                                    for (int i = 0; i < lst.Count; i++)
+                                    {
+                                        object o = CreateEntity(lst[i]);
+                                        if (o is List<Item>) o = (o as List<Item>)[0].val;
+                                        if (o is double) startParameter = (double)o;
+                                        if (o is GeoPoint2D) startPoint = (GeoPoint2D)o;
+                                    }
+                                }
+                                if (item.SubItem(3).type == Item.ItemType.list)
+                                {
+                                    List<Item> lst = (item.SubItem(3).val as List<Item>);
+                                    for (int i = 0; i < lst.Count; i++)
+                                    {
+                                        object o = CreateEntity(lst[i]);
+                                        if (o is List<Item>) o = (o as List<Item>)[0].val;
+                                        if (o is double) endParameter = (double)o;
+                                        if (o is GeoPoint2D) endPoint = (GeoPoint2D)o;
+                                    }
+                                }
+                                bool sense = item.SubBool(4);
+                                string masterRepresentation = item.SubString(5);
+                                if (startParameter != double.MinValue && masterRepresentation != "CARTESIAN")
+                                {
+                                    // trimmed curve defined by start- and endParameter
+                                    if (basisCurve2d is Ellipse2D elli2d)
+                                    {
+                                        if (context != null)
+                                        {
+                                            startParameter = context.toRadian * startParameter;
+                                            endParameter = context.toRadian * endParameter;
+                                        }
+                                        elli2d.Trim(startParameter / (2 * Math.PI), endParameter / (2 * Math.PI));
+                                    }
+                                    else
+                                    {   // are all other curves from 0 to 1 ??? there is no "ParameterToPosition" for 2d curves
+                                        // basisCurve2d.Trim(basisCurve2d.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
+                                        basisCurve2d.Trim(startParameter, endParameter);
+                                    }
+                                    if (!sense) basisCurve2d.Reverse();
+                                    item.val = basisCurve2d;
+                                }
+                                else if (startPoint.IsValid && endPoint.IsValid)
+                                {
+                                    // trimmed curve defined by start- and endpoint
+                                    double startPos = basisCurve2d.PositionOf(startPoint);
+                                    double endPos = basisCurve2d.PositionOf(endPoint);
+                                    basisCurve2d.Trim(startPos, endPos);
+                                    if (!sense) basisCurve2d.Reverse();
+                                    item.val = basisCurve2d;
                                 }
                             }
                         }

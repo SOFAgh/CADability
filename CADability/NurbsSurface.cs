@@ -3641,6 +3641,17 @@ namespace CADability.GeoObject
                 ICurve res = (curve2d as Curve2DAspect).Get3DCurve(this);
                 if (res != null) return res;
             }
+            if (curve2d is ProjectedCurve pc)
+            {
+                if (pc.Surface is NurbsSurface)
+                {
+                    BoundingRect otherBounds = new BoundingRect(PositionOf(pc.Surface.PointAt(pc.StartPoint)), PositionOf(pc.Surface.PointAt(pc.EndPoint)));
+                    if (pc.Surface.SameGeometry(pc.GetExtent(), this, otherBounds, Precision.eps, out ModOp2D notneeded))
+                    {
+                        return pc.Curve3DFromParams; // if trimmed or reversed still returns the correct 3d curve (but trimmed and/or reversed)
+                    }
+                }
+            }
             if (curve2d is Line2D)
             {
                 Line2D l2d = curve2d as Line2D;
@@ -4258,6 +4269,8 @@ namespace CADability.GeoObject
             // Einfach das durch FixedU und FixedV gegebene Netz verwenden. Die Kurven werden 
             // mit einer WeakReference gehalten
             if (nubs == null && nurbs == null) Init(); // manchmal nötig, da währen des deserialisierens nich nicht initialisiert
+            double[] us = GetUSingularities();
+            double[] vs = GetVSingularities();
             foreach (GeoVector dir in GeoVector.MainAxis)
             {
                 Dictionary<Pair<int, int>, UVPair> mesh = new Dictionary<Pair<int, int>, UVPair>();
@@ -4265,6 +4278,16 @@ namespace CADability.GeoObject
                 // Möglicherweise wird der u bzw v Wert auch einmal überschrieben, das sollte aber keine Rolle spielen
                 for (int i = 0; i < vKnots.Length; ++i)
                 {
+                    bool isSingular = false;
+                    for (int ii = 0; ii < vs.Length; ii++)
+                    {
+                        if (vs[ii] == vKnots[i]) // singularities are always knots
+                        {
+                            isSingular = true;
+                            break;
+                        }
+                    }
+                    if (isSingular) continue;
                     double[] ex = (FixedV(vKnots[i]) as ICurve).GetExtrema(dir);
                     for (int k = 0; k < ex.Length; ++k)
                     {
@@ -4298,6 +4321,16 @@ namespace CADability.GeoObject
                 }
                 for (int i = 0; i < uKnots.Length; ++i)
                 {
+                    bool isSingular = false;
+                    for (int ii = 0; ii < us.Length; ii++)
+                    {
+                        if (us[ii] == uKnots[i])
+                        {
+                            isSingular = true;
+                            break;
+                        }
+                    }
+                    if (isSingular) continue;
                     double[] ex = (FixedU(uKnots[i]) as ICurve).GetExtrema(dir);
                     for (int k = 0; k < ex.Length; ++k)
                     {
@@ -5173,27 +5206,38 @@ namespace CADability.GeoObject
 
         internal ConicalSurface ConvertToCone(double precision)
         {
-            GeoPoint[] samples = new GeoPoint[9];
-            GeoVector[] normals = new GeoVector[9];
+            GeoPoint[] samples = new GeoPoint[25];
+            GeoVector[] normals = new GeoVector[25];
             double umin, umax, vmin, vmax;
             GetNaturalBounds(out umin, out umax, out vmin, out vmax);
-            double du = (umax - umin) / 2.0;
-            double dv = (vmax - vmin) / 2.0;
-            if (IsUPeriodic && umax - umin >= UPeriod * 0.9) du = (umax - umin) / 3.0;
-            if (IsVPeriodic && vmax - vmin >= VPeriod * 0.9) dv = (vmax - vmin) / 3.0;
-            for (int i = 0; i < 3; i++)
+            double du = (umax - umin) / 4.0;
+            double dv = (vmax - vmin) / 4.0;
+            if (IsUPeriodic && umax - umin >= UPeriod * 0.9) du = (umax - umin) / 5.0;
+            if (IsVPeriodic && vmax - vmin >= VPeriod * 0.9) dv = (vmax - vmin) / 5.0;
+            for (int i = 0; i < 5; i++)
             {
-                for (int j = 0; j < 3; j++)
+                for (int j = 0; j < 5; j++)
                 {
                     GeoPoint2D uv = new GeoPoint2D(umin + i * du, vmin + j * dv);
-                    samples[i * 3 + j] = PointAt(uv);
-                    normals[i * 3 + j] = GetNormal(uv);
+                    samples[i * 5 + j] = PointAt(uv);
+                    normals[i * 5 + j] = GetNormal(uv);
                 }
             }
-            GeoPoint location;
-            GeoVector direction;
-            double halfAngle;
+            GeoPoint location = new GeoPoint(samples); // center of all points
+            GeoVector direction = GeoVector.NullVector;
+            for (int i = 0; i < normals.Length-1; i++)
+            {
+                direction += normals[i] ^ normals[i + 1];
+            }
+            direction.Norm();
+            double halfAngle = -Math.PI / 4.0;
+            if (GaussNewtonMinimizer.ConeFitNew(samples.ToIArray(), location, direction, halfAngle, Precision.eps, out ConicalSurface cs)< Precision.eps)
+            {
+                return cs;
+            }
+            // old method:
             double maxerror = findBestFitCone(samples, normals, out location, out direction, out halfAngle);
+            direction.Norm();
             if (maxerror <= precision)
             {
                 GeoVector dirx, diry;
@@ -5207,7 +5251,7 @@ namespace CADability.GeoObject
                     dirx = direction ^ GeoVector.YAxis;
                     diry = direction ^ dirx;
                 }
-                ConicalSurface res = new ConicalSurface(location, dirx, diry, direction, halfAngle, 0.0);
+                ConicalSurface res = new ConicalSurface(location, dirx, diry, direction, -(Math.PI/2-halfAngle), 0.0);
                 return res;
             }
             return null;

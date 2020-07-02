@@ -293,11 +293,26 @@ namespace CADability
         /// <returns></returns>
         public GeoPoint2D GetUpperRight() { return new GeoPoint2D(Right, Top); }
         /// <summary>
-        /// Inflates the rectangle by the provided value which may also be negative
+        /// Inflates the rectangle by the provided value which may also be negative (for shrinking)
         /// </summary>
         /// <param name="d">Value for infaltion</param>
         public void Inflate(double d)
         {
+            if (!IsEmpty())
+            {
+                Left -= d;
+                Right += d;
+                Bottom -= d;
+                Top += d;
+            }
+        }
+        /// <summary>
+        /// Inflates the rectangle by a factor relative to its <see cref="BoundingRect.Size"/>.
+        /// </summary>
+        /// <param name="factor"></param>
+        public void InflateRelative(double factor)
+        {
+            double d = Size * factor - Size;
             if (!IsEmpty())
             {
                 Left -= d;

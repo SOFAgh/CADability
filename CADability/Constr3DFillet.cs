@@ -207,11 +207,12 @@ namespace CADability.Actions
             {
                 IGeoObject[] affected;
                 IGeoObject[] modified = Make3D.MakeFillet(edges.ToArray(), radius, out affected);
-                if (affected.Length > 0)
+                if (affected!=null && affected.Length > 0)
                 {
                     using (Frame.Project.Undo.UndoFrame)
                     {
-                        IGeoObjectOwner owner = null;
+                        IGeoObjectOwner owner = null; // should be a solid if the affected shell is part of a solid, or owner should be the model
+                        // only the edges of a single shell should be rounded!
                         for (int i = 0; i < affected.Length; ++i)
                         {
                             if (owner == null || affected[i].Owner is Model)
@@ -220,9 +221,24 @@ namespace CADability.Actions
                             }
                             affected[i].Owner.Remove(affected[i]);
                         }
-                        for (int i = 0; i < modified.Length; ++i)
+                        if (owner is Model model)
                         {
-                            owner.Add(modified[i]);
+                            model.Remove(affected);
+                            model.Add(modified);
+                        }
+                        else if (owner is Solid sld)
+                        {
+                            Model m = sld.Owner as Model;
+                            if (m!=null)    // not able to round edges of Solid which is part of a Block?
+                            {
+                                m.Remove(sld);
+                                for (int i = 0; i < modified.Length; ++i)
+                                {
+                                    Solid rsld = Solid.Construct();
+                                    rsld.SetShell(modified[i] as Shell);
+                                    m.Add(rsld);
+                                }
+                            }
                         }
                     }
                 }

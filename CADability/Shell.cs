@@ -202,6 +202,12 @@ namespace CADability.GeoObject
             if (Constructed != null) Constructed(this);
         }
         #endregion
+        public static Shell FromFaces(params Face[] faces)
+        {
+            Shell res = Shell.Construct();
+            res.SetFaces(faces);
+            return res;
+        }
         /// <summary>
         /// Returns all the edges of this Shell. Each egde is unique in the array 
         /// but may belong to two different faces.
@@ -689,8 +695,14 @@ namespace CADability.GeoObject
             }
             return simplified;
         }
-
-        internal Shell Clone(Dictionary<Edge, Edge> clonedEdges, Dictionary<Vertex, Vertex> clonedVertices = null)
+        /// <summary>
+        /// Clones the shell and fills the dictionaries with original to cloned references
+        /// </summary>
+        /// <param name="clonedEdges"></param>
+        /// <param name="clonedVertices"></param>
+        /// <param name="clonedFaces"></param>
+        /// <returns></returns>
+        internal Shell Clone(Dictionary<Edge, Edge> clonedEdges, Dictionary<Vertex, Vertex> clonedVertices = null, Dictionary<Face, Face> clonedFaces = null)
         {   // hier kann es sich um ein unabhängiges oder um ein von einem Solid abhängiges Shell handeln.
             // im letzteren Fall bleiben die edges undefiniert
             if (clonedVertices == null) clonedVertices = new Dictionary<Vertex, Vertex>();
@@ -702,6 +714,7 @@ namespace CADability.GeoObject
             {
                 res.faces[i] = faces[i].Clone(clonedEdges, clonedVertices);
                 res.faces[i].Owner = res;
+                if (clonedFaces != null) clonedFaces[faces[i]] = res.faces[i];
             }
 #if DEBUG
             bool ok = res.CheckConsistency();
@@ -1902,7 +1915,6 @@ namespace CADability.GeoObject
             }
             return decomp;
         }
-
         #endregion
         #region IOctTreeInsertable members
         /// <summary>
@@ -2197,7 +2209,7 @@ namespace CADability.GeoObject
                 return res.ToArray();
             }
         }
-        public bool HasOpenEdgesEceptPoles()
+        public bool HasOpenEdgesExceptPoles()
         {
             Edge[] open = OpenEdges;
             bool ok = true;
@@ -2211,6 +2223,23 @@ namespace CADability.GeoObject
             }
             return !ok;
         }
+        public Edge[] OpenEdgesExceptPoles
+        {
+            get
+            {
+                List<Edge> open = new List<Edge>(OpenEdges);
+                bool ok = true;
+                for (int i = open.Count-1; i >=0; --i)
+                {
+                    if (open[i].Vertex1 == open[i].Vertex2)
+                    {
+                        open.RemoveAt(i);
+                    }
+                }
+                return open.ToArray();
+            }
+        }
+
         public void ReverseOrientation()
         {
             foreach (Face fc in faces)
@@ -4181,7 +4210,10 @@ namespace CADability.GeoObject
             }
             return true;
         }
-
+        /// <summary>
+        /// Removes the provided <paramref name="face"/> from the shell. Connecting edges are seperated
+        /// </summary>
+        /// <param name="face"></param>
         internal void RemoveFace(Face face)
         {
             // heraustrennen des Faces: die betreffenden Kanten dieser Shell werden zu offenen Kanten
@@ -4190,27 +4222,8 @@ namespace CADability.GeoObject
                 Set<Face> remainingFaces = new Set<Face>(faces);
                 remainingFaces.Remove(face);
                 faces = remainingFaces.ToArray();
-                Edge[] dumy = OpenEdges; // damit werden die Kanten, die auf ein Face außerhalb zeigen zu offenen Kanten
-                // das face allerdings hat jetzt somit ungültige Kanten, aber das macht wohl nichts
-                //foreach (Edge edge in face.AllEdgesIterated())
-                //{
-                //    if (edge.PrimaryFace == face)
-                //    {
-                //        if (edge.SecondaryFace != null)
-                //        {
-                //            Edge cloned = edge.Clone(); // nur 3d Kurve
-                //            cloned.SetPrimary(edge.SecondaryFace, edge.SecondaryCurve2D, edge.Forward(edge.SecondaryFace));
-                //            edge.SecondaryFace.ReplaceEdge(edge, new Edge[] { cloned });
-                //        }
-                //    }
-                //    else if (edge.SecondaryFace == face)
-                //    {
-                //        Edge cloned = edge.Clone(); // nur 3d Kurve
-                //        cloned.SetPrimary(edge.PrimaryFace, edge.PrimaryCurve2D, edge.Forward(edge.PrimaryFace));
-                //        edge.PrimaryFace.ReplaceEdge(edge, new Edge[] { cloned });
-                //    }
-                //}
-                edges = null; // die müssen neu berechnet werden
+                Edge[] dumy = OpenEdges; // this disconnects the common edges
+                edges = null; // to force recalculation
             }
         }
         internal void AddFace(Face face)
@@ -4957,7 +4970,7 @@ namespace CADability.GeoObject
                         {   // it might be a face as a simple piece of a plane with the same face as a lid. We dont want that.
                             loops.Clear(); // to find faces outside this loop
                         }
-                        else if (!res.HasOpenEdgesEceptPoles()) return res;
+                        else if (!res.HasOpenEdgesExceptPoles()) return res;
                     }
                 }
                 bool found = false;
@@ -5152,7 +5165,7 @@ namespace CADability.GeoObject
             lid.UserData.Add("Feature.Lid", true);
             AccumulateConnectedFaces(featureFaces);
             Shell res1 = Shell.MakeShell(featureFaces.ToArray());
-            if (res1.HasOpenEdgesEceptPoles())
+            if (res1.HasOpenEdgesExceptPoles())
             {
                 // there must be a hole in the shell, like a drilling hole going through the whole body
                 // if the open side is a single surface, then we can close it
@@ -5225,7 +5238,7 @@ namespace CADability.GeoObject
                     saveFeatureFaces.Add(bottom);
                     bottom.UserData.Add("Feature.Bottom", true);
                     Shell res2 = MakeShell(saveFeatureFaces.ToArray());
-                    if (!res2.HasOpenEdgesEceptPoles())
+                    if (!res2.HasOpenEdgesExceptPoles())
                     {
                         res2.AssertOutwardOrientation();
                         return res2;
@@ -5310,7 +5323,7 @@ namespace CADability.GeoObject
                 faceList.Append(facenr.ToString());
             }
             int cs;
-            if (HasOpenEdgesEceptPoles())
+            if (HasOpenEdgesExceptPoles())
             {
                 cs = export.WriteDefinition("OPEN_SHELL('" + NameOrEmpty + "',(" + faceList.ToString() + "))");
             }

@@ -3462,7 +3462,7 @@ namespace CADability.Shapes
                 }
                 if (PointsOnToClip.Count > 0)
                 {
-                    // fast 0.0 und fast 1.0 uaf 0.0 bzw. 1.0 setzen
+                    // fast 0.0 und fast 1.0 auf 0.0 bzw. 1.0 setzen
                     if (Math.Abs(PointsOnToClip[0].par1) < 1e-6) PointsOnToClip[0] = new GeoPoint2DWithParameter(PointsOnToClip[0].p, 0.0, PointsOnToClip[0].par2);
                     if (Math.Abs(1.0 - PointsOnToClip[PointsOnToClip.Count - 1].par1) < 1e-6) PointsOnToClip[PointsOnToClip.Count - 1] = new GeoPoint2DWithParameter(PointsOnToClip[PointsOnToClip.Count - 1].p, 1.0, PointsOnToClip[PointsOnToClip.Count - 1].par2);
                 }

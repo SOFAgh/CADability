@@ -14,6 +14,8 @@ using System.Collections;
 using System.Text;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
+using System.Drawing;
+using Point = CADability.GeoObject.Point;
 
 namespace CADability
 {
@@ -163,6 +165,7 @@ namespace CADability
         }
         public void Add(IGeoObject toAdd)
         {
+            AssertColor(toAdd);
             if (toAdd != null) toShow.Add(toAdd);
         }
         public void Add(IGeoObject toAdd, int debugHint)
@@ -170,6 +173,7 @@ namespace CADability
             if (toAdd == null) return;
             IntegerProperty ip = new IntegerProperty(debugHint, "Debug.Hint");
             toAdd.UserData.Add("Debug", ip);
+            AssertColor(toAdd);
             toShow.Add(toAdd);
         }
         public void Add(GeoObjectList toAdd)
@@ -179,6 +183,7 @@ namespace CADability
                 IGeoObject clone = toAdd[i].Clone();
                 IntegerProperty ip = new IntegerProperty(i, "Debug.Hint");
                 clone.UserData.Add("Debug", ip);
+                AssertColor(clone);
                 toShow.Add(clone);
             }
         }
@@ -210,7 +215,9 @@ namespace CADability
         }
         public void Add(ICurve2D c2d)
         {
-            toShow.Add(c2d.MakeGeoObject(Plane.XYPlane));
+            IGeoObject go = c2d.MakeGeoObject(Plane.XYPlane);
+            AssertColor(go);
+            toShow.Add(go);
         }
         public void Add(ICurve2D c2d, System.Drawing.Color color, int debugHint)
         {
@@ -295,6 +302,53 @@ namespace CADability
             IntegerProperty ip = new IntegerProperty(debugHint, "Debug.Hint");
             point.UserData.Add("Debug", ip);
             toShow.Add(point);
+        }
+        private ColorDef pointColor = null;
+        private ColorDef PointColor
+        {
+            get
+            {
+                if (pointColor==null)
+                {
+                    pointColor = new ColorDef("auto point", Color.Brown);
+                }
+                return pointColor;
+            }
+        }
+        private ColorDef curveColor = null;
+        private ColorDef CurveColor
+        {
+            get
+            {
+                if (curveColor == null)
+                {
+                    curveColor = new ColorDef("auto point", Color.DarkCyan);
+                }
+                return curveColor;
+            }
+        }
+        private ColorDef faceColor = null;
+        private ColorDef FaceColor
+        {
+            get
+            {
+                if (faceColor == null)
+                {
+                    faceColor = new ColorDef("auto point", Color.GreenYellow);
+                }
+                return faceColor;
+            }
+        }
+        private void AssertColor(IGeoObject go)
+        {
+            if (go is IColorDef cd && cd.ColorDef == null)
+            {
+                if (go is GeoObject.Point) cd.ColorDef = PointColor;
+                if (go is ICurve) cd.ColorDef = CurveColor;
+                if (go is Face) cd.ColorDef = FaceColor;
+                if (go is Shell) cd.ColorDef = FaceColor;
+                if (go is Solid) cd.ColorDef = FaceColor;
+            }
         }
 #region IDebuggerVisualizer Members
         GeoObjectList IDebuggerVisualizer.GetList()

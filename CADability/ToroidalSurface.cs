@@ -94,6 +94,10 @@ namespace CADability.GeoObject
         {
             GeoPoint punit = GeoPoint.Origin + (1 + minorRadius * Math.Cos(uv.y)) * (Math.Cos(uv.x) * GeoVector.XAxis + Math.Sin(uv.x) * GeoVector.YAxis) + minorRadius * Math.Sin(uv.y) * GeoVector.ZAxis;
             return toTorus * punit;
+            // x = (1 + minorRadius * Math.Cos(uv.y))*Math.Cos(uv.x)
+            // y = (1 + minorRadius * Math.Cos(uv.y))*Math.Sin(uv.x)
+            // z = minorRadius * Math.Sin(uv.y)
+            // Torus(u,v) := [(1 + minorRadius * cos(v))*cos(u),(1 + minorRadius * cos(v))*sin(u),minorRadius * sin(v)];
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.PositionOf (GeoPoint)"/>
@@ -110,6 +114,8 @@ namespace CADability.GeoObject
             double a = Math.Sqrt(pu.x * pu.x + pu.y * pu.y) - 1.0; // Abstand des Fußpunkts vom Einheitskreis
             double u = Math.Atan2(pu.y, pu.x);
             double v = Math.Atan2(pu.z, a);
+            if (u < 0.0) u += 2 * Math.PI;
+            if (v < 0.0) v += 2 * Math.PI; // lets always result in [0..2*pi,0..2*pi], we need it for GetProjectedCurve, comparing with Vvsingularity
             if (minorRadius > 1.0)
             {   // in this case the torus intersects itself and the result is ambiguous
                 // it could be (u,v)
@@ -238,6 +244,24 @@ namespace CADability.GeoObject
                 minorRadius * Math.Cos(uv.y));
 
         }
+        public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
+        {
+            location = PointAt(uv);
+            du = UDirection(uv);
+            dv = VDirection(uv);
+            duu = toTorus * new GeoVector(
+                Math.Cos(uv.x) * (-minorRadius * Math.Cos(uv.y) - 1),
+                -Math.Sin(uv.x) * (minorRadius * Math.Cos(uv.y) + 1), 0);
+            duv = toTorus * new GeoVector(
+                minorRadius * Math.Sin(uv.x) * Math.Sin(uv.y),
+                -minorRadius * Math.Cos(uv.x) * Math.Sin(uv.y), 0);
+            dvv = toTorus * new GeoVector(
+                -minorRadius * Math.Cos(uv.x) * Math.Cos(uv.y),
+                -minorRadius * Math.Sin(uv.x) * Math.Cos(uv.y),
+                -minorRadius * Math.Sin(uv.y)
+                );
+        }
+
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNormal (GeoPoint2D)"/>
         /// </summary>
@@ -254,6 +278,17 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ICurve Make3dCurve(ICurve2D curve2d)
         {
+            if (curve2d is ProjectedCurve pc)
+            {
+                if (pc.Surface is ToroidalSurface)
+                {
+                    BoundingRect otherBounds = new BoundingRect(PositionOf(pc.Surface.PointAt(pc.StartPoint)), PositionOf(pc.Surface.PointAt(pc.EndPoint)));
+                    if (pc.Surface.SameGeometry(pc.GetExtent(), this, otherBounds, Precision.eps, out ModOp2D notneeded))
+                    {
+                        return pc.Curve3DFromParams; // if trimmed or reversed still returns the correct 3d curve (but trimmed and/or reversed)
+                    }
+                }
+            }
             if (curve2d is Line2D) // dieser Text könnte eigentlich in der Basismethode stehen
             {
                 if (Math.Abs(curve2d.StartDirection.x) < Precision.eps)
@@ -731,6 +766,42 @@ namespace CADability.GeoObject
             if (Precision.SameDirection(GeoVector.ZAxis, pln.Normal, false))
             #region Zwei Kreis _|_ ZAxis
             {
+                BoundingRect bounds = new BoundingRect(umin, vmin, umax, vmax);
+                GeoPoint tst = this.PointAt(new GeoPoint2D((umin + umax) / 2.0, (vmin + vmax) / 2.0)); // some point on the torus
+                tst = pl.PointAt(pl.PositionOf(tst)); // perpendicular projection of some torus point onto the plane
+                GeoPoint tcnt = pl.PointAt(pl.PositionOf(Location));// perpendicular projection of torus center point onto the plane
+                GeoPoint2D[] isps = this.GetLineIntersection(tcnt, tst - tcnt);
+                if (isps.Length > 0)
+                {
+                    List<IDualSurfaceCurve> res = new List<IDualSurfaceCurve>();
+                    List<GeoPoint2D> usedIps = new List<GeoPoint2D>();
+                    for (int i = 0; i < isps.Length; i++)
+                    {   // it is important to not have duplicate results.
+                        SurfaceHelper.AdjustPeriodic(this, bounds, ref isps[i]);
+                        if (!bounds.Contains(isps[i])) continue;
+                        bool alreadyused = false;
+                        for (int j = 0; j < usedIps.Count; j++)
+                        {
+                            if (Math.Abs(usedIps[j].y - isps[i].y) < Precision.eps)
+                            {
+                                alreadyused = true;
+                                break;
+                            }
+                        }
+                        if (alreadyused) continue;
+                        usedIps.Add(isps[i]);
+                        Line2D l2d = new Line2D(new GeoPoint2D(umin, isps[i].y), new GeoPoint2D(umax, isps[i].y));
+                        ICurve c3d = Make3dCurve(l2d); // this is a circular arc
+                        ICurve2D a2d = pl.GetProjectedCurve(c3d, 0.0); // this is a 2d arc
+                        res.Add(new DualSurfaceCurve(c3d, this, l2d, pl, a2d));
+                    }
+                    return res.ToArray();
+                }
+                else
+                {
+                    return new IDualSurfaceCurve[0];
+                }
+
                 GeoPoint onz = pln.Intersect(GeoPoint.Origin, GeoVector.ZAxis);
                 double d = onz.z;
                 if (Math.Abs(d) - Math.Abs(minorRadius) > Precision.eps)
@@ -1668,6 +1739,26 @@ namespace CADability.GeoObject
             if (curve is Line)
             {
                 ips = GetLineIntersection3D((curve as Line).StartPoint, (curve as Line).StartDirection);
+                if (ips.Length == 2 && (ips[0] | ips[1]) < Precision.eps)
+                {   // probably tangential intersection
+                    GeoPoint ip = new GeoPoint(toTorus * ips[0], toTorus * ips[1]);
+                    GeoPoint2D uv = PositionOf(ip);
+                    double s = curve.PositionOf(ip);
+                    double error = GaussNewtonMinimizer.SurfaceCurveExtrema(this, uvExtent, curve, 0.0, 1.0, ref uv, ref s);
+                    if (error < Precision.eps)
+                    {
+                        GeoPoint ipt = PointAt(uv);
+                        GeoPoint ipc = curve.PointAt(s);
+                        if (Precision.IsEqual(ipt, ipt))
+                        {
+                            ips = new GeoPoint[] { new GeoPoint(ipt, ipc) };
+                            uvOnFaces = new GeoPoint2D[] { uv };
+                            uOnCurve3Ds = new double[] { s };
+                            return;
+                        }
+                    }
+                }
+
                 // ips ist im Unit System
                 uvOnFaces = new GeoPoint2D[ips.Length];
                 uOnCurve3Ds = new double[ips.Length];
@@ -1910,6 +2001,16 @@ namespace CADability.GeoObject
                     if (Precision.IsPointOnPlane(this.Location, e.Plane) && Precision.IsPerpendicular(this.ZAxis, e.Plane.Normal, false))
                     {
                         GeoPoint2D uv = PositionOf(e.StartPoint);
+                        double[] vs = GetVSingularities();
+                        if (vs.Length > 0)
+                        {
+                            for (int i = 0; i < vs.Length; i++)
+                            {
+                                if (Math.Abs(uv.y - vs[i]) < 1e-4) uv.x = PositionOf(e.PointAt(0.5372516273)).x; // we did hit a pole with the startpoint, lets take some other point (but not the endpoint, if e is full circle)
+                                // 1e-4 is not critical, because "PositionOf(e.PointAt(..." should always return the same result, the odd value is to assure we don't hit the other pole
+                            }
+                        }
+
                         GeoVector tordir = VDirection(uv);
                         GeoVector arcdir = e.StartDirection;
                         double d = tordir * arcdir;
@@ -2200,6 +2301,10 @@ namespace CADability.GeoObject
             {
                 double v = Math.Acos(1.0 / minorRadius);
                 return new double[] { Math.PI - v, Math.PI + v };
+            }
+            else if (Math.Abs(minorRadius) > 1.0 - 1e-8)
+            {
+                return new double[] { Math.PI }; // a touching point in the middle
             }
             return new double[0];
         }

@@ -980,48 +980,12 @@ namespace CADability
             double dx = ep.x - sp.x;
             double dy = ep.y - sp.y;
             double dz = ep.z - sp.z;
-            if (Math.Abs(dx) >= Math.Abs(dy) && Math.Abs(dx) >= Math.Abs(dz))
-            {
-                if (dx == 0.0) return 0.0;
-                return (p.x - sp.x) / dx;
-            }
-            else if (Math.Abs(dy) >= Math.Abs(dx) && Math.Abs(dy) >= Math.Abs(dz))
-            {
-                return (p.y - sp.y) / dy;
-            }
-            else
-            {
-                return (p.z - sp.z) / dz;
-            }
+            return ((dx * p.x + dy * p.y + dz * p.z) - (dx * sp.x + dy * sp.y + dz * sp.z)) / (dx * dx + dy * dy + dz * dz);
+
         }
         public static double LinePar(GeoPoint sp, GeoVector dir, GeoPoint p)
         {
-            if (Math.Abs(dir.x) >= Math.Abs(dir.y) && Math.Abs(dir.x) >= Math.Abs(dir.z))
-            {
-                return (p.x - sp.x) / dir.x;
-            }
-            else if (Math.Abs(dir.y) >= Math.Abs(dir.x) && Math.Abs(dir.y) >= Math.Abs(dir.z))
-            {
-                return (p.y - sp.y) / dir.y;
-            }
-            else
-            {
-                return (p.z - sp.z) / dir.z;
-            }
-            //if (Math.Abs(dir.x) > Math.Abs(dir.y))
-            //{
-            //    if (Math.Abs(dir.z) > Math.Abs(dir.x))
-            //        return (p.z - sp.z) / dir.z;
-            //    else
-            //        return (p.x - sp.x) / dir.x;
-            //}
-            //else
-            //{
-            //    if (Math.Abs(dir.z) > Math.Abs(dir.y))
-            //        return (p.z - sp.z) / dir.z;
-            //    else
-            //        return (p.y - sp.y) / dir.y;
-            //}
+            return ((dir.x * p.x + dir.y * p.y + dir.z * p.z) - (dir.x * sp.x + dir.y * sp.y + dir.z * sp.z)) / (dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
         }
         public static GeoPoint LinePos(GeoPoint sp, GeoPoint ep, double pos)
         {

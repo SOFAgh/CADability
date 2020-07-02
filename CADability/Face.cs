@@ -303,6 +303,69 @@ namespace CADability.GeoObject
                 }
                 // Some problem arise, because the curves may be not very precise. We try to adjust start- and enpoints
                 // so the connections are precise
+                bool orientationChanged = false;
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    if (loops[i].Count > 1)
+                    {
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            int jn = (j + 1) % loops[i].Count;
+                            if (loops[i][j].curve != null && loops[i][jn].curve != null)
+                            {
+                                GeoPoint p1s, p1e, p2s, p2e;
+                                if (loops[i][j].forward)
+                                {
+                                    p1s = loops[i][j].curve.StartPoint;
+                                    p1e = loops[i][j].curve.EndPoint;
+                                }
+                                else
+                                {
+                                    p1s = loops[i][j].curve.EndPoint;
+                                    p1e = loops[i][j].curve.StartPoint;
+                                }
+                                if (loops[i][jn].forward)
+                                {
+                                    p2s = loops[i][jn].curve.StartPoint;
+                                    p2e = loops[i][jn].curve.EndPoint;
+                                }
+                                else
+                                {
+                                    p2s = loops[i][jn].curve.EndPoint;
+                                    p2e = loops[i][jn].curve.StartPoint;
+                                }
+                                double d1 = p1e | p2s;
+                                double d2 = p1e | p2e;
+                                double d3 = p1s | p2s;
+                                double d4 = p1s | p2e;
+                                double dmin = Math.Min(Math.Min(d1, d2), Math.Min(d3, d4));
+                                if (dmin == d1)
+                                {
+                                    // everything ok, this is what we expect
+                                }
+                                else if (dmin == d2)
+                                {
+                                    loops[i][jn].forward = !loops[i][jn].forward;
+                                    orientationChanged = true;
+                                }
+                                else if (dmin == d3)
+                                {
+                                    loops[i][j].forward = !loops[i][j].forward;
+                                    orientationChanged = true;
+                                }
+                                else
+                                {   // maybe only two curves and the other connection is a little bit better: we don't need to reverse
+                                    if (loops[i].Count > 2)
+                                    {
+                                        loops[i][j].forward = !loops[i][j].forward;
+                                        loops[i][jn].forward = !loops[i][jn].forward;
+                                        orientationChanged = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 double minCurveLength = double.MaxValue;
                 for (int i = 0; i < loops.Count; i++)
                 {
@@ -2419,7 +2482,7 @@ namespace CADability.GeoObject
                                     for (int k = 0; k < replacementEdges.Length; k++)
                                     {
                                         replacementEdges[k] = loops[i][j].createdEdges[k + 1];
-                                        replacementEdges[k].UseVertices(toUse.ToArray());
+                                        replacementEdges[k].UseVertices(toUse, precision);
                                         toUse.Add(replacementEdges[k].Vertex1);
                                         toUse.Add(replacementEdges[k].Vertex2);
                                         ICurve2D projC2d = onOtherFace.PrimaryFace.Surface.GetProjectedCurve(replacementEdges[k].Curve3D, 0.0);
@@ -2748,6 +2811,7 @@ namespace CADability.GeoObject
             res.SetSurface(surface);
             Path2D p2d = outline.Outline.AsPath();
             p2d.Flatten();
+            res.surface.SetBounds(p2d.GetExtent());
 
             res.outline = new Edge[p2d.SubCurvesCount];
             for (int i = 0; i < p2d.SubCurvesCount; ++i)
@@ -4822,6 +4886,43 @@ namespace CADability.GeoObject
             }
             return false;
         }
+        /// <summary>
+        /// Find a chain of edges from the Vertex <paramref name="from"/> to the Vertex <paramref name="to"/>.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        internal Edge[] FindEdgeChain(Vertex from, Vertex to)
+        {
+            Set<Edge> fromEdges = from.AllEdges.Intersection(this.AllEdgesSet); // use this intersection, because there might be intersection edges, which don't belong to this outline and holes edges
+            Edge startWith = null;
+            foreach (Edge edge in fromEdges)
+            {
+                if (edge.StartVertex(this) == from)
+                {
+                    startWith = edge;
+                    break;
+                }
+            }
+            List<Edge> res = new List<Edge>();
+            if (startWith != null) // there must be one
+            {
+                res.Add(startWith);
+                while (startWith.EndVertex(this) != to)
+                {
+                    if (startWith.EndVertex(this) == from)
+                    {   // loop is closed without hitting "to"
+                        return new Edge[0];
+                    }
+                    startWith = GetNextEdge(startWith);
+                    res.Add(startWith);
+                }
+                return res.ToArray();
+            }
+            return new Edge[0]; // should not happen
+
+        }
+
         internal void ReplaceSurface(ISurface surface, ModOp2D reparameterize)
         {
             this.surface = surface.Clone();
@@ -4882,7 +4983,7 @@ namespace CADability.GeoObject
             return res;
         }
         public void ModifySurface(ModOp m)
-        {   
+        {
             // ususally called from Shell, which modifies the edges seperately
 #if DEBUG
             int tc0 = System.Environment.TickCount;
@@ -8052,6 +8153,13 @@ namespace CADability.GeoObject
             GeoPoint2D[] uvOnFaces;
             double[] uOnCurve3Ds;
             surface.Intersect(edg.Curve3D, this.GetUVBounds(), out ips, out uvOnFaces, out uOnCurve3Ds);
+            if (ips.Length == 0 && surface.GetDistance(edg.Curve3D.StartPoint) < prec && surface.GetDistance(edg.Curve3D.EndPoint) < prec && surface.GetDistance(edg.Curve3D.PointAt(0.5)) < prec)
+            {
+                // the curve resides in the surface
+                ips = new GeoPoint[] { edg.Curve3D.StartPoint, edg.Curve3D.EndPoint };
+                uvOnFaces = new GeoPoint2D[] { surface.PositionOf(edg.Curve3D.StartPoint), surface.PositionOf(edg.Curve3D.EndPoint) };
+                uOnCurve3Ds = new double[] { 0.0, 1.0 };
+            }
             List<GeoPoint> lip = new List<GeoPoint>();
             List<GeoPoint2D> luvOnFace = new List<GeoPoint2D>();
             List<double> luOnCurve3D = new List<double>();
@@ -9054,12 +9162,22 @@ namespace CADability.GeoObject
             {
                 ICurve2D c2dThis = this.surface.GetProjectedCurve(combined, Precision.eps);
                 SurfaceHelper.AdjustPeriodic(this.surface, this.Area.GetExtent(), c2dThis);
-                ICurve2D c2dOther = otherface.surface.GetProjectedCurve(combined, Precision.eps);
-                c2dOther.Reverse();
-                SurfaceHelper.AdjustPeriodic(otherface.surface, otherface.Area.GetExtent(), c2dOther);
-                Edge edge = new Edge(this, combined, this, c2dThis, true, otherface, c2dOther, false);
+                Edge edge;
+                if (otherface != null)
+                {
+                    ICurve2D c2dOther = otherface.surface.GetProjectedCurve(combined, Precision.eps);
+                    c2dOther.Reverse();
+
+                    SurfaceHelper.AdjustPeriodic(otherface.surface, otherface.Area.GetExtent(), c2dOther);
+                    edge = new Edge(this, combined, this, c2dThis, true, otherface, c2dOther, false);
+                }
+                else
+                {
+                    edge = new Edge(this, combined, this, c2dThis, true);
+                }
+
                 this.ReplaceCombinedEdges(edg1, edg2, edge);
-                otherface.ReplaceCombinedEdges(edg1, edg2, edge);
+                if (otherface != null) otherface.ReplaceCombinedEdges(edg1, edg2, edge);
                 // edge.UseVertices(edg1.StartVertex(this), edg2.EndVertex(this)); makes precision problems
                 edge.SetVertices(edg1.StartVertex(this), edg2.EndVertex(this));
                 edge.Orient();
@@ -9070,7 +9188,7 @@ namespace CADability.GeoObject
                 vertices = null;
                 return true;
             }
-            else
+            else if (otherface != null)
             {
                 // There might be a orientation bug in the following
                 // Test: are the surfaces tangential. Then we cannot combine the edges
@@ -9500,7 +9618,7 @@ namespace CADability.GeoObject
             return res.ToArray();
         }
 #if DEBUG
-        public Face CloneNonPeriodic(Dictionary<Edge, Edge> clonedEdges, Dictionary<Vertex,Vertex> clonedVertices)
+        public Face CloneNonPeriodic(Dictionary<Edge, Edge> clonedEdges, Dictionary<Vertex, Vertex> clonedVertices)
         {
             ISurface nps = surface.GetNonPeriodicSurface(area.Outline);
             if (nps != null && nps is INonPeriodicSurfaceConversion)
@@ -9860,10 +9978,11 @@ namespace CADability.GeoObject
         {
             Vertex v = edge.EndVertex(this);
             List<Edge> onThisFace = v.EdgesOnFace(this);
-            if (onThisFace.Count < 2) return edge; // es gibt nur eine einzige Kante, die ist sich selbst Nachfolger
+            if (onThisFace.Count < 2) return edge; // there is only one (closed) edge. This should not be the case with proper (non periodic) faces
             if (onThisFace.Count > 2)
-            {
-                // Kante an einem Vertex, bei dem mehrere kanten zusammentreffen: in der Reihenfolge der Kanten suchen (stimmt das auch bei Löchern?)
+            {   // this could happen when a vertex is multiply used, but this is very rare. Another situation might be that during brep operations
+                // there are additional edges created (intersection edges) which are assiciated with this face (as primary or secondary face) but 
+                // do not belong to the outline or holes of this face. Such edges are dismissed here
                 int lasti = outline.Length - 1;
                 for (int i = 0; i < outline.Length; i++)
                 {
@@ -9881,7 +10000,7 @@ namespace CADability.GeoObject
                 }
                 return null;
             }
-            // genau zwei in der Liste
+            // normal case: two edges for vertex v on this face. We return the other edge
             if (onThisFace[0] == edge) return onThisFace[1];
             else return onThisFace[0];
         }

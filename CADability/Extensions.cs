@@ -49,11 +49,11 @@ namespace CADability
 
         bool IEnumerator.MoveNext()
         {
-            if (currentEnumerator == null) currentEnumerator = toEnumerate[currentIndex].GetEnumerator();
+            if (currentEnumerator == null) currentEnumerator = toEnumerate[0].GetEnumerator();
             while (!currentEnumerator.MoveNext())
             {
                 ++currentIndex;
-                if (currentIndex < toEnumerate.Length - 1)
+                if (currentIndex < toEnumerate.Length)
                 {
                     currentEnumerator = toEnumerate[currentIndex].GetEnumerator();
                 }
@@ -78,7 +78,7 @@ namespace CADability
 
     static class Extensions
     {
-        static IEnumerable<T> Combine<T>(params IEnumerable<T>[] enumerators)
+        public static IEnumerable<T> Combine<T>(params IEnumerable<T>[] enumerators)
         {
             return new CombinedEnumerable<T>(enumerators);
         }

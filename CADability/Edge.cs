@@ -825,20 +825,20 @@ namespace CADability
             bool isSingular = false;
             if (curve is Line2D)
             {
-                if (curve.StartPoint.y == curve.EndPoint.y)
+                if (Math.Abs(curve.StartPoint.y - curve.EndPoint.y) < 1e-8)
                 {
                     double[] vs = surface.GetVSingularities();
                     for (int i = 0; i < vs.Length; i++)
                     {
-                        if (curve.StartPoint.y == vs[i]) isSingular = true;
+                        if (Math.Abs(curve.StartPoint.y - vs[i]) < 1e-8) isSingular = true;
                     }
                 }
-                if (curve.StartPoint.x == curve.EndPoint.x)
+                if (Math.Abs(curve.StartPoint.x - curve.EndPoint.x) < 1e-8)
                 {
                     double[] us = surface.GetUSingularities();
                     for (int i = 0; i < us.Length; i++)
                     {
-                        if (curve.StartPoint.x == us[i]) isSingular = true;
+                        if (Math.Abs(curve.StartPoint.x - us[i]) < 1e-8) isSingular = true;
                     }
                 }
             }
@@ -863,7 +863,7 @@ namespace CADability
             // alles bleibt null;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 170 || hashCode==173)
+            if (hashCode == 110)
             {
             }
 #endif
@@ -949,6 +949,14 @@ namespace CADability
             if (face == primaryFace) return secondaryFace;
             if (face == secondaryFace) return primaryFace;
             return null;
+        }
+        public IEnumerable<Face> Faces
+        {
+            get
+            {
+                if (primaryFace!=null) yield return primaryFace;
+                if (secondaryFace!=null) yield return secondaryFace;
+            }
         }
         /// <summary>
         /// Gets the 3D curve of this edge. Dont modify this curve or the edge will be in an inconsistent state.
@@ -1653,7 +1661,7 @@ namespace CADability
             }
             return res;
         }
-        public Edge Clone(Dictionary<Vertex,Vertex> clonedVertices)
+        public Edge Clone(Dictionary<Vertex, Vertex> clonedVertices)
         {
             Edge res = new Edge();
             if (curve3d != null)

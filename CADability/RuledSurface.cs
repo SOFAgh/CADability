@@ -486,6 +486,17 @@ namespace CADability
         /// <returns></returns>
         public override ICurve Make3dCurve(ICurve2D curve2d)
         {
+            if (curve2d is ProjectedCurve pc)
+            {
+                if (pc.Surface is RuledSurface)
+                {
+                    BoundingRect otherBounds = new BoundingRect(PositionOf(pc.Surface.PointAt(pc.StartPoint)), PositionOf(pc.Surface.PointAt(pc.EndPoint)));
+                    if (pc.Surface.SameGeometry(pc.GetExtent(), this, otherBounds, Precision.eps, out ModOp2D notneeded))
+                    {
+                        return pc.Curve3DFromParams; // if trimmed or reversed still returns the correct 3d curve (but trimmed and/or reversed)
+                    }
+                }
+            }
             if (curve2d is Line2D)
             {
                 Line2D l2d = curve2d as Line2D;
