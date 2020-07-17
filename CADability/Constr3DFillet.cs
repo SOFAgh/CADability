@@ -25,6 +25,7 @@ namespace CADability.Actions
             geoObjectInput.EdgesOnly = true;
             geoObjectInput.MultipleInput = true;
             geoObjectInput.MouseOverGeoObjectsEvent += new GeoObjectInput.MouseOverGeoObjectsDelegate(OnMouseOverEdges);
+            // we would need a mass selection (rectangular selection) for GeoObjectInput
 
             faceInput = new GeoObjectInput("Constr.Fillet.Face");
             faceInput.FacesOnly = true;

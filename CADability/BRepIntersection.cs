@@ -3183,6 +3183,7 @@ namespace CADability
                         List<Edge> touchedEdges = ef.face.FindEdges(uvOnFace[i]);
                         for (int j = 0; j < touchedEdges.Count; j++)
                         {
+                            if (touchedEdges[j].Curve3D == null) continue; // no poles here
                             double cprec = prec / touchedEdges[j].Curve3D.Length; // darf natürlich nicht 0 sein!
                             double pos = touchedEdges[j].Curve3D.PositionOf(v.Position);
                             if (pos > cprec && pos < 1 - cprec)
@@ -3636,6 +3637,13 @@ namespace CADability
             foreach (Edge edg in edges)
             {
                 if (edg.SecondaryFace == null) continue;
+                GeoPoint edgcnt = edg.Curve3D.PointAt(0.5);
+                GeoVector n1 = edg.PrimaryFace.Surface.GetNormal(edg.PrimaryFace.Surface.PositionOf(edgcnt));
+                GeoVector n2 = edg.SecondaryFace.Surface.GetNormal(edg.SecondaryFace.Surface.PositionOf(edgcnt));
+                GeoVector edgdir = edg.Curve3D.DirectionAt(0.5).Normalized;
+                double orientation = edgdir * (n1.Normalized ^ n2.Normalized);
+                bool outwardBendedEdge = edg.Forward(edg.PrimaryFace) == (orientation > 0);
+                if (!outwardBendedEdge) continue; // inward bended edges cannot (yet) be rounded
                 // the intersection curve of the two faces of the edge, offset by radius, defines the axis of the rounded edge cylinder or extruded circle
                 ISurface srfc1 = edg.PrimaryFace.Surface.GetOffsetSurface(-radius);
                 ISurface srfc2 = edg.SecondaryFace.Surface.GetOffsetSurface(-radius);
@@ -3806,7 +3814,7 @@ namespace CADability
                     // two edges (to be rounded) are connected at this vertex
                     // we try to intersect the two raw fillets. If they do intersect, we cut off the extend
                     // if they don't intersect, we add a toriodal fitting part
-                    // we need to reconstruct tangentialIntersectionEdges when the brep intersection modifies the faces (and shhortens the tangential edges)
+                    // we need to reconstruct tangentialIntersectionEdges when the brep intersection modifies the faces (and shortens the tangential edges)
                     // we use UserData for this purpose.
                     foreach (Edge edg in Extensions.Combine<Edge>(rawFillets[vertexToEdge.Value[0]].Item2.Edges, rawFillets[vertexToEdge.Value[1]].Item2.Edges))
                     {
@@ -3916,6 +3924,10 @@ namespace CADability
                                 ToroidalSurface ts = new ToroidalSurface(tcnt, txaxis.Normalized, (tzaxis ^ txaxis).Normalized, tzaxis.Normalized, radius, radius);
                                 ICurve2D c2d1 = ts.GetProjectedCurve(arc1, 0.0);    // this should be lines with fixed u parameter (vertical 2d lines)
                                 ICurve2D c2d2 = ts.GetProjectedCurve(arc2, 0.0);
+#if DEBUG
+                                ICurve dbgc1 = ts.Make3dCurve(c2d1);
+                                ICurve dbgc2 = ts.Make3dCurve(c2d2);
+#endif
                                 BoundingRect pext = c2d1.GetExtent();
                                 SurfaceHelper.AdjustPeriodic(ts, pext, c2d2);
                                 pext.MinMax(c2d2.GetExtent());

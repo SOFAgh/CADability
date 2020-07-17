@@ -121,6 +121,7 @@ namespace CADability.GeoObject
                 // it could be (u,v)
                 GeoPoint p1 = GeoPoint.Origin + (1 + minorRadius * Math.Cos(v)) * (Math.Cos(u) * GeoVector.XAxis + Math.Sin(u) * GeoVector.YAxis) + minorRadius * Math.Sin(v) * GeoVector.ZAxis;
                 double v2 = Math.Atan2(pu.z, -(a + 2));
+                if (v2 < 0) v2 += 2 * Math.PI;
                 GeoPoint p2 = GeoPoint.Origin + (1 + minorRadius * Math.Cos(v2)) * (Math.Cos(u + Math.PI) * GeoVector.XAxis + Math.Sin(u + Math.PI) * GeoVector.YAxis) + minorRadius * Math.Sin(v2) * GeoVector.ZAxis;
                 double dd1 = pu | p1;
                 double dd2 = pu | p2;
@@ -230,6 +231,13 @@ namespace CADability.GeoObject
                 (1 + minorRadius * Math.Cos(uv.y)) * Math.Cos(uv.x),
                 0);
         }
+        private GeoVector UDirAxis(GeoPoint2D uv)
+        {
+            return toTorus * new GeoVector(
+                -(Math.Cos(uv.y)) * Math.Sin(uv.x),
+                (Math.Cos(uv.y)) * Math.Cos(uv.x),
+                0);
+        }
         static double Sqrt2 = Math.Sqrt(2.0);
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.VDirection (GeoPoint2D)"/>
@@ -268,8 +276,11 @@ namespace CADability.GeoObject
         /// <param name="uv"></param>
         /// <returns></returns>
         public override GeoVector GetNormal(GeoPoint2D uv)
-        {
-            return UDirection(uv) ^ VDirection(uv);
+        {   // at a pole, the udirection may be 0, which results in a nullvector here, but there is actually a normal vector
+            // the UDirAxis returns the direction of the axis circle of the torus, which has the correct direction, but not correct length.
+            // I think the normal should always be normalized per definition
+            return UDirAxis(uv) ^ VDirection(uv);
+            // return UDirection(uv) ^ VDirection(uv);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.Make3dCurve (ICurve2D)"/>

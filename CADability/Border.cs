@@ -1525,7 +1525,7 @@ namespace CADability.Shapes
         {
             get
             {
-                if (!isClosed && (StartPoint | EndPoint) < Extent.Size * 1e-4) forceClosed();
+                if (!isClosed && (StartPoint | EndPoint) < Extent.Size * 1e-3) forceClosed();
                 if (!isClosed) throw new BorderException("Border must be closed for Area calculation", BorderException.BorderExceptionType.AreaOpen);
                 if (area == 0.0) area = RecalcArea();
                 return area;

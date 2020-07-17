@@ -1273,7 +1273,7 @@ namespace CADability.GeoObject
                     if (openLoops.Count == 2)
                     {
                         int ii = openLoops[0];
-                        int oppii = openLoops[1]; // oppii is the otehr open loop one
+                        int oppii = openLoops[1]; // oppii is the other open loop one
                                                   // calculating the area is a bad idea
                                                   // file 0816.5.001.stp with step index 160309 is a example, where the area dosn't work
                         if (Geometry.InnerIntersection(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint, loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint))
@@ -1287,6 +1287,17 @@ namespace CADability.GeoObject
                                 }
                             }
                         }
+                        bool reversedii = false;
+                        if (Geometry.InnerIntersection(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint, loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint))
+                        {   // still self-intersecting
+                            loops[ii].Reverse();
+                            reversedii = true;
+                            for (int i = 0; i < loops[ii].Count; i++)
+                            {
+                                loops[ii][i].forward = !loops[ii][i].forward;
+                                loops[ii][i].curve2d.Reverse();
+                            }
+                        }
                         Line2D l1 = new Line2D(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint);
                         Line2D l2 = new Line2D(loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint);
                         List<ICurve2D> testDirections = new List<ICurve2D>();
@@ -1296,8 +1307,32 @@ namespace CADability.GeoObject
                         testDirections.Add(l2);
 
                         double area = Border.SignedArea(testDirections); // test, whether the open loops together with the connecting seams build a ccw outline (which they should)
+                        if (area < 0.0 && reversedii)
+                        {   // ii has been reversed above, we also could have reversed oppii, it was just a guess, in this case, the guess was wrong, we reverse both loops
+                            loops[ii].Reverse();
+                            for (int i = 0; i < loops[ii].Count; i++)
+                            {
+                                loops[ii][i].forward = !loops[ii][i].forward;
+                                loops[ii][i].curve2d.Reverse();
+                            }
+                            loops[oppii].Reverse();
+                            for (int i = 0; i < loops[oppii].Count; i++)
+                            {
+                                loops[oppii][i].forward = !loops[oppii][i].forward;
+                                loops[oppii][i].curve2d.Reverse();
+                            }
+                            // recalc the test loop
+                            l1 = new Line2D(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint);
+                            l2 = new Line2D(loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint);
+                            testDirections = new List<ICurve2D>();
+                            for (int i = 0; i < loops[ii].Count; i++) testDirections.Add(loops[ii][i].curve2d);
+                            testDirections.Add(l1);
+                            for (int i = 0; i < loops[oppii].Count; i++) testDirections.Add(loops[oppii][i].curve2d);
+                            testDirections.Add(l2);
+                            area = Border.SignedArea(testDirections);
+                        }
                         if (area < 0.0)
-                        {
+                            {
                             if (surface.IsUPeriodic && surface.IsVPeriodic)
                             {
                                 // when on a torus (or similar surface) and the face is bound by two open curves (in 2d, closed curves in 3d) then it is not clear, which part of the torus is used
@@ -1321,6 +1356,26 @@ namespace CADability.GeoObject
                                     {
                                         loops[oppii][i].curve2d.Move(du, 0);
                                     }
+                                }
+                            }
+                            else if (surface.IsVPeriodic && Math.Abs(l1.StartDirection.x) < Math.Abs(l1.StartDirection.y))
+                            {
+                                double dv;
+                                if (loops[ii][0].curve2d.StartPoint.y < loops[oppii][0].curve2d.StartPoint.y) dv = -surface.VPeriod;
+                                else dv = surface.VPeriod;
+                                for (int i = 0; i < loops[oppii].Count; i++)
+                                {
+                                    loops[oppii][i].curve2d.Move(0, dv);
+                                }
+                            }
+                            else if (surface.IsUPeriodic && Math.Abs(l1.StartDirection.x)> Math.Abs(l1.StartDirection.y))
+                            {
+                                double du;
+                                if (loops[ii][0].curve2d.StartPoint.x < loops[oppii][0].curve2d.StartPoint.x) du = -surface.UPeriod;
+                                else du = surface.UPeriod;
+                                for (int i = 0; i < loops[oppii].Count; i++)
+                                {
+                                    loops[oppii][i].curve2d.Move(du, 0);
                                 }
                             }
                             else
@@ -2687,7 +2742,7 @@ namespace CADability.GeoObject
                 int next = (i + 1) % outline.Length;
                 if (outline[i].EndVertex(this) != outline[next].StartVertex(this))
                 {
-                    if ((outline[i].EndVertex(this).Position | outline[next].StartVertex(this).Position) < minDist)
+                    if ((outline[i].EndVertex(this).Position | outline[next].StartVertex(this).Position) < minDist || force)
                     {
                         outline[i].EndVertex(this).MergeWith(outline[next].StartVertex(this));
                     }
@@ -2704,7 +2759,7 @@ namespace CADability.GeoObject
                     int next = (i + 1) % holes[j].Length;
                     if (holes[j][i].EndVertex(this) != holes[j][next].StartVertex(this))
                     {
-                        if ((holes[j][i].EndVertex(this).Position | holes[j][next].StartVertex(this).Position) < minDist)
+                        if ((holes[j][i].EndVertex(this).Position | holes[j][next].StartVertex(this).Position) < minDist || force)
                         {
                             holes[j][i].EndVertex(this).MergeWith(holes[j][next].StartVertex(this));
                         }
@@ -4993,9 +5048,9 @@ namespace CADability.GeoObject
                 BoundingRect ext = (surface as ISurfaceImpl).usedArea;
                 surface = surface.GetModified(m);
                 (surface as ISurfaceImpl).usedArea = ext; // needed for BoxedSurface
-                // we don't modify the surface directly but get a new copy of the modified surface
-                // Edges with InterpolatedDualSurfaceCurves (hopefully) can deal with this
-                // The caller must ensure that the edges ReflectModification is beeing called
+                                                          // we don't modify the surface directly but get a new copy of the modified surface
+                                                          // Edges with InterpolatedDualSurfaceCurves (hopefully) can deal with this
+                                                          // The caller must ensure that the edges ReflectModification is beeing called
                 lock (lockTriangulationData)
                 {
                     if (trianglePoint != null)
@@ -8997,15 +9052,15 @@ namespace CADability.GeoObject
                     Predicate<Edge> leftOfSplit = delegate (Edge e)
                     {   // liefert alle Kanten, die von current ausgehen
                         // if (outline.Contains(e)) return false;
-                        if (intersectionEdgesCopy.Contains(e)) return e.Vertex1 == current; // intersection edge
-                        else if (e.IsPeriodicEdge && !outline.Contains(e))
+                    if (intersectionEdgesCopy.Contains(e)) return e.Vertex1 == current; // intersection edge
+                    else if (e.IsPeriodicEdge && !outline.Contains(e))
                         {
                             return (e.Vertex1 == current) || (e.Vertex2 == current); // wer dreht ihn dann um??
-                        }
+                    }
                         else if (e.StartVertex(this) == current)
                         {   // hier noch ausschließen, dass eine naht Kante in der richtigen Richtung
                             // betrachtet wird und dass kein Verbindungsweg über die Naht hinaus gewählt wird
-                            return (e.StartPosition(this) | currentPosition) < halfPeriod;
+                        return (e.StartPosition(this) | currentPosition) < halfPeriod;
                         }
                         return false;
                     };
@@ -9072,8 +9127,8 @@ namespace CADability.GeoObject
                 {
                     Predicate<Edge> leftOfSplit = delegate (Edge e)
                     {   // liefert alle Kanten, die von current ausgehen
-                        if (intersectionEdgesCopy.Contains(e)) return e.Vertex2 == current; // die laufen rückwärts
-                        if (e.IsPeriodicEdge) return e.EndVertex(this) == current;
+                    if (intersectionEdgesCopy.Contains(e)) return e.Vertex2 == current; // die laufen rückwärts
+                    if (e.IsPeriodicEdge) return e.EndVertex(this) == current;
                         if (e.StartVertex(this) == current)
                         {
                             return (e.StartPosition(this) | currentPosition) < halfPeriod;
@@ -9155,7 +9210,7 @@ namespace CADability.GeoObject
             //    edg2 = tmp;
             //}
             if ((edg1.EndVertex(this) == edg2.StartVertex(this)) && (edg1.StartVertex(this) == edg2.EndVertex(this))) return false; // do not create closed edges
-            // now edg1 and edg2 are both forward oriented on this face and edg1 precedes edg2
+                                                                                                                                    // now edg1 and edg2 are both forward oriented on this face and edg1 precedes edg2
             ICurve combined = Curves.Combine(edg1.Curve3D, edg2.Curve3D, Precision.eps);
             if (combined == null && edg1.Curve3D is BSpline && edg2.Curve3D is BSpline) return false; // BSplines need to be implemented in Curves.Combine, but make problems in the else case
             if (combined != null)

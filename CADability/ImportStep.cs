@@ -1833,7 +1833,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (1680 == item.definingIndex)
+            if (527939 == item.definingIndex)
+            
             {
 
             }
@@ -2230,6 +2231,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.faceSurface:
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
+#if DEBUG
+                            if (532326 == item.definingIndex)
+                            {
+                                // Face dbgf = Face.MakeFace(surface, new BoundingRect(0.1, 0.1, 0.9, 0.9));
+                            }
+#endif
                             List<List<StepEdgeDescriptor>> bounds = new List<List<StepEdgeDescriptor>>();
                             foreach (Item sub in item.parameter["bounds"].lval)
                             {
@@ -2237,12 +2244,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (le != null) bounds.Add(le);
                             }
                             ISurface surface = CreateEntity(item.parameter["face_geometry"]) as ISurface;
-#if DEBUG
-                            if (546 == item.definingIndex)
-                            {
-                                // Face dbgf = Face.MakeFace(surface, new BoundingRect(0.1, 0.1, 0.9, 0.9));
-                            }
-#endif
                             try
                             {
                                 double precision = Precision.eps;
@@ -2379,7 +2380,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             object dir = CreateEntity(item.SubItem(1));
                             if (dir is GeoVector) item.val = item.SubFloat(2) * (GeoVector)dir;
-                            if (dir is GeoVector2D) item.val = item.SubFloat(2) * (GeoVector2D)dir;
+                            else if (dir is GeoVector2D) item.val = item.SubFloat(2) * (GeoVector2D)dir;
                             else item.val = null;
                         }
                         break;
