@@ -2010,8 +2010,13 @@ namespace CADability.GeoObject
                 case SphericalSurface ss:
                     {
                         GeoPoint fp = Geometry.DropPL(ss.Location, this.Location, this.ZAxis);
-                        GeoPoint2D[] ip = ss.GetLineIntersection(ss.Location, fp - ss.Location);
+                        GeoVector ldir = fp - ss.Location;
                         extremePositions = new List<Tuple<double, double, double, double>>();
+                        if (Precision.IsNullVector(ldir))
+                        {
+                            return 0; // sphere and cylinder have the same axis
+                        }
+                        GeoPoint2D[] ip = ss.GetLineIntersection(ss.Location, fp - ss.Location);
                         for (int i = 0; i < ip.Length; i++)
                         {
                             SurfaceHelper.AdjustPeriodic(ss, otherBounds, ref ip[i]);

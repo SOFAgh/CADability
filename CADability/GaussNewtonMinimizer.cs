@@ -961,6 +961,210 @@ namespace CADability
         }
         public static double CylinderFit(IArray<GeoPoint> pnts, GeoPoint center, GeoVector axis, double radius, double precision, out CylindricalSurface cs)
         {
+            /*
+             * according to (p-a)*(p-a) = r² + ((p-a)*d)² , where a is an axis point and d is the axis direction, we get
+             * (-r^2)-(dz*(pz-az)+dy*(py-ay)+dx*(px-ax))^2+(pz-az)^2+(py-ay)^2+(px-ax)^2;
+             * 
+             * and the derivatives
+                2*dx*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax))-2*(px-ax);
+                2*dy*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax))-2*(py-ay);
+                2*dz*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax))-2*(pz-az);
+                -2*(px-ax)*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax));
+                -2*(py-ay)*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax));
+                -2*(pz-az)*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax));
+                -2*r;
+
+            */
+            // parameters: 0: ax, 1: ay, 2: az, 3: dx, 4: dy, 5: dz, 6: r (a: location, d: direction, r: radius)
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[pnts.Length];
+                double ax = parameters[0];
+                double ay = parameters[1];
+                double az = parameters[2];
+                double dx = parameters[3];
+                double dy = parameters[4];
+                double dz = parameters[5];
+                double r = parameters[6];
+                for (int i = 0; i < pnts.Length; i++)
+                {
+                    double px = pnts[i].x;
+                    double py = pnts[i].y;
+                    double pz = pnts[i].z;
+                    values[i] = (-r * r) - sqr(dz * (pz - az) + dy * (py - ay) + dx * (px - ax)) + sqr(pz - az) + sqr(py - ay) + sqr(px - ax);
+                }
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(pnts.Length, 7); // Jacobi Matrix 
+                double ax = parameters[0];
+                double ay = parameters[1];
+                double az = parameters[2];
+                double dx = parameters[3];
+                double dy = parameters[4];
+                double dz = parameters[5];
+                double r = parameters[6];
+
+                for (int i = 0; i < pnts.Length; i++)
+                {
+                    double px = pnts[i].x;
+                    double py = pnts[i].y;
+                    double pz = pnts[i].z;
+
+                    derivs[i, 0] = 2 * dx * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax)) - 2 * (px - ax);
+                    derivs[i, 1] = 2 * dy * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax)) - 2 * (py - ay);
+                    derivs[i, 2] = 2 * dz * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax)) - 2 * (pz - az);
+                    derivs[i, 3] = -2 * (px - ax) * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax));
+                    derivs[i, 4] = -2 * (py - ay) * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax));
+                    derivs[i, 5] = -2 * (pz - az) * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax));
+                    derivs[i, 6] = -2 * r;
+                }
+            }
+            GeoVector diag = new GeoVector(1, 1, 1).Normalized;
+            ModOp toDiag = ModOp.Rotate(center, axis, diag);
+            for (int i = 0; i < pnts.Length; i++)
+            {
+                pnts[i] = toDiag * pnts[i];
+            }
+            axis = toDiag * axis;
+            center = toDiag * center;
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
+            bool ok = gnm.Solve(new double[] { center.x, center.y, center.z, axis.x, axis.y, axis.z, radius }, 30, 1e-6, precision * precision, out double minError, out int numiter, out double[] result);
+            if (ok)
+            {
+                center = new GeoPoint(result[0], result[1], result[2]);
+                axis = new GeoVector(result[3], result[4], result[5]).Normalized;
+                axis.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+                radius = Math.Abs(result[6]);
+                cs = new CylindricalSurface(center, radius * dirx, radius * diry, axis);
+#if DEBUG
+                double dd = 0.0;
+                for (int i = 0; i < pnts.Length; i++)
+                {
+                    dd += cs.GetDistance(pnts[i]);
+                }
+#endif
+                return Math.Sqrt(minError);
+            }
+            else
+            {
+                cs = null;
+                return double.MaxValue;
+            }
+        }
+        public static double QuadricFit(IArray<GeoPoint> pnts)
+        {
+            /*  A Quadric according to https://lcvmwww.epfl.ch/PROJECTS/classification_quad.pdf
+             *  A B C D
+             *  B E F G
+             *  C F H I
+             *  D G I J
+                H*z^2+2*F*y*z+2*C*x*z+2*I*z+E*y^2+2*B*x*y+2*G*y+A*x^2+2*D*x+J;
+                x^2;
+                2*x*y;
+                2*x*z;
+                2*x;
+                y^2;
+                2*y*z;
+                2*y;
+                z^2;
+                2*z;
+                1;
+            */
+            // parameters: 0: ax, 1: ay, 2: az, 3: dx, 4: dy, 5: dz, 6: r (a: location, d: direction, r: radius)
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[pnts.Length];
+                double A = parameters[0];
+                double B = parameters[1];
+                double C = parameters[2];
+                double D = parameters[3];
+                double E = parameters[4];
+                double F = parameters[5];
+                double G = parameters[6];
+                double H = parameters[7];
+                double I = parameters[8];
+                double J = -1.0; // parameters[9];
+                for (int i = 0; i < pnts.Length; i++)
+                {
+                    double x = pnts[i].x;
+                    double y = pnts[i].y;
+                    double z = pnts[i].z;
+                    values[i] = H * z * z + 2 * F * y * z + 2 * C * x * z + 2 * I * z + E * y * y + 2 * B * x * y + 2 * G * y + A * x * x + 2 * D * x + J;
+                }
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(pnts.Length, 9); // Jacobi Matrix 
+
+                for (int i = 0; i < pnts.Length; i++)
+                {
+                    double x = pnts[i].x;
+                    double y = pnts[i].y;
+                    double z = pnts[i].z;
+
+                    derivs[i, 0] = x * x;
+                    derivs[i, 1] = 2 * x * y;
+                    derivs[i, 2] = 2 * x * z;
+                    derivs[i, 3] = 2 * x;
+                    derivs[i, 4] = y * y;
+                    derivs[i, 5] = 2 * y * z;
+                    derivs[i, 6] = 2 * y;
+                    derivs[i, 7] = z * z;
+                    derivs[i, 8] = 2 * z;
+                    //derivs[i, 9] = 1;
+                }
+            }
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
+            GeoPoint cnt = new GeoPoint(pnts.ToArray());
+            double j = cnt.z * cnt.z + 2 * cnt.y * cnt.z + 2 * cnt.x * cnt.z + 2 * cnt.z + cnt.y * cnt.y + 2 * cnt.x * cnt.y + 2 * cnt.y + cnt.x * cnt.x + 2 * cnt.x;
+            bool ok = gnm.Solve(new double[] { 1, 1, 1, 1, 1, 1, 1, 1, 1 }, 30, 1e-6, 1e-6, out double minError, out int numiter, out double[] result);
+            if (ok)
+            {
+                double A = result[0];
+                double B = result[1];
+                double C = result[2];
+                double D = result[3];
+                double E = result[4];
+                double F = result[5];
+                double G = result[6];
+                double H = result[7];
+                double I = result[8];
+                double J = -1.0; //  result[9];
+                double r = Math.Sqrt(1.0 / Math.Abs(A));
+                Matrix MS = new Matrix(new double[,] { { A, B, C, D }, { B, E, F, G }, { C, F, H, I }, { D, G, I, J } });
+                EigenvalueDecomposition ed = MS.Eigen();
+                double[] ev = ed.RealEigenvalues;
+                int a = 0, b = 0, c = 0;
+                for (int i = 0; i < ev.Length; i++)
+                {
+                    if (ev[i] > 0) ++a;
+                    else if (ev[i] < 0) ++b;
+                    else ++c;
+                }
+                Matrix MQ = new Matrix(new double[,] { { A, B, C }, { B, E, F }, { C, F, H } });
+                LUDecomposition lud = MQ.LUD();
+                ed = MQ.Eigen();
+                ev = ed.RealEigenvalues;
+                int aq = 0, bq = 0, cq = 0;
+                for (int i = 0; i < ev.Length; i++)
+                {
+                    if (ev[i] > 0) ++aq;
+                    else if (ev[i] < 0) ++bq;
+                    else ++cq;
+                }
+                Matrix trans = MQ.Inverse() * new Matrix(new double[]{ D, G, I }, true);
+                GeoPoint mp = new GeoPoint(trans[0, 0], trans[1, 0], trans[2, 0]);
+                GeoPoint mmp = new GeoPoint(-trans[0, 0], -trans[1, 0], -trans[2, 0]); // der liegt auf der Achse
+                return Math.Sqrt(minError);
+            }
+            else
+            {
+                return double.MaxValue;
+            }
+        }
+        public static double CylinderFitOld(IArray<GeoPoint> pnts, GeoPoint center, GeoVector axis, double radius, double precision, out CylindricalSurface cs)
+        {
             /* maxima: disance point to line
                 load("vect"); 
                 norm(x) := sqrt(x . x);
@@ -1049,6 +1253,7 @@ namespace CADability
                 pnts[i] = toDiag * pnts[i];
             }
             axis = toDiag * axis;
+            center = toDiag * center;
             bool ok = gnm.Solve(new double[] { center.x, center.y, center.z, axis.x, axis.y, axis.z, radius }, 30, 1e-6, precision * precision, out double minError, out int numiter, out double[] result);
             if (ok)
             {

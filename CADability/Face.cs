@@ -5696,7 +5696,7 @@ namespace CADability.GeoObject
                         dc.Add(l2d);
                     }
                 }
-                double dbga = this.area.Area;
+                // double dbga = this.area.Area;
 #endif
                 Triangulation t = new Triangulation(polylines.ToArray(), surface, precision * 5.0, 0.17);
                 // Genauigkeit für innere Punkte nur halbsoviel wie für den Rand, dort fallen die Knicke nicht so auf

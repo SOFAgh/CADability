@@ -234,8 +234,8 @@ namespace CADability.GeoObject
         private GeoVector UDirAxis(GeoPoint2D uv)
         {
             return toTorus * new GeoVector(
-                -(Math.Cos(uv.y)) * Math.Sin(uv.x),
-                (Math.Cos(uv.y)) * Math.Cos(uv.x),
+                -Math.Sin(uv.x),
+                Math.Cos(uv.x),
                 0);
         }
         static double Sqrt2 = Math.Sqrt(2.0);
@@ -1791,7 +1791,9 @@ namespace CADability.GeoObject
                 if (Precision.IsPointOnPlane(GeoPoint.Origin, pln) && Precision.IsPerpendicular(pln.Normal, GeoVector.ZAxis, false))
                 {
                     GeoPoint cnt = uelli.Center;
-                    Plane work = new Plane(GeoPoint.Origin, new GeoVector(cnt.x, cnt.y, 0), GeoVector.ZAxis); // in dieser Ebene die Schnittpunkte suchen
+                    Plane work;
+                    if (Math.Abs(cnt.x) < Precision.eps && Math.Abs(cnt.y) < Precision.eps) work = new Plane(GeoPoint.Origin, pln.Normal ^ GeoVector.ZAxis, GeoVector.ZAxis);
+                    else work = new Plane(GeoPoint.Origin, new GeoVector(cnt.x, cnt.y, 0), GeoVector.ZAxis); // in dieser Ebene die Schnittpunkte suchen
                     ICurve2D prelli = uelli.GetProjectedCurve(work);
                     if (prelli is Circle2D) // umfasst auch Arc2D
                     {

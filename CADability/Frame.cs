@@ -11,6 +11,7 @@ using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
 using DragEventArgs = CADability.Substitutes.DragEventArgs;
 using Action = CADability.Actions.Action;
 using CADability.Substitutes;
+using CADability.Attribute;
 
 namespace CADability
 {
@@ -1443,12 +1444,9 @@ namespace CADability
                     return true;
                 case "MenuId.SelectedObjects.SewFaces":
                     {
-                        if (actionStack.ActiveAction is SelectObjectsAction)
+                        if (actionStack.ActiveAction is SelectObjectsAction soa)
                         {
-                            GeoObjectList sel = (actionStack.ActiveAction as SelectObjectsAction).GetSelectedObjects().Clone();
-                            if (sel.Count > 0)
-                            {
-                            }
+                            return (soa as ICommandHandler).OnCommand("MenuId.SelectedObjects.SewFaces");
                         }
                     }
                     return true;
@@ -2215,7 +2213,7 @@ namespace CADability
                     Project = newproject;
                     FileNameChangedEvent?.Invoke(fileName);
                     if (fileext != "cdb")
-                    {   
+                    {
                         // get a raw model extent to know a precision for the triangulation
                         // parallel triangulate all faces with this precision to show a progress bar
                         // then zoom total 
@@ -2315,7 +2313,8 @@ namespace CADability
             string filter = StringTable.GetString("File.CADability.Filter") + "|" +
                 StringTable.GetString("File.Dxf.Filter") + "|" +
                 StringTable.GetString("File.Dwg.Filter") + "|" +
-                StringTable.GetString("File.STEP.Filter");
+                StringTable.GetString("File.STEP.Filter") + "|" +
+                StringTable.GetString("File.STL.Filter");
             int filterIndex = lastFileType;
             if (UIService.ShowOpenFileDlg("MenuId.Import", StringTable.GetString("MenuId.Import"), filter, ref filterIndex, out string fileName) == Substitutes.DialogResult.OK)
             {
@@ -2328,6 +2327,32 @@ namespace CADability
                     case 2: newproject = CADability.Project.ReadFromFile(fileName, "dxf"); break;
                     case 3: newproject = CADability.Project.ReadFromFile(fileName, "dwg"); break;
                     case 4: newproject = CADability.Project.ReadFromFile(fileName, "stp"); break;
+                    case 5:
+                        {
+                            ImportSTL importSTL = new ImportSTL();
+                            Shell[] shells = importSTL.Read(fileName);
+                            if (shells!=null)
+                            {
+                                newproject = CADability.Project.CreateSimpleProject();
+                                Model model = newproject.GetModel(0);
+                                for (int i = 0; i < shells.Length; i++)
+                                {
+                                    newproject.SetDefaults(shells[i]);
+                                    if (shells[i].HasOpenEdgesExceptPoles())
+                                    {
+                                        model.Add(shells[i]);
+                                    }
+                                    else
+                                    {
+                                        Solid sld = Solid.Construct();
+                                        sld.SetShell(shells[i]);
+                                        newproject.SetDefaults(sld);
+                                        model.Add(sld);
+                                    }
+                                }
+                            }
+                        }
+                        break;
                 }
                 lastFileType = filterIndex;
                 if (newproject != null)

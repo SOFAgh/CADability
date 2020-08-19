@@ -12,6 +12,7 @@ namespace CADability
         private StreamReader sr;
         private bool isASCII;
         private BinaryReader br;
+        private int numdec=0, numnum = 0;
 
         public ImportSTL()
         {
@@ -119,6 +120,13 @@ namespace CADability
             while (!allFaces.IsEmpty())
             {
                 Shell part = Shell.CollectConnected(allFaces);
+#if DEBUG
+                // TODO: some mechanism to tell whether and how to reverse engineer the stl file
+                double precision;
+                if (numnum == 0) precision = part.GetExtent(0.0).Size * 1e-5;
+                else precision = Math.Pow(10, -numdec / (double)(numnum)); // numdec/numnum is average number of decimal places
+                part.ReconstructSurfaces(precision);
+#endif
                 res.Add(part);
             }
             return res.ToArray();
@@ -139,6 +147,17 @@ namespace CADability
             return res;
         }
 
+        private void accumulatePrecision(params string[] number)
+        {
+            for (int i = 0; i < number.Length; i++)
+            {
+                if (number[i].IndexOf('.') > 0)
+                {
+                    ++numnum;
+                    numdec += number[i].Length - number[i].IndexOf('.') - 1;
+                }
+            }
+        }
         private triangle GetNextTriangle()
         {
             if (isASCII)
@@ -151,22 +170,26 @@ namespace CADability
                     if (!double.TryParse(facet[2], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double nx)) return null;
                     if (!double.TryParse(facet[3], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double ny)) return null;
                     if (!double.TryParse(facet[4], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double nz)) return null;
+                    accumulatePrecision(facet[2], facet[3], facet[4]);
                     if (sr.ReadLine().Trim() != "outer loop") return null;
                     string[] vertex = sr.ReadLine().Trim().Split(' ');
                     if (vertex.Length != 4 || vertex[0] != "vertex") return null;
                     if (!double.TryParse(vertex[1], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p1x)) return null;
                     if (!double.TryParse(vertex[2], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p1y)) return null;
                     if (!double.TryParse(vertex[3], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p1z)) return null;
+                    accumulatePrecision(vertex[1], vertex[2], vertex[3]);
                     vertex = sr.ReadLine().Trim().Split(' ');
                     if (vertex.Length != 4 || vertex[0] != "vertex") return null;
                     if (!double.TryParse(vertex[1], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p2x)) return null;
                     if (!double.TryParse(vertex[2], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p2y)) return null;
                     if (!double.TryParse(vertex[3], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p2z)) return null;
+                    accumulatePrecision(vertex[1], vertex[2], vertex[3]);
                     vertex = sr.ReadLine().Trim().Split(' ');
                     if (vertex.Length != 4 || vertex[0] != "vertex") return null;
                     if (!double.TryParse(vertex[1], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p3x)) return null;
                     if (!double.TryParse(vertex[2], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p3y)) return null;
                     if (!double.TryParse(vertex[3], NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double p3z)) return null;
+                    accumulatePrecision(vertex[1], vertex[2], vertex[3]);
                     if (sr.ReadLine().Trim() != "endloop") return null;
                     if (sr.ReadLine().Trim() != "endfacet") return null;
                     triangle res = new triangle(new GeoPoint(p1x, p1y, p1z), new GeoPoint(p2x, p2y, p2z), new GeoPoint(p3x, p3y, p3z), new GeoVector(nx, ny, nz));

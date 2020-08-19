@@ -872,7 +872,7 @@ namespace CADability.GeoObject
 #else
         private
 #endif
-        bool ReconstructSurfaces()
+        bool ReconstructSurfaces(double precision)
         {   // STL: Dreiecke in Flächen verwandeln ...
             double maxbend = 10.0 / 180 * Math.PI; // two connected faces which are inclined by less than 10° are checked to contain to the same surface
             RecalcVertices();
@@ -907,7 +907,7 @@ namespace CADability.GeoObject
             List<Face> created = new List<Face>();
             foreach (Set<Face> faces in connected)
             {
-                List<Face> fccon = FindCommonSurfaceFaces(faces, null, this.GetExtent(0.0), new Set<Type>());
+                List<Face> fccon = FindCommonSurfaceFaces(faces, null, this.GetExtent(0.0), new Set<Type>(), precision);
                 created.AddRange(fccon);
             }
 #if DEBUG
@@ -1006,7 +1006,7 @@ namespace CADability.GeoObject
                 return rect.Contains(p);
             }
         }
-        private List<Face> FindCommonSurfaceFaces(Set<Face> faces, Set<Face> subsetForTest, BoundingCube extent, Set<Type> dontCheck)
+        private List<Face> FindCommonSurfaceFaces(Set<Face> faces, Set<Face> subsetForTest, BoundingCube extent, Set<Type> dontCheck, double precision)
         {
             if (dontCheck == null) dontCheck = new Set<Type>(); // empty set
             if (subsetForTest == null) subsetForTest = faces; // use all faces for the test
@@ -1030,16 +1030,16 @@ namespace CADability.GeoObject
                     dbgedg.Add(edg);
                 }
             }
-            EdgeCloudToPlanes ep = new EdgeCloudToPlanes(dbgedg, dbgext);
-            foreach (HashSet<Edge> item in ep.GetBestPlanes())
-            {
-                List<Edge> dbglvtx = new List<Edge>(item);
-            }
-            VertexCloudToPlanes vp = new VertexCloudToPlanes(dbgvtx, dbgext);
-            foreach (HashSet<Vertex> item in vp.GetBestPlanes())
-            {
-                List<Vertex> dbglvtx = new List<Vertex>(item);
-            }
+            //EdgeCloudToPlanes ep = new EdgeCloudToPlanes(dbgedg, dbgext);
+            //foreach (HashSet<Edge> item in ep.GetBestPlanes())
+            //{
+            //    List<Edge> dbglvtx = new List<Edge>(item);
+            //}
+            //VertexCloudToPlanes vp = new VertexCloudToPlanes(dbgvtx, dbgext);
+            //foreach (HashSet<Vertex> item in vp.GetBestPlanes())
+            //{
+            //    List<Vertex> dbglvtx = new List<Vertex>(item);
+            //}
 #endif
             // "faces" contains planar triangles with almost tangential connections. There may be one or more common standard surfaces for these triangles.
             // If there are more surfaces, this algoritm first tries to elemenate the easy ones and recursively calls this method to proceed with the more difficult ones.
@@ -1063,6 +1063,20 @@ namespace CADability.GeoObject
             // if faces contains only a cylinder or cone and not multiple surfaces, the normals build a circle or arc on this plane
             if (!isNLinear && next.Size > 0.1 && maxNDist < 1e-3)
             {
+                HashSet<Vertex> usedVertices = new HashSet<Vertex>();
+                List<GeoPoint> allPoints = new List<GeoPoint>();
+                foreach (Face fc in subsetForTest)
+                {
+                    GeoPoint pus = GeoPoint.Origin + (fc.Surface as PlaneSurface).Normal.Normalized; // normal as a point on the unit sphere
+                    normals.AddObject(new VectorInOctTree(pus, fc));
+                    ndirs.Add(pus);
+                    next.MinMax(pus);
+                    for (int i = 0; i < fc.Vertices.Length; i++)
+                    {
+                        if (!usedVertices.Add(fc.Vertices[i])) allPoints.Add(fc.Vertices[i].Position);
+                    }
+                }
+
                 // it is a good guess that we might have a cylinder or cone (or some extruded curve or some conical extruded curve)
                 if (cylConeTest.Distance(GeoPoint.Origin) < 1e-3)
                 {
@@ -1083,6 +1097,8 @@ namespace CADability.GeoObject
                         cylPoints.Add(cylConeTest.Project(vtx.Position));
                     }
                     double prec = Geometry.CircleFitLs(cylPoints.ToArray(), out GeoPoint2D cnt2d, out double r);
+                    double maxError = GaussNewtonMinimizer.CylinderFit(new ListToIArray<GeoPoint>(allPoints), cylConeTest.ToGlobal(cnt2d), cylConeTest.Normal, r, precision*100, out CylindricalSurface gncs);
+                    maxError = GaussNewtonMinimizer.QuadricFit(new ListToIArray<GeoPoint>(allPoints));
                     if (prec < extent.Size * 1e-3)
                     {
                         prec = Geometry.LineFit(cylPoints.ToArray(), out GeoPoint2D mloc, out GeoVector2D mdir); // this line is the main direction of the cylinder points
@@ -1207,7 +1223,7 @@ namespace CADability.GeoObject
                     while (faces.Count > 0)
                     {
                         Set<Face> facesSubSet = CollectFaces(faces.GetAny(), faces, 10.0 / 180 * Math.PI);
-                        res.AddRange(FindCommonSurfaceFaces(facesSubSet, null, extent, dontCheck));
+                        res.AddRange(FindCommonSurfaceFaces(facesSubSet, null, extent, dontCheck, precision));
                     }
                     return res;
                 }
@@ -1510,9 +1526,9 @@ namespace CADability.GeoObject
                     }
                     if (biggestConnected.Count > 3)
                     {
-                        List<Face> created = FindCommonSurfaceFaces(faces, biggestConnected, extent, dontCheck);
+                        List<Face> created = FindCommonSurfaceFaces(faces, biggestConnected, extent, dontCheck, precision);
                         res.AddRange(created);
-                        if (faces.Count > 2) res.AddRange(FindCommonSurfaceFaces(faces, biggestConnected, extent, dontCheck));
+                        if (faces.Count > 2) res.AddRange(FindCommonSurfaceFaces(faces, biggestConnected, extent, dontCheck, precision));
                         return res;
                     }
                     intv *= 2; // search for less similar

@@ -863,7 +863,7 @@ namespace CADability
             // alles bleibt null;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 110)
+            if (hashCode == 453)
             {
             }
 #endif
@@ -2924,8 +2924,16 @@ namespace CADability
                     splittedEdge.forwardOnSecondaryFace = forwardOnSecondaryFace;
                     splittedEdge.curve3d = curve3d.Clone();
                     splittedEdge.curve3d.Trim(startpos, endpos);
-                    if (s2d1 < e2d1) splittedEdge.curveOnPrimaryFace = curveOnPrimaryFace.Trim(s2d1, e2d1);
-                    else splittedEdge.curveOnPrimaryFace = curveOnPrimaryFace.Trim(e2d1, s2d1);
+                    if (curveOnPrimaryFace is ProjectedCurve)
+                    {
+                        splittedEdge.curveOnPrimaryFace = primaryFace.Surface.GetProjectedCurve(splittedEdge.curve3d, 0.0);
+                        if (!splittedEdge.forwardOnPrimaryFace) splittedEdge.curveOnPrimaryFace.Reverse();
+                    }
+                    else
+                    {
+                        if (s2d1 < e2d1) splittedEdge.curveOnPrimaryFace = curveOnPrimaryFace.Trim(s2d1, e2d1);
+                        else splittedEdge.curveOnPrimaryFace = curveOnPrimaryFace.Trim(e2d1, s2d1);
+                    }
                     s2d1 = e2d1;
                     if (i < sortedVertices.Count - 1)
                         e2d1 = FindPeriodicPosition(curveOnPrimaryFace, sortedVertices.Values[i + 1].GetPositionOnFace(primaryFace), primaryFace.Surface);
@@ -2936,8 +2944,16 @@ namespace CADability
                     }
                     if (secondaryFace != null)
                     {
-                        if (s2d2 < e2d2) splittedEdge.curveOnSecondaryFace = curveOnSecondaryFace.Trim(s2d2, e2d2);
-                        else splittedEdge.curveOnSecondaryFace = curveOnSecondaryFace.Trim(e2d2, s2d2);
+                        if (curveOnSecondaryFace is ProjectedCurve)
+                        {
+                            splittedEdge.curveOnSecondaryFace = secondaryFace.Surface.GetProjectedCurve(splittedEdge.curve3d, 0.0);
+                            if (!splittedEdge.forwardOnSecondaryFace) splittedEdge.curveOnSecondaryFace.Reverse();
+                        }
+                        else
+                        {
+                            if (s2d2 < e2d2) splittedEdge.curveOnSecondaryFace = curveOnSecondaryFace.Trim(s2d2, e2d2);
+                            else splittedEdge.curveOnSecondaryFace = curveOnSecondaryFace.Trim(e2d2, s2d2);
+                        }
                         s2d2 = e2d2;
                         if (i < sortedVertices.Count - 1) e2d2 = FindPeriodicPosition(curveOnSecondaryFace, sortedVertices.Values[i + 1].GetPositionOnFace(secondaryFace), secondaryFace.Surface);
                         else

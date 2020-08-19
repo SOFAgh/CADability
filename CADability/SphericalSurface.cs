@@ -178,6 +178,15 @@ namespace CADability.GeoObject
         {
             return toSphere * new GeoVector(-Math.Cos(uv.x) * Math.Sin(uv.y), -Math.Sin(uv.x) * Math.Sin(uv.y), Math.Cos(uv.y));
         }
+        public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
+        {
+            location = PointAt(uv);
+            du = UDirection(uv);
+            dv = VDirection(uv);
+            duu = toSphere * new GeoVector(-Math.Cos(uv.x) * Math.Cos(uv.y), -Math.Sin(uv.x) * Math.Cos(uv.y), 0.0);
+            duv = toSphere * new GeoVector(Math.Sin(uv.x) * Math.Sin(uv.y), -Math.Cos(uv.x) * Math.Sin(uv.y), 0.0);
+            dvv = toSphere * new GeoVector(-Math.Cos(uv.x) * Math.Cos(uv.y), -Math.Sin(uv.x) * Math.Cos(uv.y), -Math.Sin(uv.y));
+        }
         public override bool IsUPeriodic
         {
             get
@@ -835,7 +844,7 @@ namespace CADability.GeoObject
                         elli.Modify(ModOp.Rotate(elli.Center, elli.Plane.Normal, SweepAngle.Opposite));
                     }
 
-                    ProjectedCurve pc = new ProjectedCurve(elli, this, true, thisBounds);
+                    ICurve2D pc = this.GetProjectedCurve(elli, 0.0); // new ProjectedCurve(elli, this, true, thisBounds);
                     if (thisBounds.ContainsPeriodic(pc.StartPoint, UPeriod, VPeriod))
                     {   // das sollte somit nie drankommen, wile die Naht oben schon abgecheckt ist
                         if (pc.GetExtent() <= thisBounds)
@@ -873,7 +882,7 @@ namespace CADability.GeoObject
 
                         }
                     }
-                    pc = new ProjectedCurve(elli, this, true, thisBounds);
+                    pc = this.GetProjectedCurve(elli, 0.0); // new ProjectedCurve(elli, this, true, thisBounds);
                     ICurve2D opc = other.GetProjectedCurve(elli, 0.0);
                     return new IDualSurfaceCurve[] { new DualSurfaceCurve(elli, this, pc, other, opc) };
                 }
@@ -894,7 +903,7 @@ namespace CADability.GeoObject
         {
             if (curve is Ellipse)
             {
-                // two special kinds of ellipses: longitudinal and natitudinal  circles
+                // two special kinds of ellipses: longitudinal and latitudinal  circles
                 Ellipse elli = curve as Ellipse;
                 GeoPoint2D sp = PositionOf(elli.StartPoint);
                 GeoPoint2D ep = PositionOf(elli.EndPoint);

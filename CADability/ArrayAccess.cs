@@ -8,7 +8,7 @@ namespace CADability
     /// without copying the contents. Or access a twodimensional array as a one dimensional array.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface IArray<T>: IEnumerable<T>
+    public interface IArray<T> : IEnumerable<T>
     {
         T this[int index] { get; set; }
         int Length { get; }
@@ -192,5 +192,26 @@ namespace CADability
         }
         public override int Length => a.Length;
     }
+    public class ListToIArray<T> : IArrayImpl<T>
+    {
+        List<T> a;
+        public ListToIArray(List<T> a)
+        {
+            this.a = a;
+        }
 
+        public override T this[int index]
+        {
+            get
+            {
+                return a[index];
+            }
+            set
+            {
+                a[index] = value;
+            }
+
+        }
+        public override int Length => a.Count;
+    }
 }

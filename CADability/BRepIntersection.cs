@@ -5226,6 +5226,7 @@ namespace CADability
 #if DEBUG
                     System.Diagnostics.Debug.Assert(fc.CheckConsistency());
 #endif
+                    
                     trimmedFaces.Add(fc);
                 }
             }

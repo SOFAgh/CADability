@@ -584,6 +584,7 @@ namespace CADability.Forms
             if (pe.IsOpen && pe.Flags.HasFlag(PropertyEntryType.HasSubEntries))
             {
                 for (int i = 0; i < pe.SubItems.Length; i++)
+                
                 {
                     pe.SubItems[i].IndentLevel = level + 1;
                     res.Add(pe.SubItems[i]);

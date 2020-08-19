@@ -399,25 +399,25 @@ namespace CADability
         protected override bool HitTest(Edge e, double[] min, double[] max)
         {
 #if DEBUG
-            GeoObjectList dbgl = new GeoObjectList();
-            GeoVector normal1 = new GeoVector(min[0], min[1], min[2]);
-            GeoVector normal2 = new GeoVector(max[0], max[1], max[2]);
-            GeoPoint p1 = center + min[3] * normal1;
-            GeoPoint p2 = center + max[3] * normal2;
-            if (!normal1.IsNullVector() && !normal2.IsNullVector())
-            {
-                Plane pl1 = new Plane(p1, normal1);
-                Plane pl2 = new Plane(p2, normal2);
-                PlaneSurface ps1 = new PlaneSurface(pl1);
-                PlaneSurface ps2 = new PlaneSurface(pl2);
-                GeoPoint2D p2d1 = pl1.Project(e.Vertex1.Position);
-                GeoPoint2D p2d2 = pl2.Project(e.Vertex1.Position);
-                Face fc1 = Face.MakeFace(ps1, new BoundingRect(p2d1, 1, 1));
-                Face fc2 = Face.MakeFace(ps2, new BoundingRect(p2d2, 1, 1));
-                dbgl.Add(fc1);
-                dbgl.Add(fc2);
-            }
-            dbgl.Add(e.Curve3D as IGeoObject);
+            //GeoObjectList dbgl = new GeoObjectList();
+            //GeoVector normal1 = new GeoVector(min[0], min[1], min[2]);
+            //GeoVector normal2 = new GeoVector(max[0], max[1], max[2]);
+            //GeoPoint p1 = center + min[3] * normal1;
+            //GeoPoint p2 = center + max[3] * normal2;
+            //if (!normal1.IsNullVector() && !normal2.IsNullVector())
+            //{
+            //    Plane pl1 = new Plane(p1, normal1);
+            //    Plane pl2 = new Plane(p2, normal2);
+            //    PlaneSurface ps1 = new PlaneSurface(pl1);
+            //    PlaneSurface ps2 = new PlaneSurface(pl2);
+            //    GeoPoint2D p2d1 = pl1.Project(e.Vertex1.Position);
+            //    GeoPoint2D p2d2 = pl2.Project(e.Vertex1.Position);
+            //    Face fc1 = Face.MakeFace(ps1, new BoundingRect(p2d1, 1, 1));
+            //    Face fc2 = Face.MakeFace(ps2, new BoundingRect(p2d2, 1, 1));
+            //    dbgl.Add(fc1);
+            //    dbgl.Add(fc2);
+            //}
+            //dbgl.Add(e.Curve3D as IGeoObject);
 #endif
             GeoVector edgdir = (e.Vertex2.Position - e.Vertex1.Position).Normalized;
             double x = edgdir.x;
@@ -496,43 +496,43 @@ namespace CADability
                 }
             }
 #if DEBUG
-            GeoObjectList dbglist = new GeoObjectList();
-            BoundingCube nbc = new BoundingCube(min[0], max[0], min[1], max[1], min[2], max[2]);
-            dbglist.Add(nbc.AsBox);
-            for (int i = 0; i < extremeNormals.Count; i++)
-            {
-                if (!nbc.Contains(GeoPoint.Origin + extremeNormals[i], 1e-3))
-                {
+            //GeoObjectList dbglist = new GeoObjectList();
+            //BoundingCube nbc = new BoundingCube(min[0], max[0], min[1], max[1], min[2], max[2]);
+            //dbglist.Add(nbc.AsBox);
+            //for (int i = 0; i < extremeNormals.Count; i++)
+            //{
+            //    if (!nbc.Contains(GeoPoint.Origin + extremeNormals[i], 1e-3))
+            //    {
 
-                }
-                Line l = Line.TwoPoints(GeoPoint.Origin, GeoPoint.Origin + extremeNormals[i]);
-                dbglist.Add(l);
-            }
-            for (int i = 0; i < nn.Length; i++)
-            {
-                Line l = Line.TwoPoints(GeoPoint.Origin, GeoPoint.Origin + nn[i]);
-                dbglist.Add(l);
-            }
-            dbglist.Add(e.Curve3D as IGeoObject);
-            PlaneSurface ps = new PlaneSurface(new Plane(GeoPoint.Origin, edgdir));
-            dbglist.Add(Face.MakeFace(ps, BoundingRect.UnitBoundingRect));
+            //    }
+            //    Line l = Line.TwoPoints(GeoPoint.Origin, GeoPoint.Origin + extremeNormals[i]);
+            //    dbglist.Add(l);
+            //}
+            //for (int i = 0; i < nn.Length; i++)
+            //{
+            //    Line l = Line.TwoPoints(GeoPoint.Origin, GeoPoint.Origin + nn[i]);
+            //    dbglist.Add(l);
+            //}
+            //dbglist.Add(e.Curve3D as IGeoObject);
+            //PlaneSurface ps = new PlaneSurface(new Plane(GeoPoint.Origin, edgdir));
+            //dbglist.Add(Face.MakeFace(ps, BoundingRect.UnitBoundingRect));
 
-            for (int i = 0; i < extremeNormals.Count; i++)
-            {
-                GeoVector normale = extremeNormals[i];
-                GeoPoint pe = center + min[3] * normale;
-                Plane pl1 = new Plane(pe, normale);
-                PlaneSurface ps1 = new PlaneSurface(pl1);
-                GeoPoint2D p2d1 = pl1.Project(e.Vertex1.Position);
-                Face fc1 = Face.MakeFace(ps1, new BoundingRect(p2d1, 1, 1));
-                dbgl.Add(fc1);
-                pe = center + max[3] * normale;
-                pl1 = new Plane(pe, normale);
-                ps1 = new PlaneSurface(pl1);
-                p2d1 = pl1.Project(e.Vertex1.Position);
-                fc1 = Face.MakeFace(ps1, new BoundingRect(p2d1, 1, 1));
-                dbgl.Add(fc1);
-            }
+            //for (int i = 0; i < extremeNormals.Count; i++)
+            //{
+            //    GeoVector normale = extremeNormals[i];
+            //    GeoPoint pe = center + min[3] * normale;
+            //    Plane pl1 = new Plane(pe, normale);
+            //    PlaneSurface ps1 = new PlaneSurface(pl1);
+            //    GeoPoint2D p2d1 = pl1.Project(e.Vertex1.Position);
+            //    Face fc1 = Face.MakeFace(ps1, new BoundingRect(p2d1, 1, 1));
+            //    dbgl.Add(fc1);
+            //    pe = center + max[3] * normale;
+            //    pl1 = new Plane(pe, normale);
+            //    ps1 = new PlaneSurface(pl1);
+            //    p2d1 = pl1.Project(e.Vertex1.Position);
+            //    fc1 = Face.MakeFace(ps1, new BoundingRect(p2d1, 1, 1));
+            //    dbgl.Add(fc1);
+            //}
 
 #endif
             if (extremeNormals.Count == 0) return false; // min and max include no possible normal for a plane passing through the edge
