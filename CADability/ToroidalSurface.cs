@@ -277,9 +277,11 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoVector GetNormal(GeoPoint2D uv)
         {   // at a pole, the udirection may be 0, which results in a nullvector here, but there is actually a normal vector
-            // the UDirAxis returns the direction of the axis circle of the torus, which has the correct direction, but not correct length.
+            // We calculate the normal as the point on the surface - point on the (circular) axis for the provided value of u.
             // I think the normal should always be normalized per definition
-            return UDirAxis(uv) ^ VDirection(uv);
+            GeoPoint paxis = toTorus * new GeoPoint(Math.Cos(uv.x), Math.Sin(uv.x), 0.0);
+            GeoPoint psurface = PointAt(uv);
+            return (psurface-paxis).Normalized;
             // return UDirection(uv) ^ VDirection(uv);
         }
         /// <summary>
