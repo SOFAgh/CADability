@@ -281,7 +281,8 @@ namespace CADability.GeoObject
             // I think the normal should always be normalized per definition
             GeoPoint paxis = toTorus * new GeoPoint(Math.Cos(uv.x), Math.Sin(uv.x), 0.0);
             GeoPoint psurface = PointAt(uv);
-            return (psurface-paxis).Normalized;
+            if (toTorus.Determinant < 0) return (paxis - psurface).Normalized; // reverse oriented
+            else return (psurface - paxis).Normalized; // normal orientation
             // return UDirection(uv) ^ VDirection(uv);
         }
         /// <summary>
@@ -1762,7 +1763,7 @@ namespace CADability.GeoObject
                     {
                         GeoPoint ipt = PointAt(uv);
                         GeoPoint ipc = curve.PointAt(s);
-                        if (Precision.IsEqual(ipt, ipt))
+                        if (Precision.IsEqual(ipc, ipt))
                         {
                             ips = new GeoPoint[] { new GeoPoint(ipt, ipc) };
                             uvOnFaces = new GeoPoint2D[] { uv };

@@ -3103,8 +3103,8 @@ namespace CADability
             int dbgcnt = 0;
             foreach (EdgeFaceKey ef in edgesToFaces.Keys)
             {
-                dcedges.Add(ef.edge.Curve3D as IGeoObject, dbgcnt);
-                dcfaces.Add(ef.face, dbgcnt);
+                dcedges.Add(ef.edge.Curve3D as IGeoObject, ef.edge.GetHashCode());
+                dcfaces.Add(ef.face, ef.face.GetHashCode());
             }
 #endif
             foreach (EdgeFaceKey ef in edgesToFaces.Keys)
@@ -3816,140 +3816,152 @@ namespace CADability
                     // if they don't intersect, we add a toriodal fitting part
                     // we need to reconstruct tangentialIntersectionEdges when the brep intersection modifies the faces (and shortens the tangential edges)
                     // we use UserData for this purpose.
-                    foreach (Edge edg in Extensions.Combine<Edge>(rawFillets[vertexToEdge.Value[0]].Item2.Edges, rawFillets[vertexToEdge.Value[1]].Item2.Edges))
+                    GeoVector edge0dir, edg1dir;
+                    if (vertexToEdge.Value[0].Vertex1 == vertexToEdge.Key) edge0dir = vertexToEdge.Value[0].Curve3D.StartDirection;
+                    else edge0dir = vertexToEdge.Value[0].Curve3D.EndDirection;
+                    if (vertexToEdge.Value[1].Vertex1 == vertexToEdge.Key) edg1dir = vertexToEdge.Value[1].Curve3D.StartDirection;
+                    else edg1dir = vertexToEdge.Value[1].Curve3D.EndDirection;
+                    if (Precision.SameNotOppositeDirection(edge0dir, edg1dir))
                     {
-                        if (edg.Curve3D is IGeoObject go) go.UserData["BrepFillet.OriginalEdge"] = edg;
+                        // nothing to do, the two faces should be connected
                     }
-                    rawFillets[vertexToEdge.Value[0]].Item2.UserData["BrepFillet.OriginalFace"] = rawFillets[vertexToEdge.Value[0]].Item2.GetHashCode();
-                    rawFillets[vertexToEdge.Value[1]].Item2.UserData["BrepFillet.OriginalFace"] = rawFillets[vertexToEdge.Value[1]].Item2.GetHashCode();
-                    BRepOperation bo = new BRepOperation(Shell.FromFaces(rawFillets[vertexToEdge.Value[0]].Item2), Shell.FromFaces(rawFillets[vertexToEdge.Value[1]].Item2), Operation.intersection);
-                    bo.AllowOpenEdges = true; // the result should be a shell with two faces, namely the two clipped fillets
-                    Shell[] bores = bo.Result();
-                    if (bores != null && bores.Length == 1)
+                    else
                     {
-                        if (bores[0].Faces.Length == 2) // this should be the case: 
+                        foreach (Edge edg in Extensions.Combine<Edge>(rawFillets[vertexToEdge.Value[0]].Item2.Edges, rawFillets[vertexToEdge.Value[1]].Item2.Edges))
                         {
-                            GeoObjectList fcs = bores[0].Decompose();
-                            if (fcs.Count == 2)
-                            {   // this should always be the case when there is an intersection
-                                // we have to replace the old faces and edges with the new ones in rawFillets and tangentialIntersectionEdges
-                                int hc0 = (int)fcs[0].UserData["BrepFillet.OriginalFace"];
-                                int hc1 = (int)fcs[1].UserData["BrepFillet.OriginalFace"];
-                                // we did save the HasCodes instead of the objects themselves, because cloning the userdata with a face, which has a userdata with a face... infinite loop
-                                Dictionary<Face, Face> oldToNew = new Dictionary<Face, Face>();
-                                if (hc0 == rawFillets[vertexToEdge.Value[0]].Item2.GetHashCode())
-                                {
-                                    oldToNew[rawFillets[vertexToEdge.Value[0]].Item2] = fcs[0] as Face;
-                                    oldToNew[rawFillets[vertexToEdge.Value[1]].Item2] = fcs[1] as Face;
-                                }
-                                else
-                                {
-                                    oldToNew[rawFillets[vertexToEdge.Value[0]].Item2] = fcs[1] as Face;
-                                    oldToNew[rawFillets[vertexToEdge.Value[1]].Item2] = fcs[0] as Face;
-                                }
-                                rawFillets[vertexToEdge.Value[0]] = new Tuple<ICurve, Face>(rawFillets[vertexToEdge.Value[0]].Item1, oldToNew[rawFillets[vertexToEdge.Value[0]].Item2]);
-                                rawFillets[vertexToEdge.Value[1]] = new Tuple<ICurve, Face>(rawFillets[vertexToEdge.Value[1]].Item1, oldToNew[rawFillets[vertexToEdge.Value[1]].Item2]);
-                                fcs[0].UserData.Remove("BrepFillet.OriginalFace");
-                                fcs[1].UserData.Remove("BrepFillet.OriginalFace");
-                                foreach (Edge edg in Extensions.Combine<Edge>((fcs[0] as Face).Edges, (fcs[1] as Face).Edges))
-                                {
-                                    if (edg.Curve3D is IGeoObject go)
+                            if (edg.Curve3D is IGeoObject go) go.UserData["BrepFillet.OriginalEdge"] = edg;
+                        }
+                        rawFillets[vertexToEdge.Value[0]].Item2.UserData["BrepFillet.OriginalFace"] = rawFillets[vertexToEdge.Value[0]].Item2.GetHashCode();
+                        rawFillets[vertexToEdge.Value[1]].Item2.UserData["BrepFillet.OriginalFace"] = rawFillets[vertexToEdge.Value[1]].Item2.GetHashCode();
+                        BRepOperation bo = new BRepOperation(Shell.FromFaces(rawFillets[vertexToEdge.Value[0]].Item2), Shell.FromFaces(rawFillets[vertexToEdge.Value[1]].Item2), Operation.intersection);
+                        bo.AllowOpenEdges = true; // the result should be a shell with two faces, namely the two clipped fillets
+                        Shell[] bores = bo.Result();
+                        if (bores != null && bores.Length == 1)
+                        {
+                            if (bores[0].Faces.Length == 2) // this should be the case: 
+                            {
+                                GeoObjectList fcs = bores[0].Decompose();
+                                if (fcs.Count == 2)
+                                {   // this should always be the case when there is an intersection
+                                    // we have to replace the old faces and edges with the new ones in rawFillets and tangentialIntersectionEdges
+                                    int hc0 = (int)fcs[0].UserData["BrepFillet.OriginalFace"];
+                                    int hc1 = (int)fcs[1].UserData["BrepFillet.OriginalFace"];
+                                    // we did save the HasCodes instead of the objects themselves, because cloning the userdata with a face, which has a userdata with a face... infinite loop
+                                    Dictionary<Face, Face> oldToNew = new Dictionary<Face, Face>();
+                                    if (hc0 == rawFillets[vertexToEdge.Value[0]].Item2.GetHashCode())
                                     {
-                                        if (go.UserData.GetData("BrepFillet.OriginalEdge") is Edge edgorg)
+                                        oldToNew[rawFillets[vertexToEdge.Value[0]].Item2] = fcs[0] as Face;
+                                        oldToNew[rawFillets[vertexToEdge.Value[1]].Item2] = fcs[1] as Face;
+                                    }
+                                    else
+                                    {
+                                        oldToNew[rawFillets[vertexToEdge.Value[0]].Item2] = fcs[1] as Face;
+                                        oldToNew[rawFillets[vertexToEdge.Value[1]].Item2] = fcs[0] as Face;
+                                    }
+                                    rawFillets[vertexToEdge.Value[0]] = new Tuple<ICurve, Face>(rawFillets[vertexToEdge.Value[0]].Item1, oldToNew[rawFillets[vertexToEdge.Value[0]].Item2]);
+                                    rawFillets[vertexToEdge.Value[1]] = new Tuple<ICurve, Face>(rawFillets[vertexToEdge.Value[1]].Item1, oldToNew[rawFillets[vertexToEdge.Value[1]].Item2]);
+                                    fcs[0].UserData.Remove("BrepFillet.OriginalFace");
+                                    fcs[1].UserData.Remove("BrepFillet.OriginalFace");
+                                    foreach (Edge edg in Extensions.Combine<Edge>((fcs[0] as Face).Edges, (fcs[1] as Face).Edges))
+                                    {
+                                        if (edg.Curve3D is IGeoObject go)
                                         {
-                                            if (tangentialIntersectionEdges.TryGetValue(edgorg, out Tuple<Face, Face> faces))
+                                            if (go.UserData.GetData("BrepFillet.OriginalEdge") is Edge edgorg)
                                             {
-                                                tangentialIntersectionEdges[edg] = new Tuple<Face, Face>(faces.Item1, oldToNew[faces.Item2]);
-                                                tangentialIntersectionEdges.Remove(edgorg);
+                                                if (tangentialIntersectionEdges.TryGetValue(edgorg, out Tuple<Face, Face> faces))
+                                                {
+                                                    tangentialIntersectionEdges[edg] = new Tuple<Face, Face>(faces.Item1, oldToNew[faces.Item2]);
+                                                    tangentialIntersectionEdges.Remove(edgorg);
+                                                }
+                                                go.UserData.Remove("BrepFillet.OriginalEdge");
                                             }
-                                            go.UserData.Remove("BrepFillet.OriginalEdge");
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        // no proper intersection, try to add a toriodal junction between the two fillets
-                        Face fc1 = rawFillets[vertexToEdge.Value[0]].Item2;
-                        Face fc2 = rawFillets[vertexToEdge.Value[1]].Item2;
-                        GeoPoint cnt1, cnt2;
-                        GeoVector dir1, dir2;
-                        if (vertexToEdge.Key == vertexToEdge.Value[0].Vertex1)
-                        {
-                            cnt1 = rawFillets[vertexToEdge.Value[0]].Item1.StartPoint;
-                            dir1 = rawFillets[vertexToEdge.Value[0]].Item1.StartDirection;
-                        }
                         else
                         {
-                            cnt1 = rawFillets[vertexToEdge.Value[0]].Item1.EndPoint;
-                            dir1 = rawFillets[vertexToEdge.Value[0]].Item1.EndDirection;
-                        }
-                        if (vertexToEdge.Key == vertexToEdge.Value[1].Vertex1)
-                        {
-                            cnt2 = rawFillets[vertexToEdge.Value[1]].Item1.StartPoint;
-                            dir2 = rawFillets[vertexToEdge.Value[1]].Item1.StartDirection;
-                        }
-                        else
-                        {
-                            cnt2 = rawFillets[vertexToEdge.Value[1]].Item1.EndPoint;
-                            dir2 = rawFillets[vertexToEdge.Value[1]].Item1.EndDirection;
-                        }
-                        if (Precision.SameDirection(dir1, dir2, false)) continue; // tangential connection, no need to make a joint
-                        Ellipse arc1 = null, arc2 = null;
-                        foreach (Edge edg in fc1.Edges)
-                        {
-                            if (edg.Curve3D is Ellipse elli && Precision.IsEqual(cnt1, elli.Center))
+                            // no proper intersection, try to add a toriodal junction between the two fillets
+                            Face fc1 = rawFillets[vertexToEdge.Value[0]].Item2;
+                            Face fc2 = rawFillets[vertexToEdge.Value[1]].Item2;
+                            GeoPoint cnt1, cnt2;
+                            GeoVector dir1, dir2;
+                            if (vertexToEdge.Key == vertexToEdge.Value[0].Vertex1)
                             {
-                                arc1 = elli;
-                                break;
+                                cnt1 = rawFillets[vertexToEdge.Value[0]].Item1.StartPoint;
+                                dir1 = rawFillets[vertexToEdge.Value[0]].Item1.StartDirection;
                             }
-                        }
-                        foreach (Edge edg in fc2.Edges)
-                        {
-                            if (edg.Curve3D is Ellipse elli && Precision.IsEqual(cnt2, elli.Center))
+                            else
                             {
-                                arc2 = elli;
-                                break;
+                                cnt1 = rawFillets[vertexToEdge.Value[0]].Item1.EndPoint;
+                                dir1 = rawFillets[vertexToEdge.Value[0]].Item1.EndDirection;
                             }
-                        }
-                        if (arc1 != null && arc2 != null) // which should always be the case
-                        {
-                            if (arc1.Plane.Intersect(arc2.Plane, out GeoPoint loc, out GeoVector tzaxis))
+                            if (vertexToEdge.Key == vertexToEdge.Value[1].Vertex1)
                             {
-                                GeoPoint tcnt = Geometry.DropPL(cnt1, loc, tzaxis); // center of the torus
-                                GeoVector txaxis = (tcnt - cnt1) + (tcnt - cnt2);
-                                // toroidal surface with a pole
-                                ToroidalSurface ts = new ToroidalSurface(tcnt, txaxis.Normalized, (tzaxis ^ txaxis).Normalized, tzaxis.Normalized, radius, radius);
-                                ICurve2D c2d1 = ts.GetProjectedCurve(arc1, 0.0);    // this should be lines with fixed u parameter (vertical 2d lines)
-                                ICurve2D c2d2 = ts.GetProjectedCurve(arc2, 0.0);
-#if DEBUG
-                                ICurve dbgc1 = ts.Make3dCurve(c2d1);
-                                ICurve dbgc2 = ts.Make3dCurve(c2d2);
-#endif
-                                BoundingRect pext = c2d1.GetExtent();
-                                SurfaceHelper.AdjustPeriodic(ts, pext, c2d2);
-                                pext.MinMax(c2d2.GetExtent());
-                                Face tfillet = Face.MakeFace(ts, pext); // this is a part of the torus, which connects the two rounding fillets
-                                // one of its edges is a pole
-                                fillets.Add(tfillet);
-                                // there should be a face which is connected to both involved edges
-                                Face commonFace = null;
-                                Set<Face> commonFaces = new Set<Face>(vertexToEdge.Value[0].Faces).Intersection(new Set<Face>(vertexToEdge.Value[1].Faces));
-                                if (commonFaces.Count == 1) commonFace = commonFaces.GetAny();
-                                foreach (Edge edg in tfillet.Edges)
+                                cnt2 = rawFillets[vertexToEdge.Value[1]].Item1.StartPoint;
+                                dir2 = rawFillets[vertexToEdge.Value[1]].Item1.StartDirection;
+                            }
+                            else
+                            {
+                                cnt2 = rawFillets[vertexToEdge.Value[1]].Item1.EndPoint;
+                                dir2 = rawFillets[vertexToEdge.Value[1]].Item1.EndDirection;
+                            }
+                            if (Precision.SameDirection(dir1, dir2, false)) continue; // tangential connection, no need to make a joint
+                            Ellipse arc1 = null, arc2 = null;
+                            foreach (Edge edg in fc1.Edges)
+                            {
+                                if (edg.Curve3D is Ellipse elli && Precision.IsEqual(cnt1, elli.Center))
                                 {
-                                    if (edg.Curve3D is Ellipse elli)
+                                    arc1 = elli;
+                                    break;
+                                }
+                            }
+                            foreach (Edge edg in fc2.Edges)
+                            {
+                                if (edg.Curve3D is Ellipse elli && Precision.IsEqual(cnt2, elli.Center))
+                                {
+                                    arc2 = elli;
+                                    break;
+                                }
+                            }
+                            if (arc1 != null && arc2 != null) // which should always be the case
+                            {
+                                if (arc1.Plane.Intersect(arc2.Plane, out GeoPoint loc, out GeoVector tzaxis))
+                                {
+                                    GeoPoint tcnt = Geometry.DropPL(cnt1, loc, tzaxis); // center of the torus
+                                    GeoVector txaxis = (tcnt - cnt1) + (tcnt - cnt2);
+                                    // toroidal surface with a pole
+                                    ToroidalSurface ts = new ToroidalSurface(tcnt, txaxis.Normalized, (tzaxis ^ txaxis).Normalized, tzaxis.Normalized, radius, radius);
+                                    ICurve2D c2d1 = ts.GetProjectedCurve(arc1, 0.0);    // this should be lines with fixed u parameter (vertical 2d lines)
+                                    ICurve2D c2d2 = ts.GetProjectedCurve(arc2, 0.0);
+#if DEBUG
+                                    ICurve dbgc1 = ts.Make3dCurve(c2d1);
+                                    ICurve dbgc2 = ts.Make3dCurve(c2d2);
+#endif
+                                    BoundingRect pext = c2d1.GetExtent();
+                                    SurfaceHelper.AdjustPeriodic(ts, pext, c2d2);
+                                    pext.MinMax(c2d2.GetExtent());
+                                    Face tfillet = Face.MakeFace(ts, pext); // this is a part of the torus, which connects the two rounding fillets
+                                                                            // one of its edges is a pole
+                                    fillets.Add(tfillet);
+                                    // there should be a face which is connected to both involved edges
+                                    Face commonFace = null;
+                                    Set<Face> commonFaces = new Set<Face>(vertexToEdge.Value[0].Faces).Intersection(new Set<Face>(vertexToEdge.Value[1].Faces));
+                                    if (commonFaces.Count == 1) commonFace = commonFaces.GetAny();
+                                    foreach (Edge edg in tfillet.Edges)
                                     {
-                                        if (Precision.IsEqual(elli.Center, arc1.Center)) continue;
-                                        if (Precision.IsEqual(elli.Center, arc2.Center)) continue;
-                                        if (commonFace != null)
-                                        {   // this ellipse is the edge of the torus, which is not connected to arc1 or arc2 (not connected to the two rounding fillets)
-                                            // if the common surface is a plane, this would be tangential
-                                            if (commonFace.Surface.GetDistance(elli.PointAt(0.5)) < Precision.eps)
-                                            {
-                                                tangentialIntersectionEdges[edg] = new Tuple<Face, Face>(commonFace, tfillet);
+                                        if (edg.Curve3D is Ellipse elli)
+                                        {
+                                            if (Precision.IsEqual(elli.Center, arc1.Center)) continue;
+                                            if (Precision.IsEqual(elli.Center, arc2.Center)) continue;
+                                            if (commonFace != null)
+                                            {   // this ellipse is the edge of the torus, which is not connected to arc1 or arc2 (not connected to the two rounding fillets)
+                                                // if the common surface is a plane, this would be tangential
+                                                if (commonFace.Surface.GetDistance(elli.PointAt(0.5)) < Precision.eps)
+                                                {
+                                                    tangentialIntersectionEdges[edg] = new Tuple<Face, Face>(commonFace, tfillet);
+                                                }
                                             }
                                         }
                                     }
@@ -4158,6 +4170,7 @@ namespace CADability
             {
                 BRepOperation bo = new BRepOperation(toRound, filletsShell[0], tangentialIntersectionEdges, Operation.intersection);
                 Shell[] res = bo.Result();
+                
                 if (res != null && res.Length == 1) return res[0];
             }
             return null;
@@ -9828,6 +9841,7 @@ namespace CADability
                                     else crv.Trim(pos2, pos1);
                                     ICurve2D curve2D = item.Key.face1.Surface.GetProjectedCurve(crv, 0.0);
                                     if (ki.Key.Forward(ki.Key.PrimaryFace)) curve2D.Reverse();
+                                    SurfaceHelper.AdjustPeriodic(item.Key.face1.Surface, item.Key.face1.Domain, curve2D);
                                     edge = new Edge(item.Key.face1, crv, item.Key.face1, curve2D, !ki.Key.Forward(ki.Key.PrimaryFace));
 
                                     edge.edgeInfo = new EdgeInfo(edge);

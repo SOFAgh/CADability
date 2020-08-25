@@ -682,6 +682,7 @@ namespace CADability.GeoObject
                 case ToroidalSurface ts:
                     {
                         GeoVector dir = (ts.ZAxis ^ Normal) ^ ts.ZAxis; // this is the direction of a line from the center of the torus where the u positions of the extereme position of the torus are
+                        if (dir.IsNullVector()) break;
                         GeoPoint2D[] ip = ts.GetLineIntersection(ts.Location, dir); // the result should be 4 points, but we are interested in u parameters only and this must be u and u+pi
                         if (ip!=null && ip.Length>0)
                         {

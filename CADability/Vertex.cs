@@ -28,6 +28,10 @@ namespace CADability
             uvposition = new Dictionary<Face, GeoPoint2D>();
             hashCode = hashCodeCounter++;
 #if DEBUG
+            if ((position | new GeoPoint(7.250, 7.250, 10.800)) < 0.01)
+            {
+
+            }
             if (hashCode == 665 || hashCode == 665)
             {
 
@@ -408,7 +412,7 @@ namespace CADability
 
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
-            if (!export.VertexToDefInd.TryGetValue(this,out int vn))
+            if (!export.VertexToDefInd.TryGetValue(this, out int vn))
             {
                 // #43=CARTESIAN_POINT('Vertex',(25.,25.,50.));
                 // #44=VERTEX_POINT('',#43) ;

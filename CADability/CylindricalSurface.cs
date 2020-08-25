@@ -1007,9 +1007,16 @@ namespace CADability.GeoObject
                     return res;
                 }
             }
-            else if (other is ToroidalSurface)
+            else if (other is ToroidalSurface torus)
             {
-                ToroidalSurface torus = other as ToroidalSurface;
+                if (Math.Abs(torus.MinorRadius-XAxis.Length)<Precision.eps)
+                {
+                    if (Geometry.DistPL(torus.Location,Location,ZAxis)<Precision.eps && Precision.IsPerpendicular(torus.ZAxis,ZAxis,false))
+                    {   // special case: tangential intersection
+
+                    }
+                }
+
                 ImplicitPSurface ips = (torus as IImplicitPSurface).GetImplicitPSurface();
                 double[] tangentPositions = ips.PerpendicularToGradient(Location, Axis);
                 // tangentPositions are v-values for the cylinder, where it might be tangential to the torus.
@@ -1046,7 +1053,7 @@ namespace CADability.GeoObject
                         GeoPoint tpOnCyl = clpd[i + 1] - radiusCylinder * (clpd[i + 1] - clpd[i]).Normalized;
                         touchingPoints.Add(new GeoPoint(tpOnCyl, tpOnTor));
                     }
-                    else if (d > Math.Abs(radiusTorus - radiusCylinder))
+                    else if (d > Math.Abs(radiusTorus - radiusCylinder) && d>Precision.eps)
                     {
                         // !!! Wir brauchen mehr Punkte: Die Ellipsen zur winkelhalbierenden Ebene auch noch verwenden !!!
                         // Wir müssen die Kurve dynamisch aufteilen, etwa so: Eine Ebenenschaar durch die Verbindungs-Achse (clpd[i + 1] - clpd[i])

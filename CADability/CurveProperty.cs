@@ -9,7 +9,7 @@ namespace CADability.UserInterface
     public class CurveProperty : IShowPropertyImpl
     {
         private ICurve curve;
-        private bool IsSelected;
+        private new bool IsSelected;
         private string contextMenuId; // MenueId für ContextMenu
         private ICommandHandler handleContextMenu;
         public CurveProperty(ICurve curve)
@@ -29,8 +29,10 @@ namespace CADability.UserInterface
         {
             get
             {
-                if (IsSelected) return ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.Selected | ShowPropertyLabelFlags.ContextMenu;
-                else return ShowPropertyLabelFlags.Selectable;
+                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable;
+                if (IsSelected) res |= ShowPropertyLabelFlags.Selected;
+                if (contextMenuId != null) res |= ShowPropertyLabelFlags.ContextMenu;
+                return res;
             }
         }
         public override ShowPropertyEntryType EntryType
@@ -81,6 +83,6 @@ namespace CADability.UserInterface
             this.handleContextMenu = handler;
         }
 
-#endregion
+        #endregion
     }
 }

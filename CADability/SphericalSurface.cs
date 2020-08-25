@@ -294,7 +294,8 @@ namespace CADability.GeoObject
                     BoundingRect otherBounds = new BoundingRect(PositionOf(pc.Surface.PointAt(pc.StartPoint)), PositionOf(pc.Surface.PointAt(pc.EndPoint)));
                     if (pc.Surface.SameGeometry(pc.GetExtent(), this, otherBounds, Precision.eps, out ModOp2D notneeded))
                     {
-                        return pc.Curve3DFromParams; // if trimmed or reversed still returns the correct 3d curve (but trimmed and/or reversed)
+                        if (this.GetDistance(pc.Curve3DFromParams.PointAt(0.5)) < Precision.eps) // the 3d curve must reside on the surface
+                            return pc.Curve3DFromParams; // if trimmed or reversed still returns the correct 3d curve (but trimmed and/or reversed)
                     }
                 }
             }
@@ -821,6 +822,16 @@ namespace CADability.GeoObject
         public override ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
         {
             GetExtremePositions(thisBounds, other, otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
+            IDualSurfaceCurve[] dsc = GetDualSurfaceCurves(thisBounds, other, otherBounds, null, extremePositions);
+            if (dsc != null && dsc.Length > 0)
+            {
+                ICurve[] res = new ICurve[dsc.Length];
+                for (int i = 0; i < dsc.Length; i++)
+                {
+                    res[i] = dsc[i].Curve3D;
+                }
+                return res;
+            }
             return BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null, extremePositions); // allgemeine Lösung
         }
         public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
@@ -901,10 +912,9 @@ namespace CADability.GeoObject
         }
         public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
         {
-            if (curve is Ellipse)
+            if (curve is Ellipse elli)
             {
                 // two special kinds of ellipses: longitudinal and latitudinal  circles
-                Ellipse elli = curve as Ellipse;
                 GeoPoint2D sp = PositionOf(elli.StartPoint);
                 GeoPoint2D ep = PositionOf(elli.EndPoint);
                 if (Math.Abs(Math.Abs(sp.y) - Math.PI / 2) < 1e-5)
@@ -979,12 +989,57 @@ namespace CADability.GeoObject
                     }
                     return new Line2D(sp, ep);
                 }
-            }
-            if (curve is Ellipse)
-            {
-                return new ProjectedCurve(curve, this, true, this.usedArea);
+                if (elli.IsCircle && this.IsRealSphere) // it is not a longitudinal or latitudial circle
+                {
+                    if (Geometry.DistPL(elli.Center, this.Location, elli.Plane.Normal) < Precision.eps)
+                    {   // this is a circle on the sphere - or above or below the sphere, but parallel
+                        if (Math.Abs(GetDistance(elli.StartPoint)) > Precision.eps)
+                        {   // the circle hovers above or below the sphere, but can be projected onto the sphere
+                            GeoVector ctoc = elli.StartPoint - Location;
+                            ctoc.Length = RadiusX;
+                            GeoPoint c = Geometry.DropPL(Location + ctoc, Location, elli.Normal);
+                            Ellipse clone = elli.Clone() as Ellipse;
+                            clone.Center = c;
+                            clone.Radius = (Location + ctoc) | c;
+                            curve = clone;
+                        }
+                        return new ProjectedCurve(curve, this, true, this.usedArea);
+                    }
+                }
             }
             return base.GetProjectedCurve(curve, precision);
+        }
+        public override ISurface GetOffsetSurface(double offset)
+        {
+            if (Math.Abs(RadiusX - RadiusY) < Precision.eps && Math.Abs(RadiusY - RadiusZ) < Precision.eps)
+            {
+                if (toSphere.Determinant > 0)
+                {   // outward oriented surface
+                    if (offset < 0 && -offset > RadiusX)
+                    {   // reversing the orientation
+                        GeoVector xx = (offset + RadiusX) * XAxis.Normalized;
+                        GeoVector yy = (offset + RadiusY) * YAxis.Normalized;
+                        GeoVector zz = (offset + RadiusZ) * ZAxis.Normalized;
+                        return new SphericalSurface(this.Location, xx, yy, zz);
+                    }
+                    else
+                    {
+                        GeoVector xx = (offset + RadiusX) * XAxis.Normalized;
+                        GeoVector yy = (offset + RadiusY) * YAxis.Normalized;
+                        GeoVector zz = (offset + RadiusZ) * ZAxis.Normalized;
+                        return new SphericalSurface(this.Location, xx, yy, zz);
+                    }
+                }
+                else
+                {
+                    GeoVector xx = (RadiusX - offset) * XAxis.Normalized;
+                    GeoVector yy = (RadiusY - offset) * YAxis.Normalized;
+                    GeoVector zz = (RadiusZ - offset) * ZAxis.Normalized;
+                    return new SphericalSurface(this.Location, xx, yy, zz);
+                }
+            }
+            else return base.GetOffsetSurface(offset);
+
         }
         public override int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions)
         {

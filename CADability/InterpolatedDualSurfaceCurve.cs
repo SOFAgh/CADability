@@ -1610,6 +1610,7 @@ namespace CADability
                     --ind; // wenns genau um den letzten Punkt geht, dann das vorletzte Intervall nehmen
                     d = 1.0;
                 }
+
                 GeoVector normal = basePoints[ind + 1].p3d - basePoints[ind].p3d;
                 Plane pln = new Plane(location, normal);
                 // diese Ebene bleibt fix, es wird jetzt auf den beiden surfaces tangential fortgeschritten, bis
@@ -1814,6 +1815,9 @@ namespace CADability
                     AdjustPeriodic(ref uv2, false, ind);
                     pln = new Plane(pp, approxPolynom.DirectionAt(position));
                 }
+                // pln was calculated as a plane perpendicular to the chord between basePoints[ind] and basePoints[ind + 1] at the offset provided by the parameter
+                // there was an attempt to use a better plane by using the approximation polygon defined by the two basepoints and the directions at these points,
+                // there were some problems with this approach, now it seems to work
                 GeoPoint p1, p2;
                 GeoVector du1, dv1, du2, dv2, n1, n2;
                 surface1.DerivationAt(uv1, out p1, out du1, out dv1);
@@ -1906,6 +1910,7 @@ namespace CADability
                         double d3 = p1 | p1alt;
                         double d4 = p2 | p2alt;
                         d = p1 | p2;
+                        
                         if (d > mindist || double.IsNaN(d))
                         {   // es ist schlechter geworden
                             conversionCounter += 1;

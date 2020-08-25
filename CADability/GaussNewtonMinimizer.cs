@@ -1496,8 +1496,8 @@ namespace CADability
 
                 // according to extremaSurfaceCurve.wxmx
                 values[0] = (s.z - r.z) * sdu.z + (s.y - r.y) * sdu.y + (s.x - r.x) * sdu.x;
-                values[0] = (s.z - r.z) * sdv.z + (s.y - r.y) * sdv.y + (s.x - r.x) * sdv.x;
-                values[0] = rds.z * (s.z - r.z) + rds.y * (s.y - r.y) + rds.x * (s.x - r.x);
+                values[1] = (s.z - r.z) * sdv.z + (s.y - r.y) * sdv.y + (s.x - r.x) * sdv.x;
+                values[2] = rds.z * (s.z - r.z) + rds.y * (s.y - r.y) + rds.x * (s.x - r.x);
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {

@@ -543,6 +543,29 @@ namespace CADability
             }
         }
 
+        internal static double SimpleNewtonApproximation(SimpleFunction f, SimpleFunction df, double start)
+        {
+            double x = start;
+            double diff = double.MaxValue;
+            double prec = Math.Max(Math.Abs(start) * 1e-6, 1e-6);
+            int cnt = 0;
+            while (diff > prec && cnt < 4)
+            {
+                double dfx = df(x);
+                if (dfx != 0.0)
+                {
+                    double xn = x - f(x) / df(x);
+                    double ndiff = Math.Abs(x - xn);
+                    if (ndiff > diff) break;
+                    diff = ndiff;
+                    x = xn;
+                }
+                else break;
+                ++cnt;
+            }
+            if (diff <= prec) return x;
+            else return double.MaxValue;
+        }
         internal static void CubicNewtonApproximation(double a, double b, double c, double d, double[] xx, int length)
         {
 #if DEBUG
@@ -1949,6 +1972,28 @@ namespace CADability
                             res.Add(new GeoPoint2D(w * cw - y * sw + CenterE.x, w * sw + y * cw + CenterE.y));
                         }
                     }
+                    if (res.Count == 0)
+                    {   // maybe a tangential intersection
+                        double u0 = Math.Atan2(y0, x0);
+                        double f(double u)
+                        {
+                            return 2 * a * (x0 - a * Math.Cos(u)) * Math.Sin(u) - 2 * b * Math.Cos(u) * (y0 - b * Math.Sin(u));
+                        }
+                        double df(double u)
+                        {
+                            return 2 * a * a * sqr(Math.Sin(u)) + 2 * b * Math.Sin(u) * (y0 - b * Math.Sin(u)) + 2 * b * b * sqr(Math.Cos(u)) + 2 * a * Math.Cos(u) * (x0 - a * Math.Cos(u));
+                        }
+                        u0 = SimpleNewtonApproximation(f, df, u0);
+                        if (u0 != double.MaxValue)
+                        {
+                            double xx = a * Math.Cos(u0);
+                            double yy = b * Math.Sin(u0);
+                            if (Math.Abs(sqr(xx - x0) + sqr(yy - y0) - sqr(Radius)) < 1e-4) res.Add(new GeoPoint2D(xx * cw - yy * sw + CenterE.x, xx * sw + yy * cw + CenterE.y));
+                            xx = a * Math.Cos(u0 + Math.PI);
+                            yy = b * Math.Sin(u0 + Math.PI);
+                            if (Math.Abs(sqr(xx - x0) + sqr(yy - y0) - sqr(Radius)) < 1e-4) res.Add(new GeoPoint2D(xx * cw - yy * sw + CenterE.x, xx * sw + yy * cw + CenterE.y));
+                        }
+                    }
                     return res.ToArray();
                 }
                 catch (ApplicationException)
@@ -3217,7 +3262,7 @@ namespace CADability
             Matrix s = m.SaveSolveTranspose(new Matrix(toRebase));
             if (s != null)
             {
-                return new GeoVector(s[0, 0], s[1, 0], s[2,0]);
+                return new GeoVector(s[0, 0], s[1, 0], s[2, 0]);
             }
             else throw new GeometryException("no solution: linear dependant coordinate system");
         }
