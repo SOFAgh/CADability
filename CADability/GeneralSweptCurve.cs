@@ -433,7 +433,7 @@ namespace CADability
         GeoVector baseDirX, baseDirY, baseDirZ; // das Koordinatensystem am Anfang von "along"
         ModOp toStartPos;
 
-        public GeneralSweptCurve(ICurve toSweep, ICurve along, GeoVector normal)
+        public GeneralSweptCurve(ICurve toSweep, ICurve along, GeoVector normal, BoundingRect? usedArea = null) : base(usedArea)
         {
             if (normal.IsNullVector())
             {
@@ -606,7 +606,7 @@ namespace CADability
         /// <returns></returns>
         public override ISurface GetModified(ModOp m)
         {
-            return new GeneralSweptCurve(toSweep.CloneModified(m), along.CloneModified(m), m * normal);
+            return new GeneralSweptCurve(toSweep.CloneModified(m), along.CloneModified(m), m * normal, usedArea);
         }
 
         public override GeoVector UDirection(GeoPoint2D uv)

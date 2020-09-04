@@ -5511,6 +5511,7 @@ namespace CADability
                     if (!intersectionEdges.Contains(e)) return false;
                     return e.StartVertex(onThisFace) == endVertex;
                 });
+                
                 if (connected.Count > 1) // can intersection edges contain poles?
                 {
                     // filter a pole:
@@ -5537,6 +5538,7 @@ namespace CADability
                         {
                             if (toAdd != null) throw new ApplicationException("BRepOpration: cannot find loop"); // should never happen
                             toAdd = sub;
+                            break;
                         }
                     }
                     if (toAdd != null)
@@ -6656,7 +6658,8 @@ namespace CADability
                     {
                         Face clone = fce.CloneWithVertices();
                         clone.ReplaceSurface(op.Key.face2.Surface, op.Value);
-                        SimpleShape ss = clone.Area; // to make it valid, something with orientation is wrong when the "op.Value" matrix determinant is negative
+                        // clone.ForceAreaRecalc(); // to make it valid, something with orientation is wrong when the "op.Value" matrix determinant is negative
+                        // when op.Value has a negative determinant, the 2d curves of the edges are wrong oriented: we need to reverse the order of the edges and reverse the 2d curves
                         ftc.Add(clone);
                         clone.UserData["BRepIntersection.IsOpposite"] = true; // clone is only used to subtract from other faces, here we need to mark that it is in the opposite faces
                         commonFaces.Add(clone); // 
@@ -6811,7 +6814,7 @@ namespace CADability
                 if (!isInside && isOpposite) continue;
                 if (!isInside)
                 {   // not all edges are intersection edges: e.g. two concentric cylinders with the same radius, but different seams
-                    if (face2.Contains(edg.Curve3D.PointAt(0.5), true)) isInside = true; // better in 2d with firstToSecond
+                    if (face2.Contains(edg.Curve3D.PointAt(0.5), false)) isInside = true; // better in 2d with firstToSecond changed to false (don't accept on curve) because of RohrHalter1.cdb.json
                 }
                 if (isInside)
                 {
@@ -6843,7 +6846,7 @@ namespace CADability
                 if (!isInside && isOpposite) continue;
                 if (!isInside)
                 {   // not all edges are intersection edges: e.g. two concentric cylinders with the same radius, but different seams
-                    if (face1.Contains(edg.Curve3D.PointAt(0.5), true)) isInside = true;
+                    if (face1.Contains(edg.Curve3D.PointAt(0.5), false)) isInside = true; // changed to false, see above
                 }
                 if (isInside)
                 {

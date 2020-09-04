@@ -23,7 +23,7 @@ namespace CADability.GeoObject
             toSphere = m2 * m1;
             toUnit = toSphere.GetInverse();
         }
-        internal SphericalSurface(ModOp toSphere)
+        internal SphericalSurface(ModOp toSphere, BoundingRect? usedArea = null) : base(usedArea)
         {
             this.toSphere = toSphere;
             toUnit = toSphere.GetInverse();
@@ -92,7 +92,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface GetModified(ModOp m)
         {
-            return new SphericalSurface(m * toSphere);
+            return new SphericalSurface(m * toSphere, usedArea);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNormal (GeoPoint2D)"/>

@@ -7127,12 +7127,12 @@
     <tip>Z-Achse</tip>
     <info>Z-Achse</info>
   </data>
-  <data name="Constr.Face.ScrewPath.Oreintation">
+  <data name="Constr.Face.ScrewPath.Orientation">
     <label>Orientierung</label>
     <tip>Links- oder Rechts-Gewinde</tip>
     <info>Links- oder Rechts-Gewinde</info>
   </data>
-  <data name="Constr.Face.ScrewPath.Oreintation.Values">
+  <data name="Constr.Face.ScrewPath.Orientation.Values">
     <label>|Rechtsgewinde|Linksgewinde</label>
   </data>
   <data name="MenuId.LayoutView.Print.SelectPrinter">

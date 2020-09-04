@@ -1833,8 +1833,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (527939 == item.definingIndex)
-            
+            if (2727 == item.definingIndex)
             {
 
             }
@@ -2232,7 +2231,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (532326 == item.definingIndex)
+                            if (2769 == item.definingIndex)
                             {
                                 // Face dbgf = Face.MakeFace(surface, new BoundingRect(0.1, 0.1, 0.9, 0.9));
                             }

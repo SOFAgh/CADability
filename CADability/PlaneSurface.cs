@@ -23,7 +23,7 @@ namespace CADability.GeoObject
         private ModOp toUnitPlane; // invers zu fromUnitPlane
 
         private ModOp2D toHelper; // wird nur benötigt, wenn verzerrt für opencascade
-        internal PlaneSurface(ModOp m)
+        internal PlaneSurface(ModOp m, BoundingRect? usedArea = null) : base(usedArea)
         {
             fromUnitPlane = m;
             toUnitPlane = fromUnitPlane.GetInverse();
@@ -146,7 +146,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface GetModified(ModOp m)
         {
-            return new PlaneSurface(m * fromUnitPlane);
+            return new PlaneSurface(m * fromUnitPlane, usedArea);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.Make3dCurve (ICurve2D)"/>

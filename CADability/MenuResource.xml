@@ -231,7 +231,7 @@
         <MenuItem MenuId="MenuId.Constr.Solid.FaceExtrude"  IconNr="159"/>
         <MenuItem MenuId="MenuId.Constr.Solid.FaceRotate"  IconNr="160"/>
         <MenuItem MenuId="MenuId.Constr.Solid.RuledSolid"  IconNr="161"/>
-        <!--<MenuItem MenuId="MenuId.Constr.Solid.ScrewPath" /> -->
+        <MenuItem MenuId="MenuId.Constr.Solid.ScrewPath" />
         <MenuItem MenuId="MenuId.Constr.Solid.Fuse"/>
         <MenuItem MenuId="MenuId.Constr.Solid.ShellToSolid"/>
       </Popup>

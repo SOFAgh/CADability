@@ -4542,24 +4542,24 @@ namespace CADability.GeoObject
                             ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
                             if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
                             if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
-                            bool skip = false;
-                            foreach (Edge edg in edge.SecondaryFace.AllEdgesIterated())
-                            {
-                                if (edg.Curve3D is InterpolatedDualSurfaceCurve)
-                                {
-                                    skip = true;
-                                    break;
-                                }
-                            }
-                            if (!skip) foreach (Edge edg in edge.PrimaryFace.AllEdgesIterated())
-                                {
-                                    if (edg.Curve3D is InterpolatedDualSurfaceCurve)
-                                    {
-                                        skip = true;
-                                        break;
-                                    }
-                                }
-                            if (skip) continue; // zu kompliziert mit InterpolatedDualSurfaceCurve
+                            //bool skip = false;
+                            //foreach (Edge edg in edge.SecondaryFace.AllEdgesIterated())
+                            //{
+                            //    if (edg.Curve3D is InterpolatedDualSurfaceCurve)
+                            //    {
+                            //        skip = true;
+                            //        break;
+                            //    }
+                            //}
+                            //if (!skip) foreach (Edge edg in edge.PrimaryFace.AllEdgesIterated())
+                            //    {
+                            //        if (edg.Curve3D is InterpolatedDualSurfaceCurve)
+                            //        {
+                            //            skip = true;
+                            //            break;
+                            //        }
+                            //    }
+                            //if (skip) continue; // zu kompliziert mit InterpolatedDualSurfaceCurve
                             toRemove = edge.SecondaryFace.CombineWith(edge.PrimaryFace, firstToSecond);
                             // isolate the face, which will no longer be used:
                             Face faceToRemove = edge.PrimaryFace;
@@ -4574,6 +4574,10 @@ namespace CADability.GeoObject
                                 if (edg.Vertex1 != null) edg.Vertex1.RemovePositionOnFace(faceToRemove);
                                 if (edg.Vertex2 != null) edg.Vertex2.RemovePositionOnFace(faceToRemove);
 
+                            }
+                            foreach (Edge edge1 in combinedFace.Edges)
+                            {
+                                edge1.UpdateInterpolatedDualSurfaceCurve();
                             }
 #if DEBUG
                             if (dbgface != null && !dbgface.CheckConsistency())

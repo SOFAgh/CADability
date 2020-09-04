@@ -1240,7 +1240,7 @@ namespace CADability
         {
             get
             {
-                return x != double.NaN || y != double.NaN;
+                return !double.IsNaN(x) && !double.IsNaN(y);
             }
         }
         internal bool IsNan

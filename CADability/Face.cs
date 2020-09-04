@@ -224,7 +224,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 1140)
+            if (hashCode == 453 || hashCode == 435)
             {
 
             }
@@ -703,37 +703,49 @@ namespace CADability.GeoObject
                             }
                         }
                     }
-                    GeoVector axdir = GeoVector.NullVector;
-                    for (int k = 0; k < 10; k++)
+                    double radius = sphericalSurface.RadiusX;
+                    bool done = false;
+                    for (int i = 0; i < loops[loopind].Count; i++)
                     {
-                        double a = ((k + 1) % Math.PI);
-                        double b = Math.PI / 2.0 - ((k + 10) % Math.PI); // quasi random angles
-                        axdir = new GeoVector(new Angle(a), new Angle(b));
-                        Plane tstpln = new Plane(loc, axdir);
-                        List<ICurve2D> projectedLoop = new List<ICurve2D>();
-                        for (int i = 0; i < loops[loopind].Count; i++)
-                        {
-                            if (loops[loopind][i].curve != null)
-                            {
-                                ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
-                                if (!loops[0][loopind].forward) c2d.Reverse();
-                                projectedLoop.Add(c2d);
-                            }
-                        }
-                        ICurve2D[] pla = projectedLoop.ToArray();
-
-                        if (Border.IsPointOnOutline(pla, GeoPoint2D.Origin, precision)) continue;
-                        if (Border.IsInside(pla, GeoPoint2D.Origin) != Border.CounterClockwise(pla))
-                        {
-                            break;
+                        if (loops[loopind][i].curve is Ellipse elli)
+                        {   // if the outer loop contains a circle, then orient the sphere so that the circle is a latitude
+                            surface = new SphericalSurface(loc, radius * elli.Plane.DirectionX, radius * elli.Plane.DirectionY, radius * elli.Plane.Normal);
+                            done = true;
                         }
                     }
-                    double radius = sphericalSurface.RadiusX;
-                    GeoVector dirx = axdir ^ GeoVector.ZAxis;
-                    GeoVector diry = dirx ^ axdir;
-                    dirx.Norm();
-                    diry.Norm();
-                    surface = new SphericalSurface(loc, radius * dirx, radius * diry, radius * axdir);
+                    if (!done)
+                    {
+                        GeoVector axdir = GeoVector.NullVector;
+                        for (int k = 0; k < 10; k++)
+                        {
+                            double a = ((k + 1) % Math.PI);
+                            double b = Math.PI / 2.0 - ((k + 10) % Math.PI); // quasi random angles
+                            axdir = new GeoVector(new Angle(a), new Angle(b));
+                            Plane tstpln = new Plane(loc, axdir);
+                            List<ICurve2D> projectedLoop = new List<ICurve2D>();
+                            for (int i = 0; i < loops[loopind].Count; i++)
+                            {
+                                if (loops[loopind][i].curve != null)
+                                {
+                                    ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
+                                    if (!loops[0][loopind].forward) c2d.Reverse();
+                                    projectedLoop.Add(c2d);
+                                }
+                            }
+                            ICurve2D[] pla = projectedLoop.ToArray();
+
+                            if (Border.IsPointOnOutline(pla, GeoPoint2D.Origin, precision)) continue;
+                            if (Border.IsInside(pla, GeoPoint2D.Origin) != Border.CounterClockwise(pla))
+                            {
+                                break;
+                            }
+                        }
+                        GeoVector dirx = axdir ^ GeoVector.ZAxis;
+                        GeoVector diry = dirx ^ axdir;
+                        dirx.Norm();
+                        diry.Norm();
+                        surface = new SphericalSurface(loc, radius * dirx, radius * diry, radius * axdir);
+                    }
                 }
                 if (surface is CylindricalSurface || surface is ConicalSurface || surface is ToroidalSurface || surface is SurfaceOfRevolution)
                 {   // avoid vertices close to 0 or 180°, because here the surface might be splitted and cause very short edges which might make problems
@@ -1332,7 +1344,7 @@ namespace CADability.GeoObject
                             area = Border.SignedArea(testDirections);
                         }
                         if (area < 0.0)
-                            {
+                        {
                             if (surface.IsUPeriodic && surface.IsVPeriodic)
                             {
                                 // when on a torus (or similar surface) and the face is bound by two open curves (in 2d, closed curves in 3d) then it is not clear, which part of the torus is used
@@ -1368,7 +1380,7 @@ namespace CADability.GeoObject
                                     loops[oppii][i].curve2d.Move(0, dv);
                                 }
                             }
-                            else if (surface.IsUPeriodic && Math.Abs(l1.StartDirection.x)> Math.Abs(l1.StartDirection.y))
+                            else if (surface.IsUPeriodic && Math.Abs(l1.StartDirection.x) > Math.Abs(l1.StartDirection.y))
                             {
                                 double du;
                                 if (loops[ii][0].curve2d.StartPoint.x < loops[oppii][0].curve2d.StartPoint.x) du = -surface.UPeriod;
@@ -1385,6 +1397,7 @@ namespace CADability.GeoObject
                                 reverseCount += 2;
                             }
                             ext = BoundingRect.EmptyBoundingRect; // recalc the extent since 2d curves have been moved
+                            loopExt = new BoundingRect[loops.Count]; // maybe loops.Count has changed
                             for (int i = 0; i < loops.Count; i++)
                             {
                                 loopExt[i] = BoundingRect.EmptyBoundingRect;
@@ -4981,9 +4994,92 @@ namespace CADability.GeoObject
         internal void ReplaceSurface(ISurface surface, ModOp2D reparameterize)
         {
             this.surface = surface.Clone();
+            BoundingRect modifiedBounds = Domain.GetModified(reparameterize);
             foreach (Edge edg in AllEdgesIterated())
             {
+                //edg.PrimaryCurve2D = this.surface.GetProjectedCurve(edg.Curve3D, 0.0);
+                //bool done = false;
+                //if (edg.Curve3D is InterpolatedDualSurfaceCurve idsc)
+                //{
+                //    ISurface toReplace = null;
+                //    if (idsc.Surface1.SameGeometry(Domain, surface, Domain, Precision.eps, out ModOp2D dumy)) toReplace = idsc.Surface1;
+                //    else if (idsc.Surface2.SameGeometry(Domain, surface, Domain, Precision.eps, out dumy)) toReplace = idsc.Surface2;
+                //    if (toReplace != null)
+                //    {
+                //        idsc.ReplaceSurface(toReplace, this.surface, reparameterize);
+                //        done = true;
+                //    }
+                //}
                 edg.ModifyCurve2D(this, null, reparameterize);
+                SurfaceHelper.AdjustPeriodic(this.surface, modifiedBounds, edg.Curve2D(this));
+            }
+            foreach (Edge edg in AllEdgesIterated())
+            {
+                edg.Orient(); // ModifyCurve2D unsets the "oriented"-Flag of the edge. Maybe the edge has already been oriented, so ReverseOrientation(this) doesn't help
+                if (edg.Curve3D is InterpolatedDualSurfaceCurve idsc)
+                {
+                    if (edg.PrimaryFace == this)
+                    {
+                        ISurface otherSurface = edg.SecondaryFace != null ? edg.SecondaryFace.surface : null;
+                        BoundingRect otherBounds = BoundingRect.EmptyBoundingRect;
+                        if (edg.SecondaryFace != null) otherBounds = edg.SecondaryFace.Domain;
+                        if (otherSurface == null)
+                        {
+                            otherBounds = idsc.CurveOnSurface1.GetExtent();
+                            if (idsc.Surface1.SameGeometry(otherBounds, this.surface, modifiedBounds, Precision.eps, out ModOp2D dumy)) otherSurface = idsc.Surface2;
+                            else
+                            {
+                                otherBounds = idsc.CurveOnSurface2.GetExtent();
+                                otherSurface = idsc.Surface1;
+                            }
+                        }
+                        edg.Curve3D = new InterpolatedDualSurfaceCurve(this.surface, modifiedBounds, otherSurface, otherBounds, idsc.BasePoints);
+                        edg.PrimaryCurve2D = (edg.Curve3D as InterpolatedDualSurfaceCurve).CurveOnSurface1;
+                        if (!edg.Forward(edg.PrimaryFace)) edg.PrimaryCurve2D.Reverse();
+                        edg.SecondaryCurve2D = (edg.Curve3D as InterpolatedDualSurfaceCurve).CurveOnSurface2;
+                        if (!edg.Forward(edg.SecondaryFace)) edg.SecondaryCurve2D.Reverse();
+                    }
+                    else
+                    {
+                        ISurface otherSurface = edg.PrimaryFace != null ? edg.PrimaryFace.surface : null;
+                        BoundingRect otherBounds = BoundingRect.EmptyBoundingRect;
+                        if (edg.PrimaryFace != null) otherBounds = edg.PrimaryFace.Domain;
+                        if (otherSurface == null)
+                        {
+                            otherBounds = idsc.CurveOnSurface1.GetExtent();
+                            if (idsc.Surface1.SameGeometry(otherBounds, this.surface, modifiedBounds, Precision.eps, out ModOp2D dumy)) otherSurface = idsc.Surface2;
+                            else
+                            {
+                                otherBounds = idsc.CurveOnSurface2.GetExtent();
+                                otherSurface = idsc.Surface1;
+                            }
+                        }
+                        edg.Curve3D = new InterpolatedDualSurfaceCurve(otherSurface, otherBounds, this.surface, modifiedBounds, idsc.BasePoints);
+                        edg.PrimaryCurve2D = (edg.Curve3D as InterpolatedDualSurfaceCurve).CurveOnSurface1;
+                        if (!edg.Forward(edg.PrimaryFace)) edg.PrimaryCurve2D.Reverse();
+                        edg.SecondaryCurve2D = (edg.Curve3D as InterpolatedDualSurfaceCurve).CurveOnSurface2;
+                        if (!edg.Forward(edg.SecondaryFace)) edg.SecondaryCurve2D.Reverse();
+                    }
+                }
+            }
+
+            if (reparameterize.Determinant < 0)
+            {
+                Array.Reverse(outline);
+                for (int i = 0; i < outline.Length; i++)
+                {
+                    outline[i].Curve2D(this).Reverse();
+                }
+                if (holes != null)
+                {
+                    for (int j = 0; j < holes.Length; j++)
+                    {
+                        for (int i = 0; i < holes[j].Length; i++)
+                        {
+                            holes[j][i].Curve2D(this).Reverse();
+                        }
+                    }
+                }
             }
         }
 
@@ -9052,15 +9148,15 @@ namespace CADability.GeoObject
                     Predicate<Edge> leftOfSplit = delegate (Edge e)
                     {   // liefert alle Kanten, die von current ausgehen
                         // if (outline.Contains(e)) return false;
-                    if (intersectionEdgesCopy.Contains(e)) return e.Vertex1 == current; // intersection edge
-                    else if (e.IsPeriodicEdge && !outline.Contains(e))
+                        if (intersectionEdgesCopy.Contains(e)) return e.Vertex1 == current; // intersection edge
+                        else if (e.IsPeriodicEdge && !outline.Contains(e))
                         {
                             return (e.Vertex1 == current) || (e.Vertex2 == current); // wer dreht ihn dann um??
-                    }
+                        }
                         else if (e.StartVertex(this) == current)
                         {   // hier noch ausschließen, dass eine naht Kante in der richtigen Richtung
                             // betrachtet wird und dass kein Verbindungsweg über die Naht hinaus gewählt wird
-                        return (e.StartPosition(this) | currentPosition) < halfPeriod;
+                            return (e.StartPosition(this) | currentPosition) < halfPeriod;
                         }
                         return false;
                     };
@@ -9127,8 +9223,8 @@ namespace CADability.GeoObject
                 {
                     Predicate<Edge> leftOfSplit = delegate (Edge e)
                     {   // liefert alle Kanten, die von current ausgehen
-                    if (intersectionEdgesCopy.Contains(e)) return e.Vertex2 == current; // die laufen rückwärts
-                    if (e.IsPeriodicEdge) return e.EndVertex(this) == current;
+                        if (intersectionEdgesCopy.Contains(e)) return e.Vertex2 == current; // die laufen rückwärts
+                        if (e.IsPeriodicEdge) return e.EndVertex(this) == current;
                         if (e.StartVertex(this) == current)
                         {
                             return (e.StartPosition(this) | currentPosition) < halfPeriod;

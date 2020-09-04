@@ -2394,11 +2394,12 @@ namespace CADability.GeoObject
         static int idcounter = 0;
         public int uniqueid;
 #endif
-        protected ISurfaceImpl()
+        protected ISurfaceImpl(BoundingRect? usedArea = null)
         {
 #if DEBUG
             uniqueid = idcounter++;
 #endif
+            if (usedArea.HasValue) this.usedArea = usedArea.Value;
         }
         protected void InvalidateSecondaryData()
         {
@@ -4662,6 +4663,7 @@ namespace CADability.GeoObject
                 bounds2.MinMax(paramsuvsurf2[j]);
             }
             IDualSurfaceCurve[] dscs = surface1.GetDualSurfaceCurves(bounds1, surface2, bounds2, points, null);
+            
             if (points.Count > paramsuvsurf1.Length)
             {   // there were points added by GetDualSurfaceCurves
                 paramsuvsurf1 = new GeoPoint2D[points.Count];
@@ -5294,28 +5296,29 @@ namespace CADability.GeoObject
             {
                 // GetExtremePositions is not implemented for all surface combinations. If it fails (returns -1) and GetDualSurfaceCurves didnt return anything
                 // then we have to use burte force to get a seed point
-                GeoPoint seed = IntersectionSeedPoint(surface1, ext1, surface2, ext2);
-                if (seed.IsValid)
-                {
-                    GeoPoint2D uv1 = surface1.PositionOf(seed);
-                    SurfaceHelper.AdjustPeriodic(surface1, ext1, ref uv1);
-                    GeoPoint2D uv2 = surface1.PositionOf(seed);
-                    SurfaceHelper.AdjustPeriodic(surface2, ext2, ref uv2);
-                    if (!ext1.Contains(uv1)) uv1 = GeoPoint2D.Invalid;
-                    if (!ext2.Contains(uv2)) uv2 = GeoPoint2D.Invalid;
-                    if (uv1.IsValid || uv2.IsValid)
-                    {
-                        extremePositions = new List<Tuple<double, double, double, double>>();
-                        extremePositions.Add(new Tuple<double, double, double, double>(uv1.x, uv1.y, uv2.x, uv2.y));
-                        candidates = surface1.GetDualSurfaceCurves(ext1, surface2, ext2, null, extremePositions);
-                        res = new List<IDualSurfaceCurve>();
-                        for (int i = 0; i < candidates.Length; i++)
-                        {
-                            if (candidates[i].Curve3D.IsClosed) res.Add(candidates[i]);
-                            else if (Precision.Equals(candidates[i].Curve3D.StartPoint, candidates[i].Curve3D.EndPoint)) res.Add(candidates[i]);
-                        }
-                    }
-                }
+                // problem with helicalsurface in "Stativgewinde1.cdb.json"
+                //GeoPoint seed = IntersectionSeedPoint(surface1, ext1, surface2, ext2);
+                //if (seed.IsValid)
+                //{
+                //    GeoPoint2D uv1 = surface1.PositionOf(seed);
+                //    SurfaceHelper.AdjustPeriodic(surface1, ext1, ref uv1);
+                //    GeoPoint2D uv2 = surface1.PositionOf(seed);
+                //    SurfaceHelper.AdjustPeriodic(surface2, ext2, ref uv2);
+                //    if (!ext1.Contains(uv1)) uv1 = GeoPoint2D.Invalid;
+                //    if (!ext2.Contains(uv2)) uv2 = GeoPoint2D.Invalid;
+                //    if (uv1.IsValid || uv2.IsValid)
+                //    {
+                //        extremePositions = new List<Tuple<double, double, double, double>>();
+                //        extremePositions.Add(new Tuple<double, double, double, double>(uv1.x, uv1.y, uv2.x, uv2.y));
+                //        candidates = surface1.GetDualSurfaceCurves(ext1, surface2, ext2, null, extremePositions);
+                //        res = new List<IDualSurfaceCurve>();
+                //        for (int i = 0; i < candidates.Length; i++)
+                //        {
+                //            if (candidates[i].Curve3D.IsClosed) res.Add(candidates[i]);
+                //            else if (Precision.Equals(candidates[i].Curve3D.StartPoint, candidates[i].Curve3D.EndPoint)) res.Add(candidates[i]);
+                //        }
+                //    }
+                //}
             }
             return res.ToArray();
         }

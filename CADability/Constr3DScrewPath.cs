@@ -19,9 +19,11 @@ namespace CADability.Actions
         private GeoVectorInput axisVectorInput;
         private GeoPointInput axisPointInput;
         private MultipleChoiceInput orientation;
+        private DoubleInput numTurns;
         private bool handed; // true: righthanded, false: lefthanded
         GeoVector axisVector;
         double angleRotation;
+        double turns;
         private Axis axis; // the axis to rotate about
         private Plane plane; // the plane, in which the data is defined
         private CompoundShape shape; // a closed shape, maybe with holes to rotate
@@ -110,18 +112,18 @@ namespace CADability.Actions
             {
                 if (path.IsClosed)
                 {
-                    Solid sld = Make3D.MakeHelicalSolid(plane.Project(axis.Location), plane.Project(axis.Direction), plane, path, 2.5, handed);
+                    Solid sld = Make3D.MakeHelicalSolid(plane.Project(axis.Location), plane.Project(axis.Direction), plane, path, turns, handed);
                     if (sld != null) ActiveObject = sld;
                 }
                 else
                 {
-                    Solid sld = Make3D.MakeHelicalSolid(plane.Project(axis.Location), plane, path, 2.5, handed);
+                    Solid sld = Make3D.MakeHelicalSolid(plane.Project(axis.Location), plane, path, turns, handed);
                     if (sld != null) ActiveObject = sld;
                 }
             }
             else if (shape != null)
             {
-                Solid sld = Make3D.MakeHelicalSolid(plane.Project(axis.Location), plane.Project(axis.Direction), plane, shape.SimpleShapes[0].Outline.AsPath(), 2.5, handed);
+                Solid sld = Make3D.MakeHelicalSolid(plane.Project(axis.Location), plane.Project(axis.Direction), plane, shape.SimpleShapes[0].Outline.AsPath(), turns, handed);
                 if (sld != null) ActiveObject = sld;
             }
         }
@@ -145,13 +147,33 @@ namespace CADability.Actions
             rotateLineInput.MouseOverCurvesEvent += new CurveInput.MouseOverCurvesDelegate(mouseOverAxis);
             //rotateLineInput.CurveSelectionChangedEvent += new CurveInput.CurveSelectionChangedDelegate(RotateLineChanged);
 
-            orientation = new MultipleChoiceInput("Constr.Face.ScrewPath.Oreintation", "Constr.Face.ScrewPath.Oreintation.Values", 0);
+            orientation = new MultipleChoiceInput("Constr.Face.ScrewPath.Orientation", "Constr.Face.ScrewPath.Orientation.Values", 0);
             orientation.SetChoiceEvent += Orientation_SetChoiceEvent;
             orientation.GetChoiceEvent += Orientation_GetChoiceEvent;
-            base.SetInput(pathInput, rotateLineInput, orientation); // , axisPointInput, axisVectorInput);
+            numTurns = new DoubleInput("Constr.Face.ScrewPath.NumTurns", 2.5);
+            turns = 2.5;
+            numTurns.GetDoubleEvent += NumTurns_GetDoubleEvent;
+            numTurns.SetDoubleEvent += NumTurns_SetDoubleEvent;
+            base.SetInput(pathInput, rotateLineInput, orientation, numTurns); // , axisPointInput, axisVectorInput);
             base.ShowAttributes = true;
             base.OnSetAction();
 
+        }
+
+        private bool NumTurns_SetDoubleEvent(double val)
+        {
+            if (val > 0)
+            {
+                turns = val;
+                Recalculate();
+                return true;
+            }
+            return false;
+        }
+
+        private double NumTurns_GetDoubleEvent()
+        {
+            return turns;
         }
 
         private int Orientation_GetChoiceEvent()

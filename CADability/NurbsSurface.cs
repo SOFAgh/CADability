@@ -79,6 +79,8 @@ namespace CADability.GeoObject
             simpleSurface = null;
             simpleSurfaceChecked = false;
             boxedSurfaceEx = null;
+            uSingularities = null;
+            vSingularities = null;
         }
 
         private bool hasSimpleSurface
@@ -3240,6 +3242,7 @@ namespace CADability.GeoObject
             }
             res.InvalidateSecondaryData();
             res.Init();
+            res.usedArea = usedArea;
             return res;
         }
         /// <summary>
@@ -4401,37 +4404,43 @@ namespace CADability.GeoObject
                 bool foundV = false;
                 BSpline fixedu = FixedU(u);
                 BSpline fixedv = FixedV(v);
-                double[] exu = (fixedv as ICurve).GetExtrema(dir);
-                for (int k = 0; k < exu.Length; ++k)
+                if (!fixedv.IsSingular)
                 {
-                    double uex = uKnots[0] + exu[k] * (uKnots[uKnots.Length - 1] - uKnots[0]);
-                    if (uex > umin && uex < umax)
+                    double[] exu = (fixedv as ICurve).GetExtrema(dir);
+                    for (int k = 0; k < exu.Length; ++k)
                     {
-                        p1 = fixedv.PointAtParam(uex);
-                        u = uex;
-                        foundU = true;
-                        break;
+                        double uex = uKnots[0] + exu[k] * (uKnots[uKnots.Length - 1] - uKnots[0]);
+                        if (uex > umin && uex < umax)
+                        {
+                            p1 = fixedv.PointAtParam(uex);
+                            u = uex;
+                            foundU = true;
+                            break;
+                        }
                     }
                 }
-                double[] exv = (fixedu as ICurve).GetExtrema(dir);
-                for (int k = 0; k < exv.Length; ++k)
+                if (!fixedu.IsSingular)
                 {
-                    double vex = vKnots[0] + exv[k] * (vKnots[vKnots.Length - 1] - vKnots[0]);
-                    if (vex > vmin && vex < vmax)
+                    double[] exv = (fixedu as ICurve).GetExtrema(dir);
+                    for (int k = 0; k < exv.Length; ++k)
                     {
-                        p2 = fixedu.PointAtParam(vex);
-                        v = vex;
-                        foundV = true;
-                        break;
+                        double vex = vKnots[0] + exv[k] * (vKnots[vKnots.Length - 1] - vKnots[0]);
+                        if (vex > vmin && vex < vmax)
+                        {
+                            p2 = fixedu.PointAtParam(vex);
+                            v = vex;
+                            foundV = true;
+                            break;
+                        }
                     }
                 }
-                if ((!foundU || !foundV) && exv.Length > 0 && exu.Length > 0)
-                {
-                    // das ist der Fall, dass man beim Iterieren aus dem Patch hinausläuft
-                    // noch kein solcher Fall bekannt
-                    // man müsste entscheiden, ob man solche Werte auch zulässt und die Bedingung müsste
-                    // nicht lauten ob innerhalb von min und max sondern die nächstgelegene Lösung
-                }
+                //if ((!foundU || !foundV) && exv.Length > 0 && exu.Length > 0)
+                //{
+                //    // das ist der Fall, dass man beim Iterieren aus dem Patch hinausläuft
+                //    // noch kein solcher Fall bekannt
+                //    // man müsste entscheiden, ob man solche Werte auch zulässt und die Bedingung müsste
+                //    // nicht lauten ob innerhalb von min und max sondern die nächstgelegene Lösung
+                //}
                 if (!foundU || !foundV) return false; // kein passendes Extremum gefunden
                 double d = p1 | p2;
                 if (d >= mindist) return false; // konvergiert nicht

@@ -181,6 +181,7 @@ namespace CADability.GeoObject
         {
             ISurface res = Clone();
             res.Modify(m);
+            (res as ISurfaceImpl).usedArea = usedArea;
             return res;
         }
         /// <summary>

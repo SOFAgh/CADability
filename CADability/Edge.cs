@@ -1821,24 +1821,26 @@ namespace CADability
                     GeoVector n1e = PrimaryFace.Surface.GetNormal(uv1e);
                     GeoVector n2s = SecondaryFace.Surface.GetNormal(uv2s);
                     GeoVector n2e = SecondaryFace.Surface.GetNormal(uv2e);
+                    BoundingRect bounds1 = primaryFace.Area.GetExtent();
+                    BoundingRect bounds2 = secondaryFace.Area.GetExtent();
                     if ((new Angle(n1s, n2s)).Radian < 0.1 || (new Angle(n1e, n2e)).Radian < 0.1)
                     {   // surfaces are tangential, this edge.curve3d cannot remain a InterpolatedDualSurfaceCurve
                         curve3d = (curve3d as InterpolatedDualSurfaceCurve).ToBSpline(0.0);
                         curveOnPrimaryFace = PrimaryFace.Surface.GetProjectedCurve(curve3d, 0.0);
+                        SurfaceHelper.AdjustPeriodic(PrimaryFace.Surface, bounds1, curveOnPrimaryFace);
                         if (!forwardOnPrimaryFace) curveOnPrimaryFace.Reverse();
                         curveOnSecondaryFace = SecondaryFace.Surface.GetProjectedCurve(curve3d, 0.0);
+                        SurfaceHelper.AdjustPeriodic(SecondaryFace.Surface, bounds2, curveOnSecondaryFace);
                         if (!forwardOnSecondaryFace) curveOnSecondaryFace.Reverse();
                     }
                     else
                     {
-                        BoundingRect bounds1 = primaryFace.Area.GetExtent();
-                        BoundingRect bounds2 = secondaryFace.Area.GetExtent();
-
                         dsc = new InterpolatedDualSurfaceCurve(primaryFace.Surface, bounds1, secondaryFace.Surface, bounds2, new List<GeoPoint>(dsc.BasePoints));
                         curveOnPrimaryFace = dsc.CurveOnSurface1;
                         if (!forwardOnPrimaryFace) curveOnPrimaryFace.Reverse();
                         curveOnSecondaryFace = dsc.CurveOnSurface2;
                         if (!forwardOnSecondaryFace) curveOnSecondaryFace.Reverse();
+                        this.curve3d = dsc;
 #if DEBUG
                         dsc.CheckSurfaceParameters();
 #endif

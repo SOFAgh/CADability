@@ -51,7 +51,7 @@ namespace CADability.GeoObject
             double semiAngle = Math.Atan2(r, 1);
             // noch nicht fertig!!!
         }
-        internal ConicalSurface(ModOp toCone)
+        internal ConicalSurface(ModOp toCone, BoundingRect? usedArea = null): base(usedArea)
         {
             this.toCone = toCone;
             toUnit = toCone.GetInverse();
@@ -140,7 +140,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface GetModified(ModOp m)
         {
-            return new ConicalSurface(m * toCone);
+            return new ConicalSurface(m * toCone, usedArea);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.PointAt (GeoPoint2D)"/>

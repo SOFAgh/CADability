@@ -43,7 +43,7 @@ namespace CADability.GeoObject
             this.toCylinder = toClone.toCylinder;
             toUnit = toCylinder.GetInverse();
         }
-        internal CylindricalSurface(ModOp toCylinder) : base()
+        internal CylindricalSurface(ModOp toCylinder, BoundingRect? usedArea = null) : base(usedArea)
         {
             this.toCylinder = toCylinder;
             toUnit = toCylinder.GetInverse();
@@ -118,7 +118,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface GetModified(ModOp m)
         {
-            return new CylindricalSurface(m * toCylinder);
+            return new CylindricalSurface(m * toCylinder, usedArea);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNormal (GeoPoint2D)"/>
@@ -394,10 +394,10 @@ namespace CADability.GeoObject
                                 GeoPoint c = toUnit * ts.Location;
                                 return new ICurve[] { this.FixedV(c.z, thisBounds.Left, thisBounds.Right) };
                             }
-                            else if ((ts.XAxis.Length + ts.MinorRadius > RadiusX) &&(ts.XAxis.Length - ts.MinorRadius < RadiusX))
+                            else if ((ts.XAxis.Length + ts.MinorRadius > RadiusX) && (ts.XAxis.Length - ts.MinorRadius < RadiusX))
                             {   // two circles
                                 GeoPoint2D[] ips = ts.GetLineIntersection(this.PointAt(thisBounds.GetLowerMiddle()), this.ZAxis);
-                                if (ips.Length==2)
+                                if (ips.Length == 2)
                                 {
                                     GeoPoint c1 = toUnit * ts.PointAt(ips[0]);
                                     GeoPoint c2 = toUnit * ts.PointAt(ips[1]);
@@ -704,36 +704,44 @@ namespace CADability.GeoObject
                             --i;
                         }
                     }
-                    GeoPoint2D[] pnts = new GeoPoint2D[uvals.Count];
-                    for (int i = 0; i < pnts.Length; ++i)
+                    if (uvals.Count > 2)
                     {
-                        pnts[i].x = uvals[i];
-                        GeoPoint b = new GeoPoint(Math.Cos(pnts[i].x), Math.Sin(pnts[i].x), 0.0);
-                        GeoPoint z = pln.Intersect(b, GeoVector.ZAxis);
-                        pnts[i].y = z.z;
-                    }
-                    c2d = new BSpline2D(pnts, 3, false);
+                        GeoPoint2D[] pnts = new GeoPoint2D[uvals.Count];
+                        for (int i = 0; i < pnts.Length; ++i)
+                        {
+                            pnts[i].x = uvals[i];
+                            GeoPoint b = new GeoPoint(Math.Cos(pnts[i].x), Math.Sin(pnts[i].x), 0.0);
+                            GeoPoint z = pln.Intersect(b, GeoVector.ZAxis);
+                            pnts[i].y = z.z;
+                        }
+                        c2d = new BSpline2D(pnts, 3, false);
 
-                    GeoPoint2D ps0 = PositionOf(elli.Center + elli.MajorAxis);
-                    GeoPoint2D ps1 = PositionOf(elli.Center - elli.MajorAxis);
-                    ps1.x = ps0.x + Math.PI;
-                    GeoPoint2D ps2 = new GeoPoint2D(ps1.x + Math.PI / 2, (ps0.y + ps1.y) / 2);
-                    GeoPoint2D pu0 = new GeoPoint2D(Math.PI / 2, 1);
-                    GeoPoint2D pu1 = new GeoPoint2D(3 * Math.PI / 2, -1);
-                    GeoPoint2D pu2 = new GeoPoint2D(2 * Math.PI, 0);
-                    ModOp2D fromUnit = ModOp2D.Fit(new GeoPoint2D[] { pu0, pu1, pu2 }, new GeoPoint2D[] { ps0, ps1, ps2 }, true);
-                    ModOp2D toUnit = fromUnit.GetInverse();
-                    double ustart = (toUnit * new GeoPoint2D(umin, 0)).x;
-                    double uend = (toUnit * new GeoPoint2D(umax, 0)).x;
-                    if (uend < ustart) uend += Math.PI * 2;
-                    // ustart + 0 * udiff == umin -> ustart = umin
-                    // umin + 1 * udiff = umax -> 
-                    SineCurve2D sc2d = new SineCurve2D(ustart, uend - ustart, fromUnit);
-                    c2d = sc2d;
+                        GeoPoint2D ps0 = PositionOf(elli.Center + elli.MajorAxis);
+                        GeoPoint2D ps1 = PositionOf(elli.Center - elli.MajorAxis);
+                        ps1.x = ps0.x + Math.PI;
+                        GeoPoint2D ps2 = new GeoPoint2D(ps1.x + Math.PI / 2, (ps0.y + ps1.y) / 2);
+                        GeoPoint2D pu0 = new GeoPoint2D(Math.PI / 2, 1);
+                        GeoPoint2D pu1 = new GeoPoint2D(3 * Math.PI / 2, -1);
+                        GeoPoint2D pu2 = new GeoPoint2D(2 * Math.PI, 0);
+                        ModOp2D fromUnit = ModOp2D.Fit(new GeoPoint2D[] { pu0, pu1, pu2 }, new GeoPoint2D[] { ps0, ps1, ps2 }, true);
+                        ModOp2D toUnit = fromUnit.GetInverse();
+                        double ustart = (toUnit * new GeoPoint2D(umin, 0)).x;
+                        double uend = (toUnit * new GeoPoint2D(umax, 0)).x;
+                        if (uend < ustart) uend += Math.PI * 2;
+                        // ustart + 0 * udiff == umin -> ustart = umin
+                        // umin + 1 * udiff = umax -> 
+                        SineCurve2D sc2d = new SineCurve2D(ustart, uend - ustart, fromUnit);
+                        c2d = sc2d;
+                    }
+                    else c2d = null;
                 }
-                SurfaceHelper.AdjustPeriodic(this, new BoundingRect(umin, vmin, umax, vmax), c2d);
-                DualSurfaceCurve dsc = new DualSurfaceCurve(elli, this, c2d, pl, elli2d);
-                return new IDualSurfaceCurve[] { dsc };
+                if (c2d != null)
+                {
+                    SurfaceHelper.AdjustPeriodic(this, new BoundingRect(umin, vmin, umax, vmax), c2d);
+                    DualSurfaceCurve dsc = new DualSurfaceCurve(elli, this, c2d, pl, elli2d);
+                    return new IDualSurfaceCurve[] { dsc };
+                }
+                else return new IDualSurfaceCurve[0];
             }
             // return base.GetPlaneIntersection(pl, umin, umax, vmin, vmax, precision);
         }
@@ -892,7 +900,84 @@ namespace CADability.GeoObject
                 // There is one intersection curve when the distance between the axis is greater than the difference of the radii and smaller than the sum of the radii
                 // There is a special case when the distance between the axis is equal to the difference of the radii, there is a singular point where two intersection curves meet
                 double par11, par22;
-                if (cyl2.IsRealCylinder && this.IsRealCylinder && Geometry.DistLL(Location, ZAxis, cyl2.Location, cyl2.ZAxis, out par11, out par22) < Math.Abs(this.RadiusX - cyl2.RadiusX))
+                if (cyl2.IsRealCylinder && this.IsRealCylinder && Math.Abs(Geometry.DistLL(Location, ZAxis, cyl2.Location, cyl2.ZAxis, out par11, out par22) - Math.Abs(this.RadiusX - cyl2.RadiusX)) < Precision.eps)
+                {   // the two cylinders have a touching point
+                    GeoPoint p1 = Location + par11 * ZAxis;
+                    GeoPoint p2 = cyl2.Location + par22 * cyl2.ZAxis;
+                    GeoPoint2D[] uv1 = this.GetLineIntersection(p1, p2 - p1);
+                    GeoPoint2D[] uv2 = cyl2.GetLineIntersection(p1, p2 - p1);
+                    GeoPoint touchingpoint = GeoPoint.Invalid;
+                    for (int i = 0; i < uv1.Length; i++)
+                    {
+                        SurfaceHelper.AdjustPeriodic(this, thisBounds, ref uv1[i]);
+                        if (thisBounds.ContainsEps(uv1[i], Precision.eps))
+                        {
+                            for (int j = 0; j < uv2.Length; j++)
+                            {
+                                SurfaceHelper.AdjustPeriodic(cyl2, otherBounds, ref uv2[j]);
+                                if (otherBounds.ContainsEps(uv2[j], Precision.eps))
+                                {
+                                    p1 = PointAt(uv1[i]);
+                                    p2 = cyl2.PointAt(uv2[j]);
+                                    if (Precision.IsEqual(p1, p2))
+                                    {
+                                        // this should be a seed point
+                                        touchingpoint = new GeoPoint(p1, p2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (touchingpoint.IsValid)
+                    {
+                        // make many curves, from each seed to the touching point
+                        List<IDualSurfaceCurve> res = new List<IDualSurfaceCurve>();
+                        for (int i = 0; i < seeds.Count; i++)
+                        {   // look for an appropriate middle point between this seed and touching point
+                            Plane pln = new Plane(new GeoPoint(seeds[i], touchingpoint), seeds[i] - touchingpoint);
+                            PlaneSurface pls = new PlaneSurface(pln);
+                            IDualSurfaceCurve[] tisc = this.GetPlaneIntersection(pls, thisBounds.Left, thisBounds.Right, thisBounds.Bottom, thisBounds.Top, 0.0);
+                            IDualSurfaceCurve[] oisc = other.GetPlaneIntersection(pls, otherBounds.Left, otherBounds.Right, otherBounds.Bottom, otherBounds.Top, 0.0);
+                            GeoPoint innerPoint = GeoPoint.Invalid;
+                            double mindist = double.MaxValue;
+                            for (int j = 0; j < tisc.Length; j++)
+                            {
+                                for (int k = 0; k < oisc.Length; k++)
+                                {
+                                    ICurve2D ct;
+                                    if (tisc[j].Surface1 is PlaneSurface) ct = tisc[j].Curve2D1;
+                                    else ct = tisc[j].Curve2D2;
+                                    ICurve2D co;
+                                    if (oisc[k].Surface1 is PlaneSurface) co = oisc[k].Curve2D1;
+                                    else co = oisc[k].Curve2D2;
+                                    GeoPoint2DWithParameter[] ip2d = co.Intersect(ct);
+                                    for (int l = 0; l < ip2d.Length; l++)
+                                    {
+                                        GeoPoint ip = pls.PointAt(ip2d[l].p);
+                                        if (thisBounds.ContainsPeriodic(this.PositionOf(ip), Math.PI * 2.0, 0.0) && otherBounds.ContainsPeriodic(other.PositionOf(ip), Math.PI * 2.0, 0.0))
+                                        {
+                                            double d = Geometry.DistPL(ip, seeds[i], touchingpoint);
+                                            if (d < mindist)
+                                            {
+                                                mindist = d;
+                                                innerPoint = ip;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (innerPoint.IsValid && !Precision.IsEqual(seeds[i], innerPoint) && !Precision.IsEqual(innerPoint, touchingpoint))
+                            {
+                                res.Add(new InterpolatedDualSurfaceCurve(this, thisBounds, other, otherBounds, new GeoPoint[] { seeds[i], innerPoint, touchingpoint }));
+                            }
+                        }
+                        seeds.Add(touchingpoint);
+                        return res.ToArray();
+                    }
+                    else return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
+                }
+                else
+                if (cyl2.IsRealCylinder && this.IsRealCylinder && Geometry.DistLL(Location, ZAxis, cyl2.Location, cyl2.ZAxis, out par11, out par22) < Math.Abs(this.RadiusX - cyl2.RadiusX) + Precision.eps)
                 {   // the smaller of this two cylinders completely penetrates the wider cylinder
                     // so we have two intersection curves (entering and leaving)
                     CylindricalSurface cyl1 = this;
@@ -1009,9 +1094,9 @@ namespace CADability.GeoObject
             }
             else if (other is ToroidalSurface torus)
             {
-                if (Math.Abs(torus.MinorRadius-XAxis.Length)<Precision.eps)
+                if (Math.Abs(torus.MinorRadius - XAxis.Length) < Precision.eps)
                 {
-                    if (Geometry.DistPL(torus.Location,Location,ZAxis)<Precision.eps && Precision.IsPerpendicular(torus.ZAxis,ZAxis,false))
+                    if (Geometry.DistPL(torus.Location, Location, ZAxis) < Precision.eps && Precision.IsPerpendicular(torus.ZAxis, ZAxis, false))
                     {   // special case: tangential intersection
 
                     }
@@ -1053,7 +1138,7 @@ namespace CADability.GeoObject
                         GeoPoint tpOnCyl = clpd[i + 1] - radiusCylinder * (clpd[i + 1] - clpd[i]).Normalized;
                         touchingPoints.Add(new GeoPoint(tpOnCyl, tpOnTor));
                     }
-                    else if (d > Math.Abs(radiusTorus - radiusCylinder) && d>Precision.eps)
+                    else if (d > Math.Abs(radiusTorus - radiusCylinder) && d > Precision.eps)
                     {
                         // !!! Wir brauchen mehr Punkte: Die Ellipsen zur winkelhalbierenden Ebene auch noch verwenden !!!
                         // Wir müssen die Kurve dynamisch aufteilen, etwa so: Eine Ebenenschaar durch die Verbindungs-Achse (clpd[i + 1] - clpd[i])
@@ -2005,7 +2090,7 @@ namespace CADability.GeoObject
                         Geometry.DistLL(Location, ZAxis, cos.Location, cos.ZAxis, out double par1, out double par2);
                         extremePositions = new List<Tuple<double, double, double, double>>();
                         GeoPoint cp = Location + par1 * ZAxis; // point on the cylinder axis closest to cone axis
-                        GeoPoint2D [] fpOnCone = cos.PerpendicularFoot(cp); // perpendicular from this point onto the cone
+                        GeoPoint2D[] fpOnCone = cos.PerpendicularFoot(cp); // perpendicular from this point onto the cone
                         for (int i = 0; i < fpOnCone.Length; i++)
                         {
                             SurfaceHelper.AdjustPeriodic(cos, otherBounds, ref fpOnCone[i]);

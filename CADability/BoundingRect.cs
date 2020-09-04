@@ -162,10 +162,10 @@ namespace CADability
         {
             get
             {
-                return Left == System.Double.MinValue &&
-                Right == System.Double.MaxValue &&
-                Bottom == System.Double.MinValue &&
-                Top == System.Double.MaxValue;
+                return (Left == System.Double.MinValue &&
+                Right == System.Double.MaxValue) ||
+                (Bottom == System.Double.MinValue &&
+                Top == System.Double.MaxValue);
             }
         }
         // nur für Kompatibilität mit altem CONDOR Code. Besser eliminieren!
@@ -730,7 +730,9 @@ namespace CADability
 
         internal BoundingRect GetModified(ModOp2D m)
         {
-            throw new NotImplementedException();
+            BoundingRect res = new BoundingRect(this);
+            res.Modify(m);
+            return res;
         }
 
         internal bool IsClose(double v1, double v2, bool horizontal)

@@ -13,7 +13,7 @@ namespace CADability.GeoObject
         private ISurface baseSurface;
         private double offset;
         double umin, umax, vmin, vmax; // nur zur Kommunikation mit OCas nötig
-        public OffsetSurface(ISurface baseSurface, double offset)
+        public OffsetSurface(ISurface baseSurface, double offset, BoundingRect? usedArea = null) : base(usedArea)
         {
             this.baseSurface = baseSurface;
             this.offset = offset;
@@ -382,7 +382,7 @@ namespace CADability.GeoObject
         {
             if (m.IsOrthogonal)
             {
-                OffsetSurface res = new OffsetSurface(baseSurface.GetModified(m), offset * m.Factor);
+                OffsetSurface res = new OffsetSurface(baseSurface.GetModified(m), offset * m.Factor, usedArea);
                 return res;
             }
             else throw new NotImplementedException("Modify OffsetSurface with non ortogonal Matrix");

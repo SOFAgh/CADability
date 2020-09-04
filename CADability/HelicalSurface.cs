@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 namespace CADability.GeoObject
 {
     /// <summary>
-    /// A helical surface defined by an axis, a curve and a pitch. the curve and the axis must reside in a common plane. The curve is revlved around the axis
+    /// A helical surface defined by an axis, a curve and a pitch. the curve and the axis must reside in a common plane. The curve is revolved around the axis
     /// while beeing moved in direction of the axis. The distance movement in direction of the aixs is "pitch" for one full turn.
     /// </summary>
     [Serializable()]
@@ -167,6 +167,32 @@ namespace CADability.GeoObject
             ModOp movePitch = ModOp.Translate(0, pitch * uv.x / (Math.PI * 2.0), 0);
             return toSurface * movePitch * rot * p2d;
         }
+//        public override GeoPoint2D PositionOf(GeoPoint p)
+//        {
+//            GeoPoint pUnit = fromSurface * p; // point in a system, where the basiscurve is in xy plane and the rotation axis is the y axis
+//            double rotangle = Math.Atan2(pUnit.z, pUnit.x);
+//            if (rotangle < 0) rotangle += Math.PI * 2;
+//            // on which turn are we here
+//            BoundingRect ext2d = basisCurve2D.GetExtent();
+//            int n = (int)Math.Round((pUnit.y - rotangle / (2 * Math.PI) * pitch - ext2d.GetCenter().y) / pitch); // number of turns to reache the point
+//            double u = n * 2 * Math.PI + rotangle;
+//            double v = basisCurve2D.PositionOf(new GeoPoint2D(Math.Sqrt(pUnit.z * pUnit.z + pUnit.x * pUnit.x), pUnit.y - (n + rotangle / (2 * Math.PI)) * pitch));
+//#if DEBUG
+//            double u1 = (n - 1) * 2 * Math.PI + rotangle;
+//            double v1 = basisCurve2D.PositionOf(new GeoPoint2D(Math.Sqrt(pUnit.z * pUnit.z + pUnit.x * pUnit.x), pUnit.y - ((n - 1) + rotangle / (2 * Math.PI)) * pitch));
+//            double u2 = n * 2 * Math.PI + rotangle;
+//            double v2 = basisCurve2D.PositionOf(new GeoPoint2D(Math.Sqrt(pUnit.z * pUnit.z + pUnit.x * pUnit.x), pUnit.y - (n + rotangle / (2 * Math.PI)) * pitch));
+//            double u3 = (n + 1) * 2 * Math.PI + rotangle;
+//            double v3 = basisCurve2D.PositionOf(new GeoPoint2D(Math.Sqrt(pUnit.z * pUnit.z + pUnit.x * pUnit.x), pUnit.y - ((n + 1) + rotangle / (2 * Math.PI)) * pitch));
+
+//            double error1 = p | PointAt(new GeoPoint2D(u1, v1));
+//            double error2 = p | PointAt(new GeoPoint2D(u2, v2));
+//            double error3 = p | PointAt(new GeoPoint2D(u3, v3));
+//            double error4 = new GeoPoint2D(u, v) | base.PositionOf(p);
+//            double error5 = p | PointAt(base.PositionOf(p));
+//#endif
+//            return new GeoPoint2D(u, v);
+//        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.UDirection (GeoPoint2D)"/>
         /// </summary>
@@ -270,7 +296,9 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface Clone()
         {
-            return new HelicalSurface(basisCurve2D.Clone(), pitch, toSurface, curveStartParameter, curveEndParameter, curveParameterOffset);
+            HelicalSurface res = new HelicalSurface(basisCurve2D.Clone(), pitch, toSurface, curveStartParameter, curveEndParameter, curveParameterOffset);
+            res.usedArea = usedArea;
+            return res;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.Modify (ModOp)"/>
@@ -291,6 +319,7 @@ namespace CADability.GeoObject
         {
             ISurface res = Clone();
             res.Modify(m);
+            (res as ISurfaceImpl).usedArea = usedArea;
             return res;
         }
         /// <summary>
@@ -515,6 +544,11 @@ namespace CADability.GeoObject
                         if (i == 1) vsteps.RemoveAt(1);
                         else vsteps.RemoveAt(i - 1);
                     }
+                }
+                if (vsteps.Count==1)
+                {
+                    vsteps.Add(vsteps[0] + 0.5);
+                    vsteps.Insert(0, vsteps[0] - 0.5);
                 }
                 double udiff = umax - umin;
                 int n = (int)Math.Ceiling(udiff / (Math.PI / 2.0)) + 1;
