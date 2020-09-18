@@ -36,8 +36,7 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                MakeSphere();
-                TestCollision();
+                SomeTestCode();
                 return true;
             }
             return false;
@@ -50,11 +49,19 @@ namespace CADability.Forms
 
         private void SomeTestCode()
         {
-            //Project.ReadFromFile(@"C:\Zeichnungen\DxfDwg\N5-E4-01.DXF", "dxf");
-            Project pr1 = Project.ReadFromFile(@"C:\Zeichnungen\DxfDwg\V38 04 28 PWCS 50012.dxf", "dxf");
+            string path = @"C:\Zeichnungen\STEP\protocol.txt";
+            // This text is added only once to the file.
+            if (!File.Exists(path))
+            {
+                // Create a file to write to.
+                using (StreamWriter sw = File.CreateText(path))
+                {
+                    sw.WriteLine("Protocol step files extent");
+                }
+            }
             bool skip = true;
             string lastSkipFile = "NurbsTest.dxf";
-            foreach (string file in Directory.EnumerateFiles(@"C:\Zeichnungen\DxfDwg", "*.dxf"))
+            foreach (string file in Directory.EnumerateFiles(@"C:\Zeichnungen\STEP", "*.stp"))
             {
                 if (skip)
                 {
@@ -64,21 +71,17 @@ namespace CADability.Forms
                 try
                 {
                     System.Diagnostics.Trace.WriteLine("importing: " + file);
-                    Project pr = Project.ReadFromFile(file, "dxf");
+                    Project pr = Project.ReadFromFile(file, "stp");
                     if (pr != null)
                     {
-                        if (pr.GetModelCount() > 1)
+                        BoundingCube ext = pr.GetModel(0).Extent;
+                        using (StreamWriter sw = File.AppendText(path))
                         {
-                            System.Diagnostics.Trace.WriteLine(file + ": " + pr.GetModel(0).Count.ToString() + ", " + pr.GetModel(1).Count.ToString());
-                        }
-                        else
-                        {
-                            System.Diagnostics.Trace.WriteLine(file + ": " + pr.GetModel(0).Count.ToString());
+                            sw.WriteLine(file + ", " + ext.Xmin + ", " + ext.Xmax + ", " + ext.Ymin + ", " + ext.Ymax + ", " + ext.Zmin + ", " + ext.Zmax);
                         }
                     }
                     else
                     {
-                        System.Diagnostics.Trace.WriteLine("could not import: " + file);
                     }
                 }
                 catch (Exception ex)
@@ -86,86 +89,6 @@ namespace CADability.Forms
                     if (ex.InnerException != null) System.Diagnostics.Trace.WriteLine(file + ": " + ex.InnerException.Message);
                     else System.Diagnostics.Trace.WriteLine(file + ": " + ex.Message);
                 }
-            }
-        }
-
-        void TestFaceBoundingCube()
-        {
-            Face face = frame.Project.GetActiveModel()[0] as Face;
-            Solid sld = frame.Project.GetActiveModel()[1] as Solid;
-            if (sld != null && face != null)
-            {
-                bool ok = face.HitBoundingCube(sld.GetBoundingCube());
-            }
-        }
-
-        private void ExportDxf()
-        {
-            DXF.Export exp = new DXF.Export(netDxf.Header.DxfVersion.AutoCad2000);
-            exp.WriteToFile(frame.Project, @"C:\Zeichnungen\DxfDwg\testNetDxfOut.dxf");
-
-        }
-        void TestCollision()
-        {
-            if (frame.SelectedObjects.Count>2)
-            {
-                List<Solid> tools = new List<Solid>();
-                Solid body = null;
-                for (int i = 0; i < frame.SelectedObjects.Count; i++)
-                {
-                    if (frame.SelectedObjects[i] is Solid sld)
-                    {
-                        if (sld.Name != null && sld.Name == "1583424708") body = sld;
-                        else tools.Add(sld);
-                    }
-                }
-                if (body != null && tools.Count > 0)
-                {
-                    int tc0 = System.Environment.TickCount;
-                    for (int i = 0; i < tools.Count; i++)
-                    {
-                        CollisionDetection cd = new CollisionDetection(tools[i].Shells[0], body.Shells[0]);
-                        bool collision = cd.GetResult(1e-6, false, out GeoPoint cp, out GeoObjectList collidingFaces, true);
-                    }
-                    int tc1 = System.Environment.TickCount;
-                    int dt = tc1 - tc0;
-                    System.Diagnostics.Trace.WriteLine("CollisionDetection: " + dt.ToString());
-                }
-            }
-        }
-
-        void MakeSphere()
-        {
-            List<GeoPoint> pnts = new List<GeoPoint>();
-            double radius = 0.0;
-            for (int i = 0; i < frame.SelectedObjects.Count; i++)
-            {
-                if (frame.SelectedObjects[i] is ICurve crv)
-                {
-                    if (crv is Ellipse elli)
-                    {
-                        radius = elli.MajorRadius;
-                    }
-                    bool found = false;
-                    for (int j = 0; j < pnts.Count; j++)
-                    {
-                        if ((pnts[j] | crv.StartPoint) < 1e-6) found = true;
-                    }
-                    if (!found) pnts.Add(crv.StartPoint);
-                    found = false;
-                    for (int j = 0; j < pnts.Count; j++)
-                    {
-                        if ((pnts[j] | crv.EndPoint) < 1e-6) found = true;
-                    }
-                    if (!found) pnts.Add(crv.EndPoint);
-                }
-            }
-            if (pnts.Count>=3)
-            {
-                GeoPoint cnt = new GeoPoint(pnts.ToArray());
-                GaussNewtonMinimizer.SphereRadiusFit(pnts.ToArray().ToIArray(), cnt, radius, 1e-6, out SphericalSurface ss);
-                Face fc = Face.MakeFace(ss, new BoundingRect(-Math.PI / 2, -Math.PI / 2, Math.PI / 2, Math.PI / 2));
-                Face fc1 = Face.MakeFace(ss, new BoundingRect(Math.PI / 2, -Math.PI / 2, 3*Math.PI / 2, Math.PI / 2));
             }
         }
 

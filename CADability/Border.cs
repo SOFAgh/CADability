@@ -1697,6 +1697,7 @@ namespace CADability.Shapes
         }
         internal Position GetPosition(GeoPoint2D p, double precision)
         {
+            if (precision == 0.0) precision = Precision.eps;
             return GetPosition(new BoundingRect(p, precision, precision));
         }
         internal PositionInternal GetOrientedPosition(GeoPoint2D p)

@@ -74,7 +74,7 @@ namespace CADability.UserInterface
             get
             {
                 List<MenuWithHandler> items = new List<MenuWithHandler>(MenuResource.LoadMenuDefinition("MenuId.Object.Hatch", false, this));
-                // if (CreateContextMenueEvent != null) CreateContextMenueEvent(this, cm);
+                CreateContextMenueEvent?.Invoke(this, items);
                 hatch.GetAdditionalContextMenue(this, Frame, items);
                 return items.ToArray();
             }

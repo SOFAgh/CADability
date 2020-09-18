@@ -1032,8 +1032,9 @@ namespace CADability
             bool ok = gnm.Solve(new double[] { center.x, center.y, center.z, axis.x, axis.y, axis.z, radius }, 30, 1e-6, precision * precision, out double minError, out int numiter, out double[] result);
             if (ok)
             {
-                center = new GeoPoint(result[0], result[1], result[2]);
-                axis = new GeoVector(result[3], result[4], result[5]).Normalized;
+                ModOp fromDiag = toDiag.GetInverse();
+                center = fromDiag * new GeoPoint(result[0], result[1], result[2]);
+                axis = fromDiag * new GeoVector(result[3], result[4], result[5]).Normalized;
                 axis.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
                 radius = Math.Abs(result[6]);
                 cs = new CylindricalSurface(center, radius * dirx, radius * diry, axis);

@@ -1910,7 +1910,7 @@ namespace CADability.Curve2D
             else
             {
                 double mpar = (spar + epar) / 2.0;
-                if (Math.Abs(a2d.Distance(PointAtParam(mpar)))>precision && (epar-spar)>(endParam-startParam)*1e-6)
+                if (Math.Abs(a2d.Distance(PointAtParam(mpar))) > precision && (epar - spar) > (endParam - startParam) * 1e-6)
                 {
                     AddApproximateArc(spar, mpar, precision, parts);
                     AddApproximateArc(mpar, epar, precision, parts);
@@ -1925,12 +1925,12 @@ namespace CADability.Curve2D
         {
             List<ICurve2D> res = new List<ICurve2D>();
             if (tringulation == null) MakeTriangulation();
-            for (int i = 0; i < interparam.Length-1; i++)
+            for (int i = 0; i < interparam.Length - 1; i++)
             {
                 AddApproximateArc(interparam[i], interparam[i + 1], maxError, res);
             }
             double[] ips = GetInflectionPoints();
-            return new Path2D(res.ToArray(),true);
+            return new Path2D(res.ToArray(), true);
         }
 
         /// <summary>
@@ -3182,7 +3182,13 @@ namespace CADability.Curve2D
             // ExplicitPCurve2D uses alot of memory, that is why I made it lokal here
             ExplicitPCurve2D epc2d = (this as IExplicitPCurve2D).GetExplicitPCurve2D();
             if (epc2d.IsRational) return base.GetArea();
-            return epc2d.Area();
+            else
+            {
+                double epca = epc2d.Area();
+                double repca = epc2d.RawArea();
+                if (Math.Sign(epca) != Math.Sign(repca) || Math.Abs(epca - repca) > 0.1 * Math.Max(Math.Abs(epca) , Math.Abs(repca))) return base.GetArea();
+                return epca;
+            }
             //if (explicitPCurve2D==null) explicitPCurve2D = (this as IExplicitPCurve2D).GetExplicitPCurve2D();
             //if (explicitPCurve2D.IsRational) return base.GetArea();
             //return explicitPCurve2D.Area();

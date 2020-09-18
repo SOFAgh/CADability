@@ -87,7 +87,7 @@ namespace CADability.GeoObject
             get
             {
                 List<MenuWithHandler> items = new List<MenuWithHandler>(MenuResource.LoadMenuDefinition("MenuId.Object.Shell", false, this));
-                // if (CreateContextMenueEvent != null) CreateContextMenueEvent(this, cm);
+                CreateContextMenueEvent?.Invoke(this, items);
                 shell.GetAdditionalContextMenue(this, Frame, items);
                 return items.ToArray();
             }
@@ -4330,7 +4330,8 @@ namespace CADability.GeoObject
         }
         internal void Repair(double precision)
         {
-            RecalcVertices(); // this doesn't change coordinates
+            // RecalcVertices(); // this doesn't change coordinates
+            // we assume everything is topologically ok, i.e. all edges are connected and have common vertices
             foreach (Vertex vtx in Vertices)
             {
                 Set<Face> involvedFaces = new Set<Face>();

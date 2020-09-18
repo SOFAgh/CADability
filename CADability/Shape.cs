@@ -188,6 +188,7 @@ namespace CADability.Shapes
             Border.Position pos = outline.GetPosition(p);
             if (pos == Border.Position.Outside) return false;
             if ((!acceptOnCurve) && pos == Border.Position.OnCurve) return false;
+            if (pos == Border.Position.OpenBorder) return false;
 
             for (int i = 0; i < holes.Length; ++i)
             {
@@ -197,14 +198,14 @@ namespace CADability.Shapes
             }
             return true;
         }
-        internal Border.Position GetPosition(GeoPoint2D p)
+        internal Border.Position GetPosition(GeoPoint2D p, double prec = 0.0)
         {
-            Border.Position pos = outline.GetPosition(p);
+            Border.Position pos = outline.GetPosition(p, prec);
             if (pos == Border.Position.Outside) return Border.Position.Outside;
             if (pos == Border.Position.OnCurve) return Border.Position.OnCurve;
             for (int i = 0; i < holes.Length; ++i)
             {
-                Border.Position hpos = holes[i].GetPosition(p);
+                Border.Position hpos = holes[i].GetPosition(p, prec);
                 if (hpos == Border.Position.Inside) return Border.Position.Outside;
                 if (hpos == Border.Position.OnCurve) return Border.Position.OnCurve;
             }

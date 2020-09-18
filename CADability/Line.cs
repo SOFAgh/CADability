@@ -832,7 +832,7 @@ namespace CADability.GeoObject
             int vec = export.WriteDefinition("VECTOR('',#" + dir.ToString() + ",1.)");
             int ln = export.WriteDefinition("LINE('',#" + p1.ToString() + ",#" + vec.ToString() + ")");
             if (topLevel)
-            {   // export as a geometric curve seit of a single trimmed curve
+            {   // export as a geometric curve set of a single trimmed curve
                 // #37 = GEOMETRIC_CURVE_SET('',(#38));
                 // #38 = TRIMMED_CURVE('',#39,(#43,PARAMETER_VALUE(0.E+000)),(#44,PARAMETER_VALUE(62.52263230373)),.T.,.PARAMETER.);
                 int sp = (startPoint as IExportStep).Export(export, false);

@@ -70,7 +70,7 @@ namespace CADability.UserInterface
             get
             {
                 List<MenuWithHandler> items = new List<MenuWithHandler>(MenuResource.LoadMenuDefinition("MenuId.Object.Point", false, this));
-                // if (CreateContextMenueEvent != null) CreateContextMenueEvent(this, cm);
+                CreateContextMenueEvent?.Invoke(this, items);
                 point.GetAdditionalContextMenue(this, Frame, items);
                 return items.ToArray();
             }

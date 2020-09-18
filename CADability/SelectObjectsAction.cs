@@ -936,7 +936,7 @@ namespace CADability.Actions
                 case PickMode.children:
                     if (single)
                     {
-                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.singleChild, filterList);
+                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.singleChild, filterList, selectedObjects);
                     }
                     else
                     {
@@ -946,7 +946,7 @@ namespace CADability.Actions
                 case PickMode.normal:
                     if (single)
                     {
-                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.single, filterList);
+                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.single, filterList, selectedObjects);
                     }
                     else
                     {
@@ -956,14 +956,14 @@ namespace CADability.Actions
                     break;
                 case PickMode.onlyFaces:
                     if (single)
-                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.singleFace, filterList);
+                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.singleFace, filterList, selectedObjects);
                     else
                         fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.onlyFaces, filterList);
                     // fromquadtree = pm.GetObjectsFromRect(pickrect, PickMode.singleFace, filterList);
                     break;
                 case PickMode.onlyEdges:
                     if (single)
-                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.singleEdge, filterList);
+                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.singleEdge, filterList, selectedObjects);
                     else
                         fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.onlyEdges, filterList);
                     // fromquadtree = pm.GetObjectsFromRect(pickrect, PickMode.singleEdge, filterList);

@@ -788,8 +788,15 @@ namespace CADability.GeoObject
         {   // erstmal für nicht geschlossene Kurven
             double d1 = (curve1.StartPoint | curve2.StartPoint) + (curve1.EndPoint | curve2.EndPoint);
             double d2 = (curve1.EndPoint | curve2.StartPoint) + (curve1.StartPoint | curve2.EndPoint);
-            reverse = d1 > d2;
-            if (d1 > 2 * precision && d2 > 2 * precision) return false;
+            if (curve1.IsClosed && curve2.IsClosed || (d1 < 2 * precision && d2 < 2 * precision))
+            {
+                reverse = curve1.StartDirection * curve2.StartDirection < 0;
+            }
+            else
+            {
+                reverse = d1 > d2;
+                if (d1 > 2 * precision && d2 > 2 * precision) return false;
+            }
             if (reverse)
             {
                 curve2 = curve2.Clone();
@@ -811,6 +818,18 @@ namespace CADability.GeoObject
         {
             if ((crv1.EndPoint | crv2.StartPoint) > precision) return null;
             Plane pln;
+            if (crv1 is InterpolatedDualSurfaceCurve ip1 && crv2 is InterpolatedDualSurfaceCurve ip2)
+            {
+                if ((ip1.Surface1.SameGeometry(ip1.Domain1, ip2.Surface1, ip2.Domain1, precision, out ModOp2D dumy) && ip1.Surface2.SameGeometry(ip1.Domain2, ip2.Surface2, ip2.Domain2, precision, out dumy)) ||
+                    (ip1.Surface1.SameGeometry(ip1.Domain1, ip2.Surface2, ip2.Domain2, precision, out dumy) && ip1.Surface2.SameGeometry(ip1.Domain2, ip2.Surface1, ip2.Domain1, precision, out dumy)))
+                {
+                    List<GeoPoint> basepoints = new List<GeoPoint>();
+                    basepoints.AddRange(ip1.BasePoints);
+                    basepoints.RemoveAt(basepoints.Count - 1);
+                    basepoints.AddRange(ip2.BasePoints);
+                    return new InterpolatedDualSurfaceCurve(ip1.Surface1, ip1.Domain1, ip1.Surface2, ip1.Domain2, basepoints); // the domains are too small, but this is not a problem
+                }
+            }
             if (GetCommonPlane(crv1, crv2, out pln))
             {
                 ICurve2D e2d1 = crv1.GetProjectedCurve(pln);

@@ -1192,6 +1192,8 @@ namespace CADability
                     break;
                 case "step":
                 case "stp":
+                    ExportStep exportStep = new ExportStep();
+                    exportStep.WriteToFile(fileName, this);
                     break;
                 case "vrml":
                 case "wrl":

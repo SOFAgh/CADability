@@ -78,15 +78,11 @@ namespace CADability.UserInterface
             }
         }
 
-        void OnCreateContextMenueChild(IGeoObjectShowProperty sender, ref MenuWithHandler[] toManipulate)
+        void OnCreateContextMenueChild(IGeoObjectShowProperty sender, List<MenuWithHandler> toManipulate)
         {
             ContextMenuSource = sender.GetGeoObject();
-            ContextMenuSource = sender.GetGeoObject();
             MenuWithHandler[] toAdd = MenuResource.LoadMenuDefinition("MenuId.SelectedObject", false, frame.CommandHandler);
-            MenuWithHandler[] res = new MenuWithHandler[toManipulate.Length + toAdd.Length];
-            Array.Copy(toManipulate, res, toManipulate.Length);
-            Array.Copy(toAdd, 0, res, toManipulate.Length, toAdd.Length);
-            toManipulate = res;
+            toManipulate.AddRange(toAdd);
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
@@ -103,7 +99,7 @@ namespace CADability.UserInterface
             get
             {
                 List<MenuWithHandler> items = new List<MenuWithHandler>(MenuResource.LoadMenuDefinition("MenuId.Object.Block", false, this));
-                // if (CreateContextMenueEvent != null) CreateContextMenueEvent(this, cm);
+                CreateContextMenueEvent?.Invoke(this, items);
                 block.GetAdditionalContextMenue(this, Frame, items);
                 return items.ToArray();
             }

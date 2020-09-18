@@ -1939,10 +1939,12 @@ namespace CADability
         /// <param name="visibleLayers">Set of layers which are visible (and hence should be used for the test)</param>
         /// <param name="pickMode">Single or multiple objects</param>
         /// <param name="filterList">List of conditions</param>
+        /// <param name="toAvoid">List of objects not to select</param>
         /// <returns>List of objects that fulfill all conditions</returns>
-        public GeoObjectList GetObjectsFromRect(Projection.PickArea area, Set<Layer> visibleLayers, PickMode pickMode, FilterList filterList)
+        public GeoObjectList GetObjectsFromRect(Projection.PickArea area, Set<Layer> visibleLayers, PickMode pickMode, FilterList filterList, GeoObjectList toAvoid = null)
         {
             GeoObjectList res = new GeoObjectList();
+            if (toAvoid == null) toAvoid = new GeoObjectList();
             if (area == null) return res; // kommt vor, wenn ein Fenster nicht sichtbar ist, aber trotzem irgendwie MouseMoves bekommt
             if (visibleLayers == null) visibleLayers = new Set<Layer>(); // um nicht immer nach null fragen zu müssen
             if (octTree == null) InitOctTree();
@@ -1998,7 +2000,7 @@ namespace CADability
                                     (visibleLayers.Count == 0 || l == null || visibleLayers.Contains(l)))
                                 {
                                     double z = go.Position(area.FrontCenter, area.Direction, displayListPrecision);
-                                    if (z < zmin)
+                                    if (z <= zmin && !toAvoid.Contains(go))
                                     {
                                         zmin = z;
                                         singleObject = go;
@@ -2031,7 +2033,7 @@ namespace CADability
                                 (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.Contains(go.Layer)))
                             {
                                 double z = go.Position(area.FrontCenter, area.Direction, displayListPrecision);
-                                if (z < zmin)
+                                if (z <= zmin && !toAvoid.Contains(go))
                                 {
                                     zmin = z;
                                     singleObject = go;
@@ -2072,7 +2074,7 @@ namespace CADability
                         if (go.HitTest(area, false))
                         {
                             double z = go.Position(area.FrontCenter, area.Direction, displayListPrecision);
-                            if (z < zmin)
+                            if (z <= zmin+Precision.eps)
                             {
                                 IGeoObject toInsert = go;
                                 while (toInsert.Owner is IGeoObject) toInsert = (toInsert.Owner as IGeoObject);
@@ -2081,12 +2083,15 @@ namespace CADability
                                 // jedoch die einzelnen Objekte schon. Deshalb wurde in der Abfrage
                                 // "|| filterList.Accept(go) " ergänzt
                                 if ((filterList == null || filterList.Accept(toInsert) || filterList.Accept(go)) &&
-                                    (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.Contains(toInsert.Layer) || visibleLayers.Contains(go.Layer)))
+                                    (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.Contains(toInsert.Layer) || visibleLayers.Contains(go.Layer)) )
                                 {
                                     if (toInsert.Owner is Model)
                                     {   // sonst werden auch edges gefunden, was hier bei single click nicht gewünscht
-                                        zmin = z;
-                                        singleObject = toInsert;
+                                        if (!toAvoid.Contains(toInsert) || z < zmin - Precision.eps)
+                                        {   // if nothing else is closest, use the object ignoring toAvoid, if an object has the same distance as objects in toAvoid, but is not in toAvoid, use this object
+                                            zmin = z;
+                                            singleObject = toInsert;
+                                        }
                                     }
                                 }
                             }
@@ -2100,7 +2105,7 @@ namespace CADability
                         if (!(go.Owner is Edge) && go.HitTest(area, false)) // Kanten gelten nicht
                         {
                             double z = go.Position(area.FrontCenter, area.Direction, displayListPrecision);
-                            if (z < zmin)
+                            if (z <= zmin && !toAvoid.Contains(go))
                             {
                                 IGeoObject toInsert = go;
                                 if ((filterList == null || filterList.Accept(toInsert) || filterList.Accept(go)) &&

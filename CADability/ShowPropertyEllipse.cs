@@ -249,7 +249,7 @@ namespace CADability.UserInterface
             get
             {
                 List<MenuWithHandler> items = new List<MenuWithHandler>(MenuResource.LoadMenuDefinition("MenuId.Object.Ellipse", false, this));
-                // if (CreateContextMenueEvent != null) CreateContextMenueEvent(this, cm);
+                CreateContextMenueEvent?.Invoke(this, items);
                 ellipse.GetAdditionalContextMenue(this, Frame, items);
                 return items.ToArray();
             }

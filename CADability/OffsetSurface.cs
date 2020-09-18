@@ -380,7 +380,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface GetModified(ModOp m)
         {
-            if (m.IsOrthogonal)
+            if (m.IsIsogonal)
             {
                 OffsetSurface res = new OffsetSurface(baseSurface.GetModified(m), offset * m.Factor, usedArea);
                 return res;

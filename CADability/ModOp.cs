@@ -1408,7 +1408,7 @@ namespace CADability
                 // Es fehlen noch zwei Vektoren für die Abbildung von 3 Vektoren
                 // Wir nehmen zwei Vektoren, die auf s1 senkrecht stehen und auch auf d1
                 GeoVector s2 = s1 ^ d1; // wenn der 0 ist, dann ist es eine Parallelverschiebung.
-                if (Precision.IsNullVector(s2))
+                if (s2.IsNullVector())
                 {   // beide Vektoren parallel, es ist nur eine Verschiebung
                     ModOp res = ModOp.Translate(dtscenter - srccenter);
                     if (DoScale)

@@ -3036,7 +3036,7 @@ namespace CADability
         Dictionary<DoubleFaceKey, Set<Edge>> overlappingEdges; // relevante Kanten auf den overlappingFaces
         Dictionary<DoubleFaceKey, ModOp2D> oppositeFaces; // Faces von verschiedenen Shells, die auf der gleichen Surface beruhen und sich überlappen aber verschieden orientiert sind
         Dictionary<Face, Set<Face>> faceToOverlappingFaces; // schneller Zugriff von einem face zu den überlappenden aus der anderen shell
-        Set<Face> cancelledfaces; // Faces, die sich gegenseitig auslöschen, also identisch sind nur andersrum orientiert
+        Set<Face> cancelledfaces; // Faces, which cancel each other, they have the same area but are opposite oriented 
         Dictionary<Face, Set<Edge>> faceToIntersectionEdges; // faces of both shells with their intersection edges
         Dictionary<Face, Set<Face>> faceToCommonFaces; // faces which have overlapping common parts on them
         Dictionary<Edge, List<Vertex>> edgesToSplit;
@@ -4170,7 +4170,7 @@ namespace CADability
             {
                 BRepOperation bo = new BRepOperation(toRound, filletsShell[0], tangentialIntersectionEdges, Operation.intersection);
                 Shell[] res = bo.Result();
-                
+
                 if (res != null && res.Length == 1) return res[0];
             }
             return null;
@@ -5239,7 +5239,7 @@ namespace CADability
 #if DEBUG
                     System.Diagnostics.Debug.Assert(fc.CheckConsistency());
 #endif
-                    
+
                     trimmedFaces.Add(fc);
                 }
             }
@@ -5511,7 +5511,7 @@ namespace CADability
                     if (!intersectionEdges.Contains(e)) return false;
                     return e.StartVertex(onThisFace) == endVertex;
                 });
-                
+
                 if (connected.Count > 1) // can intersection edges contain poles?
                 {
                     // filter a pole:
@@ -5531,14 +5531,29 @@ namespace CADability
                     // multiple intersection edges start from the current edge
                     // there should be only one valid path to the startVertex
                     List<Edge> toAdd = null;
+                    int besti = -1;
+                    double maxangle = double.MinValue;
+                    ICurve2D lastCurve = res[res.Count - 1].Curve2D(onThisFace);
+                    // there are more than two intersection edges on this face connected in a single point. this could be two cylinders with a touching point
+                    // here we have to use the curve which turns most to the left, otherwise we will get a chain of (intersection-) edgeswhich are self crossing.
+                    // in theory the "most to the left"-decision could be difficult, when two connected curves have the same starting direction, but one turns more to the left
+                    // no such case fund until now
                     for (int i = 0; i < connected.Count; i++)
                     {
-                        List<Edge> sub = FindLoop(connected[i], startVertex, onThisFace, intersectionEdges, originalEdges);
+                        SweepAngle swa = new SweepAngle(lastCurve.EndDirection, connected[i].Curve2D(onThisFace).StartDirection);
+                        if (swa.Radian>maxangle)
+                        {
+                            maxangle = swa.Radian;
+                            besti = i;
+                        }
+                    }
+                    if (besti >= 0)
+                    {
+                        List<Edge> sub = FindLoop(connected[besti], startVertex, onThisFace, intersectionEdges, originalEdges);
                         if (sub != null)
                         {
                             if (toAdd != null) throw new ApplicationException("BRepOpration: cannot find loop"); // should never happen
                             toAdd = sub;
-                            break;
                         }
                     }
                     if (toAdd != null)
@@ -6854,7 +6869,11 @@ namespace CADability
                     ICurve2D c2d;
                     if ((clone.Curve3D is InterpolatedDualSurfaceCurve))
                     {
-                        bool onSurface1 = (clone.Curve3D as InterpolatedDualSurfaceCurve).Surface1 == face2.Surface;
+                        bool onSurface1 = false;
+                        if ((clone.Curve3D as InterpolatedDualSurfaceCurve).Surface1 == face2.Surface) onSurface1 = true;
+                        else if ((clone.Curve3D as InterpolatedDualSurfaceCurve).Surface2 == face2.Surface) onSurface1 = false;
+                        else if ((clone.Curve3D as InterpolatedDualSurfaceCurve).Surface1.SameGeometry(((clone.Curve3D as InterpolatedDualSurfaceCurve).Surface1 as ISurfaceImpl).usedArea, face2.Surface, (face2.Surface as ISurfaceImpl).usedArea, precision, out ModOp2D dumy)) onSurface1 = true;
+                        else if ((clone.Curve3D as InterpolatedDualSurfaceCurve).Surface2.SameGeometry(((clone.Curve3D as InterpolatedDualSurfaceCurve).Surface2 as ISurfaceImpl).usedArea, face2.Surface, (face2.Surface as ISurfaceImpl).usedArea, precision, out dumy)) onSurface1 = false;
                         (clone.Curve3D as InterpolatedDualSurfaceCurve).ReplaceSurface(face2.Surface, face1.Surface, secondToFirst);
                         if (onSurface1) c2d = (clone.Curve3D as InterpolatedDualSurfaceCurve).CurveOnSurface1;
                         else c2d = (clone.Curve3D as InterpolatedDualSurfaceCurve).CurveOnSurface2;
@@ -9690,7 +9709,7 @@ namespace CADability
                 Edge edge = kv.Key;
                 Set<Vertex> vertexSet = new Set<Vertex>(kv.Value); // einzelne vertices können doppelt vorkommen
                 SortedList<double, Vertex> sortedVertices = new SortedList<double, Vertex>();
-                double prec = precision / edge.Curve3D.Length; // darf natürlich nicht 0 sein!
+                double prec = precision / edge.Curve3D.Length * 2.0; // darf natürlich nicht 0 sein!
                 foreach (Vertex v in vertexSet)
                 {
                     double pos = edge.Curve3D.PositionOf(v.Position);
@@ -9730,54 +9749,36 @@ namespace CADability
             Set<Edge> created = new Set<CADability.Edge>(new EdgeComparerByVertexAndFace());
             foreach (KeyValuePair<DoubleFaceKey, List<IntersectionVertex>> item in facesToIntersectionVertices)
             {
-                if (cancelledfaces.Contains(item.Key.face1) || cancelledfaces.Contains(item.Key.face2)) continue;
-                // Es sollen keine Schnittkanten erzeugt werden, die identisch mit bestehenden Kanten sind. Das tritt auf, wenn
-                // overlappingFaces involviert sind. Auf der anderen Fläche, die diese Kante nicht hat, sollen aber schon die Schnitte erzeugt werden
-                Set<Edge> edgesOnOverlappingFaces = new Set<Edge>();
-                Set<Face> overlapping1 = findOverlappingPartner(item.Key.face1);
-                if (overlapping1.Count > 0)
-                {
-                    foreach (Edge edg in item.Key.face2.AllEdgesIterated())
-                    {
-                        if (overlapping1.Contains(edg.OtherFace(item.Key.face2))) edgesOnOverlappingFaces.Add(edg);
-                    }
-                }
-                Set<Face> overlapping2 = findOverlappingPartner(item.Key.face2);
-                if (overlapping2.Count > 0)
-                {
-                    foreach (Edge edg in item.Key.face1.AllEdgesIterated())
-                    {
-                        if (overlapping2.Contains(edg.OtherFace(item.Key.face1))) edgesOnOverlappingFaces.Add(edg);
-                    }
-                }
-                Set<Edge> existsOnFace1 = edgesOnOverlappingFaces.Intersection(new Set<Edge>(item.Key.face1.AllEdges));
-                Set<Edge> existsOnFace2 = edgesOnOverlappingFaces.Intersection(new Set<Edge>(item.Key.face2.AllEdges));
-                Set<Edge> existsOnBothFaces = new Set<Edge>();
-                List<GeoPoint> points = new List<GeoPoint>(item.Value.Count);
+                // cancelledfaces was used not to create an intersection edge which is identical to an edge on two opposing faces
+                // but at least with "RohrHalter5.cdb.json" we do need this intersection edge
+                // if (cancelledfaces.Contains(item.Key.face1) || cancelledfaces.Contains(item.Key.face2)) continue;
+                // also edgesOnOverlappingFaces is no longer used, so we don't need the following:
+                //Set<Edge> edgesOnOverlappingFaces = new Set<Edge>();
+                //Set<Face> overlapping1 = findOverlappingPartner(item.Key.face1);
+                //if (overlapping1.Count > 0)
+                //{
+                //    foreach (Edge edg in item.Key.face2.AllEdgesIterated())
+                //    {
+                //        if (overlapping1.Contains(edg.OtherFace(item.Key.face2))) edgesOnOverlappingFaces.Add(edg);
+                //    }
+                //}
+                //Set<Face> overlapping2 = findOverlappingPartner(item.Key.face2);
+                //if (overlapping2.Count > 0)
+                //{
+                //    foreach (Edge edg in item.Key.face1.AllEdgesIterated())
+                //    {
+                //        if (overlapping2.Contains(edg.OtherFace(item.Key.face1))) edgesOnOverlappingFaces.Add(edg);
+                //    }
+                //}
+                //Set<Edge> existsOnFace1 = edgesOnOverlappingFaces.Intersection(new Set<Edge>(item.Key.face1.AllEdges));
+                //Set<Edge> existsOnFace2 = edgesOnOverlappingFaces.Intersection(new Set<Edge>(item.Key.face2.AllEdges));
+                //Set<Edge> existsOnBothFaces = new Set<Edge>();
+
                 Set<Vertex> involvedVertices = new Set<Vertex>();
-                //bool onFace1Edge = false, onFace2Edge = false;
                 for (int i = 0; i < item.Value.Count; i++)
                 {
                     involvedVertices.Add(item.Value[i].v);
-                    //if (item.Value[i].isOnFaceBorder)
-                    //{
-                    //    if (item.Value[i].face == item.Key.face1) onFace1Edge = true;
-                    //    if (item.Value[i].face == item.Key.face2) onFace2Edge = true;
-                    //}
                 }
-                //if (onFace1Edge)
-                //{
-                //    foreach (Vertex vtx in item.Key.face1.Vertices)
-                //    {
-                //        if (!involvedVertices.Contains(vtx))
-                //        {
-                //            if (item.Key.face2.Contains(vtx.Position,true))
-                //            {
-                //                involvedVertices.Add(vtx);
-                //            }
-                //        }
-                //    }
-                //}
 #if DEBUG
                 DebuggerContainer dc0 = new DebuggerContainer();
                 dc0.Add(item.Key.face1, item.Key.face1.GetHashCode());
@@ -9802,20 +9803,23 @@ namespace CADability
                 // Der DEnkfehler: 3 vertices, zwei werden entfernt, weil es zwischen beiden eine Edge gibt auf beiden Faces
                 // ABER: zwischen zwei anderen vertices von den dreien gibt es eine Edge nur auf einem Face, die muss genommen werden!
 
-                foreach (Edge edg1 in existsOnFace1)
-                {
-                    foreach (Edge edg2 in existsOnFace2)
-                    {
-                        if ((edg1.Vertex1 == edg2.Vertex1 && edg1.Vertex2 == edg2.Vertex2) || (edg1.Vertex1 == edg2.Vertex2 && edg1.Vertex2 == edg2.Vertex1))
-                        {
-                            // zwei edges auf overlappingFaces sind identisch, d.h. der Schnitt muss nicht berechnet werden, da er bereits als kante existiert
-                            existsOnBothFaces.Add(edg1); // es geht ja nur um die vertices
-                        }
-                    }
-                }
+                // The following is probably no longer needed: collect the edges, which exist on both faces
+                //foreach (Edge edg1 in existsOnFace1)
+                //{
+                //    foreach (Edge edg2 in existsOnFace2)
+                //    {
+                //        if ((edg1.Vertex1 == edg2.Vertex1 && edg1.Vertex2 == edg2.Vertex2) || (edg1.Vertex1 == edg2.Vertex2 && edg1.Vertex2 == edg2.Vertex1))
+                //        {
+                //            // zwei edges auf overlappingFaces sind identisch, d.h. der Schnitt muss nicht berechnet werden, da er bereits als kante existiert
+                //            existsOnBothFaces.Add(edg1); // es geht ja nur um die vertices
+                //        }
+                //    }
+                //}
+                
                 if (involvedVertices.Count < 2) continue;
 
-                List<Vertex> usedVertices = new List<Vertex>(involvedVertices.Count); // synchron zu Points, damit man nachher wieder die vertices findet
+                List<Vertex> usedVertices = new List<Vertex>(involvedVertices.Count); 
+                List<GeoPoint> points = new List<GeoPoint>(involvedVertices.Count); // usedVertices and points are synchronous arrays, so we later can find the vertex from a point (index)
                 foreach (Vertex v in involvedVertices)
                 {
                     usedVertices.Add(v);
@@ -9880,7 +9884,7 @@ namespace CADability
                     if (usedVertices.Count < points.Count)
                     {
                         // There have been additional vertices created.
-                        // This happens e.g. when two cylinders with the same diameter intersect
+                        // This happens e.g. when two cylinders with the same diameter intersect or in general there is a touching point, which was not in points
                         for (int i = usedVertices.Count; i < points.Count; i++)
                         {
                             if (!item.Key.face1.Contains(ref paramsuvsurf1[i], false) || !item.Key.face2.Contains(ref paramsuvsurf2[i], false))
@@ -10137,90 +10141,10 @@ namespace CADability
                             }
                             edge.Vertex1 = usedVertices[j1];    // damit wird diese Kante mit den beiden Schnittvertices verbunden
                             edge.Vertex2 = usedVertices[j2];
-#if TESTUSEALLEDGES
-                            if (created.Contains(edge) || EdgesContainConnection(existsOnBothFaces, usedVertices[j1], usedVertices[j2]))
-                            {
-                                edge.Vertex1.RemoveEdge(edge);
-                                edge.Vertex2.RemoveEdge(edge);
-                            }
-                            else
-#endif
                             {
                                 created.Add(edge);
                                 // diese neue Kante in das Dictionary einfügen
                                 bool addToFace1 = true, addToFace2 = true, rejected = false;
-#if TESTUSEALLEDGES
-                                foreach (Edge edg in Vertex.ConnectingEdges(edge.Vertex1, edge.Vertex2))
-                                {   // bereits existierende kanten nicht neu erzeugen (breps8!), oder nur, wenn verschiedene Richtung?
-                                    if (edg == edge) continue;
-                                    if ((edg.PrimaryFace == item.Key.face1 || edg.SecondaryFace == item.Key.face1) && SameEdge(edge, edg, precision))
-                                    {
-                                        if ((edg.Forward(item.Key.face1) != edge.Forward(item.Key.face1)) == (edg.Vertex1 == edge.Vertex1))
-                                        {   // the same edge exists on the shell but has opposite direction: do not use this edge at all
-                                            // there will be another intersection with the third involved face with the correct direction.
-                                            // Scenario: an edge of one shell lies inside the face of the other shell
-                                            created.Remove(edge);
-                                            edge.Vertex1.RemoveEdge(edge);
-                                            edge.Vertex2.RemoveEdge(edge);
-                                            rejected = true;
-                                            if (edg.edgeInfo != null && edg.edgeInfo.isIntersection) // same as : if(created.Contains(edg))
-                                            {   // the opposite edge is also an intersection edge. It must also be removed
-                                                // see breps15
-                                                created.Remove(edg);
-                                                edg.Vertex1.RemoveEdge(edg);
-                                                edg.Vertex2.RemoveEdge(edg);
-                                                Set<Edge> mixedEdges;
-                                                if (faceToMixedEdges.TryGetValue(edg.PrimaryFace, out mixedEdges))
-                                                {
-                                                    mixedEdges.Remove(edg);
-                                                }
-                                                if (faceToMixedEdges.TryGetValue(edg.SecondaryFace, out mixedEdges))
-                                                {
-                                                    mixedEdges.Remove(edg);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                edgesNotToUse.Add(edg);
-                                            }
-                                            continue;
-                                        }
-                                        addToFace1 = false;
-                                    }
-                                    if ((edg.PrimaryFace == item.Key.face2 || edg.SecondaryFace == item.Key.face2) && SameEdge(edge, edg, precision))
-                                    {
-                                        if ((edg.Forward(item.Key.face2) != edge.Forward(item.Key.face2)) == (edg.Vertex1 == edge.Vertex1))
-                                        {
-                                            created.Remove(edge);
-                                            edge.Vertex1.RemoveEdge(edge);
-                                            edge.Vertex2.RemoveEdge(edge);
-                                            rejected = true;
-                                            if (edg.edgeInfo != null && edg.edgeInfo.isIntersection) // same as : if (created.Contains(edg))
-                                            {   // the opposite edge is also an intersection edge. It must also be removed
-                                                created.Remove(edg);
-                                                edg.Vertex1.RemoveEdge(edg);
-                                                edg.Vertex2.RemoveEdge(edg);
-                                                Set<Edge> mixedEdges;
-                                                if (faceToMixedEdges.TryGetValue(edg.PrimaryFace, out mixedEdges))
-                                                {
-                                                    mixedEdges.Remove(edg);
-                                                }
-                                                if (faceToMixedEdges.TryGetValue(edg.SecondaryFace, out mixedEdges))
-                                                {
-                                                    mixedEdges.Remove(edg);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                edgesNotToUse.Add(edg);
-                                            }
-                                            continue;
-                                        }
-                                        addToFace2 = false;
-                                    }
-                                }
-                                if (rejected) continue;
-#endif
                                 Edge[] splitted = null;
                                 if (j1IsOnBorder && j2IsOnBorder)
                                 {   // a very rare case (like in BRepTest30.cdb.json): the new intersecting edge starts and ends on the border of the face AND contains an already existing vertex of that face.

@@ -1833,12 +1833,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (2727 == item.definingIndex)
+            if (4067 == item.definingIndex)
+            
             {
 
             }
+            bool isEntered = System.Threading.Monitor.IsEntered(item);
 #endif
+#if PARALLEL
             lock (item)
+#endif
             {
                 if (!(item.val is List<Item>)) return item.val; // already created, maybe null
                 if (item.type == Item.ItemType.advancedFace || item.type == Item.ItemType.faceSurface || item.type == Item.ItemType.curveBoundedSurface) CreatingFace();
@@ -1846,7 +1850,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 {
                     case Item.ItemType.mechanicalDesignGeometricPresentationRepresentation: // name, items, context
                         {
-                            this.context = CreateEntity(item.SubItem(2)) as context; // maybe null
+                            GetContext(item.parameter["context_of_items"]);
                             List<Item> lst = item.SubList(1);
                             GeoObjectList gl = new GeoObjectList();
                             for (int i = 0; i < lst.Count; i++)
@@ -2114,6 +2118,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
                             if (shell.OpenEdges.Length > 0)
                             {
+#if DEBUG
+                                GeoObjectList openFaces = new GeoObjectList();
+                                for (int i = 0; i < shell.OpenEdges.Length; i++)
+                                {
+                                    if (shell.OpenEdges[i].Curve3D != null)
+                                    {
+                                        openFaces.Add(shell.OpenEdges[i].PrimaryFace);
+                                    }
+                                }
+#endif
                                 shell.TryConnectOpenEdges();
                             }
                             if (!shell.HasOpenEdgesExceptPoles())
@@ -2231,7 +2245,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (2769 == item.definingIndex)
+                            if (81084 == item.definingIndex)
                             {
                                 // Face dbgf = Face.MakeFace(surface, new BoundingRect(0.1, 0.1, 0.9, 0.9));
                             }
@@ -3419,19 +3433,37 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.representationContext:
                         {
+                            GetContext(item);
+                            //context ctxt = new context();
+                            //if (item.parameter["units"] != null)
+                            //{
+                            //    Item units = item.parameter["units"];
+                            //    foreach (Item subitem in units.lval)
+                            //    {
+                            //        if (subitem.parameter["name"] != null)
+                            //        {
+                            //            string sval = subitem.parameter["name"].sval;
+                            //            if (sval == "METRE")
+                            //            {
+                            //                ctxt.factor = 1000; // meter to mm
+                            //            }
+                            //        }
+                            //    }
+                            //}
+                            //item.val = ctxt;
                         }
                         break;
                     case Item.ItemType.boundedCurve: // this is only a supertype with no additional properties
                     case Item.ItemType.geometricRepresentationItem:
                     case Item.ItemType.curve: // name, curve_3d, associated_geometry, master_representation
                         {
-                            switch(item.parameter["master_representation"].sval)
+                            switch (item.parameter["master_representation"].sval)
                             {
                                 case "CURVE_3D":
                                     item.val = CreateEntity(item.parameter["curve_3d"]);
                                     break;
                                 case "PCURVE_S1":
-                                    if (item.parameter["associated_geometry"].lval[0].type==Item.ItemType.pcurve)
+                                    if (item.parameter["associated_geometry"].lval[0].type == Item.ItemType.pcurve)
                                     {
                                         object o = CreateEntity(item.parameter["associated_geometry"].lval[0]);
                                         if (o is ICurve) item.val = o;
@@ -3445,7 +3477,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     }
                                     break;
                             }
-                            
+
                         }
                         break;
                     case Item.ItemType.pcurve: // basis_surface, reference_to_curve
@@ -3470,7 +3502,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             else if (o is ICurve c3d)
                             {
                                 item.val = c3d;
-                            } 
+                            }
                             else
                             {
                                 item.val = null; // should not happen
@@ -3651,7 +3683,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     if (!sense) basisCurve.Reverse();
                                     item.val = basisCurve;
                                 }
-                            } else if (oo is ICurve2D basisCurve2d)
+                            }
+                            else if (oo is ICurve2D basisCurve2d)
                             {
                                 basisCurve2d = basisCurve2d.Clone();
                                 double startParameter = double.MinValue;
@@ -3977,8 +4010,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 
         private void GetContext(Item item)
         {
-            if (context == null) context = new context();
-            context.factor = 1.0;
+            if (item == null) return;
+            if (context == null)
+            {
+                context = new context();
+                context.factor = 1.0;
+            }
             Item uncertainty = item.parameter["uncertainty"];
             if (uncertainty != null && uncertainty.type == Item.ItemType.list)
             {
@@ -4002,7 +4039,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             if ((cf.type == Item.ItemType.planeAngleMeasure || cf.type == Item.ItemType.planeAngleMeasureWithUnit) && vc.val is List<Item> && (vc.val as List<Item>)[0].type == Item.ItemType.floatval)
                                 context.toRadian = (double)(vc.val as List<Item>)[0].val;
                             if ((cf.type == Item.ItemType.positiveLengthMeasure || cf.type == Item.ItemType.lengthMeasureWithUnit) && vc.val is List<Item> && (vc.val as List<Item>)[0].type == Item.ItemType.floatval)
-                                context.factor = (double)(vc.val as List<Item>)[0].val; // why * 1000 ? definitely wron for 83855_elp11b.stp
+                            {
+                                context.factor = (double)(vc.val as List<Item>)[0].val; // why * 1000 ? definitely wrong for 83855_elp11b.stp
+                                if (it.parameter.TryGetValue("name", out Item name))
+                                {
+                                    if (name.type == Item.ItemType.stringval && name.sval == "METRE") context.factor *= 1000; // added because of "PROBLEM ELE NULLPUNKT.stp"
+                                }
+                            }
                         }
                     }
                 }

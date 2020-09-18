@@ -1227,7 +1227,7 @@ namespace CADability.GeoObject
                 //GeoPoint2D p2OnPl = pl.PositionOf(center - minaxis);
                 //Ellipse2D elli2d = Geometry.Ellipse2P2T(p1OnPl, p2OnPl, p2OnPl - centerOnPl, p1OnPl - centerOnPl);
                 //ICurve2D c2dpl = elli2d.Trim(0.0, 1.0);
-                ICurve2D c2dpl = elli.GetProjectedCurve(pl.Plane);
+                ICurve2D c2dpl = pl.GetProjectedCurve(elli, 0.0);
                 GeoPoint2D[] pnts = new GeoPoint2D[50];
                 for (int i = 0; i < pnts.Length; i++)
                 {

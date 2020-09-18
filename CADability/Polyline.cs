@@ -27,7 +27,7 @@ namespace CADability.GeoObject
     // created by MakeClassComVisible
     [Serializable()]
     public class Polyline : IGeoObjectImpl, IColorDef, ILineWidth, ILinePattern, ICurve,
-            ISerializable, IExtentedableCurve, IJsonSerialize
+            ISerializable, IExtentedableCurve, IJsonSerialize, IExportStep
     {
         private ColorDef colorDef; // die Farbe. 
         private GeoPoint[] vertex; // die Eckpunkte
@@ -1632,7 +1632,20 @@ namespace CADability.GeoObject
             return new InfinitePolyLine(vertex);
         }
         #endregion
-
+        int IExportStep.Export(ExportStep export, bool topLevel)
+        {
+            if (vertex.Length==2)
+            {
+                Line ln = Line.TwoPoints(vertex[0], vertex[1]);
+                return (ln as IExportStep).Export(export, topLevel);
+            }
+            else
+            {
+                BSpline bspl = BSpline.Construct();
+                bspl.ThroughPoints(vertex, 1, this.IsClosed);
+                return (bspl as IExportStep).Export(export, topLevel);
+            }
+        }
         internal void CyclicalPermutation(int index)
         {
             GeoPoint[] newvertex = new GeoPoint[vertex.Length];

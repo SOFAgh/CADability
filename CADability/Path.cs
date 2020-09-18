@@ -4,6 +4,7 @@ using CADability.UserInterface;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading;
 
@@ -127,6 +128,25 @@ namespace CADability.GeoObject
         {
             if (Constructor != null) return Constructor();
             return new Path();
+        }
+        public static Path FromSegments(IEnumerable<ICurve> curves, bool connectedAndOriented)
+        {
+            Path res = Path.Construct();
+            if (connectedAndOriented)
+            {
+                res.Set(curves.ToArray());
+                return res;
+            }
+            else
+            {
+                GeoObjectList geoObjects = new GeoObjectList();
+                foreach (ICurve crv in curves)
+                {
+                    geoObjects.Add(crv as IGeoObject);
+                }
+                if (res.Set(geoObjects, false, Precision.eps)) return res;
+                else return null;
+            }
         }
         public delegate void ConstructedDelegate(Path justConstructed);
         public static event ConstructedDelegate Constructed;

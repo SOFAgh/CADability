@@ -89,7 +89,7 @@ namespace CADability.Actions
         }
 
 
-        void optionalOrg()
+        void updateOptional()
         {
             axisPointInput.Optional = !axisOrLine;
             axisVectorInput.Optional = !axisOrLine;
@@ -99,120 +99,97 @@ namespace CADability.Actions
 
         private bool rotateOrg(bool openDraw)
         {
-            if (selectedObjectsList == null) return false;
-            IGeoObject iGeoObjectSel;
-            //         IGeoObject iGeoObjectOrg;
-            blk = Block.Construct(); // zur Darstellung
+            if (selectedObjectsList == null || selectedObjectsList.Count == 0) return false;
+            IGeoObject selectedObject = null;
+            blk = Block.Construct(); // as feedback object
             if (base.ActiveObject != null) blk.CopyAttributes(base.ActiveObject);
             // der block wird das neue aktive Objekt, er muss die Attribute tragen, weil sie später
             // wieder von ihm verlangt werden
-            Boolean success = false; // hat er wenigstens eins gefunden
+            Boolean success = false;
             GeoPoint axisPointSav = axisPoint;
             GeoVector axisVectorSav = axisVector;
-            optionalOrg(); // erstmal aufrufen, wird unten im offen-Fall überschrieben
-            for (int i = 0; i < selectedObjectsList.Count; i++) // läuft über alle selektierten Objekte. Evtl nur eins bei Konstruktion
+            updateOptional();
+            if (selectedObjectsList.Count > 1)
+            {   // maybe there are several curves in the list, then we try to make a path
+                // and use only this path. No mixture of faces and paths possible
+                List<ICurve> crvs = new List<ICurve>();
+                for (int i = 0; i < selectedObjectsList.Count; i++)
+                {
+                    if (selectedObjectsList[i] is ICurve crv) crvs.Add(crv);
+                }
+                if (crvs.Count > 1)
+                {
+                    Path path = Path.FromSegments(crvs, false);
+                    if (path != null)
+                    {
+                        selectedObjectsList.Clear();
+                        selectedObjectsList.Add(path);
+                    }
+                }
+            }
+            for (int i = 0; i < selectedObjectsList.Count; i++)
             {
-                IGeoObject iGeoObjectTemp = null; // lokaler Merker
-                iGeoObjectSel = selectedObjectsList[i]; // zur Vereinfachung
-                geoObjectOrgList[i] = iGeoObjectSel; // zum Weglöschen des Originals in onDone
-                ownerList[i] = iGeoObjectSel.Owner; // owner merken für löschen 
+                IGeoObject objectToRotate = null; // lokaler Merker
+                geoObjectOrgList[i] = selectedObject; // zum Weglöschen des Originals in onDone
+                ownerList[i] = selectedObject.Owner; // owner merken für löschen 
                 pathCreatedFromModelList[i] = null;
                 shapeList[i] = null;
 
-                if ((iGeoObjectSel is Face) || (iGeoObjectSel is Shell))
+                if ((selectedObject is Face) || (selectedObject is Shell))
                 { // nur kopieren
-                    iGeoObjectTemp = iGeoObjectSel.Clone();
+                    objectToRotate = selectedObject.Clone();
                 }
                 else
                 {
-                    if (iGeoObjectSel is ICurve)
+                    if (selectedObject is ICurve selCurve)
                     {
                         Path p = null;
-                        p = CADability.GeoObject.Path.CreateFromModel(iGeoObjectSel as ICurve, Frame.ActiveView.Model, Frame.ActiveView.Projection, true);
-                        if (p == null)
-                        { // also nur Einzelelement
-                            if (iGeoObjectSel is Path)
-                            { // schon fertig
-                                p = iGeoObjectSel.Clone() as Path;
-                            }
-                            else
-                            {  // Pfad aus Einzelobjekt machen:
-                                p = Path.Construct();
-                                p.Set(new ICurve[] { iGeoObjectSel.Clone() as ICurve });
-                            }
-                        }
-                        else
-                        { // CreateFromModel hat was zusammengesetzt
-                          //                            if (p.IsClosed)
+                        if (!selCurve.IsClosed)
+                        {
+                            // trying to rotate an open curve: if the axis and the curve have a commonn plane close a path with the perpendicular foot points and axis segment
+                            Line axisLine = Line.TwoPoints(axisPoint, axisPoint + axisVector);
+                            if (Curves.GetCommonPlane(new ICurve[] { selCurve, axisLine }, out Plane commonPlane))
                             {
-                                geoObjectOrgList[i] = null; // zum nicht Weglöschen des Originals in onDone
-                                pathCreatedFromModelList[i] = p; // kopie merken für onDone
-                                p = p.Clone() as Path;
+                                Line l1 = Line.TwoPoints(selCurve.EndPoint, Geometry.DropPL(selCurve.EndPoint, axisPoint, axisVector));
+                                Line l2 = Line.TwoPoints(Geometry.DropPL(selCurve.StartPoint, axisPoint, axisVector), selCurve.StartPoint);
+                                Line l3 = Line.TwoPoints(l1.EndPoint, l2.StartPoint);
+                                List<ICurve> closedPath = new List<ICurve>();
+                                closedPath.Add(selCurve);
+                                if (l1.Length > Precision.eps) closedPath.Add(l1);
+                                if (l3.Length > Precision.eps) closedPath.Add(l3);
+                                if (l2.Length > Precision.eps) closedPath.Add(l2);
+                                p = Path.FromSegments(closedPath, true); // should always work
                                 p.Flatten();
                             }
                         }
-                        if (p.IsClosed)
-                        { // jetzt face machen
-                            iGeoObjectTemp = Make3D.MakeFace(p, Frame.Project, true);
-                        }
                         else
-                        { // Pfad ist offen!
-                            Line l = Line.Construct();
-                            if (rotateLineInput.Fixed || axisVectorInput.Fixed || axisPointInput.Fixed || openDraw)
-                            { // die Achse ist auf irgendeine Art schon bestimmt (.Fixed) oder wird es gerade (openDraw = true)
-                                l.SetTwoPoints(axisPoint, axisPoint + axisVector);
-                            }
-                            else
-                            { // Achse noch nicht bestimmt: Hier festlegen
-                                l.SetTwoPoints(p.EndPoint, p.StartPoint);
-                            }
-                            if ((p.GetPlanarState() == PlanarState.Planar) && (Precision.IsPointOnPlane(l.StartPoint, p.GetPlane())) && (Precision.IsPointOnPlane(l.EndPoint, p.GetPlane())))
-                            { // pfad eben und in selber Ebene wie Drehachse
-                                if (rotateLineInput.Fixed || axisVectorInput.Fixed || axisPointInput.Fixed || openDraw)
-                                { // die Achse ist auf irgendeine Art schon bestimmt (.Fixed) oder wird es gerade (openDraw = true)
-                                    GeoPoint lotEnd = Geometry.DropPL(p.EndPoint, axisPoint, axisVector); // Lotpunkt Endpunkt auf Drehachse
-                                    GeoPoint lotStart = Geometry.DropPL(p.StartPoint, axisPoint, axisVector); // Lotpunkt Startpunkt auf Drehachse
-                                    l.SetTwoPoints(p.EndPoint, lotEnd); // Linie generieren und zufügen
-                                    if (!Precision.IsNull(l.Length)) p.Add(l.Clone() as ICurve);
-                                    l.SetTwoPoints(lotEnd, lotStart);
-                                    if (!Precision.IsNull(l.Length)) p.Add(l.Clone() as ICurve);
-                                    l.SetTwoPoints(lotStart, p.StartPoint);
-                                    if (!Precision.IsNull(l.Length)) p.Add(l.Clone() as ICurve);
-                                }
-                                else
-                                { // alles optional
-                                    axisPointInput.Optional = true;
-                                    axisVectorInput.Optional = true;
-                                    rotateLineInput.Optional = true;
-                                    axisPoint = p.StartPoint; // Drehachse bestimmen
-                                    axisVector = new GeoVector(p.StartPoint, p.EndPoint);
-                                    l.SetTwoPoints(p.EndPoint, p.StartPoint); // Pfad schliessen
-                                    p.Add(l);
-                                }
-                                if (p.IsClosed) iGeoObjectTemp = Make3D.MakeFace(p, Frame.Project, true);
-                            }
+                        {
+                            p = Path.FromSegments(new ICurve[] { selCurve }, true);
                         }
+                        if (p == null) continue; // no path constructed
+                        if ((p as ICurve).GetSelfIntersections().Length > 0) continue; // not possible
+                        if (!p.IsClosed) continue;
+                        // make a face from the closed pathe
+                        objectToRotate = Make3D.MakeFace(p, Frame.Project, true);
                     }
                 }
-                if (iGeoObjectTemp != null)
+                if (objectToRotate != null)
                 { // also was geeignetes dabei
-                    //if (angleOffsetRotation != 0.0)
-                    //{
-                    //    ModOp m = ModOp.Rotate(axisPoint, axisVector, new SweepAngle(angleOffsetRotation));
-                    //    iGeoObjectTemp.Modify(m);
-                    //}
+                  //if (angleOffsetRotation != 0.0)
+                  //{
+                  //    ModOp m = ModOp.Rotate(axisPoint, axisVector, new SweepAngle(angleOffsetRotation));
+                  //    iGeoObjectTemp.Modify(m);
+                  //}
                     double sw = angleRotation;
                     if (sw == 0.0) sw = Math.PI * 2.0;
                     // IGeoObject shape = Make3D.MakeRevolution(iGeoObjectTemp, axisPoint, axisVector, sw, Frame.Project);
-                    IGeoObject shape = Make3D.Rotate(iGeoObjectTemp,new Axis(axisPoint, axisVector), sw, angleOffsetRotation, Frame.Project);
+                    IGeoObject shape = Make3D.Rotate(objectToRotate, new Axis(axisPoint, axisVector), sw, angleOffsetRotation, Frame.Project);
                     if (shape != null)
                     {
-                        //                        shape.CopyAttributes(iGeoObjectSel as IGeoObject);
                         shape.CopyAttributes(blk);
-                        // die Attribute müssen vom Block übernommen werden
                         shapeList[i] = shape; // fertiger Körper in shapeList
-                        blk.Add(shape); // zum Darstellen
-                        base.FeedBack.AddSelected(iGeoObjectTemp); // zum Markieren des Ursprungsobjekts
+                        blk.Add(shape); // resulting object
+                        base.FeedBack.AddSelected(objectToRotate); // zum Markieren des Ursprungsobjekts
                         success = true;
                     }
                 }
@@ -227,7 +204,7 @@ namespace CADability.Actions
             }
             else
             {
-                optionalOrg();
+                updateOptional();
                 base.ShowActiveObject = false;
                 base.FeedBack.ClearSelected();
                 return false;
@@ -236,13 +213,13 @@ namespace CADability.Actions
 
 
         bool geoObjectInputFace(ConstructAction.GeoObjectInput sender, IGeoObject[] TheGeoObjects, bool up)
-        {	// ... nur die sinnvollen Kurven verwenden
+        {   // ... nur die sinnvollen Kurven verwenden
             objectPoint = base.CurrentMousePosition;
             if (up)
                 if (TheGeoObjects.Length == 0) sender.SetGeoObject(TheGeoObjects, null); // ...die werden jetzt im ControlCenter dargestellt (nur bei up)
                 else sender.SetGeoObject(TheGeoObjects, TheGeoObjects[0]);
             if (TheGeoObjects.Length > 0)
-            {	// er hat was gewählt
+            {   // er hat was gewählt
                 selectedObjectsList.Clear();
                 base.FeedBack.ClearSelected();
                 selectedObjectsList.Add(TheGeoObjects[0]); // das eine in die Liste
@@ -303,8 +280,8 @@ namespace CADability.Actions
         }
 
 
-        private bool RotateLine(CurveInput sender, ICurve[] Curves, bool up)
-        {	// ... nur die sinnvolen Kurven verwenden
+        private bool RotateAxis(CurveInput sender, ICurve[] Curves, bool up)
+        {   // ... nur die sinnvolen Kurven verwenden
             ArrayList usableCurves = new ArrayList();
             for (int i = 0; i < Curves.Length; ++i)
             {
@@ -321,12 +298,12 @@ namespace CADability.Actions
                 else sender.SetCurves(Curves, Curves[0]);
             // erstmal den Urprungszustand herstellen, "block" ist ja schon gespiegelt 
             if (Curves.Length > 0)
-            {	// einfach die erste Kurve nehmen
+            {   // einfach die erste Kurve nehmen
                 ICurve iCurve = Curves[0];
                 axisPoint = iCurve.StartPoint;
                 axisVector = iCurve.StartDirection;
                 axisOrLine = false;
-                optionalOrg();
+                updateOptional();
                 return rotateOrg(true);
             }
             base.FeedBack.ClearSelected();
@@ -334,7 +311,7 @@ namespace CADability.Actions
             return false;
         }
 
-        private void RotateLineChanged(CurveInput sender, ICurve SelectedCurve)
+        private void RotateAxisChanged(CurveInput sender, ICurve SelectedCurve)
         {
             axisPoint = SelectedCurve.StartPoint;
             axisVector = SelectedCurve.StartDirection;
@@ -347,7 +324,7 @@ namespace CADability.Actions
             if (Precision.IsNullVector(vec)) return false;
             axisVector = vec;
             axisOrLine = true;
-            optionalOrg();
+            updateOptional();
             return rotateOrg(true);
         }
 
@@ -360,7 +337,7 @@ namespace CADability.Actions
         {
             axisPoint = p;
             axisOrLine = true;
-            optionalOrg();
+            updateOptional();
             rotateOrg(true);
         }
 
@@ -427,8 +404,8 @@ namespace CADability.Actions
 
             rotateLineInput = new CurveInput("Constr.Face.PathRotate.AxisLine");
             rotateLineInput.Decomposed = true; // nur Einzelelemente, auch bei Polyline und Pfad
-            rotateLineInput.MouseOverCurvesEvent += new CurveInput.MouseOverCurvesDelegate(RotateLine);
-            rotateLineInput.CurveSelectionChangedEvent += new CurveInput.CurveSelectionChangedDelegate(RotateLineChanged);
+            rotateLineInput.MouseOverCurvesEvent += new CurveInput.MouseOverCurvesDelegate(RotateAxis);
+            rotateLineInput.CurveSelectionChangedEvent += new CurveInput.CurveSelectionChangedDelegate(RotateAxisChanged);
 
             axisPointInput = new GeoPointInput("Constr.Face.PathRotate.AxisPoint", axisPoint);
             axisPointInput.SetGeoPointEvent += new GeoPointInput.SetGeoPointDelegate(SetAxisPoint);
@@ -441,7 +418,7 @@ namespace CADability.Actions
             axisVectorInput.GetGeoVectorEvent += new GeoVectorInput.GetGeoVectorDelegate(GetAxisVector);
             //            vectorInput.DefaultGeoVector = ConstrDefaults.DefaultExtrudeDirection;
             axisVectorInput.ForwardMouseInputTo = geoObjectInput;
-            optionalOrg();
+            updateOptional();
 
             AngleInput angleInput = new AngleInput("Constr.Face.PathRotate.Angle", angleRotation);
             angleInput.SetAngleEvent += new AngleInput.SetAngleDelegate(SetAngleInput);
@@ -476,7 +453,7 @@ namespace CADability.Actions
             {	// es soll mindestens ein shape eingefügt werden
                 using (base.Frame.Project.Undo.UndoFrame)
                 {
-                    for (int i = 0; i < selectedObjectsList.Count; i++) // geht durch die komplette Liste
+                    for (int i = 0; i < shapeList.Count; i++) // geht durch die komplette Liste
                     {
                         bool insert = true;
                         if (shapeList[i] != null) // nur hier was machen!
@@ -492,24 +469,9 @@ namespace CADability.Actions
                                 insert = base.Frame.Project.GetActiveModel().RemoveSolid(shapeList[i] as Solid, false);
                                 base.ActiveObject = null;
                             }
-                            if (Precision.IsNull(angleOffsetRotation) && insert && Frame.GetBooleanSetting("Construct.3D_Delete2DBase", false)) // beim Abziehen kann sein, dass nichts passieren soll
-                            {
-                                if (geoObjectOrgList[i] != null) // evtl. Einzelobjekt (Object oder Path) als Original rauslöschen
-                                    ownerList[i].Remove(geoObjectOrgList[i] as IGeoObject);
-                                else
-                                { // die Einzelelemente des CreateFromModel identifizieren
-                                    for (int j = 0; j < pathCreatedFromModelList[i].Count; ++j)
-                                    {
-                                        IGeoObject obj = null;
-                                        if ((pathCreatedFromModelList[i].Curve(j) as IGeoObject).UserData.ContainsData("CADability.Path.Original"))
-                                            obj = (pathCreatedFromModelList[i].Curve(j) as IGeoObject).UserData.GetData("CADability.Path.Original") as IGeoObject;
-                                        if (obj != null && obj.Owner != null) obj.Owner.Remove(obj); // löschen
-                                    }
-                                }
-                            }
                         }
                     }
-                    base.DisassembleBlock = true; // da das ActiveObject aus einem Block besteht: Nur die Einzelteile einfügen!
+                    base.DisassembleBlock = true; // the resulting block should be decomposed
                     base.OnDone();
                 }
             }

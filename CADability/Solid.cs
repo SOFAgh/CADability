@@ -90,7 +90,10 @@ namespace CADability.GeoObject
         {
             get
             {
-                return MenuResource.LoadMenuDefinition("MenuId.Object.Solid", false, this);
+                List<MenuWithHandler> items = new List<MenuWithHandler>(MenuResource.LoadMenuDefinition("MenuId.Object.Solid", false, this));
+                CreateContextMenueEvent?.Invoke(this, items);
+                solid.GetAdditionalContextMenue(this, Frame, items);
+                return items.ToArray();
             }
         }
         #endregion

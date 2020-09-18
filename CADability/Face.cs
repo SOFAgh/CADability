@@ -266,19 +266,21 @@ namespace CADability.GeoObject
             using (ParallelHelper.LockMultipleObjects(listToLock.ToArray())) // listToLock is empty in case of not parallel
             {
 #if DEBUG
+                DebuggerContainer dcLoops = new DebuggerContainer();
                 for (int i = 0; i < loops.Count; i++)
                 {
-                    for (int j = loops[i].Count - 1; j >= 0; --j)
+                    for (int j = 0; j < loops[i].Count; ++j)
                     {
-                        if (loops[i][j].createdEdges != null)
+                        if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 0)
                         {
                             for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
                             {
-                                if (loops[i][j].createdEdges[k].GetHashCode() >= 435 && loops[i][j].createdEdges[k].GetHashCode() >= 438)
-                                {
-
-                                }
+                                dcLoops.Add(loops[i][j].createdEdges[k].Curve3D as IGeoObject, System.Drawing.Color.Blue, i * 1000 + j * 10 + k);
                             }
+                        }
+                        else
+                        {
+                            dcLoops.Add(loops[i][j].curve as IGeoObject, System.Drawing.Color.Red, i * 1000 + j);
                         }
                     }
                 }
@@ -1201,6 +1203,13 @@ namespace CADability.GeoObject
                         crvs[j] = loops[i][j].curve2d;
                     }
                     double area = Border.SignedArea(crvs);
+#if DEBUG
+                    bool ccwdbg = Border.CounterClockwise(crvs);
+                    if (ccwdbg!=(area>0))
+                    {
+
+                    }
+#endif
                     bool closed = true;
                     if (loops[i][0].curve != null && loops[i][loops[i].Count - 1].curve != null)
                     {
@@ -1220,6 +1229,11 @@ namespace CADability.GeoObject
                     {
                         sumArea += Math.Abs(area);
                         bool ccw = area > 0.0;
+                        if (Math.Abs(area) < (ext.Width + ext.Height) * 1e-4 && ((i == outerLoop && !ccw) || (i != outerLoop && ccw)))
+                        {   // very slim shape for the area, step requires outer loops to be ccw and inner loops to be cw, 
+                            // so if we should really revers a loop we better double check
+                            ccw = Border.CounterClockwise(crvs);
+                        }
                         if ((i == outerLoop && !ccw) || (i != outerLoop && ccw))
                         {
                             loopsToreverse.Add(i);
@@ -3105,6 +3119,10 @@ namespace CADability.GeoObject
                 if (surface.IsVPeriodic) vperiod = surface.VPeriod;
                 MakeAreaFromSortedEdges(uperiod, vperiod);
             }
+            foreach (Edge edge in AllEdgesIterated())
+            {
+                if (edge.Curve3D is IGeoObject go) go.Style = EdgeStyle;
+            }
         }
         internal static Face MakeFace(ISurface surface, Edge[] outline)
         {
@@ -3132,6 +3150,10 @@ namespace CADability.GeoObject
             res.outline = outline;
             res.holes = new Edge[0][]; // keine Löcher
             SimpleShape forceArea = res.Area; // das SimpleShape wird hier erstmalig berechnet
+            foreach (Edge edge in res.AllEdgesIterated())
+            {
+                if (edge.Curve3D is IGeoObject go) go.Style = EdgeStyle;
+            }
 
             return res;
         }
@@ -7200,10 +7222,10 @@ namespace CADability.GeoObject
 #endif
 #if DEBUG
 #endif
-        static ColorDef EdgeColor;
-        static LineWidth EdgeLineWidth;
-        static LinePattern EdgeLinePattern;
-        static Style EdgeStyle;
+        internal static ColorDef EdgeColor;
+        internal static LineWidth EdgeLineWidth;
+        internal static LinePattern EdgeLinePattern;
+        internal static Style EdgeStyle;
         static Face()
         {
             EdgeColor = new ColorDef("", System.Drawing.Color.Black);
@@ -8322,7 +8344,7 @@ namespace CADability.GeoObject
                     lip.Add(ips[i]);
                     luvOnFace.Add(uvOnFaces[i]);
                     luOnCurve3D.Add(uOnCurve3Ds[i]);
-                    lposition.Add(Area.GetPosition(uvOnFaces[i]));
+                    lposition.Add(Area.GetPosition(uvOnFaces[i], prec));
                 }
                 else if (uOnCurve3Ds[i] >= -1e-6 && uOnCurve3Ds[i] <= 1.0 + 1e-6) // check on border or edge
                 {

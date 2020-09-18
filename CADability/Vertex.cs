@@ -28,7 +28,7 @@ namespace CADability
             uvposition = new Dictionary<Face, GeoPoint2D>();
             hashCode = hashCodeCounter++;
 #if DEBUG
-            if (hashCode == 512 || hashCode == 513)
+            if (hashCode == 2576 || hashCode == 513)
             {
 
             }
@@ -268,7 +268,9 @@ namespace CADability
                 bool found = false;
                 foreach (KeyValuePair<GeoVector, Face> kv in nonTangentialSurfaces)
                 {
-                    if (Precision.SameDirection(kv.Key, n, false))
+                    GeoVector cross = kv.Key.Normalized ^ n.Normalized;
+                    double cl = cross.Length;
+                    if (cl < 1e-3)
                     {
                         found = true;
                         break;

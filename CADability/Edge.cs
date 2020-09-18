@@ -1,4 +1,5 @@
-﻿using CADability.Curve2D;
+﻿using CADability.Attribute;
+using CADability.Curve2D;
 using CADability.GeoObject;
 using System;
 using System.Collections.Generic;
@@ -863,7 +864,7 @@ namespace CADability
             // alles bleibt null;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 502)
+            if (hashCode == 918)
             {
             }
 #endif
@@ -936,7 +937,11 @@ namespace CADability
                 this.curveOnPrimaryFace = curveOnPrimaryFace;
             }
             this.forwardOnPrimaryFace = forwardOnPrimaryFace;
-            if (curve3d != null) (curve3d as IGeoObject).Owner = this;
+            if (curve3d is IGeoObject go)
+            {
+                go.Owner = this;
+                go.Style = Face.EdgeStyle;
+            }
             oriented = true;
         }
         /// <summary>
@@ -1823,7 +1828,7 @@ namespace CADability
                     GeoVector n2e = SecondaryFace.Surface.GetNormal(uv2e);
                     BoundingRect bounds1 = primaryFace.Area.GetExtent();
                     BoundingRect bounds2 = secondaryFace.Area.GetExtent();
-                    if ((new Angle(n1s, n2s)).Radian < 0.1 || (new Angle(n1e, n2e)).Radian < 0.1)
+                    if ((new Angle(n1s, n2s)).Radian < 0.01 && (new Angle(n1e, n2e)).Radian < 0.01) // the condition was "||", but we get along with curves that are tangential at one end
                     {   // surfaces are tangential, this edge.curve3d cannot remain a InterpolatedDualSurfaceCurve
                         curve3d = (curve3d as InterpolatedDualSurfaceCurve).ToBSpline(0.0);
                         curveOnPrimaryFace = PrimaryFace.Surface.GetProjectedCurve(curve3d, 0.0);

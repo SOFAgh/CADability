@@ -324,10 +324,10 @@ namespace CADability.UserInterface
     /// Änderungen der Eigenschaften.
     /// </summary>
 
-    public class SelectedObjectsProperty : IShowPropertyImpl, IDisplayHotSpots
+    public class SelectedObjectsProperty : PropertyEntryImpl, IDisplayHotSpots
     {
         protected GeoObjectList selectedObjects;
-        private IShowProperty[] showProperties;
+        private IPropertyEntry[] showProperties;
         private MultiObjectsProperties multiObjectsProperties;
         public IGeoObject focusedSelectedObject; // eines kann fokusiert sein
         private IFrame frame;
@@ -399,33 +399,33 @@ namespace CADability.UserInterface
                 if (multiObjectsProperties != null) propertyTreeView.OpenSubEntries(multiObjectsProperties.attributeProperties, true);
             }
         }
-        #region IShowPropertyImpl overrides
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
+        #region PropertyEntryImpl overrides
+        public override PropertyEntryType Flags
         {
-            get { return ShowPropertyEntryType.GroupTitle; }
+            get
+            {
+                return PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.ContextMenu | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+            }
         }
+        #endregion
+        #region IShowPropertyImpl overrides
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
         /// returns the number of subentries in this property view.
         /// </summary>
-        public override int SubEntriesCount { get { return SubEntries.Length; } }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (showProperties == null)
                 {
-                    ArrayList al = new ArrayList();
-                    al.Add(frame.Project.FilterList);
+                    List<IPropertyEntry> items = new List<IPropertyEntry>();
+                    items.Add(frame.Project.FilterList);
                     multiObjectsProperties = null;
                     if (selectedObjects.Count > 1)
                     {
                         multiObjectsProperties = new MultiObjectsProperties(frame, selectedObjects);
-                        al.Add(multiObjectsProperties.attributeProperties);
+                        items.Add(multiObjectsProperties.attributeProperties);
                     }
                     // if (selectedObjects.Count < 100)
                     int mcce = Settings.GlobalSettings.GetIntValue("Select.MaxControlCenterEntries", 0);
@@ -437,7 +437,7 @@ namespace CADability.UserInterface
                             IShowProperty sp = selectedObjects[i].GetShowProperties(frame);
                             IDisplayHotSpots hsp = sp as IDisplayHotSpots;
                             if (hsp != null) hsp.HotspotChangedEvent += new HotspotChangedDelegate(OnSubHotspotChanged);
-                            al.Add(sp);
+                            items.Add(sp as IPropertyEntry);
                             sp.StateChangedEvent += new StateChangedDelegate(OnShowPropertyStateChanged);
                             IGeoObjectShowProperty gsp = sp as IGeoObjectShowProperty;
                             if (gsp != null)
@@ -450,9 +450,9 @@ namespace CADability.UserInterface
                     {
                         SeperatorProperty sp = new SeperatorProperty("Select.TooManyObjects");
                         sp.LabelText = StringTable.GetFormattedString("Select.TooManyObjects", selectedObjects.Count);
-                        al.Add(sp);
+                        items.Add(sp);
                     }
-                    showProperties = (IShowProperty[])al.ToArray(typeof(IShowProperty));
+                    showProperties = items.ToArray();
                 }
                 return showProperties;
             }
@@ -490,13 +490,6 @@ namespace CADability.UserInterface
             {
                 return MenuResource.LoadMenuDefinition("MenuId.SelectedObjects", false, frame.CommandHandler);
             }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get { return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu; }
         }
         /// <summary>
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.OnSpecialKey (IShowProperty, KeyEventArgs)"/>
@@ -543,7 +536,7 @@ namespace CADability.UserInterface
             }
             propertyTreeView.SelectEntry(this);
         }
-#region IDisplayHotSpots Members
+        #region IDisplayHotSpots Members
 
         public event CADability.HotspotChangedDelegate HotspotChangedEvent;
         /// <summary>
@@ -561,8 +554,8 @@ namespace CADability.UserInterface
             }
         }
 
-#endregion
-#region Attribute für mehrere Objekte
+        #endregion
+        #region Attribute für mehrere Objekte
 
         private void GeoObjectDidChange(CADability.GeoObject.IGeoObject Sender, CADability.GeoObject.GeoObjectChange Change)
         {
@@ -571,31 +564,28 @@ namespace CADability.UserInterface
                 multiObjectsProperties.InitMultiAttributeSelection();
             }
         }
-#endregion
+        #endregion
         /// <summary>
         /// Will be called when a context menu of a sub entry has been generated. This implementation adds the standard menu entries for selected objects.
         /// </summary>
         /// <param name="sender">The ControlCenter entry that has its context menu created</param>
         /// <param name="toManipulate">The context menu, which may be manipulated</param>
-        protected void OnCreateSubContextMenue(IGeoObjectShowProperty sender, ref MenuWithHandler[] toManipulate)
+        protected void OnCreateSubContextMenue(IGeoObjectShowProperty sender, List<MenuWithHandler> toManipulate)
         {
             ContextMenuSource = sender.GetGeoObject();
-            MenuWithHandler[]  toAdd = MenuResource.LoadMenuDefinition("MenuId.SelectedObject", false, frame.CommandHandler);
-            MenuWithHandler[] res = new MenuWithHandler[toManipulate.Length + toAdd.Length];
-            Array.Copy(toManipulate, res, toManipulate.Length);
-            Array.Copy(toAdd, 0, res, toManipulate.Length, toAdd.Length);
-            toManipulate = res;
+            toManipulate.Add(MenuWithHandler.Separator);
+            toManipulate.AddRange(MenuResource.LoadMenuDefinition("MenuId.SelectedObject", false, frame.CommandHandler));
         }
 
         internal void Focus(IGeoObject go)
         {
-            for (int i = 0; i < SubEntries.Length; i++)
+            for (int i = 0; i < SubItems.Length; i++)
             {
-                if (SubEntries[i] is IGeoObjectShowProperty)
+                if (SubItems[i] is IGeoObjectShowProperty)
                 {
-                    if ((SubEntries[i] as IGeoObjectShowProperty).GetGeoObject() == go)
+                    if ((SubItems[i] as IGeoObjectShowProperty).GetGeoObject() == go)
                     {
-                        this.propertyTreeView.SelectEntry(SubEntries[i] as IPropertyEntry);
+                        propertyTreeView.SelectEntry(SubItems[i]);
                         break;
                     }
                 }

@@ -3276,7 +3276,12 @@ namespace CADability.GeoObject
                 {
                     double df = (c2.poles[0] | poles[0]) + (c2.poles[c2.poles.Length - 1] | poles[poles.Length - 1]);
                     double dr = (c2.poles[0] | poles[poles.Length - 1]) + (c2.poles[c2.poles.Length - 1] | poles[0]);
-                    if (df < dr)
+                    bool reverse = df > dr;
+                    if (df<precision && dr<precision)
+                    {
+                        reverse = (this as ICurve).StartDirection * (c2 as ICurve).StartDirection < 0;
+                    }
+                    if (!reverse)
                     {
                         for (int i = 0; i < poles.Length; i++)
                         {

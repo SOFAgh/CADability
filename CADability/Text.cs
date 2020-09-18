@@ -339,7 +339,7 @@ namespace CADability.GeoObject
             get
             {
                 List<MenuWithHandler> items = new List<MenuWithHandler>(MenuResource.LoadMenuDefinition("MenuId.Object.Text", false, this));
-                // if (CreateContextMenueEvent != null) CreateContextMenueEvent(this, cm);
+                CreateContextMenueEvent?.Invoke(this, items);
                 text.GetAdditionalContextMenue(this, Frame, items);
                 return items.ToArray();
             }

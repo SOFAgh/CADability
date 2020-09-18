@@ -1258,10 +1258,24 @@ namespace CADability
                 surface1 = newSurface;
                 ModifySurfacePoints(true, oldToNew);
             }
-            if (surface2 == oldSurface)
+            else if (surface2 == oldSurface)
             {
                 surface2 = newSurface;
                 ModifySurfacePoints(false, oldToNew);
+            }
+            else if (surface1.SameGeometry((surface1 as ISurfaceImpl).usedArea, oldSurface, (oldSurface as ISurfaceImpl).usedArea, Precision.eps, out ModOp2D dumy))
+            {
+                surface1 = newSurface;
+                ModifySurfacePoints(true, oldToNew);
+            }
+            else if (surface2.SameGeometry((surface2 as ISurfaceImpl).usedArea, oldSurface, (oldSurface as ISurfaceImpl).usedArea, Precision.eps, out dumy))
+            {
+                surface2 = newSurface;
+                ModifySurfacePoints(false, oldToNew);
+            }
+            else
+            {
+
             }
         }
         internal InterpolatedDualSurfaceCurve CloneTrimmed(double startPos, double endPos, ProjectedCurve c1, ProjectedCurve c2, out ICurve2D c1trimmed, out ICurve2D c2trimmed)
@@ -2027,6 +2041,30 @@ namespace CADability
                 uv1 = sp.psurface1;
                 uv2 = sp.psurface2;
                 hashedPositions[position] = sp;
+            }
+        }
+        internal BoundingRect Domain1
+        {
+            get
+            {
+                BoundingRect res = BoundingRect.EmptyBoundingRect;
+                for (int i = 0; i < basePoints.Length; i++)
+                {
+                    res.MinMax(basePoints[i].psurface1);
+                }
+                return res;
+            }
+        }
+        internal BoundingRect Domain2
+        {
+            get
+            {
+                BoundingRect res = BoundingRect.EmptyBoundingRect;
+                for (int i = 0; i < basePoints.Length; i++)
+                {
+                    res.MinMax(basePoints[i].psurface2);
+                }
+                return res;
             }
         }
         private void CheckPeriodic(ref GeoPoint2D uv, bool onSurface1, int index)

@@ -13,7 +13,7 @@ namespace CADability.UserInterface
     /// If <see cref="SubMenus"/> is not null, this structur contains a list of submenus.
     /// This structure must be converted to a platform dependant menue and displayed accordingly.
     /// </summary>
-    public class  MenuWithHandler
+    public class MenuWithHandler
     {   // da fehlen sicher nocht einige Properties und Methoden von MenuItem
         public string ID { get; set; }
         public string Text { get; set; }
@@ -25,6 +25,17 @@ namespace CADability.UserInterface
         public bool MdiList { get; internal set; }
         public string Shortcut { get; internal set; }
         public bool ShowShortcut { get; internal set; }
+        public static MenuWithHandler Separator
+        {
+            get
+            {
+                MenuWithHandler res = new MenuWithHandler();
+                res.ID = "SEPARATOR";
+                res.Text = "-";
+                return res;
+            }
+        }
+
     }
 
     /// <summary>
@@ -212,7 +223,7 @@ namespace CADability.UserInterface
             }
             return res.ToArray();
         }
-        static private void LoadMenu(XmlNode nd, List <MenuWithHandler> MenuItems, ICommandHandler Handler)
+        static private void LoadMenu(XmlNode nd, List<MenuWithHandler> MenuItems, ICommandHandler Handler)
         {
             if (nd.Name == "Popup")
             {
