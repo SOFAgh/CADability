@@ -3,6 +3,7 @@ using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -36,7 +37,9 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                SomeTestCode();
+                //ExtendBSpline();
+                //SomeTestCode();
+                TestVoxelTree();
                 return true;
             }
             return false;
@@ -46,7 +49,19 @@ namespace CADability.Forms
         {
             return false;
         }
-
+        private void ExtendBSpline()
+        {
+            if (frame.SelectedObjects.Count==1 && frame.SelectedObjects[0] is BSpline bspl)
+            {
+                //BSpline extended = bspl.Extend(0.1, 0.1);
+            }
+        }
+        private void TestVoxelTree()
+        {
+            Line l = Line.MakeLine(new GeoPoint(2, 4, 6), new GeoPoint(100, 98, 96));
+            VoxelTree vt = new VoxelTree(l, 6);
+            GeoObjectList dbg = vt.Debug;
+        }
         private void SomeTestCode()
         {
             string path = @"C:\Zeichnungen\STEP\protocol.txt";
@@ -60,7 +75,13 @@ namespace CADability.Forms
                 }
             }
             bool skip = true;
-            string lastSkipFile = "NurbsTest.dxf";
+            string lastSkipFile = "03_PN_7539_S_1059_2_I03_C03_DS_P202.stp";
+            lastSkipFile = "1230_14_TLF_SECONDA_FASE.stp";
+            lastSkipFile = "1249_MF1_ELETTRODI_INTERO.stp";
+            lastSkipFile = "24636_P200_02-01.stp";
+            lastSkipFile = "7907011770.stp";
+            lastSkipFile = "C0175101_SHE_rechts_gespiegelt_gedreht.stp"; // syntaxfehler
+            lastSkipFile = "exp1.stp";
             foreach (string file in Directory.EnumerateFiles(@"C:\Zeichnungen\STEP", "*.stp"))
             {
                 if (skip)
@@ -77,7 +98,8 @@ namespace CADability.Forms
                         BoundingCube ext = pr.GetModel(0).Extent;
                         using (StreamWriter sw = File.AppendText(path))
                         {
-                            sw.WriteLine(file + ", " + ext.Xmin + ", " + ext.Xmax + ", " + ext.Ymin + ", " + ext.Ymax + ", " + ext.Zmin + ", " + ext.Zmax);
+                            sw.WriteLine(file + ", " + ext.Xmin.ToString(CultureInfo.InvariantCulture) + ", " + ext.Xmax.ToString(CultureInfo.InvariantCulture) + ", " + ext.Ymin.ToString(CultureInfo.InvariantCulture) +
+                                ", " + ext.Ymax.ToString(CultureInfo.InvariantCulture) + ", " + ext.Zmin.ToString(CultureInfo.InvariantCulture) + ", " + ext.Zmax.ToString(CultureInfo.InvariantCulture));
                         }
                     }
                     else

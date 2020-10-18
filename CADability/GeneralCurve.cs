@@ -1459,6 +1459,9 @@ namespace CADability.GeoObject
                         ext.MinMax(tetraederVertex[2 * i + 1]);
                     }
                     ext.MinMax(tetraederBase[tetraederBase.Length - 1]);
+                    double d = ext.Size;
+                    ext.Expand(d * 1e-6); // to avoid an octtree, which is flat in one dimension
+                    ext.Modify(new GeoVector(d * 0.5e-6, d * 0.5e-6, d * 0.5e-6)); // to avoid flat tetraeders lying exactely inbetween cubes of the octtree
                     octTree = new OctTree<CurveTetraeder>(ext, ext.Size * 1e-6);
                     for (int i = 0; i < tetraederBase.Length - 1; ++i)
                     {
@@ -1492,11 +1495,23 @@ namespace CADability.GeoObject
 
             BoundingCube IOctTreeInsertable.GetExtent(double precision)
             {
+                if (IsFlat)
+                {
+                    BoundingCube res = new BoundingCube(t1, t2, t3);
+                    res.Expand(precision);
+                    return res;
+                }
                 return new BoundingCube(t1, t2, t3, t4);
             }
 
             bool IOctTreeInsertable.HitTest(ref BoundingCube cube, double precision)
             {
+                if (IsFlat)
+                {
+                    BoundingCube res = new BoundingCube(t1, t2, t3);
+                    res.Expand(precision);
+                    return cube.Interferes(res);
+                }
                 return cube.Interferes(t1, t2, t3, t4);
             }
 

@@ -48,7 +48,7 @@ namespace CADability.GeoObject
                 return direction;
             }
         }
-        public SurfaceOfLinearExtrusion GetOffsetSurface(double offset)
+        public override ISurface GetOffsetSurface(double offset)
         {
             if (basisCurve.GetPlanarState() != PlanarState.NonPlanar)
             {
@@ -65,7 +65,7 @@ namespace CADability.GeoObject
                 ICurve2D c2dp = c2d.Parallel(offset, false, Precision.eps, Math.PI);
                 if (c2dp != null) return new SurfaceOfLinearExtrusion(c2dp.MakeGeoObject(pln) as ICurve, direction, curveStartParameter, curveEndParameter);
             }
-            return null;
+            return new OffsetSurface(this, offset);
         }
         #region ISurfaceImpl overrides
         /// <summary>
@@ -163,6 +163,22 @@ namespace CADability.GeoObject
         public override GeoVector GetNormal(GeoPoint2D uv)
         {
             return UDirection(uv) ^ VDirection(uv);
+        }
+        public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
+        {
+            if (IsUPeriodic)
+            {
+                while (uv.x > curveEndParameter) uv.x -= UPeriod;
+                while (uv.x < curveStartParameter) uv.x += UPeriod;
+            }
+            double pos = (uv.x - curveStartParameter) / (curveEndParameter - curveStartParameter);
+            basisCurve.TryPointDeriv2At(pos, out GeoPoint upoint, out du, out duu);
+            location =  upoint + (uv.y * direction);
+            dv = direction;
+            du = (curveEndParameter - curveStartParameter)*du;
+            duu = (curveEndParameter - curveStartParameter)*duu;
+            dvv = GeoVector.NullVector;
+            duv = du;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetZMinMax (Projection, double, double, double, double, ref double, ref double)"/>

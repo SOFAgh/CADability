@@ -538,7 +538,73 @@ namespace CADability
         }
         // ? GeneralDebuggerVisualizer.TestShowVisualizer(face.DebugEdges3D); // aus Command Window
     }
+    class VisualizerHelper
+    {
+        static private ColorDef pointColor = null;
+        static public ColorDef PointColor
+        {
+            get
+            {
+                if (pointColor == null)
+                {
+                    pointColor = new ColorDef("auto point", Color.Brown);
+                }
+                return pointColor;
+            }
+        }
+        static private ColorDef curveColor = null;
+        static public ColorDef CurveColor
+        {
+            get
+            {
+                if (curveColor == null)
+                {
+                    curveColor = new ColorDef("auto point", Color.DarkCyan);
+                }
+                return curveColor;
+            }
+        }
+        static private ColorDef faceColor = null;
+        static public ColorDef FaceColor
+        {
+            get
+            {
+                if (faceColor == null)
+                {
+                    faceColor = new ColorDef("auto point", Color.GreenYellow);
+                }
+                return faceColor;
+            }
+        }
+        static public IGeoObject AssertColor(IGeoObject go)
+        {
+            if (go is IColorDef cd && cd.ColorDef == null)
+            {
+                if (go is GeoObject.Point) cd.ColorDef = PointColor;
+                if (go is ICurve) cd.ColorDef = CurveColor;
+                if (go is Face) cd.ColorDef = FaceColor;
+                if (go is Shell) cd.ColorDef = FaceColor;
+                if (go is Solid) cd.ColorDef = FaceColor;
+            }
+            return go;
+        }
+        static public GeoObjectList AssertColor(GeoObjectList list)
+        {
+            foreach (IGeoObject go in list)
+            {
+                if (go is IColorDef cd && cd.ColorDef == null)
+                {
+                    if (go is GeoObject.Point) cd.ColorDef = PointColor;
+                    if (go is ICurve) cd.ColorDef = CurveColor;
+                    if (go is Face) cd.ColorDef = FaceColor;
+                    if (go is Shell) cd.ColorDef = FaceColor;
+                    if (go is Solid) cd.ColorDef = FaceColor;
+                }
+            }
+            return list;
+        }
 
+    }
     internal class GeoObjectVisualizer : DialogDebuggerVisualizer
     {
         protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
@@ -547,7 +613,7 @@ namespace CADability
             Model m = form.Model;
 
             IGeoObjectImpl go = (IGeoObjectImpl)objectProvider.GetObject();
-            m.Add(go);
+            m.Add(VisualizerHelper.AssertColor(go));
 
             form.ShowDialog(windowService);
         }
@@ -576,7 +642,7 @@ namespace CADability
             {
                 IntegerProperty ip = new IntegerProperty(i, "Debug.Hint");
                 list[i].UserData.Add("ListIndex", ip);
-                m.Add(list[i]);
+                m.Add(VisualizerHelper.AssertColor(list[i]));
             }
             m.Add(list);
 
@@ -602,6 +668,7 @@ namespace CADability
                 IGeoObject toAdd = bdr.DebugList[i];
                 IntegerProperty ip = new IntegerProperty(i, "Debug.Hint");
                 toAdd.UserData.Add("Debug", ip);
+                VisualizerHelper.AssertColor(toAdd);
                 m.Add(toAdd);
             }
 
@@ -617,7 +684,7 @@ namespace CADability
             Model m = form.Model;
 
             ICurve2D gc2d = (ICurve2D)objectProvider.GetObject();
-            m.Add(gc2d.MakeGeoObject(Plane.XYPlane));
+            m.Add(VisualizerHelper.AssertColor(gc2d.MakeGeoObject(Plane.XYPlane)));
 
             form.ShowDialog(windowService);
         }
@@ -631,6 +698,7 @@ namespace CADability
             Model m = form.Model;
 
             IGeoObject go = (IGeoObject)objectProvider.GetObject();
+            VisualizerHelper.AssertColor(go);
             m.Add(go);
 
             form.ShowDialog(windowService);
@@ -648,6 +716,7 @@ namespace CADability
             Point pnt = Point.Construct();
             pnt.Location = new GeoPoint(p);
             pnt.Symbol = PointSymbol.Cross;
+            VisualizerHelper.AssertColor(pnt);
             m.Add(pnt);
 
             form.ShowDialog(windowService);
@@ -665,6 +734,7 @@ namespace CADability
             Point pnt = Point.Construct();
             pnt.Location = p;
             pnt.Symbol = PointSymbol.Cross;
+            VisualizerHelper.AssertColor(pnt);
             m.Add(pnt);
 
             form.ShowDialog(windowService);
@@ -679,7 +749,7 @@ namespace CADability
             Model m = form.Model;
 
             CompoundShape compoundShape = (CompoundShape)objectProvider.GetObject();
-            m.Add(compoundShape.DebugList);
+            m.Add(VisualizerHelper.AssertColor(compoundShape.DebugList));
 
             form.ShowDialog(windowService);
         }
@@ -693,7 +763,7 @@ namespace CADability
             Model m = form.Model;
 
             SimpleShape simpleShape = (SimpleShape)objectProvider.GetObject();
-            m.Add(simpleShape.DebugList);
+            m.Add(VisualizerHelper.AssertColor(simpleShape.DebugList));
 
             form.ShowDialog(windowService);
         }

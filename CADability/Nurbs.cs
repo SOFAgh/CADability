@@ -1546,7 +1546,7 @@ namespace CADability
             //if ((u >= uknots[high] && high < uknots.Length - 1) || (u <= uknots[low] && low > 0)) return FindSpanU(uknots.Length - 1, 0, u); // ggf. bei v nachziehen!
             if (u >= uknots[high])
             {
-                int res = high - 1; // Sonderfall
+                int res = high - 1; // this was -1, but in one case we need res = high. any cases?
                 // im folgenden eine Notbremse, die nur bei periodischen Splines benötigt wird:
                 // vermutlich wid das mit einer ordentlichen Implementierung von unclamped unnötig
                 while (res > low && uknots[res] == uknots[res + 1]) --res;
@@ -2440,7 +2440,7 @@ namespace CADability
             // das Ergebnis ist der Index, an dem u eingefügt wurde und wo somit die knots und poles aufzuteilen
             // sind, wenn es denn zum splitten verwendet wird.
             int np = poles.Length - 1; // könnte auch "knots.Length - degree - 1" sein, oder?
-            int k = FindSpanU(uknots.Length - udegree - 1, udegree, u);
+            int k = FindSpanU(uknots.Length - udegree, udegree, u);
             if (u != uknots[k] && u - uknots[k] < (uknots[uknots.Length - 1] - uknots[0]) * 1e-8)
             {   // hier wird geschummelt: wenn fast exakt auf einem Knoten eingefügt werden soll, so wird
                 // der knoten manipuliert und ein bisschen zurechtgerückt
@@ -2478,7 +2478,7 @@ namespace CADability
             for (int i = 0; i <= k - udegree; ++i) newpoles[i] = poles[i];
             for (int i = k - s; i <= np; ++i) newpoles[i + r] = poles[i];
             // for (int i = 0; i <= udegree - s; ++i) RW[i] = poles[k - udegree + i];
-            for (int i = 0; i <= udegree; ++i) RW[i] = poles[k - udegree + i];
+            for (int i = 0; i <= udegree; ++i) RW[i] = poles[Math.Min(k - udegree + i,poles.Length-1)]; // introduced Math.Min for nurbs where the last multiplicity is less than or equal degree
             int L = 0;
             for (int j = 1; j <= r; ++j)
             {

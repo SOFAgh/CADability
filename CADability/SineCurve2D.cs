@@ -97,6 +97,7 @@ namespace CADability.Curve2D
 
         public override void Reverse()
         {
+            ClearTriangulation();
             ustart += udiff;
             udiff = -udiff;
         }

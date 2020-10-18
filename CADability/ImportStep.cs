@@ -941,7 +941,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 {
                     for (int i = 0; i < (val as List<Item>).Count; i++)
                     {
-                        if ((val as List<Item>)[i].type == ItemType.index) (val as List<Item>)[i] = definitions[(int)((val as List<Item>)[i].val)];
+                        if ((val as List<Item>)[i] != null && (val as List<Item>)[i].type == ItemType.index) (val as List<Item>)[i] = definitions[(int)((val as List<Item>)[i].val)];
                     }
                 }
                 if (parameter != null)
@@ -970,10 +970,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
                     for (int i = 0; i < par.Length; i++)
                     {
-                        if ((val as List<Item>)[i].type == ItemType.index) (val as List<Item>)[i] = definitions[(int)((val as List<Item>)[i].val)];
+                        if ((val as List<Item>)[i] != null && (val as List<Item>)[i].type == ItemType.index) (val as List<Item>)[i] = definitions[(int)((val as List<Item>)[i].val)];
                         parameter[par[i]] = (val as List<Item>)[i];
                         //if ((val as List<Item>)[i].definingIndex == 0)
-                        (val as List<Item>)[i].ResolveIndex(definitions);
+                        if ((val as List<Item>)[i] != null) (val as List<Item>)[i].ResolveIndex(definitions);
                     }
                     // set val to null here, when usage of val in createEntity is changed to using parameters
                     // but for now, we need a List<Item> to mark it as valid entity
@@ -1833,12 +1833,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (4067 == item.definingIndex)
-            
+            if (19022 == item.definingIndex || 86562 == item.definingIndex)
             {
 
             }
-            bool isEntered = System.Threading.Monitor.IsEntered(item);
 #endif
 #if PARALLEL
             lock (item)
@@ -2116,18 +2114,46 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #if DEBUG
                             shell.UserData["StepImport.ItemNumber"] = new UserInterface.IntegerProperty(item.definingIndex, "StepImport.ItemNumber");
 #endif
-                            if (shell.OpenEdges.Length > 0)
+                            Edge[] openedges = shell.OpenEdges;
+                            if (openedges.Length > 0)
                             {
 #if DEBUG
                                 GeoObjectList openFaces = new GeoObjectList();
-                                for (int i = 0; i < shell.OpenEdges.Length; i++)
+                                for (int i = 0; i < openedges.Length; i++)
                                 {
-                                    if (shell.OpenEdges[i].Curve3D != null)
+                                    if (openedges[i].Curve3D != null)
                                     {
-                                        openFaces.Add(shell.OpenEdges[i].PrimaryFace);
+                                        openFaces.Add(openedges[i].PrimaryFace);
                                     }
                                 }
 #endif
+                                Dictionary<Edge, ISurface> edgesToRepair = new Dictionary<Edge, ISurface>();
+                                for (int i = 0; i < lst.Count; i++)
+                                {   // all the faces
+                                    if (lst[i].val is List<List<StepEdgeDescriptor>> llsed) // this face has not been imported
+                                    {
+                                        foreach (List<StepEdgeDescriptor> lsed in llsed)
+                                        {
+                                            foreach (StepEdgeDescriptor sed in lsed)
+                                            {
+                                                if (sed.createdEdges != null)
+                                                {
+                                                    for (int k = 0; k < openedges.Length; k++)
+                                                    {
+                                                        for (int l = 0; l < sed.createdEdges.Count; l++)
+                                                        {
+                                                            if (openedges[k] == sed.createdEdges[l])
+                                                            {
+                                                                if (lst[i].parameter.TryGetValue("face_geometry", out Item surface))
+                                                                    edgesToRepair[openedges[k]] = surface as ISurface;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 shell.TryConnectOpenEdges();
                             }
                             if (!shell.HasOpenEdgesExceptPoles())
@@ -2228,6 +2254,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     System.Diagnostics.Trace.WriteLine("Face not imported: " + item.definingIndex.ToString());
 #endif
                                     importProblems[item.definingIndex] = "face not imported";
+                                    item.val = bounds; // save the bounds, maybe we can reconstruct the face later
                                 }
                             }
                             catch (Exception ex)
@@ -2238,6 +2265,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
                                 if (ex == null) importProblems[item.definingIndex] = "exception on face import: null";
                                 else importProblems[item.definingIndex] = "exception on face import: " + ex.Message;
+                                item.val = bounds; // save the bounds, maybe we can reconstruct the face later
                             }
                         }
                         break;
@@ -2245,9 +2273,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (81084 == item.definingIndex)
+                            if (39074 == item.definingIndex)
                             {
-                                // Face dbgf = Face.MakeFace(surface, new BoundingRect(0.1, 0.1, 0.9, 0.9));
                             }
 #endif
                             List<List<StepEdgeDescriptor>> bounds = new List<List<StepEdgeDescriptor>>();
@@ -2264,6 +2291,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (surface != null && bounds.Count > 0)
                                 {
                                     item.val = Face.MakeFacesFromStepAdvancedFace(surface, bounds, item.parameter["same_sense"].bval, precision);
+                                
                                 }
                                 else item.val = null;
                                 if (item.val is Face[] && (item.val as Face[]).Length > 0)
@@ -2303,11 +2331,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
                                     importProblems[item.definingIndex] = "face not imported";
                                     notImportedFaces.Add(item);
+                                    item.val = bounds; // save the bounds, maybe we can reconstruct the face later
                                 }
                             }
                             catch (Exception ex)
                             {
                                 item.val = null;
+                                item.val = bounds; // save the bounds, maybe we can reconstruct the face later
 #if DEBUG
 
 
@@ -2334,6 +2364,20 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             if (lst.Count == 2) item.val = new GeoVector2D((double)lst[0].val, (double)lst[1].val);
                             else if (lst.Count == 3) item.val = new GeoVector((double)lst[0].val, (double)lst[1].val, (double)lst[2].val);
                             else item.val = null;
+                        }
+                        break;
+                    case Item.ItemType.axis2Placement_2d: // name, location, ref_direction
+                        {
+                            object loc = CreateEntity(item.parameter["location"]);
+                            object axis = CreateEntity(item.parameter["ref_direction"]);
+                            if (loc is GeoPoint2D cnt2d && axis is GeoVector2D dir2d)
+                            {
+                                item.val = new Pair<GeoPoint2D, GeoVector2D>(cnt2d, dir2d);
+                            }
+                            else
+                            {
+                                item.val = null; // not sure, whether axis2Placement_2d may also have 3d components, no case found yet
+                            }
                         }
                         break;
                     case Item.ItemType.axis2Placement_3d: // name, location, axis, ref_direction
@@ -2580,7 +2624,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (context != null && context.toRadian != 0.0) semiAngle *= context.toRadian; // sometimes this is radian, sometimes degree
                                                                                                                // CONVERSION_BASED_UNIT('DEGREE',#6392) aus 1022_11988_1B_E.step mach Degree
                                 double d = radius / Math.Tan(semiAngle);
-                                srf = new ConicalSurface(fcs.Location - d * fcs.DirectionZ.Normalized, fcs.DirectionX.Normalized, fcs.DirectionY.Normalized, fcs.DirectionZ.Normalized, semiAngle, 0.0);
+                                // d*Math.Sin(semiAngle) ?
+                                srf = new ConicalSurface(fcs.Location - d * fcs.DirectionZ.Normalized, fcs.DirectionX.Normalized, fcs.DirectionY.Normalized, fcs.DirectionZ.Normalized, semiAngle, radius);
                             }
                             item.val = srf;
                         }
@@ -2588,7 +2633,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.offsetSurface: // name, basis_surface, distance, self_intersect
                         {
                             object o = CreateEntity(item.SubItem(1));
-                            if (o is ISurface)
+                            if (o is ISurfaceImpl si)
+                            {
+                                item.val = si.GetOffsetSurface(item.SubFloat(2));
+                            }
+                            else if (o is ISurface)
                             {
                                 double distance = item.SubFloat(2);
                                 OffsetSurface srf = new OffsetSurface(o as ISurface, distance);
@@ -2710,10 +2759,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.edgeCurve: // name, edge_start, Edge_end, edge_geometry, same_sense
                         {
-                            Vertex v1 = CreateEntity(item.SubItem(1)) as Vertex;
-                            Vertex v2 = CreateEntity(item.SubItem(2)) as Vertex;
-                            ICurve crv = CreateEntity(item.SubItem(3)) as ICurve;
-                            bool sameSense = item.SubBool(4);
+                            Vertex v1 = CreateEntity(item.parameter["edge_start"]) as Vertex;
+                            Vertex v2 = CreateEntity(item.parameter["edge_end"]) as Vertex;
+                            ICurve crv = CreateEntity(item.parameter["edge_geometry"]) as ICurve;
+                            bool sameSense = item.parameter["same_sense"].bval;
                             if (v1 != null && v2 != null && crv != null)
                             {
                                 if (v1 != null && v1 == v2 && crv is BSpline && (crv.StartPoint | crv.EndPoint) > Precision.eps)
@@ -2785,9 +2834,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                                 {   // like in "1252 EDS-EL-027.stp", item 2238
                                                     // a closed BSpline, trimmed across the start/endpoint connection
                                                     // Problems[item.definingIndex] = "Debug: trimming spline across closed bound";
-                                                    crv = (crv as BSpline).SetCyclicalStartPoint(sp);
-                                                    ep = crv.PositionOf(v2.Position);
-                                                    crv.Trim(0.0, ep);
+                                                    try
+                                                    {   // does not always work, e.g. file exp.stp
+                                                        crv = (crv as BSpline).SetCyclicalStartPoint(sp);
+                                                        ep = crv.PositionOf(v2.Position);
+                                                        crv.Trim(0.0, ep);
+                                                    }
+                                                    catch { }
                                                 }
                                                 else
                                                 {
@@ -2798,9 +2851,18 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         }
                                     }
                                     else
-                                    {
-                                        crv.StartPoint = v1.Position; // we will need ICurve.SetStartEnd(GeoPoint sp, GeoPoint ep) because of arcs
-                                        crv.EndPoint = v2.Position;
+                                    {   // the problem here is: the start- and endpoint may exceed the finite curve crv. Probably a surface curve as a line, which is in step not limited
+                                        if (Math.Abs(sp - ep) < 1e-6 && crv is Ellipse elli)
+                                        {
+                                            elli.StartPoint = v1.Position;
+                                            if (elli.SweepParameter > 0) elli.SweepParameter = Math.PI * 2;
+                                            else elli.SweepParameter = -Math.PI * 2;
+                                        }
+                                        else
+                                        {
+                                            crv.StartPoint = v1.Position; // we will need ICurve.SetStartEnd(GeoPoint sp, GeoPoint ep) because of arcs
+                                            crv.EndPoint = v2.Position;
+                                        }
                                     }
                                 }
 #if DEBUG
@@ -2883,9 +2945,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         }
                         break;
                     case Item.ItemType.faceBound:
-                    case Item.ItemType.faceOuterBound: // name, loop, oriented?
+                    case Item.ItemType.faceOuterBound: // name, bound, orientation?
                         {
-                            item.val = CreateEntity(item.SubItem(1));
+                            item.val = CreateEntity(item.parameter["bound"]);
                             // orientation not interpreted
                         }
                         break;
@@ -3090,44 +3152,51 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 }
                                 else
                                 {
-                                    item.val = new BSpline2D(poles2d.ToArray(), weights, knots.ToArray(), multiplicities.ToArray(), degree, false, knots[0], knots[knots.Count - 1]);
+                                    BSpline2D bsp2d = new BSpline2D(poles2d.ToArray(), weights, knots.ToArray(), multiplicities.ToArray(), degree, false, knots[0], knots[knots.Count - 1]);
+                                    item.val = SimplifyBSpline2D(bsp2d, form, closed, eps);
                                 }
                             }
                         }
                         break;
-                    case Item.ItemType.seamCurve:
-                    case Item.ItemType.surfaceCurve: // name, curve_3d, associated_geometry, master_representation
-                                                     // currently only reading 3d curve
-                        item.val = CreateEntity(item.parameter["curve_3d"]);
-                        break;
                     case Item.ItemType.circle: // name, position, radius
                         {
-                            object o = CreateEntity(item.SubItem(1));
+
+                            object o = CreateEntity(item.parameter["position"]);
                             if (o is FreeCoordSys) // which it always must be
                             {
                                 FreeCoordSys fcs = (FreeCoordSys)o;
                                 Ellipse elli = Ellipse.Construct();
-                                double r = item.SubFloat(2);
+                                double r = item.parameter["radius"].fval;
                                 elli.SetCirclePlaneCenterRadius(fcs.plane, fcs.Location, r);
                                 item.val = elli;
                             }
+                            else if (o is Pair<GeoPoint2D, GeoVector2D> sys2)
+                            {
+                                double r = item.parameter["radius"].fval;
+                                item.val = new Circle2D(sys2.First, r);
+                            }
                             else
                             {
-                                item.val = null;
+                                item = null;
                             }
                         }
                         break;
                     case Item.ItemType.ellipse: // name, position, semi_axis_1, semi_axis_2
                         {
-                            object o = CreateEntity(item.SubItem(1));
-                            if (o is FreeCoordSys) // which it always must be
+                            object o = CreateEntity(item.parameter["position"]);
+                            if (o is FreeCoordSys fcs) // which it always must be
                             {
-                                FreeCoordSys fcs = (FreeCoordSys)o;
                                 Ellipse elli = Ellipse.Construct();
-                                double majorRadius = item.SubFloat(2);
-                                double minorRadius = item.SubFloat(3);
+                                double majorRadius = item.parameter["semi_axis_1"].fval;
+                                double minorRadius = item.parameter["semi_axis_2"].fval;
                                 elli.SetEllipseArcCenterAxis(fcs.Location, majorRadius * fcs.DirectionX.Normalized, minorRadius * fcs.DirectionY.Normalized, 0.0, 2 * Math.PI);
                                 item.val = elli;
+                            }
+                            else if (o is Pair<GeoPoint2D, GeoVector2D> sys2)
+                            {
+                                double majorRadius = item.parameter["semi_axis_1"].fval;
+                                double minorRadius = item.parameter["semi_axis_2"].fval;
+                                item.val = new Ellipse2D(sys2.First, majorRadius*sys2.Second, minorRadius * sys2.Second.ToLeft());
                             }
                             else
                             {
@@ -3453,10 +3522,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             //item.val = ctxt;
                         }
                         break;
+                    case Item.ItemType.seamCurve:
+                    case Item.ItemType.surfaceCurve: // name, curve_3d, associated_geometry, master_representation
                     case Item.ItemType.boundedCurve: // this is only a supertype with no additional properties
                     case Item.ItemType.geometricRepresentationItem:
                     case Item.ItemType.curve: // name, curve_3d, associated_geometry, master_representation
                         {
+                            item.val = CreateEntity(item.parameter["curve_3d"]);
+                            break;
                             switch (item.parameter["master_representation"].sval)
                             {
                                 case "CURVE_3D":
@@ -4016,8 +4089,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 context = new context();
                 context.factor = 1.0;
             }
-            Item uncertainty = item.parameter["uncertainty"];
-            if (uncertainty != null && uncertainty.type == Item.ItemType.list)
+
+            if (item.parameter.TryGetValue("uncertainty", out Item uncertainty) && uncertainty.type == Item.ItemType.list)
             {
                 foreach (Item it in uncertainty.val as List<Item>)
                 {
@@ -4027,8 +4100,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                 }
             }
-            Item units = item.parameter["units"];
-            if (units != null && units.type == Item.ItemType.list)
+            if (item.parameter.TryGetValue("units", out Item units) && units.type == Item.ItemType.list)
             {
                 foreach (Item it in units.val as List<Item>)
                 {
@@ -4052,10 +4124,31 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
         }
 
+        private ICurve2D SimplifyBSpline2D(BSpline2D bsp2d, BSplineCurveForm form, bool closed, double precision)
+        {
+            if (bsp2d.Degree == 1 && bsp2d.Poles.Length == 2) return new Line2D(bsp2d.Poles[0], bsp2d.Poles[1]);
+            if (bsp2d.Multiplicities[0] <= bsp2d.Degree)
+            {   // normally this multiplicity should be degree+1
+                int n = 10;
+                GeoPoint2D[] pnts = new GeoPoint2D[n];
+                for (int i = 0; i < n; i++)
+                {
+                    pnts[i] = bsp2d.PointAt((i + 1) * (1.0 / n + 2));
+                }
+                double error = Geometry.CircleFit(pnts, out GeoPoint2D cnt, out double radius);
+                if (error < precision)
+                {   // we need an arc with the correct orientation
+                    return new Arc2D(cnt, radius, (bsp2d.StartPoint - cnt).Angle, Geometry.OnLeftSide(cnt, bsp2d.StartPoint, bsp2d.StartDirection) ? SweepAngle.Full : SweepAngle.FullReverse);
+                }
+            }
+            if (bsp2d.GetSimpleCurve(precision, out ICurve2D simpleCurve))
+            {
+                return simpleCurve; // line or arc
+            }
+            return bsp2d;
+        }
         private ICurve SimplifyBSpline(BSpline bsp, BSplineCurveForm form, bool closed)
         {
-            // BSpline bsp1 = bsp.TrimParam(bsp.Knots[1], bsp.Knots[bsp.Knots.Length - 2]);
-            // double[] si = (bsp1 as ICurve).GetSelfIntersections();
             switch (form)
             {
                 case BSplineCurveForm.Circular_Arc:
@@ -4086,6 +4179,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         if (Precision.IsEqual(k1, k2))
                         {
                             BSpline bsp1 = bsp.TrimParam(bsp.Knots[1], bsp.Knots[bsp.Knots.Length - 2]);
+                            return bsp1;
+                        }
+                        double[] si = (bsp as ICurve).GetSelfIntersections();
+                        if (si.Length == 2)
+                        {
+                            BSpline bsp1 = bsp.Clone() as BSpline;
+                            (bsp1 as ICurve).Trim(si[0], si[1]);
                             return bsp1;
                         }
                     }
@@ -4144,10 +4244,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             GeoPoint k2 = crv.PointAtParam(crv.Knots[1]);
                             if (Precision.IsEqual(k1, k2))
                                 res = res.TrimmU(uKnots[1], uKnots[uKnots.Length - 2]);
-                        }
-                        else
-                        {
-                            res.SetPeriodic(uClosed, vClosed);
+                            else
+                            { }
                         }
                     }
                     if (vClosed)
@@ -4161,11 +4259,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             if (Precision.IsEqual(k1, k2))
                                 res = res.TrimmV(vKnots[1], vKnots[vKnots.Length - 2]);
                         }
-                        else
-                        {
-                            res.SetPeriodic(uClosed, vClosed);
-                        }
                     }
+                    res.SetPeriodic(uClosed, vClosed); // set periodic now for all closed surfaces, was only for non trimmed surfaces before
                     break;
             }
 

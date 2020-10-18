@@ -1254,7 +1254,7 @@ namespace CADability.GeoObject
         }
         public static Face MakeFace(Path path, Project project)
         {
-            throw new NotImplementedException();
+            return MakeFace(path, project, true) as Face;
         }
         /// <summary>
         /// Creates a Solid by winding the closed path around the axis. The axisDirection also specifies the pitch

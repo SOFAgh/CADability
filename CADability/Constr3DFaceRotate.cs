@@ -131,6 +131,7 @@ namespace CADability.Actions
             {
                 IGeoObject objectToRotate = null; // lokaler Merker
                 geoObjectOrgList[i] = selectedObject; // zum Weglöschen des Originals in onDone
+                selectedObject = selectedObjectsList[i];
                 ownerList[i] = selectedObject.Owner; // owner merken für löschen 
                 pathCreatedFromModelList[i] = null;
                 shapeList[i] = null;

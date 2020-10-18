@@ -803,6 +803,38 @@ namespace CADability.GeoObject
         {
             return false;
         }
+        // not a good implementaion:
+        //public BSpline Extend(double atStart=0.1, double atEnd=0.1)
+        //{
+        //    BSpline res = BSpline.Construct();
+        //    this.PointAtParam(-0.1);
+        //    List<GeoPoint> newPoles = new List<GeoPoint>(Poles);
+        //    List<double> newKnots = new List<double>(Knots);
+        //    List<double> newWeights = null;
+        //    if (weights!=null) newWeights = new List<double>(weights);
+        //    List<int> newMultiplicities = new List<int>(Multiplicities);
+        //    if (atStart > 0.0)
+        //    {
+        //        GeoPoint spole = (this as ICurve).StartPoint - atStart * (this as ICurve).StartDirection;
+        //        newPoles.Insert(0, spole);
+        //        newKnots.Insert(0, -atStart);
+        //        newMultiplicities.Insert(0, 1);
+        //        //newMultiplicities[1] = 1;
+        //        if (newWeights != null) newWeights.Insert(0, 1);
+        //    }
+        //    if (atEnd > 0.0)
+        //    {
+        //        GeoPoint epole = (this as ICurve).EndPoint + atEnd * (this as ICurve).EndDirection;
+        //        newPoles.Add(epole);
+        //        newKnots.Add(1.0+atEnd);
+        //        newMultiplicities.Add(1);
+        //        //newMultiplicities[newMultiplicities.Count - 2] = 1;
+        //        if (newWeights != null) newWeights.Add(1);
+        //    }
+        //    res.SetData(degree, newPoles.ToArray(), newWeights != null ? newWeights.ToArray() : null, newKnots.ToArray(), newMultiplicities.ToArray(), false);
+        //    res.TrimParam(0.001,0.999);
+        //    return res;
+        //}
         /// <summary>
         /// Modifies the value of a pole. The Index must be between 0 and PoleCount.
         /// </summary>
@@ -2422,6 +2454,10 @@ namespace CADability.GeoObject
             }
         }
 
+        internal void Clamp()
+        {
+            while (multiplicities[0] <= degree) InsertKnot(knots[0]);
+        }
         private void InsertKnot(double u)
         {
             // u = knots[0] + (knots[1] - knots[0]) / 2.0; // erstmal...

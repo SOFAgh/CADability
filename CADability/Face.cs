@@ -224,7 +224,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 453 || hashCode == 435)
+            if (hashCode == 630)
             {
 
             }
@@ -478,6 +478,7 @@ namespace CADability.GeoObject
                         // We should now remove those parts, wich are incorrect oriented.
                     }
                     // of course there could also be a self intersection of edge curves inside the curves. This is not checked here
+                    if (loops.Count > 1000) throw new ApplicationException("error in splitting loops");
                 }
                 for (int i = loops.Count - 1; i >= 0; --i)
                 {   // there is a seam, which we don't want here
@@ -1205,7 +1206,7 @@ namespace CADability.GeoObject
                     double area = Border.SignedArea(crvs);
 #if DEBUG
                     bool ccwdbg = Border.CounterClockwise(crvs);
-                    if (ccwdbg!=(area>0))
+                    if (ccwdbg != (area > 0))
                     {
 
                     }
@@ -1333,7 +1334,7 @@ namespace CADability.GeoObject
                         testDirections.Add(l2);
 
                         double area = Border.SignedArea(testDirections); // test, whether the open loops together with the connecting seams build a ccw outline (which they should)
-                        if (area < 0.0 && reversedii)
+                        if (area < 0.0) // was:" && reversedii)", in Hembra.stp, face 18940 the orientation of both loops is simply wrong, but we didn't reverse ii, so && reversedii has been removed
                         {   // ii has been reversed above, we also could have reversed oppii, it was just a guess, in this case, the guess was wrong, we reverse both loops
                             loops[ii].Reverse();
                             for (int i = 0; i < loops[ii].Count; i++)
@@ -3031,7 +3032,7 @@ namespace CADability.GeoObject
                 }
             }
         }
-        internal void Set(ISurface surface, Edge[][] edges)
+        internal void Set(ISurface surface, Edge[][] edges, bool checkOutline = false)
         {
             this.surface = surface;
             double uperiod = 0.0, vperiod = 0.0;
@@ -3041,7 +3042,7 @@ namespace CADability.GeoObject
             double maxArea = 0.0;
             for (int i = 0; i < edges.Length; i++)
             {
-                CheckOutlineDirection(this, edges[i], uperiod, vperiod, null);
+                if (checkOutline) CheckOutlineDirection(this, edges[i], uperiod, vperiod, null);
                 BoundingRect ext = BoundingRect.EmptyBoundingRect;
                 for (int j = 0; j < edges[i].Length; j++)
                 {
@@ -5103,6 +5104,8 @@ namespace CADability.GeoObject
                     }
                 }
             }
+            ForceAreaRecalc();
+            Orient();
         }
 
         /// <summary>

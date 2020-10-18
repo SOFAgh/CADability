@@ -184,6 +184,11 @@ namespace CADability
                 }
                 else
                 {
+                    if (minError < error && minError < errorTolerance && numIterations == 1)
+                    {
+                        parameters = pCurrent;
+                        return true;
+                    }
                     minError = error;
                 }
                 pCurrent = pNext;

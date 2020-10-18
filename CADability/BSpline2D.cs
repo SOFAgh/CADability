@@ -3518,6 +3518,7 @@ namespace CADability.Curve2D
                     }
                 }
             }
+
             simpleCurve = null;
             return false;
         }

@@ -4994,6 +4994,7 @@ namespace CADability
                             {
                                 bool reverse = ccf.UserData.Contains("BRepIntersection.IsOpposite");
                                 // reverse means reverse to the face from shell1
+                                // there is a bug with "batterieHalter2.cdb.json", faceToSplit==260, which made me to comment out the following line
                                 if (faceToSplit.Owner == shell2) reverse = !reverse;
                                 if (reverse) avoidCommonEdges.Add(new Pair<Vertex, Vertex>(edg.EndVertex(ccf), edg.StartVertex(ccf)), edg);
                                 else avoidCommonEdges.Add(new Pair<Vertex, Vertex>(edg.StartVertex(ccf), edg.EndVertex(ccf)), edg);
@@ -6672,9 +6673,7 @@ namespace CADability
                     foreach (Face fce in common.Keys)
                     {
                         Face clone = fce.CloneWithVertices();
-                        clone.ReplaceSurface(op.Key.face2.Surface, op.Value);
-                        // clone.ForceAreaRecalc(); // to make it valid, something with orientation is wrong when the "op.Value" matrix determinant is negative
-                        // when op.Value has a negative determinant, the 2d curves of the edges are wrong oriented: we need to reverse the order of the edges and reverse the 2d curves
+                        clone.ReplaceSurface(op.Key.face2.Surface, op.Value); // if op.Value.Determinant<0 then the 2d edges are reversed
                         ftc.Add(clone);
                         clone.UserData["BRepIntersection.IsOpposite"] = true; // clone is only used to subtract from other faces, here we need to mark that it is in the opposite faces
                         commonFaces.Add(clone); // 

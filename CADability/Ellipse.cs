@@ -1767,9 +1767,9 @@ namespace CADability.GeoObject
             {
                 using (new Changing(this, "SweepParameter", sweepParameter))
                 {
-                    if (value < -Math.PI * 2) value += Math.PI * 2;
-                    if (value > Math.PI * 2) value -= Math.PI * 2;
-                    sweepParameter = value;
+                    if (value < -Math.PI * 2 - 1e-6) value += Math.PI * 2;
+                    if (value > Math.PI * 2 + 1e-6) value -= Math.PI * 2;
+                    sweepParameter = Math.Min(Math.Max(-Math.PI * 2, value), Math.PI * 2);
                 }
             }
         }

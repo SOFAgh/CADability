@@ -192,6 +192,15 @@ namespace CADability
             }
             isCube = false;
         }
+        public void Set(double Xmin, double Xmax, double Ymin, double Ymax, double Zmin, double Zmax)
+        {
+            this.Xmin = Xmin;
+            this.Xmax = Xmax;
+            this.Ymin = Ymin;
+            this.Ymax = Ymax;
+            this.Zmin = Zmin;
+            this.Zmax = Zmax;
+        }
 
         internal double MaxDistTo(GeoPoint p)
         {
