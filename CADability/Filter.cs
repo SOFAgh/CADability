@@ -170,6 +170,7 @@ namespace CADability.Attribute
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
     }
@@ -383,8 +384,9 @@ namespace CADability.Attribute
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
-#endregion
+        #endregion
     }
 
     /// <summary>
@@ -884,6 +886,7 @@ namespace CADability.Attribute
                 default: return false;
             }
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
     }
 }

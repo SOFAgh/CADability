@@ -49,6 +49,7 @@ namespace CADability.Forms
         {
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         private void ExtendBSpline()
         {
             if (frame.SelectedObjects.Count==1 && frame.SelectedObjects[0] is BSpline bspl)

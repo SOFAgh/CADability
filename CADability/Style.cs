@@ -760,6 +760,7 @@ namespace CADability.Attribute
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         #endregion
     }
 
@@ -1445,7 +1446,8 @@ namespace CADability.Attribute
             // TODO:  Add StyleList.OnUpdateCommand implementation
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
         internal void CheckDefault(Style style)
         {
             foreach (DictionaryEntry de in styles)

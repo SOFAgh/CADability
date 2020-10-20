@@ -638,6 +638,7 @@ namespace CADability
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
         #region IDeserializationCallback Members
@@ -940,6 +941,7 @@ namespace CADability
         {
             throw new Exception("The method or operation is not implemented.");
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
         #region ISerializable Members
@@ -1180,6 +1182,7 @@ namespace CADability
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
         #region IShowProperty implementation
@@ -1556,6 +1559,7 @@ namespace CADability
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
         internal void Remove(IDrive drive)
@@ -1732,6 +1736,7 @@ namespace CADability
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         #endregion
     }
     internal class AxisDriveCurveProperty : IShowPropertyImpl, ICommandHandler
@@ -1878,6 +1883,7 @@ namespace CADability
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         #endregion
     }
 }

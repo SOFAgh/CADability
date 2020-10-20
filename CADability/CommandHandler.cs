@@ -71,16 +71,13 @@ namespace CADability.UserInterface
         /// <param name="CommandState">State object to modify if apropriate</param>
         /// <returns>true, if handled, fals otherwise</returns>
         bool OnUpdateCommand(string MenuId, CommandState CommandState);
+        /// <summary>
+        /// Notify that the menu item is beeing selected. No need to react on this notification
+        /// </summary>
+        /// <param name="MenuId">Id of the menu command that was selected</param>
+        /// <param name="selected">true, if selected, false if deselected</param>
+        /// <returns></returns>
+        void OnSelected(string MenuId, bool selected);
     }
-
-    // Zur Funktionsweise des "UpdateCmdUi" - Systems:
-    // DrwView hält zwei Listen, über den Enable- und Check-Zustand der einzelnen IDs,
-    // die durch die Methoden CheckMenu und EnableMenu auf dem laufenden gehalten werden.
-    // DrwView enthält Listen aller Menues und ToolBars, deren UserInterface
-    // aktuell gehalten werden sollen. Bei den Menues (und ContextMenues der ToolBars) 
-    // meldet sich DrwView für den Popup Event an und stellt dort gemäß seiner Liste alles 
-    // ein. Bei den ToolBars werden bei CheckMenu und EnableMenu direkt die Buttons verändert.
-    // TODO: Beim wechseln des aktiven Views ist das Menue problemlos. Die ToolBars müssen
-    // alle gemäß der Einstellungen gesetzt werden.
 
 }

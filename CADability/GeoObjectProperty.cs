@@ -222,6 +222,7 @@ namespace CADability.UserInterface
             if (OnUpdateCommandEvent != null) return OnUpdateCommandEvent(this, MenuId, CommandState);
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
     }

@@ -71,6 +71,7 @@ namespace CADability.UserInterface
         {
             return ((ICommandHandler)lengthProperty).OnUpdateCommand(MenuId, CommandState);
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
     }
 
 
@@ -247,9 +248,10 @@ namespace CADability.UserInterface
             }
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
 
-#region deprecated adaption to old implementation of LengthProperty
+        #region deprecated adaption to old implementation of LengthProperty
         [Obsolete("Parameter autoModifyWithMouse no longer supported, use LengthProperty(IFrame frame, string resourceId) instead")]
         public LengthProperty(string resourceId, IFrame frame, bool autoModifyWithMouse) : this(frame, resourceId)
         {

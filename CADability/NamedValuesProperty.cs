@@ -325,6 +325,7 @@ namespace CADability
             // TODO:  Add NamedValuesProperty.OnUpdateCommand implementation
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
 

@@ -338,8 +338,9 @@ namespace CADability.Attribute
             // TODO:  Add FilterList.OnUpdateCommand implementation
             return false;
         }
-#endregion
-#region INameChange Members
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
+        #region INameChange Members
 
         public bool MayChangeName(object namedObject, string newName)
         {

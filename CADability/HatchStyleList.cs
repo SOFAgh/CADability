@@ -534,8 +534,9 @@ namespace CADability.Attribute
             }
             return false;
         }
-#endregion
-#region IAttributeList Members
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
+        #region IAttributeList Members
 
         void IAttributeList.Add(INamedAttribute toAdd)
         {

@@ -316,6 +316,7 @@ namespace CADability
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
         /// <summary>
@@ -795,6 +796,7 @@ namespace CADability
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         #endregion
         #region ICondorViewInternal Members
         public event ScrollPositionChanged ScrollPositionChangedEvent; // ist explizit schwierig

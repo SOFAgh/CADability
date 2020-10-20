@@ -334,9 +334,10 @@ namespace CADability.UserInterface
             }
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
 
-#region IGeoObjectShowProperty Members
+        #region IGeoObjectShowProperty Members
         public event CADability.GeoObject.CreateContextMenueDelegate CreateContextMenueEvent;
         IGeoObject IGeoObjectShowProperty.GetGeoObject()
         {

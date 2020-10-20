@@ -150,6 +150,7 @@
             // TODO:  Add ModelsProperty.OnUpdateCommand implementation
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
         #endregion
     }

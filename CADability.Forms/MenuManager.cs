@@ -368,6 +368,12 @@ namespace CADability.Forms
             }
             base.OnPopup(e);
         }
+        protected override void OnSelect(EventArgs e)
+        {
+            MenuWithHandler definition = (Tag as MenuWithHandler);
+            if (definition.Target != null) definition.Target.OnSelected(definition.ID, true);
+            base.OnSelect(e);
+        }
     }
     class MenuManager
     {

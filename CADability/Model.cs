@@ -1659,6 +1659,7 @@ namespace CADability
         {
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         #endregion
         #region ICategorizedDislayLists Members
         void ICategorizedDislayLists.Add(Layer layer, bool addToFace, bool addToLinear, IGeoObject go)

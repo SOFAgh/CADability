@@ -177,9 +177,10 @@ namespace CADability.GeoObject
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
-#endregion
-#region IGeoObjectShowProperty Members
+        #endregion
+        #region IGeoObjectShowProperty Members
         public event CADability.GeoObject.CreateContextMenueDelegate CreateContextMenueEvent;
         IGeoObject IGeoObjectShowProperty.GetGeoObject()
         {

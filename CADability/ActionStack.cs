@@ -412,6 +412,7 @@ namespace CADability
             }
             return false;
         }
+
         public void OnViewsChanged()
         {
             // foreach kann man hier nicht nehmen, denn bei dem Aufruf kann eine Aktion sich abmelden

@@ -652,7 +652,8 @@ namespace CADability
             }
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
         private void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
         {
             if (sender.FocusEntered(this, OldFocus, NewFocus))

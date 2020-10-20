@@ -627,7 +627,8 @@ namespace CADability.Attribute
                     return false;
             }
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
     }
     /// <summary>
     /// A collapsable treeview entry for the ControlCenter that presents to the user all layers of the
@@ -825,7 +826,8 @@ namespace CADability.Attribute
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
         public void Refresh()
         {
             subEntries = null;

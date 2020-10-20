@@ -120,9 +120,10 @@ namespace CADability.UserInterface
             // TODO: betreffende MenueIds behandeln
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
 
-#region IPropertyEntry
+        #region IPropertyEntry
         protected override bool HasDropDownButton => true;
         string[] IPropertyEntry.GetDropDownList()
         {

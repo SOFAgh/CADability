@@ -812,6 +812,7 @@ namespace CADability.GeoObject
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         #endregion
         #region IGeoObjectShowProperty Members
 

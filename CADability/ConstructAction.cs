@@ -3414,7 +3414,8 @@ namespace CADability.Actions
                 }
                 return false;
             }
-#endregion
+            void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+            #endregion
         }
         /// <summary>
         /// Defines an input object for an action derived from ConstructAction.
@@ -5081,8 +5082,9 @@ namespace CADability.Actions
                         return false;
                 }
             }
+            void ICommandHandler.OnSelected(string MenuId, bool selected) { }
 
-#endregion
+            #endregion
         }
         /// <summary>
         /// Defines an input object for an action derived from ConstructAction.

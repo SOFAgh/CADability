@@ -93,6 +93,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         #endregion
         private PointSymbol GetPointSymbol()
         {

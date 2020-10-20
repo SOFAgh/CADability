@@ -1939,6 +1939,7 @@ namespace CADability
             if ((ActiveView is ICommandHandler) && (ActiveView as ICommandHandler).OnUpdateCommand(MenuId, CommandState)) return true;
             return false; // could not handle this command
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
         #endregion
 
         private void OnProjectViewChanged(Project sender, IView viewWhichChanged)

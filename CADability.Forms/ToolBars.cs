@@ -46,6 +46,7 @@ namespace CADability.Forms
             {
                 return commandHandler.OnUpdateCommand(MenuId, CommandState);
             }
+            void ICommandHandler.OnSelected(string MenuId, bool selected) { }
             internal void UpdateCommandState()
             {
                 CommandState commandState = new CommandState(); // default: enabled but not checked

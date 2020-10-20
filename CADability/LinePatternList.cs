@@ -670,7 +670,8 @@ namespace CADability.Attribute
             // TODO:  Add LinePatternList.OnUpdateCommand implementation
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
 
     }
 }

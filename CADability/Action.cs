@@ -690,7 +690,8 @@ namespace CADability.Actions
             }
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
     }
 
     internal class WaitCursor : IDisposable

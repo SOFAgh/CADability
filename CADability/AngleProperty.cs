@@ -67,6 +67,7 @@ namespace CADability.UserInterface
         {
             return ((ICommandHandler)angleProperty).OnUpdateCommand(MenuId, CommandState);
         }
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
     }
     /// <summary>
     /// Exception thrown by <see cref="AngleProperty"/>.
@@ -237,9 +238,10 @@ namespace CADability.UserInterface
             }
             return false;
         }
-#endregion
+        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        #endregion
 
-#region deprecated adaption to old implementation of AngleProperty
+        #region deprecated adaption to old implementation of AngleProperty
         [Obsolete("Parameter autoModifyWithMouse no longer supported, use AngleProperty(IFrame frame, string resourceId) instead")]
         public AngleProperty(string resourceId, IFrame frame, bool autoModifyWithMouse) : this(frame, resourceId)
         {
