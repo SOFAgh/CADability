@@ -1448,6 +1448,16 @@ namespace CADability
                 y = l * Math.Sin(value);
             }
         }
+        /// <summary>
+        /// Simple test, whether the vector is more horizontal than vertical
+        /// </summary>
+        public bool IsHorizontal
+        {
+            get
+            {
+                return Math.Abs(x) > Math.Abs(y);
+            }
+        }
         public static GeoVector2D operator +(GeoVector2D v1, GeoVector2D v2)
         {
             return new GeoVector2D(v1.x + v2.x, v1.y + v2.y);

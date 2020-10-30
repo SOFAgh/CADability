@@ -91,6 +91,7 @@ cylinder. The u parameter always describes a circle or ellipse, the v parameter 
     <div><a class="xref" href="CADability.GeoObject.ISurface.html">ISurface</a></div>
     <div><a class="xref" href="CADability.IOctTreeInsertable.html">IOctTreeInsertable</a></div>
     <div><a class="xref" href="CADability.UserInterface.IPropertyEntry.html">IPropertyEntry</a></div>
+    <div><a class="xref" href="CADability.GeoObject.ISurfaceOfRevolution.html">ISurfaceOfRevolution</a></div>
     <div><span class="xref">System.Runtime.Serialization.ISerializable</span></div>
     <div><span class="xref">System.Runtime.Serialization.IDeserializationCallback</span></div>
     <div><a class="xref" href="CADability.IExportStep.html">IExportStep</a></div>
@@ -397,7 +398,7 @@ cylinder. The u parameter always describes a circle or ellipse, the v parameter 
   <h5 id="CADability_GeoObject_CylindricalSurface_syntax">Syntax</h5>
   <div class="codewrapper">
     <pre><code class="lang-csharp hljs">[Serializable]
-public class CylindricalSurface : ISurfaceImpl, IShowProperty, ISurface, IOctTreeInsertable, IPropertyEntry, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep</code></pre>
+public class CylindricalSurface : ISurfaceImpl, IShowProperty, ISurface, IOctTreeInsertable, IPropertyEntry, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfExtrusion</code></pre>
   </div>
   <h3 id="constructors">Constructors
   </h3>
@@ -582,6 +583,56 @@ location+directionx, the v parameter increments along the axis and is 0 at locat
   </table>
   <h5 class="overrides">Overrides</h5>
   <div><a class="xref" href="CADability.UserInterface.IShowPropertyImpl.html#CADability_UserInterface_IShowPropertyImpl_EntryType">IShowPropertyImpl.EntryType</a></div>
+  
+  
+  <a id="CADability_GeoObject_CylindricalSurface_ExtrudedCurve_" data-uid="CADability.GeoObject.CylindricalSurface.ExtrudedCurve*"></a>
+  <h4 id="CADability_GeoObject_CylindricalSurface_ExtrudedCurve" data-uid="CADability.GeoObject.CylindricalSurface.ExtrudedCurve">ExtrudedCurve</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ICurve ExtrudedCurve { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="CADability.GeoObject.ICurve.html">ICurve</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <a id="CADability_GeoObject_CylindricalSurface_ExtrusionDirectionIsV_" data-uid="CADability.GeoObject.CylindricalSurface.ExtrusionDirectionIsV*"></a>
+  <h4 id="CADability_GeoObject_CylindricalSurface_ExtrusionDirectionIsV" data-uid="CADability.GeoObject.CylindricalSurface.ExtrusionDirectionIsV">ExtrusionDirectionIsV</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool ExtrusionDirectionIsV { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
   
   
   <a id="CADability_GeoObject_CylindricalSurface_IsRealCylinder_" data-uid="CADability.GeoObject.CylindricalSurface.IsRealCylinder*"></a>
@@ -2955,6 +3006,56 @@ location+directionx, the v parameter increments along the axis and is 0 at locat
   </h3>
   
   
+  <a id="CADability_GeoObject_CylindricalSurface_CADability_GeoObject_ISurfaceOfRevolution_Axis_" data-uid="CADability.GeoObject.CylindricalSurface.CADability#GeoObject#ISurfaceOfRevolution#Axis*"></a>
+  <h4 id="CADability_GeoObject_CylindricalSurface_CADability_GeoObject_ISurfaceOfRevolution_Axis" data-uid="CADability.GeoObject.CylindricalSurface.CADability#GeoObject#ISurfaceOfRevolution#Axis">ISurfaceOfRevolution.Axis</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">Axis ISurfaceOfRevolution.Axis { get; }</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="CADability.Axis.html">Axis</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <a id="CADability_GeoObject_CylindricalSurface_CADability_GeoObject_ISurfaceOfRevolution_Curve_" data-uid="CADability.GeoObject.CylindricalSurface.CADability#GeoObject#ISurfaceOfRevolution#Curve*"></a>
+  <h4 id="CADability_GeoObject_CylindricalSurface_CADability_GeoObject_ISurfaceOfRevolution_Curve" data-uid="CADability.GeoObject.CylindricalSurface.CADability#GeoObject#ISurfaceOfRevolution#Curve">ISurfaceOfRevolution.Curve</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">ICurve ISurfaceOfRevolution.Curve { get; }</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="CADability.GeoObject.ICurve.html">ICurve</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
   <a id="CADability_GeoObject_CylindricalSurface_CADability_IExportStep_Export_" data-uid="CADability.GeoObject.CylindricalSurface.CADability#IExportStep#Export*"></a>
   <h4 id="CADability_GeoObject_CylindricalSurface_CADability_IExportStep_Export_CADability_ExportStep_System_Boolean_" data-uid="CADability.GeoObject.CylindricalSurface.CADability#IExportStep#Export(CADability.ExportStep,System.Boolean)">IExportStep.Export(ExportStep, Boolean)</h4>
   <div class="markdown level1 summary"></div>
@@ -3047,6 +3148,9 @@ location+directionx, the v parameter increments along the axis and is 0 at locat
   </div>
   <div>
       <a class="xref" href="CADability.UserInterface.IPropertyEntry.html">IPropertyEntry</a>
+  </div>
+  <div>
+      <a class="xref" href="CADability.GeoObject.ISurfaceOfRevolution.html">ISurfaceOfRevolution</a>
   </div>
   <div>
       <span class="xref">System.Runtime.Serialization.ISerializable</span>

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <BuildDocFx Condition=" '$(Configuration)'=='Debug' ">false</BuildDocFx>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -19,8 +20,11 @@
 
   <ItemGroup>
     <Compile Remove="CADability.DXF\**" />
+    <Compile Remove="_site\**" />
     <EmbeddedResource Remove="CADability.DXF\**" />
+    <EmbeddedResource Remove="_site\**" />
     <None Remove="CADability.DXF\**" />
+    <None Remove="_site\**" />
   </ItemGroup>
 
   <ItemGroup>

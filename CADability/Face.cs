@@ -3746,13 +3746,9 @@ namespace CADability.GeoObject
                 return area;
             }
         }
-        public BoundingRect AreaExtent
-        {
-            get
-            {
-                return Area.GetExtent(); // is cached in Border
-            }
-        }
+        /// <summary>
+        /// A bounding rectangle which restricts the parametric space of the <see cref="Surface"/>.
+        /// </summary>
         public BoundingRect Domain // alias for AreaExtent
         {
             get

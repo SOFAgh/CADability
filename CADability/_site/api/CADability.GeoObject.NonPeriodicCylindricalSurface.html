@@ -89,6 +89,7 @@
     <div><a class="xref" href="CADability.GeoObject.ISurface.html">ISurface</a></div>
     <div><a class="xref" href="CADability.IOctTreeInsertable.html">IOctTreeInsertable</a></div>
     <div><a class="xref" href="CADability.UserInterface.IPropertyEntry.html">IPropertyEntry</a></div>
+    <div><a class="xref" href="CADability.GeoObject.ISurfaceOfRevolution.html">ISurfaceOfRevolution</a></div>
     <div><a class="xref" href="CADability.IExportStep.html">IExportStep</a></div>
     <div><a class="xref" href="CADability.GeoObject.INonPeriodicSurfaceConversion.html">INonPeriodicSurfaceConversion</a></div>
     <div><span class="xref">System.Runtime.Serialization.ISerializable</span></div>
@@ -218,6 +219,18 @@
     </div>
     <div>
       <a class="xref" href="CADability.GeoObject.CylindricalSurface.html#CADability_GeoObject_CylindricalSurface_IsRealCylinder">CylindricalSurface.IsRealCylinder</a>
+    </div>
+    <div>
+      <a class="xref" href="CADability.GeoObject.CylindricalSurface.html#CADability_GeoObject_CylindricalSurface_CADability_GeoObject_ISurfaceOfRevolution_Axis">CylindricalSurface.ISurfaceOfRevolution.Axis</a>
+    </div>
+    <div>
+      <a class="xref" href="CADability.GeoObject.CylindricalSurface.html#CADability_GeoObject_CylindricalSurface_CADability_GeoObject_ISurfaceOfRevolution_Curve">CylindricalSurface.ISurfaceOfRevolution.Curve</a>
+    </div>
+    <div>
+      <a class="xref" href="CADability.GeoObject.CylindricalSurface.html#CADability_GeoObject_CylindricalSurface_ExtrudedCurve">CylindricalSurface.ExtrudedCurve</a>
+    </div>
+    <div>
+      <a class="xref" href="CADability.GeoObject.CylindricalSurface.html#CADability_GeoObject_CylindricalSurface_ExtrusionDirectionIsV">CylindricalSurface.ExtrusionDirectionIsV</a>
     </div>
     <div>
       <a class="xref" href="CADability.GeoObject.CylindricalSurface.html#CADability_GeoObject_CylindricalSurface_CADability_IExportStep_Export_CADability_ExportStep_System_Boolean_">CylindricalSurface.IExportStep.Export(ExportStep, Boolean)</a>
@@ -522,7 +535,7 @@
   <h5 id="CADability_GeoObject_NonPeriodicCylindricalSurface_syntax">Syntax</h5>
   <div class="codewrapper">
     <pre><code class="lang-csharp hljs">[Serializable]
-public class NonPeriodicCylindricalSurface : CylindricalSurface, IShowProperty, ISurface, IOctTreeInsertable, IPropertyEntry, ISurfaceOfRevolution, ISurfacePlaneIntersection, IExportStep, INonPeriodicSurfaceConversion, ISerializable, IDeserializationCallback</code></pre>
+public class NonPeriodicCylindricalSurface : CylindricalSurface, IShowProperty, ISurface, IOctTreeInsertable, IPropertyEntry, ISurfaceOfRevolution, ISurfacePlaneIntersection, IExportStep, ISurfaceOfExtrusion, INonPeriodicSurfaceConversion, ISerializable, IDeserializationCallback</code></pre>
   </div>
   <h3 id="constructors">Constructors
   </h3>
@@ -1746,6 +1759,9 @@ public class NonPeriodicCylindricalSurface : CylindricalSurface, IShowProperty, 
   </div>
   <div>
       <a class="xref" href="CADability.UserInterface.IPropertyEntry.html">IPropertyEntry</a>
+  </div>
+  <div>
+      <a class="xref" href="CADability.GeoObject.ISurfaceOfRevolution.html">ISurfaceOfRevolution</a>
   </div>
   <div>
       <a class="xref" href="CADability.IExportStep.html">IExportStep</a>

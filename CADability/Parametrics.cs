@@ -46,9 +46,10 @@ namespace CADability
                 if (!modifiedFaces.Contains(otherFace) && tangential)
                 {
                     tangentialEdgesModified[edge] = edge.Curve3D.CloneModified(move); // these edges play a role in calculating the new vertices
-                    // the edges will be recalculated in "Result()", but here we need the already modified curve for intersection puposes
+                    // the edges will be recalculated in "Result()", but here we need the already modified curve for intersection purposes
                     if (!otherFace.Surface.IsExtruded(offset)) MoveFace(otherFace, offset); // only if offset is not the extrusion direction of the otherFace
-                } else if (tangential && !tangentialEdgesModified.ContainsKey(edge))
+                }
+                else if (tangential && !tangentialEdgesModified.ContainsKey(edge))
                 {
                     tangentialEdgesModified[edge] = edge.Curve3D.CloneModified(move); // these edges play a role in calculating the new vertices
                 }
@@ -71,14 +72,13 @@ namespace CADability
         /// <param name="newRadius">the new radius of the surface</param>
         public bool ModifyRadius(Face toModify, double newRadius)
         {
-            HashSet<Face> tangential = new HashSet<Face>();
             HashSet<Face> sameSurfaceFaces = new HashSet<Face>();
             HashSet<Edge> sameSurfaceEdges = new HashSet<Edge>();
             if (!faceDict.TryGetValue(toModify, out Face faceToModify)) return false; // must be a face from the original shell
             CollectSameSurfaceFaces(faceToModify, sameSurfaceFaces, sameSurfaceEdges);
-            if (sameSurfaceFaces.Count>0)
+            if (sameSurfaceFaces.Count > 1)
             {
-                // this is probably a splitted full cylinder or torus. we ignore the case that a combination of two parts with the same surface is tangential to other surface
+                // this is probably a split full cylinder or torus. we ignore the case that a combination of two parts with the same surface is tangential to other surface
                 // in this case the position remains unchanged
                 foreach (Face face in sameSurfaceFaces)
                 {   // set all faces with identical surfaces the new radius
@@ -95,7 +95,7 @@ namespace CADability
                     {
                         modifiedSurface = new SphericalSurface(sph.Location, newRadius * sph.XAxis.Normalized, newRadius * sph.YAxis.Normalized, newRadius * sph.ZAxis.Normalized);
                     }
-                    face.Surface = modifiedSurface; 
+                    face.Surface = modifiedSurface;
                     verticesToRecalculate.UnionWith(face.Vertices);
                 }
                 foreach (Vertex vtx in verticesToRecalculate)
@@ -107,21 +107,65 @@ namespace CADability
                     if (edge.Forward(edge.PrimaryFace)) tangentialEdgesModified[edge] = edge.PrimaryFace.Surface.Make3dCurve(edge.PrimaryCurve2D);
                     else tangentialEdgesModified[edge] = edge.SecondaryFace.Surface.Make3dCurve(edge.SecondaryCurve2D);
                 }
+                // missing: follow the pipe!
                 return true;
             }
-            else
+            else if (faceToModify.Surface is ISurfaceOfExtrusion extrusion)
             {   // there are no other faces with the same surface, so we have to check, whether this face is tangential to some other faces
+                // there could be tangential edges between the fillet and the two faces of the original edge or to the previous or next fillet
+                HashSet<Face> lengthwayTangential = new HashSet<Face>(); // the two faces that this fillet rounds
+                HashSet<Face> crosswayTangential = new HashSet<Face>(); // the following or previous fillet
                 foreach (Edge edge in faceToModify.AllEdgesIterated())
                 {
                     Face otherFace = edge.OtherFace(faceToModify);
                     if (edge.IsTangentialEdge())
                     {
-                        tangential.Add(otherFace);
+                        if (edge.Curve2D(faceToModify).DirectionAt(0.5).IsHorizontal != extrusion.ExtrusionDirectionIsV) lengthwayTangential.Add(otherFace);
+                        else crosswayTangential.Add(otherFace);
                     }
                 }
-                if (tangential.Count==2)
+                if (lengthwayTangential.Count == 2)
                 {
-                    // ok, here is a lot to do: cylinder get new axis, torus gets new major radius
+                    // a cylinder or torus or swept curve as a fillet to two surfaces:
+                    // 1. find the new axis
+                    ICurve axis = extrusion.Axis; // a line for a cylinder, an arc for a torus, some 3d curve for a swept curve
+                    Face[] t = lengthwayTangential.ToArray();
+                    GeoPoint mp = axis.PointAt(0.5);
+                    //double d = t[0].Surface.GetDistance(mp); // this should be the current radius, unfortunately GetDistance is the absolute value
+                    GeoPoint2D fp = t[0].Surface.PositionOf(mp);
+                    double par = Geometry.LinePar(t[0].Surface.PointAt(fp), t[0].Surface.GetNormal(fp), mp);
+                    double offset;
+                    if (par > 0) offset = newRadius;
+                    else offset = -newRadius;
+                    ISurface surface0 = t[0].Surface.GetOffsetSurface(offset);
+                    ISurface surface1 = t[1].Surface.GetOffsetSurface(offset);
+                    ICurve[] cvs = surface0.Intersect(t[0].Domain, surface1, t[1].Domain); // this should yield the new axis
+                    ICurve newAxis = Hlp.GetClosest(cvs, crv => crv.DistanceTo(mp));
+                    if (newAxis != null)
+                    {
+                        ISurface modifiedSurface = null;
+                        if (faceToModify.Surface is CylindricalSurface cyl)
+                        {
+                            GeoPoint newLocation = newAxis.PointAt(newAxis.PositionOf(cyl.Location)); // drop the old location onto the new axis. this preserves the parametric space
+                            modifiedSurface  = new CylindricalSurface(cyl.Location, newRadius * cyl.XAxis.Normalized, newRadius * cyl.YAxis.Normalized, cyl.ZAxis);
+                        }
+                        //else if (face.Surface is ToroidalSurface tor)
+                        //{
+                        //    modifiedSurface = new ToroidalSurface(tor.Location, tor.XAxis.Normalized, tor.YAxis.Normalized, tor.ZAxis.Normalized, tor.XAxis.Length, newRadius);
+                        //}
+                        //else if (face.Surface is SphericalSurface sph)
+                        //{
+                        //    modifiedSurface = new SphericalSurface(sph.Location, newRadius * sph.XAxis.Normalized, newRadius * sph.YAxis.Normalized, newRadius * sph.ZAxis.Normalized);
+                        //}
+                        faceToModify.Surface = modifiedSurface;
+                        verticesToRecalculate.UnionWith(faceToModify.Vertices);
+                        foreach (Vertex vtx in verticesToRecalculate)
+                        {
+                            edgesToRecalculate.UnionWith(vtx.AllEdges);
+                        }
+                        // missing: follow the crossway tangential faces
+                        return true;
+                    }
                 }
             }
             return false;
@@ -144,7 +188,7 @@ namespace CADability
                     if (otherFace.Surface.SameGeometry(otherFace.Domain, face.Surface, face.Domain, Precision.eps, out _))
                     {
                         sameSurfaceEdges.Add(edge);
-                        CollectSameSurfaceFaces(otherFace, sameSurfaceFaces,sameSurfaceEdges);
+                        CollectSameSurfaceFaces(otherFace, sameSurfaceFaces, sameSurfaceEdges);
                     }
                 }
             }
@@ -162,7 +206,7 @@ namespace CADability
                     ICurve crv; // either a already moved tangential edge or an unmodified edge
                     if (!tangentialEdgesModified.TryGetValue(edge, out crv) && edge.IsTangentialEdge()) crv = edge.Curve3D;
                     if (crv != null)
-                    {   // this vertex is the start or endvertex of a tangential edge. We cannot use the intersection of 3 surfaces to calculate its new position
+                    {   // this vertex is the start or end vertex of a tangential edge. We cannot use the intersection of 3 surfaces to calculate its new position
                         foreach (Face face in vertex.InvolvedFaces)
                         {
                             if (face != edge.PrimaryFace && face != edge.SecondaryFace)
@@ -178,16 +222,7 @@ namespace CADability
                                         else if (edge.Vertex2 == vertex) testPoint = crv.EndPoint;
                                         if (testPoint.IsValid)
                                         {
-                                            double mindist = double.MaxValue;
-                                            for (int i = 0; i < ips.Length; i++)
-                                            {
-                                                double dist = ips[i] | testPoint;
-                                                if (dist<mindist)
-                                                {
-                                                    mindist = dist;
-                                                    ips[0] = ips[i];
-                                                }
-                                            }
+                                            ips[0] = Hlp.GetClosest(ips, p => p | testPoint);
                                         }
                                     }
                                     vertex.Position = ips[0];
@@ -203,7 +238,7 @@ namespace CADability
                 if (!done && faces.Length >= 3)
                 {   // here we would need to be more selective
                     GeoPoint ip = vertex.Position;
-                    // maybe two faces have an identical surface (splitted periodic surface)
+                    // maybe two faces have an identical surface (a split periodic surface)
                     double mindist = double.MaxValue;
                     foreach (Edge edg in vertex.AllEdges)
                     {
@@ -234,7 +269,7 @@ namespace CADability
                         done = true;
                     }
                     if (!done)
-                    {   
+                    {
                         if (Surfaces.NewtonIntersect(faces[0].Surface, faces[0].Domain, faces[1].Surface, faces[1].Domain,
                             faces[2].Surface, faces[2].Domain, ref ip, out GeoPoint2D uv0, out GeoPoint2D uv1, out GeoPoint2D uv2))
                         {

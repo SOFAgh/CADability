@@ -65,16 +65,23 @@ namespace CADability.GeoObject
         /// </summary>
         Unknown
     }
-
+    /// <summary>
+    /// ---Yet to be used---
+    /// Imagine a coordinate system moving along a 3d curve. Th z-axis always showing in direction of the curve. The x- and y-axis are still arbitrary. This orientation interface
+    /// defines the direction of the x-axis at some point
+    /// </summary>
+    public interface IOrientation
+    {
+        GeoVector OrientationAt(double u);
+    }
     /// <summary>
     /// Interface implemented by one-dimensional geometric objects (eg. line, circle, bspline etc.).
     /// The curve may be open or closed.
     /// </summary>
-
     public interface ICurve
     {
         /// <summary>
-        /// The startpoint of the curve. If the curve is closed, this is the point where 
+        /// The start-point of the curve. If the curve is closed, this is the point where 
         /// the parameter is 0.0. 
         /// </summary>
         GeoPoint StartPoint { get; set; }
@@ -84,7 +91,7 @@ namespace CADability.GeoObject
         /// </summary>
         GeoPoint EndPoint { get; set; }
         /// <summary>
-        /// The direction of the curve at the startpoint. If the curve is closed, this is the direction where 
+        /// The direction of the curve at the start-point. If the curve is closed, this is the direction where 
         /// the parameter is 0.0. 
         /// </summary>
         GeoVector StartDirection { get; }
@@ -94,7 +101,7 @@ namespace CADability.GeoObject
         /// </summary>
         GeoVector EndDirection { get; }
         /// <summary>
-        /// Returns the direction of the curve at a specified point. The parameter prosition of the startpoint
+        /// Returns the direction of the curve at a specified point. The parameter prosition of the start-point
         /// is 0.0, the parameter position of the endpoint is 1.0. Directions of a position outside
         /// this interval may be undefined.
         /// </summary>
@@ -102,7 +109,7 @@ namespace CADability.GeoObject
         /// <returns>The requested direction</returns>
         GeoVector DirectionAt(double Position);
         /// <summary>
-        /// Returns the point of the given position. The parameter prosition of the startpoint
+        /// Returns the point of the given position. The parameter prosition of the start-point
         /// is 0.0, the parameter position of the endpoint is 1.0. Points of a position outside
         /// this interval may be undefined. The correlatioon between the parameter Position and the
         /// resulting point may be not linear.
@@ -809,7 +816,7 @@ namespace CADability.GeoObject
             }
         }
         /// <summary>
-        /// Tries to combine two curves. crv1 and crv2 must be correct oriented and the endpoint of crv1 mut be the startpoint of crv2
+        /// Tries to combine two curves. crv1 and crv2 must be correct oriented and the endpoint of crv1 mut be the start-point of crv2
         /// </summary>
         /// <param name="crv1"></param>
         /// <param name="crv2"></param>

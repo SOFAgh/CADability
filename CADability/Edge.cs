@@ -2369,7 +2369,7 @@ namespace CADability
                 {
                     if (fw) res[i] = face.Surface.PositionOf(pl3d.Vertices[i]);
                     else res[i] = face.Surface.PositionOf(pl3d.Vertices[pl3d.Vertices.Length - 1 - i]);
-                    SurfaceHelper.AdjustPeriodic(face.Surface, face.AreaExtent, ref res[i]);
+                    SurfaceHelper.AdjustPeriodic(face.Surface, face.Domain, ref res[i]);
                 }
                 return res;
 

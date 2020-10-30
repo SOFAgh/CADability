@@ -476,11 +476,32 @@ namespace CADability.GeoObject
     {
         ICurve2D[] GetPlaneIntersection(Plane plane, double umin, double umax, double vmin, double vmax);
     }
-    // interface of a surface rotating in u direction
-    internal interface ISurfaceOfRevolution
+    /// <summary>
+    /// Interface of a surface rotating in u direction. Should be implemented by all surfaces, which can be looked at this was
+    /// </summary>
+    public interface ISurfaceOfRevolution
     {
+        /// <summary>
+        /// The axis for the revolution
+        /// </summary>
         Axis Axis { get; }
+        /// <summary>
+        /// The curve, that is rotated
+        /// </summary>
         ICurve Curve { get; }
+    }
+    /// <summary>
+    /// Interface of an extrusion surface. All surfaces, that can be interpreted as an extrusion should implement this interface
+    /// </summary>
+    internal interface ISurfaceOfExtrusion
+    {
+        ICurve Axis { get; }
+        IOrientation Orientation { get; }
+        ICurve ExtrudedCurve { get; }
+        /// <summary>
+        /// the direction of extrusion is the v-parameter of the surface (when false, it is the u-parameter)
+        /// </summary>
+        bool ExtrusionDirectionIsV { get; }
     }
 
     public interface INonPeriodicSurfaceConversion
@@ -3672,7 +3693,7 @@ namespace CADability.GeoObject
         {   // to implement
             positions = new List<Tuple<double, double, double>>();
             GeoPoint2D uv1 = domain.GetCenter();
-            double  u2 = 0.5;
+            double u2 = 0.5;
             double maxerror = GaussNewtonMinimizer.SurfaceCurveExtrema(this, domain, curve3D, 0.0, 1.0, ref uv1, ref u2);
             if (maxerror < Precision.eps)
             {

@@ -14,7 +14,7 @@ namespace CADability.GeoObject
     /// </summary>
     // created by MakeClassComVisible
     [Serializable()]
-    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep
+    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfExtrusion
     {
         // Der Zylinder ist so beschaffen, dass er lediglich durch eine ModOp definiert ist.
         // Der Einheitszylinder steht im Ursprung mit Radius 1, u beschreibt einen Kreis, v eine Mantellinie
@@ -2283,6 +2283,42 @@ namespace CADability.GeoObject
                 return Line.MakeLine(PointAt(new GeoPoint2D(0.0, 0.0)), PointAt(new GeoPoint2D(0.0, 1.0)));
             }
         }
+        #endregion
+        #region ISurfaceOfExtrusion
+        ICurve ISurfaceOfExtrusion.Axis
+        {
+            get
+            {
+                if (usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid())
+                {
+                    return Line.TwoPoints(Location, Location + ZAxis);
+                }
+                else
+                {
+                    return Line.TwoPoints(toCylinder * new GeoPoint(0, 0, usedArea.Bottom), toCylinder * new GeoPoint(0, 0, usedArea.Top));
+                }
+            }
+        }
+
+        IOrientation ISurfaceOfExtrusion.Orientation => throw new NotImplementedException();
+
+        public ICurve ExtrudedCurve
+        {
+            get
+            {
+                if (usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid())
+                {
+                    return FixedV(0.0, 0.0, Math.PI * 2.0);
+                }
+                else
+                {
+                    return FixedV(0.0, usedArea.Left,usedArea.Right);
+                }
+
+            }
+        }
+
+        public bool ExtrusionDirectionIsV => true;
         #endregion
         int IExportStep.Export(ExportStep export, bool topLevel)
         {

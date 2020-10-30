@@ -3525,7 +3525,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoObject.ConicalSurface.html",
-          "hash": "euXM8ku/hoobF3kUb6hMrg=="
+          "hash": "UAvMt6M+QbZ4J+f7y2L49A=="
         }
       },
       "is_incremental": true,
@@ -3573,7 +3573,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoObject.Curves.html",
-          "hash": "FmCEDgx8W1s5bNzbY1+X4Q=="
+          "hash": "I5bzWg+Avgi03cJmcAk6nA=="
         }
       },
       "is_incremental": true,
@@ -3585,7 +3585,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoObject.CylindricalSurface.html",
-          "hash": "kcCGZgF9n0rOjZHKKPqhFw=="
+          "hash": "poW+rKpuNNvHrFfxr94pNg=="
         }
       },
       "is_incremental": true,
@@ -3804,7 +3804,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoObject.Face.html",
-          "hash": "eKEBMBI+z2xErK4W41BGLw=="
+          "hash": "pPdgoH3fex8vYxQt9RPX0Q=="
         }
       },
       "is_incremental": true,
@@ -4008,7 +4008,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoObject.ICurve.html",
-          "hash": "fiVe5DouJupIlAsyHhBzcQ=="
+          "hash": "C5xrM9dSYfXD5jb+FEeTrQ=="
         }
       },
       "is_incremental": true,
@@ -4151,6 +4151,18 @@
     },
     {
       "type": "ManagedReference",
+      "source_relative_path": "api/CADability.GeoObject.IOrientation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.GeoObject.IOrientation.html",
+          "hash": "iavG8QBRUXKHQr2Z1GnMKA=="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
       "source_relative_path": "api/CADability.GeoObject.IQuadTreeInsertableZ.yml",
       "output": {
         ".html": {
@@ -4180,6 +4192,18 @@
         ".html": {
           "relative_path": "api/CADability.GeoObject.ISurfaceImpl.html",
           "hash": "N6U7jbufDcTVQANvRbD2Tw=="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CADability.GeoObject.ISurfaceOfRevolution.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.GeoObject.ISurfaceOfRevolution.html",
+          "hash": "LGrt9c84FpYn4cuPFxNJWg=="
         }
       },
       "is_incremental": true,
@@ -4314,7 +4338,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoObject.NonPeriodicCylindricalSurface.html",
-          "hash": "JYLFG3HXnjY/eEZ6Uvb4UQ=="
+          "hash": "yft9daN2MdF6PuXemcvqRw=="
         }
       },
       "is_incremental": true,
@@ -4890,7 +4914,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoObject.SurfaceOfRevolution.html",
-          "hash": "QtFHe1b6u/9+/B0+Nor1Xg=="
+          "hash": "exebD7MPkrUTNp2Lrs2SJg=="
         }
       },
       "is_incremental": true,
@@ -5034,7 +5058,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoObject.html",
-          "hash": "YNTRGnJAaxWLrRv1wRfTPw=="
+          "hash": "UnLllEhsbTZZTjABu/x85Q=="
         }
       },
       "is_incremental": true,
@@ -5106,7 +5130,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.GeoVector2D.html",
-          "hash": "tsE5Xa3VvdUjRNRNTyQkUw=="
+          "hash": "25JtfcCJhs9JGzHnL6Ulkg=="
         }
       },
       "is_incremental": true,
@@ -13218,7 +13242,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "dUm0fkKkDsL3aYeXk+6KHw=="
+          "hash": "4vfNzXTaTkvPDj5GxFECOw=="
         }
       },
       "is_incremental": false,
@@ -13293,10 +13317,10 @@
       "output": {
         ".html": {
           "relative_path": "index.html",
-          "hash": "qgf6XLBr/iJnH8fzpo2i1g=="
+          "hash": "oCRJ3yme+95bsC8JyU3pFA=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -13325,13 +13349,13 @@
           "can_incremental": true,
           "incrementalPhase": "build",
           "total_file_count": 5,
-          "skipped_file_count": 4
+          "skipped_file_count": 5
         },
         "ManagedReferenceDocumentProcessor": {
           "can_incremental": true,
           "incrementalPhase": "build",
-          "total_file_count": 1099,
-          "skipped_file_count": 1099
+          "total_file_count": 1101,
+          "skipped_file_count": 1101
         },
         "TocDocumentProcessor": {
           "can_incremental": false,
