@@ -1,6 +1,8 @@
-﻿using CADability.Attribute;
+﻿using CADability.Actions;
+using CADability.Attribute;
 using CADability.Curve2D;
 using CADability.GeoObject;
+using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -944,23 +946,12 @@ namespace CADability
             }
             oriented = true;
         }
-        /// <summary>
-        /// Returns the other face, which contains this edge. If there is no such face, null will be returned.
-        /// </summary>
-        /// <param name="face">one of the faces of this edge</param>
-        /// <returns>the other face</returns>
-        public Face GetBuddy(Face face)
-        {
-            if (face == primaryFace) return secondaryFace;
-            if (face == secondaryFace) return primaryFace;
-            return null;
-        }
         public IEnumerable<Face> Faces
         {
             get
             {
-                if (primaryFace!=null) yield return primaryFace;
-                if (secondaryFace!=null) yield return secondaryFace;
+                if (primaryFace != null) yield return primaryFace;
+                if (secondaryFace != null) yield return secondaryFace;
             }
         }
         /// <summary>
@@ -969,7 +960,11 @@ namespace CADability
         public ICurve Curve3D
         {
             get { return curve3d; }
-            internal set { curve3d = value; }
+            internal set 
+            { 
+                curve3d = value;
+                if (curve3d is IGeoObject go) go.Owner = this;
+            }
         }
         internal void Modify(ModOp m)
         {   // verändert nur die 3D Kurve, gleichzeitig müssen die Surfaces verändert werden
@@ -3282,6 +3277,11 @@ namespace CADability
             }
         }
 
+        /// <summary>
+        /// Returns the other face, which contains this edge. If there is no such face, null will be returned.
+        /// </summary>
+        /// <param name="thisFace">one of the faces of this edge</param>
+        /// <returns>the other face</returns>
         public Face OtherFace(Face thisFace)
         {
             if (thisFace == primaryFace) return secondaryFace;
@@ -3434,6 +3434,42 @@ namespace CADability
             return export.WriteDefinition("ORIENTED_EDGE('',*,*,#" + ec.ToString() + orient + ")");
         }
 
+        internal bool IsTangentialEdge()
+        {
+            if (secondaryFace == null) return false;
+            if (primaryFace.Surface.SameGeometry(primaryFace.Domain, secondaryFace.Surface, secondaryFace.Domain, Precision.eps, out _)) return true;
+            if ((primaryFace.Surface is PlaneSurface && (secondaryFace.Surface is CylindricalSurface || secondaryFace.Surface is ConicalSurface || secondaryFace.Surface is ToroidalSurface)) ||
+                (secondaryFace.Surface is PlaneSurface && (primaryFace.Surface is CylindricalSurface || primaryFace.Surface is ConicalSurface || primaryFace.Surface is ToroidalSurface)))
+            {
+                // we only need to check a single position
+                GeoVector n1 = primaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(primaryFace));
+                GeoVector n2 = secondaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(secondaryFace));
+                return Precision.SameNotOppositeDirection(n1, n2);
+            }
+            else
+            {
+                GeoVector n1 = primaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(primaryFace));
+                GeoVector n2 = secondaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(secondaryFace));
+                if (!Precision.SameNotOppositeDirection(n1, n2)) return false;
+                n1 = primaryFace.Surface.GetNormal(Vertex2.GetPositionOnFace(primaryFace));
+                n2 = secondaryFace.Surface.GetNormal(Vertex2.GetPositionOnFace(secondaryFace));
+                if (!Precision.SameNotOppositeDirection(n1, n2)) return false;
+                // now there could be cases, where we would have to check more points, and I don't know, how to tell, so we check only the middle point
+                GeoPoint m = curve3d.PointAt(0.5);
+                n1 = primaryFace.Surface.GetNormal(primaryFace.Surface.PositionOf(m));
+                n2 = secondaryFace.Surface.GetNormal(secondaryFace.Surface.PositionOf(m));
+                return Precision.SameNotOppositeDirection(n1, n2);
+            }
+        }
+
+        internal MenuWithHandler[] GetContextMenu(IFrame frame)
+        {
+            MenuWithHandler mhdist = new MenuWithHandler();
+            mhdist.ID = "MenuId.Parametrics.DistanceTo";
+            mhdist.Text = StringTable.GetString("MenuId.Parametrics.DistanceTo", StringTable.Category.label);
+            mhdist.Target = new ParametricsDistance(this, frame);
+            return new MenuWithHandler[] { mhdist };
+        }
 #if DEBUG
         public bool IsDebug
         {

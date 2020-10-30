@@ -588,6 +588,8 @@
     <MenuItem MenuId="MenuId.StyleEntry.DefaultForSolids" />
     <MenuItem MenuId="MenuId.StyleEntry.DefaultForText" />
     <MenuItem MenuId="MenuId.StyleEntry.DefaultForDimension" />
+    <MenuItem MenuId="MenuId.StyleEntry.DefaultForHiddenSolids" />
+    <MenuItem MenuId="MenuId.StyleEntry.DefaultForAxis" />
   </Popup>
 
   <Popup MenuId="MenuId.Navigate">

@@ -1,5 +1,6 @@
 ﻿using CADability.Curve2D;
 using CADability.GeoObject;
+using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 
@@ -345,6 +346,20 @@ namespace CADability
         public double GetDistance(GeoPoint p)
         {
             return original.GetDistance(p);
+        }
+        public bool IsExtruded(GeoVector direction)
+        {
+            return original.IsExtruded(direction);
+        }
+
+        public int GetExtremePositions(BoundingRect domain, ICurve curve3D, out List<Tuple<double, double, double>> positions)
+        {
+            throw new NotImplementedException();
+        }
+
+        public MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face)
+        {
+            throw new NotImplementedException();
         }
     }
 }

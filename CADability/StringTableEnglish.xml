@@ -6225,7 +6225,7 @@
     <label>Ring Radius</label>
     <tip>Ring radius of the toroidal surface</tip>
     <info>Ring radius of the toroidal surface</info>
-  </data>  
+  </data>
   <data name="NurbsSurface">
     <label>Nurbs surface</label>
     <tip>Nurbs surface</tip>
@@ -6388,7 +6388,7 @@
     <label>Sphere</label>
     <tip>Sphere construction</tip>
     <info>Construction of a sphere with center and radius</info>
- </data>
+  </data>
   <data name="Constr.Sphere.Center">
     <label>Center point</label>
     <tip>Construction of the center point</tip>
@@ -7138,5 +7138,51 @@
   </data>
   <data name="Constr.Rotate.Offset.Values">
     <label>|0°|90°|180°|270°(-90°)</label>
+  </data>
+  <data name="MenuId.Parametrics.DistanceTo">
+    <label>change distance to...</label>
+    <tip>change the distance to another object of this solid or shell</tip>
+    <info>change the distance to another object of this solid or shell</info>
+  </data>
+  <data name="MenuId.Edge">
+    <label>Edge</label>
+    <tip>submenu for the edge</tip>
+    <info>submenu for the edge</info>
+  </data>
+  <data name="MenuId.Face">
+    <label>Face</label>
+    <tip>submenu for the face</tip>
+    <info>submenu for the face</info>
+  </data>
+  <data name="MenuId.Shell">
+    <label>Shell</label>
+    <tip>submenu for the shell</tip>
+    <info>submenu for the shell</info>
+  </data>
+  <data name="MenuId.Solid">
+    <label>Solid</label>
+    <tip>submenu for the solid</tip>
+    <info>submenu for the solid</info>
+  </data>
+  <data name="DistanceTo.Mode">
+    <label>Direction</label>
+    <tip>direction of the change</tip>
+    <info>direction of the change</info>
+  </data>
+  <data name="DistanceTo.Mode.Values">
+    <label>|forward|symmetric|backward</label>
+  </data>
+  <data name="DistanceTo.Distance">
+    <label>Distance</label>
+    <tip>distance to the other object</tip>
+    <info>distance to the other object</info>
+  </data>
+  <data name="DistanceTo.OtherObject">
+    <label>Select other object</label>
+    <tip>select other object (vertex, edge or face) for the distance</tip>
+    <info>select other object (vertex, edge or face) for the distance</info>
+  </data>
+  <data name="Constr.Parametrics.DistanceTo">
+    <label>Change the distance between two parts of a solid</label>
   </data>
 </root>

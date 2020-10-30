@@ -46,7 +46,7 @@ namespace CADability.Attribute
         /// <summary>
         /// Category of objects to provide different default styles
         /// </summary>
-        public enum EDefaultFor { Curves = 1, Solids = 2, Text = 4, Dimension = 8 }
+        public enum EDefaultFor { Curves = 1, Solids = 2, Text = 4, Dimension = 8, HiddenSolids = 16, Axis = 32 }
         private EDefaultFor defaultFor;
         private LineWidthSelectionProperty selectLineWidth;
         private HatchStyleSelectionProperty selectHatchStyle;
@@ -738,6 +738,16 @@ namespace CADability.Attribute
                     else SetDefaultFor(EDefaultFor.Dimension);
                     parent.CheckDefault(this);
                     return true;
+                case "MenuId.StyleEntry.DefaultForHiddenSolids":
+                    if (IsDefaultFor(EDefaultFor.HiddenSolids)) RemoveDefaultFor(EDefaultFor.HiddenSolids);
+                    else SetDefaultFor(EDefaultFor.HiddenSolids);
+                    parent.CheckDefault(this);
+                    return true;
+                case "MenuId.StyleEntry.DefaultForAxis":
+                    if (IsDefaultFor(EDefaultFor.Axis)) RemoveDefaultFor(EDefaultFor.Axis);
+                    else SetDefaultFor(EDefaultFor.Axis);
+                    parent.CheckDefault(this);
+                    return true;
             }
             return false;
         }
@@ -756,6 +766,12 @@ namespace CADability.Attribute
                     return true;
                 case "MenuId.StyleEntry.DefaultForDimension":
                     CommandState.Checked = IsDefaultFor(EDefaultFor.Dimension);
+                    return true;
+                case "MenuId.StyleEntry.DefaultForHiddenSolids":
+                    CommandState.Checked = IsDefaultFor(EDefaultFor.HiddenSolids);
+                    return true;
+                case "MenuId.StyleEntry.DefaultForAxis":
+                    CommandState.Checked = IsDefaultFor(EDefaultFor.Axis);
                     return true;
             }
             return false;
@@ -1005,7 +1021,7 @@ namespace CADability.Attribute
             }
             return res;
         }
-#region Properties
+        #region Properties
         public LayerList LayerList
         {
             get
@@ -1043,8 +1059,8 @@ namespace CADability.Attribute
             }
         }
 
-#endregion
-#region IShowPropertyImpl Overrides
+        #endregion
+        #region IShowPropertyImpl Overrides
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
@@ -1117,7 +1133,7 @@ namespace CADability.Attribute
         {
             return this.Clone();
         }
-#endregion
+        #endregion
         void IJsonSerialize.GetObjectData(IJsonWriteData data)
         {
             Style[] styleArray = new Style[styles.Count];
@@ -1153,7 +1169,7 @@ namespace CADability.Attribute
             if (current == null && styles.Count > 0) current = styles.GetByIndex(0) as Style;
         }
 
-#region ISerializable Members
+        #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -1190,8 +1206,8 @@ namespace CADability.Attribute
             info.AddValue("UnsortedEntries", styleArray);
             info.AddValue("Current", current);
         }
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
             if (unsortedEntries != null)
@@ -1208,8 +1224,8 @@ namespace CADability.Attribute
             foreach (Style st in styles.Values) st.Parent = this;
             if (current == null && styles.Count > 0) current = styles.GetByIndex(0) as Style;
         }
-#endregion
-#region IAttributeList Members
+        #endregion
+        #region IAttributeList Members
 
         void IAttributeList.Add(INamedAttribute toAdd)
         {
@@ -1294,7 +1310,7 @@ namespace CADability.Attribute
                 return current as INamedAttribute;
             }
         }
-#endregion
+        #endregion
         private void OnNewStyle()
         {
             string NewStyleName = StringTable.GetString("StyleList.NewStyleName");
@@ -1324,7 +1340,7 @@ namespace CADability.Attribute
             propertyTreeView.Refresh(this);
             propertyTreeView.StartEditLabel(showProperties[styles.IndexOfKey(NewStyleName)] as IPropertyEntry);
         }
-#region ICommandHandler Members
+        #region ICommandHandler Members
         private void OnAddFromGlobal()
         {
             foreach (Style l in Settings.GlobalSettings.StyleList.styles.Values)
@@ -1459,6 +1475,8 @@ namespace CADability.Attribute
                     if (style.IsDefaultFor(Style.EDefaultFor.Dimension)) st.RemoveDefaultFor(Style.EDefaultFor.Dimension);
                     if (style.IsDefaultFor(Style.EDefaultFor.Solids)) st.RemoveDefaultFor(Style.EDefaultFor.Solids);
                     if (style.IsDefaultFor(Style.EDefaultFor.Text)) st.RemoveDefaultFor(Style.EDefaultFor.Text);
+                    if (style.IsDefaultFor(Style.EDefaultFor.HiddenSolids)) st.RemoveDefaultFor(Style.EDefaultFor.HiddenSolids);
+                    if (style.IsDefaultFor(Style.EDefaultFor.Axis)) st.RemoveDefaultFor(Style.EDefaultFor.Axis);
                 }
             }
         }

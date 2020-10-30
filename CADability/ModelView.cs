@@ -99,7 +99,7 @@ namespace CADability
         /// </summary>
         /// <param name="contextMenu"></param>
         /// <param name="viewPosition"></param>
-        void ShowContextMenu(MenuWithHandler[] contextMenu, System.Drawing.Point viewPosition);
+        void ShowContextMenu(MenuWithHandler[] contextMenu, System.Drawing.Point viewPosition, System.Action<int> collapsed = null);
         DragDropEffects DoDragDrop(GeoObjectList dragList, DragDropEffects all);
         /// <summary>
         /// Show a tooltip with the provided text.

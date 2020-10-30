@@ -1470,7 +1470,7 @@ namespace CADability
             uv2 = new GeoPoint2D(result[2], result[3]);
             return minError;
         }
-        public static double SurfaceCurveExtrema(ISurface surface1, BoundingRect bounds1, ICurve surface2, double curveUmin, double curveUmax, ref GeoPoint2D uv1, ref double u2)
+        public static double SurfaceCurveExtrema(ISurface surface1, BoundingRect bounds1, ICurve curve2, double curveUmin, double curveUmax, ref GeoPoint2D uv1, ref double u2)
         {
             // see extremaSurfaces.wxmx
             // parameters uv1.x, uv1.y, uv2.x, uv2.y
@@ -1495,10 +1495,10 @@ namespace CADability
                 GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
                 double us2 = parameters[2];
                 GeoPoint s = surface1.PointAt(uvs1);
-                GeoPoint r = surface2.PointAt(us2);
+                GeoPoint r = curve2.PointAt(us2);
                 GeoVector sdu = surface1.UDirection(uvs1);
                 GeoVector sdv = surface1.VDirection(uvs1);
-                GeoVector rds = surface2.DirectionAt(us2);
+                GeoVector rds = curve2.DirectionAt(us2);
 
                 // according to extremaSurfaceCurve.wxmx
                 values[0] = (s.z - r.z) * sdu.z + (s.y - r.y) * sdu.y + (s.x - r.x) * sdu.x;
@@ -1511,10 +1511,10 @@ namespace CADability
                 GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
                 double us2 = parameters[2];
                 surface1.Derivation2At(uvs1, out GeoPoint s, out GeoVector sdu, out GeoVector sdv, out GeoVector sduu, out GeoVector sdvv, out GeoVector sdudv);
-                if (!surface2.TryPointDeriv2At(us2, out GeoPoint r, out GeoVector rds, out GeoVector rdss))
+                if (!curve2.TryPointDeriv2At(us2, out GeoPoint r, out GeoVector rds, out GeoVector rdss))
                 {
-                    r = surface2.PointAt(us2);
-                    rds = surface2.DirectionAt(us2);
+                    r = curve2.PointAt(us2);
+                    rds = curve2.DirectionAt(us2);
                     rdss = GeoVector.NullVector; // ?? shold not be used, ok for lines
                 }
 
@@ -1527,7 +1527,6 @@ namespace CADability
                 // (\((?>\((?<c>)|[^()]+|\)(?<-c>))*(?(c)(?!))\))\^2 -> sqr$1  
                 // , -> \r\n
                 // ([rs])([xyz]) -> $1.$2
-
 
                 // according to extremaSurfaces2.wxmx
                 derivs[0, 0] = (s.z - r.z) * sduu.z + sqr(sdu.z) + (s.y - r.y) * sduu.y + sqr(sdu.y) + (s.x - r.x) * sduu.x + sqr(sdu.x);

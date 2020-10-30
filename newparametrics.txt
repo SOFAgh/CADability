@@ -1,0 +1,14 @@
+20.10.2020: Neues Menue-Konzept:
+
+Rechtsklick wird neu interpretiert. Ein Kontextmenue für Ecken, Kanten, Flächen, Schalen und Körper
+
+Ecken: Koordinaten Nullpunkt, Abstand zu...
+Kanten: weitere Kanten markieren, Abstand zu...
+Flächen: weitere Flächen markieren, Abstand zu..., Feature 1..n
+Schale (nur wenn nicht Bestandteil von Solid): zu Solid (wenn geschlossen), offene Kanten anzeigen (wenn offen), 
+Körper: mit allen vereinigen, von allen abziehen, mit allen aufteilen, vereinigen mit, abziehen von, schneiden mit, aufteilen mit
+
+allgemein: Achsen anzeigen
+
+
+

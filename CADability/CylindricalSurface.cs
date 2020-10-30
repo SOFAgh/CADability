@@ -277,6 +277,26 @@ namespace CADability.GeoObject
             }
             return res;
         }
+        public override ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)
+        {   // this is a general implementation, which is good when Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds) is implemented. Should be used in base class
+            ICurve[] res = Intersect(thisBounds, other, otherBounds);
+            if (res!=null)
+            {
+                double mindist = double.MaxValue;
+                int found = -1;
+                for (int i = 0; i < res.Length; i++)
+                {
+                    double dist = res[i].DistanceTo(seed);
+                    if (dist < mindist)
+                    {
+                        mindist = dist;
+                        found = i;
+                    }
+                }
+                if (found >= 0) return res[found];
+            }
+            return base.Intersect(thisBounds, other, otherBounds, seed);
+        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.Intersect (BoundingRect, ISurface, BoundingRect)"/>
         /// </summary>
@@ -2135,6 +2155,23 @@ namespace CADability.GeoObject
             extremePositions = null;
             return -1; // means: no implementation for this combination
         }
+        public override bool IsExtruded(GeoVector direction)
+        {
+            return Precision.SameDirection(Axis, direction, false);
+        }
+        public override MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face)
+        {
+            MenuWithHandler mhRadius = new MenuWithHandler();
+            mhRadius.ID = "MenuId.Parametrics.Cylinder.Radius";
+            mhRadius.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Radius", StringTable.Category.label);
+            mhRadius.Target = new ParametricsRadius(face, frame);
+            MenuWithHandler mhDiameter = new MenuWithHandler();
+            mhDiameter.ID = "MenuId.Parametrics.Cylinder.Diameter";
+            mhDiameter.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Diameter", StringTable.Category.label);
+            mhDiameter.Target = new ParametricsRadius(face, frame);
+            return new MenuWithHandler[] { mhRadius, mhDiameter };
+        }
+
         #endregion
         #region ISerializable Members
         protected CylindricalSurface(SerializationInfo info, StreamingContext context) : base()

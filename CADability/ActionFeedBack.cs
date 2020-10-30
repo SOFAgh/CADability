@@ -107,11 +107,13 @@ namespace CADability.Actions
         /// You could also implement your own IFeedBack objects.
         /// </summary>
         /// <param name="feedBackObject">the object to show</param>
-        public void Add(IFeedBack feedBackObject)
+        /// <returns>the index in the list, may be used for <see cref="Remove(int)"/></returns>
+        public int Add(IFeedBack feedBackObject)
         {
             repaintObjects.Add(feedBackObject);
             feedBackObject.FeedBackChangedEvent += new FeedBackChangedDelegate(OnFeedBackChanged);
             OnFeedBackChanged(feedBackObject);
+            return repaintObjects.Count - 1;
         }
 
         void OnFeedBackChanged(IFeedBack sender)
@@ -172,11 +174,13 @@ namespace CADability.Actions
         /// in the select color and the select display mode.
         /// </summary>
         /// <param name="feedBackObject">Object to add</param>
-        public void AddSelected(IGeoObject feedBackObject)
+        /// <returns>the index in the list, may be used for <see cref="RemoveSelected(int)"/></returns>
+        public int AddSelected(IGeoObject feedBackObject)
         {
             paintAsSelected.Add(feedBackObject);
             (feedBackObject as IFeedBack).FeedBackChangedEvent += new FeedBackChangedDelegate(OnFeedBackChanged);
             OnFeedBackChanged(feedBackObject as IFeedBack);
+            return paintAsSelected.Count - 1;
         }
         /// <summary>
         /// Removes the provided and previously added object from the list of "display as selected" objects

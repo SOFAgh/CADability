@@ -74,6 +74,10 @@ namespace CADability.Forms
         {
             base.Dispose(disposing);
         }
+        protected override void OnCollapse(EventArgs e)
+        {
+            base.OnCollapse(e);
+        }
         public void SetCommandHandler(ICommandHandler hc)
         {
             foreach (MenuItem mi in MenuItems)

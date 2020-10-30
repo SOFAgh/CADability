@@ -172,6 +172,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <returns>list of u singularities</returns>
         double[] GetUSingularities();
+
         /// <summary>
         /// returns the values for the v parameter where this surface is singular i.e. changing
         /// u with this v parameter fixed doesn't change the 3D point.
@@ -439,11 +440,32 @@ namespace CADability.GeoObject
         /// <returns></returns>
         int GetExtremePositions(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
         /// <summary>
+        /// Find positions on the surface and on the curve where the connection of these points are perpendicular to the surface and to the curve
+        /// </summary>
+        /// <param name="domain">valid area for the surface</param>
+        /// <param name="curve3D">the curve</param>
+        /// <param name="positions">the positions found: first two doubles are u,v on the surface, third is u on the curve</param>
+        /// <returns></returns>
+        int GetExtremePositions(BoundingRect domain, ICurve curve3D, out List<Tuple<double, double, double>> positions);
+        /// <summary>
         /// Returns the distance of the provided point <paramref name="p"/> to the (unlimited) surface.
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
         double GetDistance(GeoPoint p);
+        /// <summary>
+        /// returns true, if the provided direction can be interpreted as an extrusion direction of the surface
+        /// </summary>
+        /// <param name="direction"></param>
+        /// <returns></returns>
+        bool IsExtruded(GeoVector direction);
+        /// <summary>
+        /// Returns a context menu to change certain parameters of the surface of a face
+        /// </summary>
+        /// <param name="frame"></param>
+        /// <param name="face"></param>
+        /// <returns></returns>
+        MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face);
     }
 
     /// <summary>
@@ -3646,9 +3668,29 @@ namespace CADability.GeoObject
             // else: search with different starting points
             return extremePositions.Count;
         }
+        public virtual int GetExtremePositions(BoundingRect domain, ICurve curve3D, out List<Tuple<double, double, double>> positions)
+        {   // to implement
+            positions = new List<Tuple<double, double, double>>();
+            GeoPoint2D uv1 = domain.GetCenter();
+            double  u2 = 0.5;
+            double maxerror = GaussNewtonMinimizer.SurfaceCurveExtrema(this, domain, curve3D, 0.0, 1.0, ref uv1, ref u2);
+            if (maxerror < Precision.eps)
+            {
+                positions.Add(new Tuple<double, double, double>(uv1.x, uv1.y, u2));
+            }
+            return positions.Count;
+        }
         public virtual double GetDistance(GeoPoint p)
         {
             return PointAt(PositionOf(p)) | p;
+        }
+        public virtual bool IsExtruded(GeoVector direction)
+        {
+            return false;
+        }
+        public virtual MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face)
+        {
+            return new MenuWithHandler[0];
         }
 
 #if DEBUG
@@ -4529,10 +4571,13 @@ namespace CADability.GeoObject
                     }
                     else
                     {   // kein Zwischenpunkt, eigentlich Lage in bounds2 überprüfen
-                        if (elli.SweepParameter > Math.PI)
-                        {
-                            elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
-                        }
+                        GeoPoint2D tp = surface2.PositionOf(elli.PointAt(0.5));
+                        SurfaceHelper.AdjustPeriodic(surface2, bounds2, ref tp);
+                        if (tp.x < bounds2.Left || tp.x > bounds2.Right) elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
+                        //if (elli.SweepParameter > Math.PI)
+                        //{
+                        //    elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
+                        //}
                     }
                     return elli;
                 }
@@ -4569,7 +4614,10 @@ namespace CADability.GeoObject
                     }
                     else
                     {   // kein Zwischenpunkt, eigentlich Lage in bounds2 überprüfen
-                        if (elli.SweepParameter > Math.PI)
+                        GeoPoint2D tst = surface2.PositionOf(elli.PointAt(0.5));
+                        SurfaceHelper.AdjustPeriodic(surface2, bounds2, ref tst);
+                        if (!bounds2.Contains(tst))
+                        //if (elli.SweepParameter > Math.PI)
                         {
                             elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
                         }
@@ -4630,6 +4678,19 @@ namespace CADability.GeoObject
             }
             if (tangential)
             {
+                ICurve res = surface1.Intersect(bounds1, surface2, bounds2, points[0]);
+                if (res != null)
+                {
+                    if (points.Count == 2)
+                    {   // these are supposed to be start- and endpoint of the curve
+                        // better return all of the curve, used in this way by Parametrics
+                        //if ((res.StartPoint | points[0]) + (res.EndPoint | points[1]) > (res.StartPoint | points[1]) + (res.EndPoint | points[0])) res.Reverse();
+                        //// maybe we have to trimm here
+                        //res.StartPoint = points[0];
+                        //res.EndPoint = points[1];
+                    }
+                    return res;
+                }
                 return null; // tangentiale Flächen können keine dualsurfacecurve haben, das konvergiert nicht
             }
             {
@@ -4663,7 +4724,7 @@ namespace CADability.GeoObject
                 bounds2.MinMax(paramsuvsurf2[j]);
             }
             IDualSurfaceCurve[] dscs = surface1.GetDualSurfaceCurves(bounds1, surface2, bounds2, points, null);
-            
+
             if (points.Count > paramsuvsurf1.Length)
             {   // there were points added by GetDualSurfaceCurves
                 paramsuvsurf1 = new GeoPoint2D[points.Count];

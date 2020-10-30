@@ -60,7 +60,7 @@ namespace CADability.Forms
         private ToolTip toolTip;
         private string currenToolTip;
         private string currentCursor;
-
+        private Action<int> callbackCollapsed;
         public CadCanvas() : base()
         {
             toolTip = new ToolTip();
@@ -149,12 +149,23 @@ namespace CADability.Forms
         {
             return this.PointToClient(mousePosition);
         }
-        void ICanvas.ShowContextMenu(MenuWithHandler[] contextMenu, System.Drawing.Point viewPosition)
+        void ICanvas.ShowContextMenu(MenuWithHandler[] contextMenu, System.Drawing.Point viewPosition, Action<int> collapsed)
         {
             ContextMenuWithHandler cm = MenuManager.MakeContextMenu(contextMenu);
+            ContextMenu = cm; // need to set this in order to get the Collapse event
+            callbackCollapsed = collapsed;
+            cm.Collapse += Cm_Collapse;
             cm.UpdateCommand();
             cm.Show(this, viewPosition);
         }
+
+        private void Cm_Collapse(object sender, EventArgs e)
+        {
+            ContextMenu = null;
+            callbackCollapsed?.Invoke(0);
+            callbackCollapsed = null;
+        }
+
         Substitutes.DragDropEffects ICanvas.DoDragDrop(GeoObjectList dragList, Substitutes.DragDropEffects all)
         {
             return (CADability.Substitutes.DragDropEffects)DoDragDrop(dragList, (DragDropEffects)all);

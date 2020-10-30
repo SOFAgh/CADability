@@ -5159,6 +5159,16 @@ namespace CADability.GeoObject
 #endif
             return res;
         }
+        /// <summary>
+        /// This surface modification leaves the face in an invalid state, the edges muste be modified accordingly
+        /// </summary>
+        /// <param name="m"></param>
+        internal void ModifySurfaceOnly(ModOp m)
+        {
+            BoundingRect ext = (surface as ISurfaceImpl).usedArea;
+            surface = surface.GetModified(m);
+            (surface as ISurfaceImpl).usedArea = ext; // needed for BoxedSurface
+        }
         public void ModifySurface(ModOp m)
         {
             // ususally called from Shell, which modifies the edges seperately
@@ -10556,6 +10566,33 @@ namespace CADability.GeoObject
                 }
                 return af;
             }
+        }
+        /// <summary>
+        /// Returns a menu, which is shown when there is a right click on the face
+        /// </summary>
+        /// <param name="frame"></param>
+        /// <returns></returns>
+        internal MenuWithHandler[] GetContextMenu(IFrame frame)
+        {
+            MenuWithHandler mhdist = new MenuWithHandler();
+            mhdist.ID = "MenuId.Parametrics.DistanceTo";
+            mhdist.Text = StringTable.GetString("MenuId.Parametrics.DistanceTo", StringTable.Category.label);
+            mhdist.Target = new ParametricsDistance(this, frame);
+            MenuWithHandler mhsel = new MenuWithHandler();
+            mhsel.ID = "MenuId.Selection.Set";
+            mhsel.Text = StringTable.GetString("MenuId.Selection.Set", StringTable.Category.label);
+            mhsel.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
+            MenuWithHandler mhadd = new MenuWithHandler();
+            mhadd.ID = "MenuId.Selection.Add";
+            mhadd.Text = StringTable.GetString("MenuId.Selection.Add", StringTable.Category.label);
+            mhadd.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
+            MenuWithHandler[] parametrixCtxMenu = Surface.GetContextMenuForParametrics(frame, this);
+            List<MenuWithHandler> res = new List<MenuWithHandler>();
+            res.Add(mhdist);
+            res.AddRange(parametrixCtxMenu);
+            res.Add(mhsel);
+            res.Add(mhadd);
+            return res.ToArray();
         }
     }
 }

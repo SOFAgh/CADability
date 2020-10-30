@@ -15,6 +15,9 @@ namespace CADability.Forms
      * Step by Step implement missing methods (copy implementation from SingleDocumentFrame) 
      * and remove interface methods from IFrame with "#if KO" ...
      */
+    /// <summary>
+    /// Implementation of the abstract FrameImpl, doing things, you cannot do in .NET Core
+    /// </summary>
     public class CadFrame : FrameImpl, IUIService
     {
         private readonly CadCanvas cadCanvas;

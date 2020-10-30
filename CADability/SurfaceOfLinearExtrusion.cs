@@ -622,6 +622,10 @@ namespace CADability.GeoObject
             umin = curveStartParameter;
             umax = curveEndParameter;
         }
+        public override bool IsExtruded(GeoVector direction)
+        {
+            return Precision.SameDirection(this.direction, direction, false);
+        }
 #if DEBUG
         public override GeoObjectList DebugGrid
         {

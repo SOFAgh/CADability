@@ -1872,7 +1872,7 @@ namespace CADability
                 uv1 = basePoints[ind].psurface1 + d * (basePoints[ind + 1].psurface1 - basePoints[ind].psurface1);
                 uv2 = basePoints[ind].psurface2 + d * (basePoints[ind + 1].psurface2 - basePoints[ind].psurface2);
                 if (approxPolynom == null) InitApproxPolynom();
-                if (approxPolynom != null)
+                if (approxPolynom != null && basePoints.Length>2)
                 {
                     GeoPoint pp = approxPolynom.PointAt(position);
                     uv1 = surface1.PositionOf(pp);

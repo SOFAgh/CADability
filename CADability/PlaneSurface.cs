@@ -222,6 +222,15 @@ namespace CADability.GeoObject
             if (toUnitPlane.IsNull) toUnitPlane = fromUnitPlane.GetInverse();
             return (toUnitPlane * p).To2D();
         }
+        public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
+        {
+            location = PointAt(uv);
+            du = UDirection(uv);
+            dv = VDirection(uv);
+            duu = GeoVector.NullVector;
+            duv = GeoVector.NullVector;
+            dvv = GeoVector.NullVector;
+        }
         public override bool IsUPeriodic { get { return false; } }
         public override bool IsVPeriodic { get { return false; } }
         public override double UPeriod { get { return 0.0; } }
@@ -716,7 +725,10 @@ namespace CADability.GeoObject
             extremePositions = null;
             return -1; // means: no implementation for this combination
         }
-
+        public override bool IsExtruded(GeoVector direction)
+        {
+            return Precision.IsPerpendicular(Normal, direction, false);
+        }
         #endregion
         #region ISerializable Members
         protected PlaneSurface(SerializationInfo info, StreamingContext context)

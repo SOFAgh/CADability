@@ -5374,5 +5374,23 @@ namespace CADability.GeoObject
                 return cs;
             }
         }
+
+        /// <summary>
+        /// Returns a menu, which is shown when there is a right click on the face
+        /// </summary>
+        /// <param name="frame"></param>
+        /// <returns></returns>
+        internal MenuWithHandler[] GetContextMenu(IFrame frame)
+        {
+            MenuWithHandler mhsel = new MenuWithHandler();
+            mhsel.ID = "MenuId.Selection.Set";
+            mhsel.Text = StringTable.GetString("MenuId.Selection.Set", StringTable.Category.label);
+            mhsel.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
+            MenuWithHandler mhadd = new MenuWithHandler();
+            mhadd.ID = "MenuId.Selection.Add";
+            mhadd.Text = StringTable.GetString("MenuId.Selection.Add", StringTable.Category.label);
+            mhadd.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
+            return new MenuWithHandler[] { mhsel, mhadd };
+        }
     }
 }

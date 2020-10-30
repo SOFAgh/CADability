@@ -175,6 +175,47 @@ namespace CADability.Actions
         #endregion
     }
 
+    internal class SetSelection: ICommandHandler
+    {
+        IGeoObject toSelect;
+        SelectObjectsAction selectObjectsAction;
+        public SetSelection(IGeoObject toSelect, SelectObjectsAction selectObjectsAction)
+        {
+            this.toSelect = toSelect;
+            this.selectObjectsAction = selectObjectsAction;
+        }
+
+        public bool OnCommand(string MenuId)
+        {
+            switch (MenuId)
+            {
+                case "MenuId.Selection.Set":
+                    selectObjectsAction.SetSelectedObjects(new GeoObjectList(toSelect));
+                    return true;
+                case "MenuId.Selection.Add":
+                    selectObjectsAction.AddSelectedObject(toSelect);
+                    return true;
+            }
+            return false;
+        }
+
+        public void OnSelected(string MenuId, bool selected)
+        {
+        }
+
+        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        {
+            switch (MenuId)
+            {
+                case "MenuId.Selection.Set":
+                    return true;
+                case "MenuId.Selection.Add":
+                    return true;
+            }
+            return false;
+        }
+    }
+
     /// <summary>
     /// The <see cref="Action"/> used to select GeoObjects of a (visible) <see cref="Model"/>.
     /// Mouseclicks in the view are used to determine which objects should be selected. The user
@@ -248,6 +289,10 @@ namespace CADability.Actions
             dragDrop = true;
             base.ViewType = typeof(IActionInputView); // arbeitet nur auf ModelView Basis
             pickMode = PickMode.normal;
+#if TESTNEWCONTEXTMENU
+            SelectActionContextMenu sacm = new SelectActionContextMenu(this);
+            FilterMouseMessagesEvent += sacm.FilterMouseMessages;
+#endif
         }
 
         void OnFocusedObjectChanged(SelectedObjectsProperty sender, IGeoObject focused)

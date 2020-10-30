@@ -493,14 +493,17 @@ namespace CADability.GeoObject
                     elli1.SweepParameter = vmax - vmin;
                     elli1.StartParameter = vmin;
                     elli1.Modify(toTorus);
+                    GeoPoint2D tst1 = PositionOf(elli1.PointAt(0.5));
                     ICurve2D c2dpl1 = pl.GetProjectedCurve(elli1, 0.0); // must be a circle (Ellipse)
                     ICurve2D c2dtr1 = new Line2D(PositionOf(elli1.StartPoint), PositionOf(elli1.EndPoint));
                     DualSurfaceCurve dsc1 = new DualSurfaceCurve(elli1, this, c2dtr1, pl, c2dpl1);
                     //Der Zweite Kreis
                     Ellipse elli2 = Ellipse.Construct();
                     elli2.SetEllipseCenterAxis(new GeoPoint(-v.x, -v.y, 0), -minorRadius * v, minorRadius * GeoVector.ZAxis);
+                    elli2.StartParameter = vmin;
                     elli2.SweepParameter = vmax - vmin;
                     elli2.Modify(toTorus);
+                    GeoPoint2D tst2 = PositionOf(elli1.PointAt(0.5));
                     ICurve2D c2dpl2 = pl.GetProjectedCurve(elli2, 0.0); // must be a circle (Ellipse)
                     ICurve2D c2dtr2 = new Line2D(PositionOf(elli2.StartPoint), PositionOf(elli2.EndPoint));
                     DualSurfaceCurve dsc2 = new DualSurfaceCurve(elli2, this, c2dtr2, pl, c2dpl2);

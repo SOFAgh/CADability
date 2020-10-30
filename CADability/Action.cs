@@ -690,7 +690,12 @@ namespace CADability.Actions
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        /// <summary>
+        /// Override if your action needs to handle menu selection changes (very rare)
+        /// </summary>
+        /// <param name="MenuId"></param>
+        /// <param name="selected"></param>
+        public virtual void OnSelected(string MenuId, bool selected) { }
         #endregion
     }
 

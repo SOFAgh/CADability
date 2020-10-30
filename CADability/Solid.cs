@@ -236,9 +236,21 @@ namespace CADability.GeoObject
         }
         public void SetShell(Shell sh)
         {
-            shells = new Shell[] { sh };
-            sh.Owner = this;
-            edges = null;
+            if (Shells != null && Shells.Length > 0)
+            {
+                using (new Changing(this, "SetShell", Shells[0]))
+                {
+                    shells = new Shell[] { sh };
+                    sh.Owner = this;
+                    edges = null;
+                }
+            }
+            else
+            {
+                shells = new Shell[] { sh };
+                sh.Owner = this;
+                edges = null;
+            }
         }
         public static Solid MakeSolid(Shell sh)
         {
@@ -957,6 +969,24 @@ namespace CADability.GeoObject
             int brep = export.WriteDefinition("ADVANCED_BREP_SHAPE_REPRESENTATION('" + NameOrEmpty + "', ( #" + msb.ToString() + "), #4 )");
             export.WriteDefinition("SHAPE_DEFINITION_REPRESENTATION( #" + pds.ToString() + ", #" + brep.ToString() + ")");
             return brep;
+        }
+
+        /// <summary>
+        /// Returns a menu, which is shown when there is a right click on the solid
+        /// </summary>
+        /// <param name="frame"></param>
+        /// <returns></returns>
+        internal MenuWithHandler[] GetContextMenu(IFrame frame)
+        {
+            MenuWithHandler mhsel = new MenuWithHandler();
+            mhsel.ID = "MenuId.Selection.Set";
+            mhsel.Text = StringTable.GetString("MenuId.Selection.Set", StringTable.Category.label);
+            mhsel.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
+            MenuWithHandler mhadd = new MenuWithHandler();
+            mhadd.ID = "MenuId.Selection.Add";
+            mhadd.Text = StringTable.GetString("MenuId.Selection.Add", StringTable.Category.label);
+            mhadd.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
+            return new MenuWithHandler[] { mhsel, mhadd };
         }
     }
 }

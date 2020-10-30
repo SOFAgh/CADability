@@ -4567,6 +4567,7 @@ namespace CADability.Actions
             public bool EdgesOnly;
             public bool FacesOnly;
             public bool MultipleInput;
+            public System.Drawing.Point currentMousePoint;
             private IGeoObject[] geoObjects;
             private IGeoObject selectedGeoObject;
             /// <summary>
@@ -4685,10 +4686,11 @@ namespace CADability.Actions
                     }
                 }
                 System.Drawing.Point MousePoint = new System.Drawing.Point(e.X, e.Y);
-                GeoObjectList l;
-                if (EdgesOnly) l = constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleEdge);
-                else if (FacesOnly) l = constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleFace);
-                else l = constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.normal);
+                currentMousePoint = MousePoint;
+                GeoObjectList l = new GeoObjectList();
+                if (EdgesOnly) l.AddRange (constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleEdge));
+                if (FacesOnly) l.AddRange(constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleFace));
+                if (!FacesOnly&&!EdgesOnly) l = constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.normal);
                 ArrayList c = new ArrayList();
                 for (int i = 0; i < l.Count; ++i)
                 {

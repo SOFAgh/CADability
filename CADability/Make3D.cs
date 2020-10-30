@@ -1008,7 +1008,14 @@ namespace CADability.GeoObject
             }
             throw new NotImplementedException();
         }
-
+        /// <summary>
+        /// Extrude a curve along another curve. E.g. if you extrude a circle along a line (which is perpendicular to the cirle plane) you will get a cylindrical face.
+        /// If the curve <paramref name="along"/> is planar, the curve <paramref name="toExtrude"/> will be only rotated around the plane's normal (and moved of course),
+        /// If the curve <paramref name="along"/> is not planar, there is no well difined way how to rotate the curve <paramref name="toExtrude"/>.
+        /// </summary>
+        /// <param name="toExtrude"></param>
+        /// <param name="along"></param>
+        /// <returns></returns>
         public static Face ExtrudeCurveToFace(ICurve toExtrude, ICurve along)
         {
             if (along.GetPlanarState() == PlanarState.UnderDetermined) // a line or a linear spline

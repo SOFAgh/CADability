@@ -155,6 +155,19 @@ namespace CADability
                 return res.ToArray();
             }
         }
+        public Set<Face> InvolvedFaces
+        {
+            get
+            {
+                Set<Face> res = new Set<Face>();
+                foreach (Edge edge in edges)
+                {
+                    res.Add(edge.PrimaryFace);
+                    if (edge.SecondaryFace != null) res.Add(edge.SecondaryFace);
+                }
+                return res;
+            }
+        }
         public Set<Edge> AllEdges
         {
             get

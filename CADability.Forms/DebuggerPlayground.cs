@@ -39,10 +39,29 @@ namespace CADability.Forms
             {
                 //ExtendBSpline();
                 //SomeTestCode();
-                TestVoxelTree();
+                //TestVoxelTree();
+                TestParametrics();
                 return true;
             }
             return false;
+        }
+
+        private void TestParametrics()
+        {
+            if (frame.SelectedObjects.Count==1 && frame.SelectedObjects[0] is Face face && face.Owner is Shell shell)
+            {
+                Parametrics pm = new Parametrics(shell);
+                GeoVector offset = face.Surface.GetNormal(face.Domain.GetCenter());
+                offset.Length = 10;
+                pm.MoveFace(face, offset);
+                Shell res = pm.Result(out HashSet<Face> dumy);
+                if (res != null && shell.Owner is Solid sld)
+                {
+                    sld.SetShell(res);
+                }
+            }
+
+
         }
 
         public bool OnUpdateCommand(string MenuId, CommandState CommandState)

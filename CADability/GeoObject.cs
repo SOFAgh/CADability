@@ -310,7 +310,7 @@ namespace CADability.GeoObject
         /// control center.
         /// </summary>
         /// <param name="Frame">IFrame reference used to check settings</param>
-        /// <returns>propertes</returns>
+        /// <returns>properties</returns>
         IShowProperty GetShowProperties(IFrame Frame);
         /// <summary>
         /// Gets a list of <see cref="IShowProperty"/> objects that represent the non geometric
@@ -321,9 +321,8 @@ namespace CADability.GeoObject
         /// <returns>list of properties</returns>
         IShowProperty[] GetAttributeProperties(IFrame Frame);
         /// <summary>
-        /// <summary>
         /// Returns a bounding cube of the object. The object must fir into this cube. 
-        /// There may be a smaller cube that contains the object if it is to expensiv to
+        /// There may be a smaller cube that contains the object if it is to expensive to
         /// calculate the exact cube.
         /// </summary>
         /// <returns>the bounding cube</returns>
