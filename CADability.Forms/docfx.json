@@ -60,7 +60,7 @@
         ]
       }
     ],
-    "dest": "_site",
+    "dest": "../../CADabilityFormsDoc",
     "template": [
       "default"
     ]

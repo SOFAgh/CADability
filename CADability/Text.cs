@@ -2461,8 +2461,8 @@ namespace CADability.GeoObject
             }
         }
         /// <summary>
-        /// Gets or sets the location of the text. The value of this point is interpretd according to the values of the
-        /// <see cref="Alingnement"/> and <see cref="LineAlignement"/> properties.
+        /// Gets or sets the location of the text. The value of this point is interpreted according to the values of the
+        /// <see cref="Alignment"/>and <see cref="LineAlignment"/> properties.
         /// </summary>
         public GeoPoint Location
         {
