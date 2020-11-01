@@ -153,7 +153,7 @@ namespace CADability
         }
         /// <summary>
         /// Creates a new AnimatedView object. In oder to display this view on the screen you need to add this view to a
-        /// <see cref="SingleDocumentFrame"/> and set it as the <see cref="SingleDocumentFrame.ActiveView"/>.
+        /// <see cref="IFrame"/> and set it as the <see cref="IFrame.ActiveView"/>.
         /// </summary>
         /// <param name="project">The project that contains the lists of all schedules (if needed)</param>
         /// <param name="model">The model that is displayed and contains the list of all drives</param>

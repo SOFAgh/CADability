@@ -1616,7 +1616,7 @@ namespace CADability
         /// <summary>
         /// Returns the 2-dimensional curve of this edge in the u/v system of the surface of the given face.
         /// If this curve has two different representations on the provided Face (which is the case for a seam 
-        /// on a periodic surface) then a representation is returned, which is not in the provided array <paramref name="doNotReturn"/.>
+        /// on a periodic surface) then a representation is returned, which is not in the provided array <paramref name="doNotReturn"/>.
         /// </summary>
         /// <param name="onThisFace">Face, on which the 2d curve resides</param>
         /// <param name="doNotReturn">List of curves which should not be returned</param>
@@ -1761,7 +1761,7 @@ namespace CADability
 
         /// <summary>
         /// Checks the orientation of this edge. The curve of this edge (<see cref="Curve3D"/>) has a 
-        /// orientation (<see cref="ICurve3D.StartPoint"/> and <see cref="ICurve3D.EndPoint"/>). The corresponding 2d curves on the face are also oriented,
+        /// orientation (<see cref="ICurve.StartPoint"/> and <see cref="ICurve.EndPoint"/>). The corresponding 2d curves on the face are also oriented,
         /// so that seen from the outside the 2d curves are oriented counterclockwise. If the 3d curve orientation is the same as the 2d orientation on the
         /// provided face <paramref name="onThisFace"/>, then true is returned, otherwise false is returned.
         /// </summary>

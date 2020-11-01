@@ -87,7 +87,7 @@ namespace CADability
         }
     }
     /// <summary>
-    /// List objects (e.g. <see cref="HatchStylelist"/>) raise this event, when an
+    /// List objects (e.g. <see cref="Attribute.HatchStyleList"/>) raise this event, when an
     /// object is going to be removed. You may prevent this by setting the <see cref="RemovingFromListEventArgs.Refuse"/>
     /// member in <see cref="RemovingFromListEventArgs"/> to true.
     /// </summary>
