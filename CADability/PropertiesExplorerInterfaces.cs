@@ -240,7 +240,7 @@ namespace CADability.UserInterface
         bool DeferUpdate { get; set; }
         /// <summary>
         /// Only meaningful when <see cref="PropertyEntryType.ValueEditable"/> is set. 
-        /// If readonly is true, the value cannot be edited.
+        /// If read-only is true, the value cannot be edited.
         /// </summary>
         bool ReadOnly { get; set; }
     }

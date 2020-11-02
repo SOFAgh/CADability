@@ -410,6 +410,64 @@ namespace CADability
                 SetViewProperties();
             }
         }
+        public void AddView(IView toAdd)
+        {
+            if (toAdd is ModelView)
+            {
+                ModelView mv = toAdd as ModelView;
+                project.AddProjectedModel(mv.Name, mv.Model, mv.Projection);
+                modelViews.Add(mv.Name, mv);
+                SetViewProperties();
+            }
+            if (toAdd is AnimatedView)
+            {
+                project.AnimatedViews.Add(toAdd as AnimatedView);
+                animatedViews.Add(toAdd as AnimatedView);
+                SetViewProperties();
+            }
+            if (toAdd is GDI2DView)
+            {
+                project.GdiViews.Add(toAdd as GDI2DView);
+                gdiViews.Add(toAdd as GDI2DView);
+                SetViewProperties();
+            }
+            if (toAdd is LayoutView)
+            {
+                LayoutView lv = toAdd as LayoutView;
+                project.AddLayout(lv.Layout);
+                layoutViews.Add(lv.Layout.Name, lv);
+                SetViewProperties();
+            }
+        }
+        public void RemoveView(IView toRemove)
+        {
+            if (toRemove is AnimatedView)
+            {
+                project.AnimatedViews.Remove(toRemove as AnimatedView);
+                animatedViews.Remove(toRemove as AnimatedView);
+                SetViewProperties();
+            }
+            else if (toRemove is ModelView)
+            {
+                project.RemoveModelView(toRemove as ModelView);
+                modelViews.Remove((toRemove as ModelView).Name);
+                SetViewProperties();
+            }
+            else if (toRemove is GDI2DView)
+            {
+                project.GdiViews.Remove(toRemove as GDI2DView);
+                gdiViews.Remove(toRemove as GDI2DView);
+                SetViewProperties();
+            }
+            else if (toRemove is LayoutView)
+            {
+                LayoutView lv = toRemove as LayoutView;
+                project.RemoveLayout(lv.Layout);
+                layoutViews.Remove(lv.Layout.Name);
+                SetViewProperties();
+            }
+        }
+
 
         //public Control DisplayArea => throw new NotImplementedException();
 

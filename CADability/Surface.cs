@@ -495,15 +495,34 @@ namespace CADability.GeoObject
     /// </summary>
     internal interface ISurfaceOfExtrusion
     {
-        ICurve Axis { get; }
+        /// <summary>
+        /// The axis of extrusion. The axis must start at the bottom of the domain and go up to the top of the domain (or left and right, depending on <see cref="ExtrusionDirectionIsV"/>).
+        /// </summary>
+        ICurve Axis(BoundingRect domain);
         IOrientation Orientation { get; }
+        /// <summary>
+        /// The curve, which is moved along the axis, e.g. an arc, when this is a <see cref="CylindricalSurface"/>
+        /// </summary>
         ICurve ExtrudedCurve { get; }
         /// <summary>
-        /// the direction of extrusion is the v-parameter of the surface (when false, it is the u-parameter)
+        /// The direction of extrusion is the v-parameter of the surface (when false, it is the u-parameter)
         /// </summary>
         bool ExtrusionDirectionIsV { get; }
+        /// <summary>
+        /// Modify the axis to make it pass the provided <paramref name="throughPoint"/> (and stay parallel to the original axis)
+        /// </summary>
+        /// <param name="throughPoint"></param>
+        /// <returns>true, when possible</returns>
+        bool ModifyAxis(GeoPoint throughPoint);
     }
-
+    
+    /// <summary>
+    /// This surface interface is mainly for fillets
+    /// </summary>
+    internal interface ISurfaceOfArcExtrusion : ISurfaceOfExtrusion
+    {
+        double Radius { get; set; }
+    }
     public interface INonPeriodicSurfaceConversion
     {
         GeoPoint2D ToPeriodic(GeoPoint2D uv);

@@ -846,9 +846,6 @@
     <tip>Copyright and license information</tip>
     <info>Copyright and license information</info>
   </data>
-  <data name="MenuId.DebugTest">
-    <label>Internal test</label>
-  </data>
   <data name="MenuId.Object.MakePath">
     <label>Make path</label>
     <tip>Connect the selected objects to build a path</tip>

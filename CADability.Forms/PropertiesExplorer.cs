@@ -7,7 +7,7 @@ using System.Windows.Forms;
 namespace CADability.Forms
 {
 
-    internal class PropertiesExplorer : Control, IControlCenter
+    public class PropertiesExplorer : Control, IControlCenter
     {
         private List<PropertyPage> tabPages; // the TabPages with titleId and iconId
         TabControl tabControl; // the TabControl containing the tab pages
@@ -194,7 +194,7 @@ namespace CADability.Forms
         public void HideTextBox()
         {
             // we cannot call EntryWithTextBox.EndEdit, because we don't know, whether it was aborted or not.
-            // EntryWithTextBox.EndEdit must be called where Tab, Enter or click occures
+            // EntryWithTextBox.EndEdit must be called where Tab, Enter or click occurs
             if (EntryWithTextBox != null)
             {
                 PropertyPage pp = GetPropertyPage(EntryWithTextBox);
@@ -207,16 +207,16 @@ namespace CADability.Forms
         private void TextBox_KeyUp(object sender, KeyEventArgs e)
         {
             if (EntryWithTextBox != null && e.KeyCode != Keys.Tab && textBox.Modified)
-            {   // EditTextChanged fixes the input of a ConstructAction, i.e. the mousemove is not forwarded to this input any more
-                // so if you start entering text into a textbox you dont want the mousemovement to alter this text.
+            {   // EditTextChanged fixes the input of a ConstructAction, i.e. the mouse-move is not forwarded to this input any more
+                // so if you start entering text into a text-box you don't want the mouse-movement to alter this text.
                 // Now using the member variable textBoxIsUpdatingFromKeystroke, which is true, when a change happens because of a keystroke
-                // in the textbox.
+                // in the text-box.
                 textBoxIsUpdatingFromKeystroke = true;
                 try
                 {
                     bool ok = EntryWithTextBox.EditTextChanged(textBox.Text);
                     textBox.Modified = false; // so on EndEdit we do not update the same value twice
-                    // curly red underlines when ok is false?
+                    // curly red underlines when OK is false?
                 }
                 finally
                 {

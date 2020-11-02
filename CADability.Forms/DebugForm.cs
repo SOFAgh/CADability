@@ -28,7 +28,7 @@ namespace CADability.Forms
     /// <summary>
     /// This Form is almost identical to the MainForm. It is beeing created via reflection from CADability kernel and used to display CADability objects in a ModelView.
     /// </summary>
-    public class DebugForm : MainForm, IDebugForm
+    public class DebugForm : CadForm, IDebugForm
     {
         public DebugForm() : base(new string[] { })
         {
@@ -39,14 +39,14 @@ namespace CADability.Forms
         {
             base.OnShown(e);
             // zoom total and make all layers visible
-            ((cadFrame as IFrame).ActiveView as ModelView).ZoomTotal(1.1);
-            Layer[] vl = ((cadFrame as IFrame).ActiveView as ModelView).ProjectedModel.GetVisibleLayers();
+            ((CadFrame as IFrame).ActiveView as ModelView).ZoomTotal(1.1);
+            Layer[] vl = ((CadFrame as IFrame).ActiveView as ModelView).ProjectedModel.GetVisibleLayers();
             for (int i = 0; i < vl.Length; ++i)
             {
-                ((cadFrame as IFrame).ActiveView as ModelView).ProjectedModel.RemoveVisibleLayer(vl[i]);
+                ((CadFrame as IFrame).ActiveView as ModelView).ProjectedModel.RemoveVisibleLayer(vl[i]);
             }
             GeoPoint cnt = Model.Extent.GetCenter();
-            ((cadFrame as IFrame).ActiveView as ModelView).FixPoint = cnt;
+            ((CadFrame as IFrame).ActiveView as ModelView).FixPoint = cnt;
         }
         /// <summary>
         /// Gives the owner access to the model
@@ -55,11 +55,11 @@ namespace CADability.Forms
         {
             get
             {
-                return base.cadFrame.Project.GetActiveModel();
+                return base.CadFrame.Project.GetActiveModel();
             }
         }
         /// <summary>
-        /// Shwos this form as the context of the DialogVisualizer
+        /// Shows this form as the context of the DialogVisualizer
         /// </summary>
         /// <param name="windowService"></param>
         public void ShowDialog(IDialogVisualizerService windowService)

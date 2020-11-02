@@ -21,8 +21,10 @@ namespace CADability.Forms
                 MessageBox.Show(msg);
         }
     }
-
-    class PaintToOpenGL : IPaintTo3D
+    /// <summary>
+    /// Implementation of <see cref="IPaintTo3D"/> via OpenGL
+    /// </summary>
+    public class PaintToOpenGL : IPaintTo3D
     {
         #region IPaintTo3D data
         public static int debugNumTriangles = 0;

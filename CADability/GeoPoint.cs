@@ -1451,7 +1451,7 @@ namespace CADability
         /// <summary>
         /// Simple test, whether the vector is more horizontal than vertical
         /// </summary>
-        public bool IsHorizontal
+        public bool IsMoreHorizontal
         {
             get
             {

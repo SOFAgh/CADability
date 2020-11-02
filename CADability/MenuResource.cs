@@ -385,12 +385,6 @@ namespace CADability.UserInterface
                 {
                     newitem.MdiList = ml.Value == "true";
                 }
-#if (DEBUG) // wir nehemen hier TRACE und nicht DEBUG, denn TRACE ist auch im Release ausgeschaltet, bleibt aber an wenn man DEBUG mal ausschaltet
-                // VORSICHT, TRACE ist im Release auch an
-#else
-                    //if (MenuId == "MenuId.DebugTest") return; // brauchen wir nur in der DEbug Version
-                    if (MenuId == "MenuId.Import.BREP") return; // brauchen wir nur in der Debug Version
-#endif
                 if (newitem.Text != null && newitem.Text.Length > 0) MenuItems.Add(newitem);
             }
         }

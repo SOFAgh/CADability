@@ -846,9 +846,6 @@
     <tip>Informationen über Programm und Hersteller</tip>
     <info>Informationen über CADability dotNET, den Hersteller SOFA GmbH und verwendete Werkzeuge</info>
   </data>
-  <data name="MenuId.DebugTest">
-    <label>Interner Test</label>
-  </data>
   <data name="MenuId.Object.MakePath">
     <label>Pfad erzeugen</label>
     <tip>Objekte erzeugen Pfad</tip>

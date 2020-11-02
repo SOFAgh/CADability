@@ -766,6 +766,7 @@ namespace CADability.UserInterface
         public virtual void Added(IPropertyPage pp)
         {
             propertyPage = pp;
+            Parent = pp;
         }
         public virtual void Removed(IPropertyPage pp)
         {

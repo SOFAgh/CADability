@@ -295,7 +295,6 @@
       <MenuItem MenuId="MenuId.Help.Index" IconNr="97" Shortcut="F1" />"
       <MenuItem MenuId="SEPARATOR" />
       <MenuItem MenuId="MenuId.App.About" IconNr="99" />
-      <MenuItem MenuId="MenuId.DebugTest" />
     </Popup>
   </MainMenu>
 

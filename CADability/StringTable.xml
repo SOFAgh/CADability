@@ -1480,9 +1480,6 @@
   <data name="MenuId.App.About.DetailedInfo">
     <deutsch>Informationen über CADability dotNET, den Hersteller SOFA GmbH und verwendete Werkzeuge</deutsch>
   </data>
-  <data name="MenuId.DebugTest">
-    <deutsch>Interner Test</deutsch>
-  </data>
   <data name="MenuId.Window.List">
     <deutsch>Alle Fenster</deutsch>
   </data>
