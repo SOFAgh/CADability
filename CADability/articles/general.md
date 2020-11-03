@@ -9,3 +9,7 @@ For your first experience you can simply build and start the solution and try to
 by your own application or use only the CADability.dll to analyze some 3d models.
 
 Here is a quick overview of the [organizational classes](orgclass.html)
+
+This is an overview of the CAD [database](articles/database.html), the geometrical entities that make up a model.
+
+And this is the [complete table of contents](api/toc.html).
