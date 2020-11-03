@@ -12,7 +12,7 @@ namespace CADability.Forms
         private List<PropertyPage> tabPages; // the TabPages with titleId and iconId
         TabControl tabControl; // the TabControl containing the tab pages
         public IFrame Frame { get; set; }
-
+        HashSet<string> entriesToHide;
         public PropertiesExplorer()
         {
             tabPages = new List<PropertyPage>();
@@ -63,6 +63,8 @@ namespace CADability.Forms
             if (clr.A != 0) bmp.MakeTransparent(clr);
             imageList.Images.AddStrip(bmp);
             tabControl.ImageList = imageList;
+
+            entriesToHide = new HashSet<string>();
         }
 
         private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
@@ -445,6 +447,15 @@ namespace CADability.Forms
             }
         }
 
+        public void HideEntry(string entryId, bool hide)
+        {
+            if (hide) entriesToHide.Add(entryId);
+            else entriesToHide.Remove(entryId);
+        }
+        public bool isHidden(string entryId)
+        {
+            return entriesToHide.Contains(entryId);
+        }
         public IPropertyEntry EntryWithListBox { get; private set; }
         public IPropertyEntry EntryWithTextBox { get; private set; }
         public IPropertyEntry EntryWithLabelExtension { get; private set; }

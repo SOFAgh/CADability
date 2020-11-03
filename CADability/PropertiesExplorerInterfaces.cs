@@ -4,7 +4,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Printing;
 
-/* Connection the the new Userinterface provided by CADability.Forms
+/* Connection to the new user-interface provided by CADability.Forms
  * 
  */
 namespace CADability.UserInterface
@@ -18,6 +18,7 @@ namespace CADability.UserInterface
         bool ShowPropertyPage(string titleId);
         IFrame Frame { get; set; }
         void PreProcessKeyDown(KeyEventArgs e);
+        void HideEntry(string entryId, bool hide);
     }
     public struct MouseState
     {
@@ -81,7 +82,7 @@ namespace CADability.UserInterface
         /// </summary>
         CancelButton = 1 << 9,
         /// <summary>
-        /// Allows the label to be destination of dradrop operations
+        /// Allows the label to be destination of drag-drop operations
         /// </summary>
         AllowDrag = 1 << 10,
         /// <summary>
@@ -101,7 +102,7 @@ namespace CADability.UserInterface
         /// </summary>
         ValueEditable = 1 << 14,
         /// <summary>
-        /// This entry has subentries
+        /// This entry has sub-entries
         /// </summary>
         HasSubEntries = 1 << 15,
         /// <summary>
@@ -109,7 +110,7 @@ namespace CADability.UserInterface
         /// </summary>
         HasSpinButton = 1 << 16,
         /// <summary>
-        /// A label with a checkbox, Changes reported by ButtonClicked, Value == "0" (not checked), "1" (checked), "2" (indetermined or disabled)
+        /// A label with a check-box, Changes reported by ButtonClicked, Value == "0" (not checked), "1" (checked), "2" (undetermined or disabled)
         /// </summary>
         Checkable = 1 << 17,
         /// <summary>
@@ -123,13 +124,13 @@ namespace CADability.UserInterface
     public interface IPropertyEntry
     {
         /// <summary>
-        /// Is the entry currently displayed with its subentries?
+        /// Is the entry currently displayed with its sub-entries?
         /// </summary>
         bool IsOpen { get; set; }
         /// <summary>
-        /// Notification for the entry that the open/losed state has changed
+        /// Notification for the entry that the open/closed state has changed
         /// </summary>
-        /// <param name="isOpen">true: is now open (subentries are shown), false: is closed (subentries are hidden)</param>
+        /// <param name="isOpen">true: is now open (sub-entries are shown), false: is closed (sub-entries are hidden)</param>
         void Opened(bool isOpen);
         /// <summary>
         /// Gets the type of this entry
@@ -148,7 +149,7 @@ namespace CADability.UserInterface
         /// </summary>
         string ToolTip { get; }
         /// <summary>
-        /// if subentries are show, then hide them, if not, then show them (user clicked on the + or - symbol for opening or closing the subentries)
+        /// if sub-entries are show, then hide them, if not, then show them (user clicked on the + or - symbol for opening or closing the sub-entries)
         /// </summary>
         /// <returns></returns>
         int OpenOrCloseSubEntries();
@@ -156,7 +157,7 @@ namespace CADability.UserInterface
         //void MouseOnValue(MouseState ms);
         void ButtonClicked(PropertyEntryButton button);
         /// <summary>
-        /// Has been added to the property page, can be used to do some initialisation.
+        /// Has been added to the property page, can be used to do some initialization.
         /// </summary>
         /// <param name="pp">property page, it has been added to, keep it to use it for Refresh notification</param>
         void Added(IPropertyPage pp);
@@ -174,11 +175,11 @@ namespace CADability.UserInterface
         /// </summary>
         int Index { get; set; }
         /// <summary>
-        /// The indentaion of this entry (according to it's position int the property tree). The implementer must simply keep this value
+        /// The indentation of this entry (according to it's position int the property tree). The implementer must simply keep this value
         /// </summary>
         int IndentLevel { get; set; }
         /// <summary>
-        /// Returns the Sbitems, will only be called when <see cref="EntryType.HasSubEntries"/> is set.
+        /// Returns the sub-items, will only be called when <see cref="EntryType.HasSubEntries"/> is set.
         /// </summary>
         IPropertyEntry[] SubItems { get; }
         /// <summary>
@@ -248,7 +249,7 @@ namespace CADability.UserInterface
     {
         void BringToFront();
         void Add(IPropertyEntry toAdd, bool showOpen);
-        void Remove(IPropertyEntry toAdd);
+        void Remove(IPropertyEntry toRemove);
         void Clear();
         void Refresh(IPropertyEntry toRefresh);
         IPropertyEntry Selected { get; set;  }

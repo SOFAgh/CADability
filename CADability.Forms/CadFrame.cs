@@ -29,8 +29,8 @@ namespace CADability.Forms
 
         public override bool OnCommand(string MenuId)
         {
-            if (cadForm != null) return cadForm.OnCommand(MenuId);
-            return false;
+            if (cadForm != null && cadForm.OnCommand(MenuId)) return true;
+            return base.OnCommand(MenuId);
         }
         public override bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {

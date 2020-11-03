@@ -131,12 +131,12 @@ namespace CADability
     }
 
     /// <summary>
-    /// This class is used to give acces and store information that influences global behaviour of the
+    /// This class is used to give access and store information that influences global behavior of the
     /// CADability system.
     /// There is a static variable <see cref="GlobalSettings"/>. This is the only use of settings in CADability.
     /// This class behaves as a hierarchical dictionary. The keys are strings, which may have the form "mainkey.subkey"
     /// The values are objects, i.e. any kind of data.
-    /// If the objects implement the IShowProperty interface they are displayed in the global setting tab of the controlcenter.
+    /// If the objects implement the IShowProperty interface they are displayed in the global setting tab of the control-center.
     /// There are some classes like <see cref="ColorSetting"/>, <see cref="IntergerProperty"/>, <see cref="DoubleProperty"/>,
     /// <see cref="StringProperty"/> which can be used as a setting value. If you instead simply use a double or string value
     /// the setting will be only available to programming code but not to the user in the ControlCenter.
