@@ -9,10 +9,10 @@
       "output": {
         ".html": {
           "relative_path": "api/index.html",
-          "hash": "iRxs/1MnRXtYYp7e6TP0ag=="
+          "hash": "d/XM0883gfOnCVbcqQA1ZA=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -21,10 +21,10 @@
       "output": {
         ".html": {
           "relative_path": "articles/intro.html",
-          "hash": "cS4DT8fArN6Uv5CWMpBWyw=="
+          "hash": "QKbgAOSypgEQHQLouCbYig=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -45,10 +45,10 @@
       "output": {
         ".html": {
           "relative_path": "index.html",
-          "hash": "QbFvIDssHoVsq5kwe5dGBA=="
+          "hash": "b9ZEhNHTo3CATuSXQv5/iQ=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -57,10 +57,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.BitmapTable.html",
-          "hash": "MyN2Wd17Z4IxZ9tpPISong=="
+          "hash": "aQQaYU6ZZOk1XBGiUv4eEw=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -69,10 +69,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.ButtonImages.html",
-          "hash": "l2zLf9kleHEUlB9Zg+PJCQ=="
+          "hash": "x5D6W+MFiRKZPLYTqB96+w=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -81,10 +81,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadCanvas.html",
-          "hash": "gp8aP/JaHJ/3lMT++pxc1w=="
+          "hash": "i01SPNc1rBbknqhj0QI6PQ=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -93,10 +93,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadForm.html",
-          "hash": "wp74L8WyYHsFHhHh7v8Pcg=="
+          "hash": "CCEvN/3d0lkCKt4mgCmzRA=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -105,10 +105,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadFrame.html",
-          "hash": "+ft3ciSnCeKs5gqtxvaq7Q=="
+          "hash": "7Mkgxs3xBO03GPq4znuf4g=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -117,10 +117,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToBitmap.html",
-          "hash": "i7taBW7d+innstkQyUJHBg=="
+          "hash": "iDwqECoX0izj/5mPGQQr2g=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -129,10 +129,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToGDI.html",
-          "hash": "Vz8uJrxC6jYm3RMf9CnXFg=="
+          "hash": "mpoAbkdze9fVVFnG+NmtQw=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -141,10 +141,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGL.html",
-          "hash": "ziIO5sDzLQ/JaKBAuzfDRA=="
+          "hash": "3MkYfE/j9r8R4hM7yxtpdQ=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -153,10 +153,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGLException.html",
-          "hash": "+YSsWwr0fnjAnDKweIrFHw=="
+          "hash": "X/0QVUB3xC1v292mr17RwQ=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -165,10 +165,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.ProgressForm.html",
-          "hash": "R4DB4x6RU0gbKyfDJJymYw=="
+          "hash": "7uwAbZjo5DH9rJY0F7EynQ=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -177,10 +177,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PropertiesExplorer.html",
-          "hash": "vPKA2nlWyly+mqQUYhDcTg=="
+          "hash": "dd5/aYZmHrYCWrD0nzjBlA=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -192,7 +192,7 @@
           "hash": "0RNfKCUharXz2F014PqsjA=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -223,25 +223,23 @@
   "incremental_info": [
     {
       "status": {
-        "can_incremental": false,
-        "details": "Disable incremental build by force rebuild option.",
+        "can_incremental": true,
         "incrementalPhase": "build",
         "total_file_count": 0,
-        "skipped_file_count": 0,
-        "full_build_reason_code": "ForceRebuild"
+        "skipped_file_count": 0
       },
       "processors": {
         "ConceptualDocumentProcessor": {
-          "can_incremental": false,
+          "can_incremental": true,
           "incrementalPhase": "build",
           "total_file_count": 3,
-          "skipped_file_count": 0
+          "skipped_file_count": 3
         },
         "ManagedReferenceDocumentProcessor": {
-          "can_incremental": false,
+          "can_incremental": true,
           "incrementalPhase": "build",
           "total_file_count": 12,
-          "skipped_file_count": 0
+          "skipped_file_count": 12
         },
         "TocDocumentProcessor": {
           "can_incremental": false,
@@ -254,8 +252,8 @@
     },
     {
       "status": {
-        "can_incremental": false,
-        "details": "Cannot support incremental post processing, the reason is: it's disabled.",
+        "can_incremental": true,
+        "details": "Can support incremental post processing.",
         "incrementalPhase": "postProcessing",
         "total_file_count": 0,
         "skipped_file_count": 0

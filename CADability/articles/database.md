@@ -29,15 +29,16 @@ Geometric entities may be
 - displayed in a property grid, where their properties are editable
 - interactively created or modified by various [Action](../api/CADability.Actions.Action.html)s.
 
+## How do I connect additional information to geometric entities?
+Use the [UserData](../api/CADability.UserData.html) object and the IGeoObject.[UserData](../api/CADability.GeoObject.IGeoObject.html#CADability_GeoObject_IGeoObject_UserData) property. This property acts like a dictionary that lets you add any data to the geometric entity. 
+If your data is serializable it will also be saved in the CADability database. If your data implements the IPropertyEntry interface or is a simple data type like int, double or string, it will 
+be displayed in the control center (when the object is selected).
+
 ## How do I define my own geometric entity?
-There are several ways to define customized geometric entities:
+You almost never need to define or code your own geometric entities. But still, if you want to, there are several ways to define customized geometric entities:
 - Define a class that implements the [IGeoObject](../api/CADability.GeoObject.IGeoObject.html) and [IJsonSerialize](../api/CADability.IJsonSerialize.html) interfaces. 
 This is certainly a huge task and in most cases not necessary.
 - Derive a class from [IGeoObjectImpl](../api/CADability.GeoObject.IGeoObjectImpl.html). This is a standard implementation of IGeoObject but still leaves a lot of work to do.
 - Derive a class from [Block](../api/CADability.GeoObject.Block.html). Add some additional properties and create child entities according to these properties. 
 Maybe override [GetShowProperties](../api/CADability.GeoObject.IGeoObject.GetShowProperties.html) to define it's appearance in the control center or property grid.
 
-## How do I connect additional information to geometric entities?
-Use the [UserData](../api/CADability.UserData.html) property. This property acts like a dictionary that lets you add any data to the geometric entity. 
-If your data is serializable it will also be saved in the CADability database. If your data implements the IPropertyEntry interface or is a simple data type like int, double or string, it will 
-be displayed in the control center (when the object is selected).
