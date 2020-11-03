@@ -69,10 +69,11 @@
             <article class="content wrap" id="_content" data-uid="">
 <h1 id="introduction-to-cadabilitys-data-model">Introduction to CADability's data model</h1>
 
-<h2 id="what-are-geometric-entities">What are geometric entities?</h2>
 <p>Geometric entities are the main objects in the CADability database.</p>
 <p>Usually many geometric entities are contained in a <a href="../api/CADability.Model.html">Model</a>. If a model is displayed in a <a href="../api/CADability.ModelView.html">ModelView</a> the geometric entities
 are displayed on the screen (in a <a href="../../CADabilityFormsDoc/api/CADability.Forms.CadCanvas.html">CadCanvas</a> inside a <a href="../../CADabilityFormsDoc/api/CADability.Forms.CadFrame.html">CadFrame</a>).</p>
+<p>The entity that is normally saved in a file is the <a href="../api/CADability.Project.html">Project</a>. The project contains one or more models and some other information, like lists of attributes.</p>
+<h2 id="what-are-geometric-entities">What are geometric entities?</h2>
 <p>There are some families of geometric entities:</p>
 <ul>
 <li>Curves (e.g. <a href="../api/CADability.GeoObject.Line.html">Line</a>, <a href="../api/CADability.GeoObject.BSpline.html">BSpline</a>, <a href="../api/CADability.GeoObject.Ellipse.html">Ellipse</a> etc., in a 3d coordinate space)</li>
@@ -80,6 +81,7 @@ are displayed on the screen (in a <a href="../../CADabilityFormsDoc/api/CADabili
 <li>BRep objects (e.g. <a href="../api/CADability.GeoObject.Solid.html">Solid</a>, <a href="../api/CADability.GeoObject.Face.html">Face</a>, etc.) (see <a href="https://en.wikipedia.org/wiki/Boundary_representation">Wikipedia</a>)</li>
 <li>Text, Dimension, Hatches</li>
 </ul>
+<p>Geometric entities can be created and manipulated both interactively and by program code.</p>
 <p>Geometric entities are serializable as JSON files. A <a href="../api/CADability.Model.html">Model</a> can be exported to or imported from a STEP file.</p>
 <h2 id="what-do-geometric-entities-have-in-common">What do geometric entities have in common?</h2>
 <p>From a programmer's point of view it is the <a href="../api/CADability.GeoObject.IGeoObject.html">IGeoObject</a> interface.</p>
