@@ -16,6 +16,10 @@ namespace CADability.UserInterface
         {
 
         }
+        public PropertyEntryImpl(IFrame Frame)
+        {
+            frame = Frame;
+        }
         /// <summary>
         /// Provides the resource id for the label text
         /// </summary>

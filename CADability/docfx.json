@@ -53,7 +53,7 @@
         ]
       }
     ],
-    "dest": "../../CADabilityDoc",
+    "dest": "../docs/CADabilityDoc",
     "globalMetadataFiles": [],
     "fileMetadataFiles": [],
     "template": [
