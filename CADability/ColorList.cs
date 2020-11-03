@@ -13,7 +13,6 @@ namespace CADability.Attribute
     /// in einem "Settings" Objekt gespeichert. Die Tabelle kann in der EigenschaftenAnzeige
     /// interaktiv manipuliert werden.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class ColorList : IShowPropertyImpl, ISerializable,
         INotifyModification, ICollection, IAttributeList, ICommandHandler, IDeserializationCallback

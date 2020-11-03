@@ -12,7 +12,6 @@ namespace CADability.GeoObject
     /// The line is a <see href="GeoObject.html">IGeoObject</see>. It is actually a line segment
     /// not an infinite line.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Line : IGeoObjectImpl, IColorDef, ILineWidth, ILinePattern,
         ISerializable, ICurve, IExtentedableCurve, ISimpleCurve, IExplicitPCurve3D, IJsonSerialize, IExportStep

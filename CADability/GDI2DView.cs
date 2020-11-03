@@ -17,7 +17,6 @@ using PaintEventArgs = CADability.Substitutes.PaintEventArgs;
 
 namespace CADability
 {
-    // created by MakeClassComVisible
     [Serializable]
     public class GDI2DView : IShowPropertyImpl, ICommandHandler, IView, IActionInputView, ISerializable, IDeserializationCallback
     {

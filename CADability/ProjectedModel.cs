@@ -59,7 +59,6 @@ namespace CADability
     /// <summary>
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class ProjectedModel : ISerializable, IDeserializationCallback
     {

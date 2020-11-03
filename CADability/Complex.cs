@@ -62,7 +62,6 @@ namespace MathNet.Numerics
     /// Wikipedia</a></p>
     /// </remarks>
     ///
-    // created by MakeClassComVisible
     [Serializable]
     public struct Complex
     {

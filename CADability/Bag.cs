@@ -31,7 +31,6 @@ namespace Wintellect.PowerCollections
     /// the items in sorted order, and stores distinct copies of items that compare equal.</p>
     ///</remarks>
     ///<seealso cref="OrderedBag&lt;T&gt;"/>
-    // created by MakeClassComVisible
     [Serializable]
     public class Bag<T> : CollectionBase<T>, ICloneable
     {

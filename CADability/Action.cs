@@ -27,12 +27,9 @@ namespace CADability.Actions
     }
 
     /// <summary>
-    /// Exception Klasse für Ausnahmen bei der Aktionsverarbeitung.
-    /// Die Eigenschaft Message von System.Exception ist mit einem sinnvollen Text gesetzt.
+    /// Exception thrown by Action or derived classes
+    /// with a hopefully meaningful message
     /// </summary>
-    // created by MakeClassComVisible
-    // created by MakeClassComVisible
-
     public class ActionException : System.Exception
     {
         internal ActionException(string reason)
@@ -60,9 +57,6 @@ namespace CADability.Actions
     /// <item><description>the new action will receive a call to
     /// <see cref="OnRemoveAction"/> as a last call.</description></item></list>
     /// </summary>
-    // created by MakeClassComVisible
-    // created by MakeClassComVisible
-
     public abstract class Action : ICommandHandler
     {
         private ActionStack actionStack;

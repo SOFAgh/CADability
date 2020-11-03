@@ -11,7 +11,6 @@ namespace CADability
     /// BoundingRect is an axis oriented rectangle or a 2-dimensional bounding box. It is implemented as a "struct" (value type)
     /// so assignements always make a copy.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public struct BoundingRect : IQuadTreeInsertable, IComparable<BoundingRect>, ISerializable
     {

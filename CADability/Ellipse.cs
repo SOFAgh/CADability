@@ -87,7 +87,6 @@ namespace CADability.GeoObject
     /// <summary>
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class Ellipse : IGeoObjectImpl, IColorDef, ILineWidth, ILinePattern, ICurve, ISerializable,
             IExtentedableCurve, ISimpleCurve, IExplicitPCurve3D, IExportStep, IJsonSerialize

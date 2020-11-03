@@ -28,7 +28,6 @@ namespace CADability.GeoObject
     /// i.e. Child(i).EndPoint is equal or close to Child(i+1).StartPoint.
     /// The Path is not necessary planar, closed and may be self intersecting.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Path : IGeoObjectImpl, IColorDef, ILinePattern, ILineWidth, ICurve,
         IGeoObjectOwner, ISerializable, IDeserializationCallback, IExtentedableCurve

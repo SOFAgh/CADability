@@ -329,7 +329,6 @@ namespace CADability.Curve2D
     /// It cannot be instantiated and there are no methods for public use.
     /// </summary>
 #if DEBUG
-    // created by MakeClassComVisible
     [System.Diagnostics.DebuggerVisualizer(typeof(Curve2DVisualizer))]
 #endif
     public abstract class GeneralCurve2D : ICurve2D, I2DIntersectable
@@ -1650,7 +1649,6 @@ namespace CADability.Curve2D
         }
     }
 
-    // created by MakeClassComVisible
     [Serializable()]
     public abstract class TriangulatedCurve2D : ICurve2D, ISerializable
     {

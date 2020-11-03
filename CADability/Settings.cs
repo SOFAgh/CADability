@@ -141,7 +141,6 @@ namespace CADability
     /// <see cref="StringProperty"/> which can be used as a setting value. If you instead simply use a double or string value
     /// the setting will be only available to programming code but not to the user in the ControlCenter.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Settings : IShowPropertyImpl, ISerializable, ISettingChanged, IAttributeListContainer, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {

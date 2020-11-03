@@ -4,7 +4,6 @@ using System.Runtime.Serialization;
 
 namespace CADability.GeoObject
 {
-    // created by MakeClassComVisible
     [Serializable()]
     public class NonPeriodicCylindricalSurface : CylindricalSurface, INonPeriodicSurfaceConversion, ISerializable, IDeserializationCallback
     {

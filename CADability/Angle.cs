@@ -8,7 +8,6 @@ namespace CADability
     /// and less than (and not equal) 2*pi.
     /// Via cast operators the angle seamlessly operates as a double.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public struct Angle : ISerializable
     {
@@ -333,7 +332,6 @@ namespace CADability
     /// A sweep angle. Typically the value of this object is between -2*pi and +2*pi.
     /// Used for rotation operations etc.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public struct SweepAngle : ISerializable
     {

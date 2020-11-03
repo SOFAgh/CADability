@@ -20,7 +20,6 @@ namespace CADability.GeoObject
     /// <remarks>The use of this object is not recommended because it has a poor performance in both display and selection.
     /// Consider using <see cref="Icon"/> instead.</remarks>
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class UnscaledGeoObject : IGeoObjectImpl, ISerializable
     {

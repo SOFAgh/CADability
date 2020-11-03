@@ -6,7 +6,6 @@ using System.Runtime.Serialization;
 
 namespace CADability.GeoObject
 {
-    // created by MakeClassComVisible
     [Serializable()]
     public class OffsetSurface : ISurfaceImpl, ISerializable, IExportStep
     {

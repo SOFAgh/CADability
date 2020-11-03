@@ -1,7 +1,5 @@
 # CADability
 
-_**(Please allow a few days for getting everything in its right place. The project has been published as open source on 3 November 2020)**_
-
 CADability is a .NET class library and a .NET application that implements a 3d CAD system. You can use this library with or without user interface.
 
 Some of the features you might be interested in are:
@@ -25,3 +23,10 @@ Here is a quick overview of the [organizational classes](https://sofagh.github.i
 This is an overview of the CAD [database](https://sofagh.github.io/CADability/CADabilityDoc/articles/database.html), the geometrical entities that make up a model.
 
 And this is the [complete table of contents](https://sofagh.github.io/CADability/CADabilityDoc/api/toc.html).
+
+License: CADability uses some open source code copied into it source code:
+- a quite old version of LinearAlgebra: Copyright ©2000 The MathWorks and NIST, ©2004 Joannes Vermorel
+- a quite old version of Wintellect.PowerCollections: Copyright (c) 2004-2005, Wintellect
+- netDxf library: Copyright (C) 2009-2016 Daniel Carvajal (haplokuon@gmail.com)
+
+CADability itself is provided under the MIT license

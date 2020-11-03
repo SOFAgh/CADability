@@ -11,7 +11,6 @@ namespace CADability.Attribute
     /// owned by the project or the global settings. It implements IShowProperty to
     /// make it available in the tree voew of the control center.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class DimensionStyleList : IShowPropertyImpl, ISerializable,
         ICommandHandler, IAttributeList, IDeserializationCallback

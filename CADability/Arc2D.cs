@@ -9,7 +9,6 @@ namespace CADability.Curve2D
     /// <summary>
     /// Describes a circular Arc in 2D. Implements the ICurve2D interface.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Arc2D : Circle2D, ISerializable
     {

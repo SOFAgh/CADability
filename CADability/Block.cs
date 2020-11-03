@@ -14,7 +14,6 @@ namespace CADability.GeoObject
     /// werden Kopien der Kinder erzeugt.
     /// A collection of several <see cref="IGeoObject"/>s 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Block : IGeoObjectImpl, IColorDef, ISerializable, IGeoObjectOwner, IDeserializationCallback, IExportStep
     {

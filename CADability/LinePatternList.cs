@@ -11,7 +11,6 @@ namespace CADability.Attribute
     /// <summary>
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class LinePatternList : IShowPropertyImpl, IAttributeList, ISerializable, ICommandHandler, IDeserializationCallback
     {

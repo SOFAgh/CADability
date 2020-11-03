@@ -24,7 +24,6 @@ namespace CADability.GeoObject
     /// <summary>
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Polyline : IGeoObjectImpl, IColorDef, ILineWidth, ILinePattern, ICurve,
             ISerializable, IExtentedableCurve, IJsonSerialize, IExportStep

@@ -1268,7 +1268,6 @@ namespace CADability.GeoObject
     /// <summary>
     /// Simple Text object, Implements <see cref="IGeoObject"/>.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Text : IGeoObjectImpl, IColorDef, ISerializable, IJsonSerialize
     {

@@ -103,7 +103,6 @@ namespace CADability
     /// Generic class to privide fast access to <see cref="IOctTreeInsertable"/> implementing objects.
     /// </summary>
     /// <typeparam name="T">The generic type, must implement <see cref="IOctTreeInsertable"/></typeparam>
-    // created by MakeClassComVisible
     public class OctTree<T> where T : IOctTreeInsertable
     {
         /// <summary>

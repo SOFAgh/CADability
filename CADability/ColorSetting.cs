@@ -9,7 +9,6 @@ namespace CADability
     /// ColorSetting is intended for objects to be used in <see cref="Settings"/>. It provides a <see cref="Color"/>
     /// with the <see cref="IShowProperty"/> interface.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class ColorSetting : IShowPropertyImpl, ISerializable, ISettingChanged
     {

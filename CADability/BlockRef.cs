@@ -195,7 +195,6 @@ namespace CADability.GeoObject
     /// <summary>
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class BlockRef : IGeoObjectImpl, IColorDef, IGeoObjectOwner, ISerializable
     {

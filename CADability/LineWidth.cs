@@ -11,7 +11,6 @@ namespace CADability.Attribute
     /// are the width and the scaling system (<see cref="Scaling"/>), which defines how to interpret the width.
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class LineWidth : IShowPropertyImpl, INamedAttribute, ISerializable, ICommandHandler
     {

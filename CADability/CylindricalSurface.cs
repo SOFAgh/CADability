@@ -12,7 +12,6 @@ namespace CADability.GeoObject
     /// A cylindrical surface which implements <see cref="ISurface"/>. The surface represents a circular or elliptical
     /// cylinder. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfArcExtrusion
     {

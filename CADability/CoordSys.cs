@@ -28,7 +28,6 @@ namespace CADability
     /// <summary>
     /// Rechtwinkliges, rechtshändiges Koordinatensystem. Normierte Einheitsvektoren?
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     [JsonVersion(serializeAsStruct = true, version = 1)]
     public struct CoordSys : ISerializable, IJsonSerialize

@@ -8,7 +8,6 @@ namespace CADability.Attribute
     /// <summary>
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class DimensionStyle : IShowPropertyImpl, ISerializable, INamedAttribute, ICommandHandler
     {
