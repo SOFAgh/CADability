@@ -1,0 +1,272 @@
+{
+  "homepages": [],
+  "source_base_path": "C:/Users/i7-Entwicklung/Source/Repos/CADability/CADability.Forms",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Conceptual",
+      "source_relative_path": "api/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "api/index.html",
+          "hash": "d/XM0883gfOnCVbcqQA1ZA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "articles/intro.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/intro.html",
+          "hash": "QKbgAOSypgEQHQLouCbYig=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "articles/toc.md",
+      "output": {
+        ".html": {
+          "relative_path": "articles/toc.html",
+          "hash": "gB8AESyvNru97tzIZofEEg=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html",
+          "hash": "b9ZEhNHTo3CATuSXQv5/iQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.BitmapTable.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.BitmapTable.html",
+          "hash": "aQQaYU6ZZOk1XBGiUv4eEw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.ButtonImages.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.ButtonImages.html",
+          "hash": "x5D6W+MFiRKZPLYTqB96+w=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.CadCanvas.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.CadCanvas.html",
+          "hash": "i01SPNc1rBbknqhj0QI6PQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.CadForm.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.CadForm.html",
+          "hash": "CCEvN/3d0lkCKt4mgCmzRA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.CadFrame.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.CadFrame.html",
+          "hash": "7Mkgxs3xBO03GPq4znuf4g=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.PaintToBitmap.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.PaintToBitmap.html",
+          "hash": "iDwqECoX0izj/5mPGQQr2g=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.PaintToGDI.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.PaintToGDI.html",
+          "hash": "mpoAbkdze9fVVFnG+NmtQw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.PaintToOpenGL.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.PaintToOpenGL.html",
+          "hash": "3MkYfE/j9r8R4hM7yxtpdQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.PaintToOpenGLException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.PaintToOpenGLException.html",
+          "hash": "X/0QVUB3xC1v292mr17RwQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.ProgressForm.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.ProgressForm.html",
+          "hash": "7uwAbZjo5DH9rJY0F7EynQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.PropertiesExplorer.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.PropertiesExplorer.html",
+          "hash": "dd5/aYZmHrYCWrD0nzjBlA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.html",
+          "hash": "0RNfKCUharXz2F014PqsjA=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "obj/api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/toc.html",
+          "hash": "zeOshwYEuRechHJFeeHwOw=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "toc.html",
+          "hash": "G2AoE5T/2VarbHvzLEo4TQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    }
+  ],
+  "incremental_info": [
+    {
+      "status": {
+        "can_incremental": false,
+        "details": "Disable incremental build by force rebuild option.",
+        "incrementalPhase": "build",
+        "total_file_count": 0,
+        "skipped_file_count": 0,
+        "full_build_reason_code": "ForceRebuild"
+      },
+      "processors": {
+        "ConceptualDocumentProcessor": {
+          "can_incremental": false,
+          "incrementalPhase": "build",
+          "total_file_count": 3,
+          "skipped_file_count": 0
+        },
+        "ManagedReferenceDocumentProcessor": {
+          "can_incremental": false,
+          "incrementalPhase": "build",
+          "total_file_count": 12,
+          "skipped_file_count": 0
+        },
+        "TocDocumentProcessor": {
+          "can_incremental": false,
+          "details": "Processor TocDocumentProcessor cannot support incremental build because the processor doesn't implement ISupportIncrementalDocumentProcessor interface.",
+          "incrementalPhase": "build",
+          "total_file_count": 0,
+          "skipped_file_count": 0
+        }
+      }
+    },
+    {
+      "status": {
+        "can_incremental": false,
+        "details": "Cannot support incremental post processing, the reason is: it's disabled.",
+        "incrementalPhase": "postProcessing",
+        "total_file_count": 0,
+        "skipped_file_count": 0
+      },
+      "processors": {}
+    }
+  ],
+  "version_info": {},
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}
