@@ -37,40 +37,36 @@ namespace CADability.Forms
             return base.OnUpdateCommand(MenuId, CommandState);
         }
 
-        private void UpdateMRUMenu(MenuItem mi, string[] mruFiles)
+        private void UpdateMRUMenu(MenuItemWithHandler mi, string[] mruFiles)
         {
-            if (mi.IsParent)
+            if (mi.DropDownItems.Count > 0)
             {
-                foreach (MenuItem mmi in mi.MenuItems)
+                foreach (MenuItemWithHandler mmi in mi.DropDownItems)
                 {
                     UpdateMRUMenu(mmi, mruFiles);
                 }
             }
             else
             {
-                MenuItemWithHandler mid = mi as MenuItemWithHandler;
-                if (mid != null)
+                MenuWithHandler mwh = mi.Tag as MenuWithHandler;
+                if (mwh != null)
                 {
-                    MenuWithHandler mwh = mid.Tag as MenuWithHandler;
-                    if (mwh != null)
+                    string MenuId = mwh.ID;
+                    if (MenuId.StartsWith("MenuId.File.Mru.File"))
                     {
-                        string MenuId = mwh.ID;
-                        if (MenuId.StartsWith("MenuId.File.Mru.File"))
+                        string filenr = MenuId.Substring("MenuId.File.Mru.File".Length);
+                        try
                         {
-                            string filenr = MenuId.Substring("MenuId.File.Mru.File".Length);
-                            try
+                            int n = int.Parse(filenr);
+                            if (n <= mruFiles.Length && n > 0)
                             {
-                                int n = int.Parse(filenr);
-                                if (n <= mruFiles.Length && n > 0)
-                                {
-                                    string[] parts = mruFiles[mruFiles.Length - n].Split(';');
-                                    if (parts.Length > 1)
-                                        mid.Text = parts[0];
-                                }
+                                string[] parts = mruFiles[mruFiles.Length - n].Split(';');
+                                if (parts.Length > 1)
+                                    mi.Text = parts[0];
                             }
-                            catch (FormatException) { }
-                            catch (OverflowException) { }
                         }
+                        catch (FormatException) { }
+                        catch (OverflowException) { }
                     }
                 }
             }
@@ -80,7 +76,7 @@ namespace CADability.Forms
         {
             if (cadForm.Menu != null)
             {
-                foreach (MenuItem mi in cadForm.Menu.MenuItems)
+                foreach (MenuItemWithHandler mi in cadForm.MainMenuStrip.Items)
                 {
                     UpdateMRUMenu(mi, mruFiles);
                 }

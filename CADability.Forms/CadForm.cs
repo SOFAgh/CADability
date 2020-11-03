@@ -33,7 +33,8 @@ namespace CADability.Forms
                 if (connect != null) mainMenu = connect.Invoke(null, new object[] { cadFrame, mainMenu }) as MenuWithHandler[];
             }
             #endregion DebuggerPlayground
-            Menu = MenuManager.MakeMainMenu(mainMenu);
+            MainMenuStrip = MenuManager.MakeMainMenu(mainMenu);
+            Controls.Add(MainMenuStrip);
             // open an existing Project or create a new one
             ToolBars.CreateOrRestoreToolbars(topToolStripContainer, cadFrame);
             Application.Idle += new EventHandler(OnIdle); // update the toolbars (menues are updated when they popup)
