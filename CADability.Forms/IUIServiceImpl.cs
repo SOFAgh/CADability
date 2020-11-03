@@ -4,87 +4,28 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
-using System.IO;
-using System.Threading;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using Action = CADability.Actions.Action;
 
 namespace CADability.Forms
 {
-    /* TODO: change IFrame for "KernelOnly" KO
-     * Step by Step implement missing methods (copy implementation from SingleDocumentFrame) 
-     * and remove interface methods from IFrame with "#if KO" ...
-     */
-    /// <summary>
-    /// Implementation of the abstract FrameImpl, doing things, you cannot do in .NET Core
-    /// </summary>
-    public class CadFrame : FrameImpl, IUIService
-    {
-        private CadForm cadForm; // we need the MainMenu and ProgressBar here
+	public class IUIServiceImpl : IUIService
+	{
+        ProgressForm progressForm;
 
-        public CadFrame(CadForm cadForm) : base(cadForm.PropertiesExplorer, cadForm.CadCanvas)
-        {
-            this.cadForm = cadForm;
-        }
 
-        public override bool OnCommand(string MenuId)
-        {
-            if (cadForm != null && cadForm.OnCommand(MenuId)) return true;
-            return base.OnCommand(MenuId);
-        }
-        public override bool OnUpdateCommand(string MenuId, CommandState CommandState)
-        {
-            return base.OnUpdateCommand(MenuId, CommandState);
-        }
-
-        private void UpdateMRUMenu(MenuItemWithHandler mi, string[] mruFiles)
-        {
-            if (mi.DropDownItems.Count > 0)
+        public void Setup(Form mainForm)
+		{
+            progressForm = new ProgressForm
             {
-                foreach (MenuItemWithHandler mmi in mi.DropDownItems)
-                {
-                    UpdateMRUMenu(mmi, mruFiles);
-                }
-            }
-            else
-            {
-                MenuWithHandler mwh = mi.Tag as MenuWithHandler;
-                if (mwh != null)
-                {
-                    string MenuId = mwh.ID;
-                    if (MenuId.StartsWith("MenuId.File.Mru.File"))
-                    {
-                        string filenr = MenuId.Substring("MenuId.File.Mru.File".Length);
-                        try
-                        {
-                            int n = int.Parse(filenr);
-                            if (n <= mruFiles.Length && n > 0)
-                            {
-                                string[] parts = mruFiles[mruFiles.Length - n].Split(';');
-                                if (parts.Length > 1)
-                                    mi.Text = parts[0];
-                            }
-                        }
-                        catch (FormatException) { }
-                        catch (OverflowException) { }
-                    }
-                }
-            }
+                TopLevel = true,
+                Owner = mainForm,
+                Visible = false
+            };
         }
 
-        public override void UpdateMRUMenu(string[] mruFiles)
-        {
-            if (cadForm.MainMenuStrip != null)
-            {
-                foreach (MenuItemWithHandler mi in cadForm.MainMenuStrip.Items)
-                {
-                    UpdateMRUMenu(mi, mruFiles);
-                }
-            }
-        }
-
-        #region IUIService implementation
-        public override IUIService UIService => this;
         GeoObjectList IUIService.GetDataPresent(object data)
         {
             if (data is IDataObject idata)
@@ -173,7 +114,7 @@ namespace CADability.Forms
         }
         void IUIService.ShowProgressBar(bool show, double percent, string title)
         {
-            cadForm.ProgressForm.ShowProgressBar(show, percent, title);
+            progressForm.ShowProgressBar(show, percent, title);
         }
         /// <summary>
         /// Returns a bitmap from the specified embeded resource. the name is in the form filename:index
@@ -276,6 +217,5 @@ namespace CADability.Forms
                 throw new NotImplementedException();
             }
         }
-        #endregion
     }
 }

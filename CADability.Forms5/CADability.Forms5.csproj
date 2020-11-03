@@ -1,0 +1,120 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0-windows</TargetFramework>
+	  <UseWindowsForms>true</UseWindowsForms>
+	  <RootNamespace>CADability.Forms</RootNamespace>
+	  <AssemblyName>UICADability.W</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Test\**" />
+    <EmbeddedResource Remove="Test\**" />
+    <None Remove="Test\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="IUIServiceImpl.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\CADability.Forms\BitmapTable.cs" Link="BitmapTable.cs" />
+    <Compile Include="..\CADability.Forms\ButtonImages.cs" Link="ButtonImages.cs" />
+    <Compile Include="..\CADability.Forms\CadCanvas.cs" Link="CadCanvas.cs" />
+    <Compile Include="..\CADability.Forms\CadForm.cs" Link="CadForm.cs" />
+    <Compile Include="..\CADability.Forms\CadForm.Designer.cs" Link="CadForm.Designer.cs" />
+    <Compile Include="..\CADability.Forms\CadFrame.cs" Link="CadFrame.cs" />
+    <Compile Include="..\CADability.Forms\DebuggerPlayground.cs" Link="DebuggerPlayground.cs" />
+    <Compile Include="..\CADability.Forms\IUIServiceImpl.cs" Link="IUIServiceImpl.cs" />
+    <Compile Include="..\CADability.Forms\MenuManager.cs" Link="MenuManager.cs" />
+    <Compile Include="..\CADability.Forms\PaintToGDI.cs" Link="PaintToGDI.cs" />
+    <Compile Include="..\CADability.Forms\PaintToOpenGL.cs" Link="PaintToOpenGL.cs" />
+    <Compile Include="..\CADability.Forms\ProgressForm.cs" Link="ProgressForm.cs" />
+    <Compile Include="..\CADability.Forms\PropertiesExplorer.cs" Link="PropertiesExplorer.cs" />
+    <Compile Include="..\CADability.Forms\Properties\Settings.Designer.cs" Link="Settings.Designer.cs" />
+    <Compile Include="..\CADability.Forms\PropertyPage.cs" Link="PropertyPage.cs" />
+    <Compile Include="..\CADability.Forms\ToolBars.cs" Link="ToolBars.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\Buttons1.bmp" Link="Bitmaps\Buttons1.bmp" />
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\Buttons2.bmp" Link="Bitmaps\Buttons2.bmp" />
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\Buttons3.bmp" Link="Bitmaps\Buttons3.bmp" />
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\Buttons4.bmp" Link="Bitmaps\Buttons4.bmp" />
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\Buttons5.bmp" Link="Bitmaps\Buttons5.bmp" />
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\Hotspots.png" Link="Bitmaps\Hotspots.png" />
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\Icons.bmp" Link="Bitmaps\Icons.bmp" />
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\PointSymbols.bmp" Link="Bitmaps\PointSymbols.bmp" />
+    <EmbeddedResource Include="..\CADability.Forms\Bitmaps\PointSymbolsB.bmp" Link="Bitmaps\PointSymbolsB.bmp" />
+    <EmbeddedResource Include="..\CADability.Forms\CadForm.resx" Link="CadForm.resx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Bitmaps\" />
+    <Folder Include="Cursors\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Aequidist.cur" Link="Cursors\Aequidist.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Angle.cur" Link="Cursors\Angle.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\ArrowSnap.cur" Link="Cursors\ArrowSnap.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Bow.cur" Link="Cursors\Bow.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Connect.cur" Link="Cursors\Connect.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Cut.cur" Link="Cursors\Cut.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\CutOff.cur" Link="Cursors\CutOff.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\CutOffReady.cur" Link="Cursors\CutOffReady.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Dart.cur" Link="Cursors\Dart.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartFoot.cur" Link="Cursors\DartFoot.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartGrid.cur" Link="Cursors\DartGrid.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartIntersect.cur" Link="Cursors\DartIntersect.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartMiddle.cur" Link="Cursors\DartMiddle.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartObject.cur" Link="Cursors\DartObject.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartOrigin.cur" Link="Cursors\DartOrigin.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartOrtho.cur" Link="Cursors\DartOrtho.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartSnap.cur" Link="Cursors\DartSnap.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\DartTangent.cur" Link="Cursors\DartTangent.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Expand.cur" Link="Cursors\Expand.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Hand.cur" Link="Cursors\Hand.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\HandArrow.cur" Link="Cursors\HandArrow.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\HandOpen.cur" Link="Cursors\HandOpen.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Length.cur" Link="Cursors\Length.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Move.cur" Link="Cursors\Move.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Needle.cur" Link="Cursors\Needle.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Origin.cur" Link="Cursors\Origin.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Pen.cur" Link="Cursors\Pen.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\PenSnap.cur" Link="Cursors\PenSnap.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Plane.cur" Link="Cursors\Plane.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Rotate.cur" Link="Cursors\Rotate.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\RotateSmall.cur" Link="Cursors\RotateSmall.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\RoundIn.cur" Link="Cursors\RoundIn.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\RoundInReady.cur" Link="Cursors\RoundInReady.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\RoundOff.cur" Link="Cursors\RoundOff.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\RoundOffReady.cur" Link="Cursors\RoundOffReady.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\ScaleSnap.cur" Link="Cursors\ScaleSnap.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Size.cur" Link="Cursors\Size.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\SizeLB.cur" Link="Cursors\SizeLB.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\SizeLT.cur" Link="Cursors\SizeLT.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\SizeRB.cur" Link="Cursors\SizeRB.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\SizeRT.cur" Link="Cursors\SizeRT.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\SmallMove.cur" Link="Cursors\SmallMove.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\Trim.cur" Link="Cursors\Trim.cur" />
+    <EmbeddedResource Include="..\CADability.Forms\Cursors\TrimSplit.cur" Link="Cursors\TrimSplit.cur" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\CADability.Forms\Properties\Settings.settings" Link="Settings.settings" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CADability\CADability.csproj" />
+  </ItemGroup>
+
+</Project>

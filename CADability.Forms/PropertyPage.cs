@@ -16,7 +16,7 @@ namespace CADability.Forms
      * Klick auf "TreeViewButton" geht an IPropertyPage
     */
 
-    class PropertyPage : TabPage, IPropertyPage
+    public class PropertyPage : TabPage, IPropertyPage
     {
         List<IPropertyEntry> rootProperties; // a list of all root entries (not including the subentries of opened entries)
         public string TitleId { get; }

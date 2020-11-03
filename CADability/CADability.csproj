@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <BuildDocFx Condition=" '$(Configuration)'=='Debug' ">false</BuildDocFx>
+    <AssemblyName>CADabilityCore</AssemblyName>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -12,7 +13,7 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;xPARALLEL, TESTNEWCONTEXTMENU</DefineConstants>
+    <DefineConstants>TRACE;xPARALLEL, xTESTNEWCONTEXTMENU</DefineConstants>
     <Optimize>false</Optimize>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
