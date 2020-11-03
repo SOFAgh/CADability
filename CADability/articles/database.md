@@ -1,16 +1,20 @@
 # Introduction to CADability's data model
 
-## What are geometric entities?
 Geometric entities are the main objects in the CADability database.
 
 Usually many geometric entities are contained in a [Model](../api/CADability.Model.html). If a model is displayed in a [ModelView](../api/CADability.ModelView.html) the geometric entities 
 are displayed on the screen (in a [CadCanvas](../../CADabilityFormsDoc/api/CADability.Forms.CadCanvas.html) inside a [CadFrame](../../CADabilityFormsDoc/api/CADability.Forms.CadFrame.html)). 
 
+The entity that is normally saved in a file is the [Project](../api/CADability.Project.html). The project contains one or more models and some other information, like lists of attributes.
+
+## What are geometric entities?
 There are some families of geometric entities:
 - Curves (e.g. [Line](../api/CADability.GeoObject.Line.html), [BSpline](../api/CADability.GeoObject.BSpline.html), [Ellipse](../api/CADability.GeoObject.Ellipse.html) etc., in a 3d coordinate space)
 - [Block](../api/CADability.GeoObject.Block.html)s (collections of geometric entities, hierarchical tree of objects)
 - BRep objects (e.g. [Solid](../api/CADability.GeoObject.Solid.html), [Face](../api/CADability.GeoObject.Face.html), etc.) (see [Wikipedia](https://en.wikipedia.org/wiki/Boundary_representation))
 - Text, Dimension, Hatches
+
+Geometric entities can be created and manipulated both interactively and by program code.
 
 Geometric entities are serializable as JSON files. A [Model](../api/CADability.Model.html) can be exported to or imported from a STEP file.
 
