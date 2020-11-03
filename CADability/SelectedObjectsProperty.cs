@@ -330,7 +330,6 @@ namespace CADability.UserInterface
         private IPropertyEntry[] showProperties;
         private MultiObjectsProperties multiObjectsProperties;
         public IGeoObject focusedSelectedObject; // eines kann fokusiert sein
-        private IFrame frame;
         internal bool IsChanging
         {
             get
@@ -361,8 +360,8 @@ namespace CADability.UserInterface
         }
         #endregion
         protected SelectedObjectsProperty(IFrame Frame)
+            : base(Frame)
         {
-            frame = Frame;
             selectedObjects = new GeoObjectList(); // zuerst eine leere Liste
             resourceId = "SelectedObjects.Title";
         }
@@ -420,11 +419,11 @@ namespace CADability.UserInterface
                 if (showProperties == null)
                 {
                     List<IPropertyEntry> items = new List<IPropertyEntry>();
-                    items.Add(frame.Project.FilterList);
+                    items.Add(Frame.Project.FilterList);
                     multiObjectsProperties = null;
                     if (selectedObjects.Count > 1)
                     {
-                        multiObjectsProperties = new MultiObjectsProperties(frame, selectedObjects);
+                        multiObjectsProperties = new MultiObjectsProperties(Frame, selectedObjects);
                         items.Add(multiObjectsProperties.attributeProperties);
                     }
                     // if (selectedObjects.Count < 100)
@@ -434,7 +433,7 @@ namespace CADability.UserInterface
                     {   // bei etwa 400 Objekten steigt er sonst aus...
                         for (int i = 0; i < selectedObjects.Count; ++i)
                         {
-                            IShowProperty sp = selectedObjects[i].GetShowProperties(frame);
+                            IShowProperty sp = selectedObjects[i].GetShowProperties(Frame);
                             IDisplayHotSpots hsp = sp as IDisplayHotSpots;
                             if (hsp != null) hsp.HotspotChangedEvent += new HotspotChangedDelegate(OnSubHotspotChanged);
                             items.Add(sp as IPropertyEntry);
@@ -488,7 +487,7 @@ namespace CADability.UserInterface
         {
             get
             {
-                return MenuResource.LoadMenuDefinition("MenuId.SelectedObjects", false, frame.CommandHandler);
+                return MenuResource.LoadMenuDefinition("MenuId.SelectedObjects", false, Frame.CommandHandler);
             }
         }
         /// <summary>
@@ -574,7 +573,7 @@ namespace CADability.UserInterface
         {
             ContextMenuSource = sender.GetGeoObject();
             toManipulate.Add(MenuWithHandler.Separator);
-            toManipulate.AddRange(MenuResource.LoadMenuDefinition("MenuId.SelectedObject", false, frame.CommandHandler));
+            toManipulate.AddRange(MenuResource.LoadMenuDefinition("MenuId.SelectedObject", false, Frame.CommandHandler));
         }
 
         internal void Focus(IGeoObject go)
