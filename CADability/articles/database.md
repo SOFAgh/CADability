@@ -34,7 +34,7 @@ Use the [UserData](../api/CADability.UserData.html) object and the IGeoObject.[U
 If your data is serializable it will also be saved in the CADability database. If your data implements the IPropertyEntry interface or is a simple data type like int, double or string, it will 
 be displayed in the control center (when the object is selected).
 
-## How do I define my own geometric entity?
+## How do I define my own geometric entity? 
 You almost never need to define or code your own geometric entities. But still, if you want to, there are several ways to define customized geometric entities:
 - Define a class that implements the [IGeoObject](../api/CADability.GeoObject.IGeoObject.html) and [IJsonSerialize](../api/CADability.IJsonSerialize.html) interfaces. 
 This is certainly a huge task and in most cases not necessary.
