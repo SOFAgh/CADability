@@ -2157,18 +2157,6 @@ namespace CADability.GeoObject
         {
             return Precision.SameDirection(Axis, direction, false);
         }
-        public override MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face)
-        {
-            MenuWithHandler mhRadius = new MenuWithHandler();
-            mhRadius.ID = "MenuId.Parametrics.Cylinder.Radius";
-            mhRadius.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Radius", StringTable.Category.label);
-            mhRadius.Target = new ParametricsRadius(face, frame);
-            MenuWithHandler mhDiameter = new MenuWithHandler();
-            mhDiameter.ID = "MenuId.Parametrics.Cylinder.Diameter";
-            mhDiameter.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Diameter", StringTable.Category.label);
-            mhDiameter.Target = new ParametricsRadius(face, frame);
-            return new MenuWithHandler[] { mhRadius, mhDiameter };
-        }
 
         #endregion
         #region ISerializable Members
@@ -2294,23 +2282,8 @@ namespace CADability.GeoObject
             return true;
         }
         IOrientation ISurfaceOfExtrusion.Orientation => throw new NotImplementedException();
-        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsInvalid() ? FixedV(0.0, 0.0, Math.PI) : FixedV(0.0, usedArea.Left, usedArea.Right);
-
-        public ICurve ISurfaceOfExtrusionExtrudedCurve
-        {
-            get
-            {
-                if (usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid())
-                {
-                    return FixedV(0.0, 0.0, Math.PI * 2.0);
-                }
-                else
-                {
-                    return FixedV(0.0, usedArea.Left, usedArea.Right);
-                }
-
-            }
-        }
+        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid() ? 
+            FixedV(0.0, 0.0, Math.PI) : FixedV(0.0, usedArea.Left, usedArea.Right);
 
         double ISurfaceOfArcExtrusion.Radius
         {

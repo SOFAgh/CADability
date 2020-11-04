@@ -296,16 +296,16 @@ namespace CADability.Forms
             if (e.Button == MouseButtons.None && index >= 0 && position == EMousePos.onLabel)
             {   // maybe display a tooltip for this entry
                 string toDisplay = null;
-                if (entries[index].ToolTip != null)
+                if (entries[index].ResourceId != null)
                 {
-                    if (StringTable.IsStringDefined(entries[index].ToolTip))
+                    if (StringTable.IsStringDefined(entries[index].ResourceId))
                     {
-                        toDisplay = StringTable.GetString(entries[index].ToolTip, StringTable.Category.tip);
-                        if (toDisplay == null) toDisplay = StringTable.GetString(entries[index].ToolTip, StringTable.Category.label);
+                        toDisplay = StringTable.GetString(entries[index].ResourceId, StringTable.Category.tip);
+                        if (toDisplay == null) toDisplay = StringTable.GetString(entries[index].ResourceId, StringTable.Category.label);
                     }
                     else
                     {
-                        toDisplay = entries[index].ToolTip;
+                        toDisplay = entries[index].ResourceId;
                     }
                 }
                 if (currentToolTip != toDisplay)
@@ -435,7 +435,7 @@ namespace CADability.Forms
                 case EMousePos.onContextMenu:
                     if (entries[index].ContextMenu == null)
                     {
-                        throw new NotImplementedException("implement ContextMenu of " + entries[index].GetType().ToString() + ", " + entries[index].ToolTip);
+                        throw new NotImplementedException("implement ContextMenu of " + entries[index].GetType().ToString() + ", " + entries[index].ResourceId);
                     }
                     ContextMenuWithHandler cm = MenuManager.MakeContextMenu(entries[index].ContextMenu);
                     cm.UpdateCommand(); // ContextMenu OnPopup is not beeing called
@@ -612,7 +612,7 @@ namespace CADability.Forms
             List<IPropertyEntry> lentries = new List<IPropertyEntry>(entries);
             for (int i = lentries.Count-1; i>=0 ; --i)
             {
-                if ((Parent.Parent as PropertiesExplorer).isHidden(lentries[i].ToolTip)) lentries.RemoveAt(i);
+                if ((Parent.Parent as PropertiesExplorer).isHidden(lentries[i].ResourceId)) lentries.RemoveAt(i);
             }
             this.entries = lentries.ToArray();
             labelNeedsExtension = new bool[entries.Length]; // all set to false
@@ -829,8 +829,8 @@ namespace CADability.Forms
             //System.Diagnostics.Trace.WriteLine("Looking for: " + helpResourceID);
             for (int i = 0; i < entries.Length; i++)
             {
-                System.Diagnostics.Trace.WriteLine("HelpLink: " + entries[i].ToolTip);
-                if (entries[i].ToolTip == helpResourceID) return entries[i];
+                System.Diagnostics.Trace.WriteLine("HelpLink: " + entries[i].ResourceId);
+                if (entries[i].ResourceId == helpResourceID) return entries[i];
             }
             return null;
         }

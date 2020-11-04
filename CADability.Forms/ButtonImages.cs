@@ -5,7 +5,7 @@ using System.Windows.Forms;
 namespace CADability.Forms
 {
     /// <summary>
-    /// Images for toolbar buttons and menu icons. Images should have the size 16*15 pixel.
+    /// Images for tool-bar buttons and menu icons. Images should have the size 16*15 pixel.
     /// ButtonImageList contains images from the CADability Resource and are loaded upon the 
     /// static construction of ButtonImages.
     /// To use your own Images for buttons in 

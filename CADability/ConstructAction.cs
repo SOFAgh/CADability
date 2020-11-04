@@ -6845,7 +6845,7 @@ namespace CADability.Actions
         bool IPropertyEntry.ReadOnly { get; set; }
         string IPropertyEntry.Label => StringTable.GetString(TitleId + ".Label");
         string IPropertyEntry.Value => null;
-        string IPropertyEntry.ToolTip => StringTable.GetString(this.TitleId);
+        string IPropertyEntry.ResourceId => StringTable.GetString(this.TitleId);
         object IPropertyEntry.Parent { get; set; }
         int IPropertyEntry.Index { get; set; }
         int IPropertyEntry.IndentLevel { get; set; }

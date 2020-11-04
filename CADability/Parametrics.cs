@@ -23,6 +23,7 @@ namespace CADability
             edgeDict = new Dictionary<Edge, Edge>();
             vertexDict = new Dictionary<Vertex, Vertex>();
             clonedShell = shell.Clone(edgeDict, vertexDict, faceDict);
+            clonedShell.Layer = shell.Layer;
             edgesToRecalculate = new HashSet<Edge>();
             modifiedFaces = new HashSet<Face>();
             verticesToRecalculate = new HashSet<Vertex>();
@@ -72,6 +73,7 @@ namespace CADability
         /// <param name="newRadius">the new radius of the surface</param>
         public bool ModifyRadius(Face toModify, double newRadius)
         {
+            if (newRadius <= 0.0) return false;
             HashSet<Face> sameSurfaceFaces = new HashSet<Face>();
             HashSet<Edge> sameSurfaceEdges = new HashSet<Edge>();
             if (!faceDict.TryGetValue(toModify, out Face faceToModify)) return false; // must be a face from the original shell
@@ -156,6 +158,25 @@ namespace CADability
                             edgesToRecalculate.UnionWith(vtx.AllEdges);
                         }
                         modifiedFaces.Add(faceToModify);
+                        // this modified face is tangential to t[0] and t[1]. The edges between this faceToModify and t[0] resp. t[1] need to be recalculated
+                        // in order to have a curve for recalculating the vertices in Result()
+                        foreach (Edge edg in faceToModify.AllEdgesIterated())
+                        {
+                            for (int i = 0; i < 2; i++)
+                            {
+                                if (edg.OtherFace(faceToModify) == t[i])
+                                {
+                                    ICurve[] crvs = faceToModify.Surface.Intersect(faceToModify.Domain, t[i].Surface, t[i].Domain);
+                                    ICurve crv = Hlp.GetClosest(crvs, c => c.DistanceTo(edg.Vertex1.Position) + c.DistanceTo(edg.Vertex2.Position));
+                                    if (crv!=null) // which must be the case, because the surfaces are tangential
+                                    {
+                                        edg.Curve3D = crv;
+                                        tangentialEdgesModified[edg] = crv;
+                                    }
+                                }
+
+                            }
+                        }
                         // follow the crossway tangential faces
                         foreach (Edge edge in crosswayTangential)
                         {
@@ -354,7 +375,10 @@ namespace CADability
             {
                 face.ForceAreaRecalc();
             }
-            if (clonedShell.CheckConsistency()) return clonedShell;
+            if (clonedShell.CheckConsistency())
+            {
+                return clonedShell;
+            }
             return null;
         }
     }

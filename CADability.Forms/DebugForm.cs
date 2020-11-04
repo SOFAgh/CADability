@@ -26,17 +26,20 @@ namespace CADability.Forms
     }
 
     /// <summary>
-    /// This Form is almost identical to the MainForm. It is beeing created via reflection from CADability kernel and used to display CADability objects in a ModelView.
+    /// This Form is almost identical to the MainForm. It is being created via reflection from CADability kernel and used to display CADability objects in a ModelView.
     /// </summary>
     public class DebugForm : CadForm, IDebugForm
     {
         public DebugForm() : base(new string[] { })
         {
+            Trace.WriteLine("DebugForm constructor");
             Text = "CADability.Forms.DebugForm";
+            CadFrame.GenerateNewProject();
         }
 
         protected override void OnShown(EventArgs e)
         {
+            Trace.WriteLine("DebugForm OnShown");
             base.OnShown(e);
             // zoom total and make all layers visible
             ((CadFrame as IFrame).ActiveView as ModelView).ZoomTotal(1.1);
@@ -64,6 +67,7 @@ namespace CADability.Forms
         /// <param name="windowService"></param>
         public void ShowDialog(IDialogVisualizerService windowService)
         {
+            Trace.WriteLine("DebugForm ShowDialog");
             windowService.ShowDialog(this);
         }
     }

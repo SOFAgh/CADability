@@ -12,7 +12,7 @@ namespace CADability.GeoObject
     /// the "big" circles around the main axis, the v parameter describes the "small" circles.
     /// </summary>
     [Serializable()]
-    public class ToroidalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IImplicitPSurface, IExportStep
+    public class ToroidalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IImplicitPSurface, IExportStep, ISurfaceOfArcExtrusion
     {
         private ModOp toTorus; // diese ModOp modifiziert den Einheitstorus in den konkreten Torus
         private ModOp toUnit; // die inverse ModOp zum schnelleren Rechnen
@@ -2411,7 +2411,7 @@ namespace CADability.GeoObject
                             SurfaceHelper.AdjustUPeriodic(this, thisBounds.Left, thisBounds.Right, ref u);
                             if (u >= thisBounds.Left - 1e-6 && u <= thisBounds.Right + 1e-6)
                             {
-                                // not yet testet!!!
+                                // not yet tested!!!
                                 ICurve crv = FixedU(u, thisBounds.Bottom, thisBounds.Top);
                                 Line2D l2d = new Line2D(new GeoPoint2D(u, thisBounds.Bottom), new GeoPoint2D(u, thisBounds.Top));
                                 DualSurfaceCurve dsc = new DualSurfaceCurve(crv, this, l2d, other, other.GetProjectedCurve(crv, 0.0));
@@ -2526,13 +2526,51 @@ namespace CADability.GeoObject
         #endregion
         ImplicitPSurface IImplicitPSurface.GetImplicitPSurface()
         {
-            // implizite Form gemäß https://en.wikipedia.org/wiki/Implicit_surface
-            // wobei R==1 und a==minorRadius
+            // implicit form according to https://en.wikipedia.org/wiki/Implicit_surface
+            // where R==1 and a==minorRadius
             Polynom p = new Polynom(1, "x2", 1, "y2", 1, "z2", 1 - minorRadius * minorRadius, "");
-            Polynom pp = p * p + new Polynom(-4, "x2", -4, "y2", 0, "z"); // 0 z damit es 3dimensional wird
-            ImplicitPSurface res = new ImplicitPSurface(pp, toUnit); // ja, es muss toUnit haißen, nicht toTorus!
+            Polynom pp = p * p + new Polynom(-4, "x2", -4, "y2", 0, "z"); // 0 z to make a 3 dimensional polynom
+            ImplicitPSurface res = new ImplicitPSurface(pp, toUnit); // yes, toUnit, not toTorus!
             return res;
         }
+        #region ISurfaceOf(Arc)Extrusion
+        ICurve ISurfaceOfExtrusion.Axis(BoundingRect domain)
+        {   // the length of the axis is irrelevant
+            return Line.TwoPoints(Location - MinorRadius * ZAxis, Location + MinorRadius * ZAxis);
+        }
+        bool ISurfaceOfExtrusion.ModifyAxis(GeoPoint throughPoint)
+        {   // a movement along the axis and a change of the major radius. The axis to modify is the circular axis of the torus
+            GeoPoint onAxis = Geometry.DropPL(throughPoint, Location, ZAxis);
+            double oldMinorRadius = MinorRadius;
+            double majorRadius = Geometry.DistPL(throughPoint, Location, ZAxis);
+            ModOp m1 = ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis },
+                new GeoVector[] { majorRadius * XAxis.Normalized, majorRadius * YAxis.Normalized, majorRadius * ZAxis.Normalized });
+            ModOp m2 = ModOp.Translate(onAxis.x, onAxis.y, onAxis.z);
+            toTorus = m2 * m1;
+            toUnit = toTorus.GetInverse();
+            this.minorRadius = toUnit.Factor * oldMinorRadius;
+            return true;
+        }
+        IOrientation ISurfaceOfExtrusion.Orientation => throw new NotImplementedException();
+        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid() ?
+            FixedU(0.0, 0.0, Math.PI) : FixedU(0.0, usedArea.Bottom, usedArea.Right);
+        /// <summary>
+        /// Setting the radius of a ISurfaceOfArcExtrusion means setting the radius of the extruded arc, which is the minor radius in this case
+        /// </summary>
+        double ISurfaceOfArcExtrusion.Radius
+        {
+            get
+            {
+                return MinorRadius;
+            }
+            set
+            {
+                minorRadius = toUnit.Factor * value;
+            }
+        }
+
+        bool ISurfaceOfExtrusion.ExtrusionDirectionIsV => false; // it is the extrusion of the "small" circle around the axis
+        #endregion
 
         int IExportStep.Export(ExportStep export, bool topLevel)
         {

@@ -147,7 +147,7 @@ namespace CADability.UserInterface
         /// <summary>
         /// A tooltip, or null if no tooltip should be displayed
         /// </summary>
-        string ToolTip { get; }
+        string ResourceId { get; }
         /// <summary>
         /// if sub-entries are show, then hide them, if not, then show them (user clicked on the + or - symbol for opening or closing the sub-entries)
         /// </summary>
