@@ -16,7 +16,6 @@ namespace CADability.GeoObject
     /// <see cref="CompoundShape"/> and <see cref="HatchStyle"/>. If you omit one of these properties
     /// you wont see the Hatch object as it is not fully defined. No defaults are assumed.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Hatch : Block, ISerializable, IHatchStyle
     {

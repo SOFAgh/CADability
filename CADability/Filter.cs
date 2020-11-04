@@ -400,7 +400,6 @@ namespace CADability.Attribute
     /// by constructing your own filter. In your derived class you can use any criteria of a IGeoObject
     /// for filtering, e.g. the contents of <see cref="IGeoObject.UserData"/>.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class Filter : IShowPropertyImpl, ISerializable, ICommandHandler
     {

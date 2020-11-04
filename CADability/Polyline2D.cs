@@ -20,7 +20,6 @@ namespace CADability.Curve2D
     /// Implements a polyline in 2D space. By implementing the ICurve2D interface this polyline
     /// can be handled as any 2D curve.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Polyline2D : GeneralCurve2D, ISerializable
     {

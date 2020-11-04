@@ -37,7 +37,6 @@ namespace CADability.LinearAlgebra
     /// of simultaneous linear equations.  This will fail if <c>IsFullRank()</c>
     /// returns false.
     /// </remarks>
-    // created by MakeClassComVisible
     [Serializable]
     public class QRDecomposition
     {

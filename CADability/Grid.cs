@@ -7,7 +7,6 @@ namespace CADability
     /// <summary>
     /// The Grid settings, used only in class <see cref="Projection"/>.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class Grid : IShowPropertyImpl, ISerializable
     {

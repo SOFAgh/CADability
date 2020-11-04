@@ -17,7 +17,6 @@ namespace CADability.GeoObject
     /// as a background in a model. It is a GeoObject and may be part of a model. It is defined by the bitmap 
     /// bits and the location in space.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Picture : IGeoObjectImpl, ISerializable
     {

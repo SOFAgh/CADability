@@ -29,7 +29,6 @@ namespace CADability.Shapes
     /// produced by the BorderBuilder object (or by its constructors).
     /// </summary>
 #if DEBUG
-    // created by MakeClassComVisible
     [System.Diagnostics.DebuggerVisualizer(typeof(BorderVisualizer))]
 #endif
     [Serializable()]

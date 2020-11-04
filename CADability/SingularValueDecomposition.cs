@@ -38,7 +38,6 @@ namespace CADability.LinearAlgebra
     /// never fail.  The matrix condition number and the effective numerical
     /// rank can be computed from this decomposition.</p>
     /// </remarks>
-    // created by MakeClassComVisible
     [Serializable]
     public class SingularValueDecomposition
     {

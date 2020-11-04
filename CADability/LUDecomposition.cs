@@ -37,7 +37,6 @@ namespace CADability.LinearAlgebra
     /// LU decomposition is in the solution of square systems of simultaneous
     /// linear equations.  This will fail if IsNonSingular() returns false.
     /// </remarks>
-    // created by MakeClassComVisible
     [Serializable]
     public class LUDecomposition
     {

@@ -58,7 +58,6 @@ namespace CADability
     /// together with the object in the ControlCenter. If it implements <see cref="IMultiObjectUserData"/>
     /// it will be displayed as a common property when multiple objects are displayed in the ControlCenter
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class UserData : ISerializable, IDictionary<string, object>, IDictionary, IJsonSerialize
     {

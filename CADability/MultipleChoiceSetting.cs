@@ -11,7 +11,6 @@ namespace CADability
     /// It is represented as a combo box. The label left of the combo box is given
     /// by the resourceId <see cref="StringTable.GetString"/>, the values are
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class MultipleChoiceSetting : MultipleChoiceProperty, ISerializable, ISettingChanged, IJsonSerialize
     {

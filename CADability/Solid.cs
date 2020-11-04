@@ -169,7 +169,6 @@ namespace CADability.GeoObject
     /// points to the outside of the body. Solids have one set of faces that represent the outer hull
     /// and any number of cavyties that reside totally inside the outer hull. All cavyties are disjoint.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Solid : IGeoObjectImpl, ISerializable, IColorDef, IGetSubShapes, IGeoObjectOwner, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone, IExportStep
     {

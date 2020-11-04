@@ -59,7 +59,6 @@ namespace CADability
     /// such modificaion to <see cref="GeoVector2D"/> and <see cref="GeoPoint2D"/> points or to <see cref="ICurve2D"/>
     /// implementing objects.
     /// </summary>
-    // created by MakeClassComVisible
     [
         Serializable()]
     public struct ModOp2D : ISerializable
@@ -621,7 +620,6 @@ namespace CADability
     /// <summary>
     /// Homogenuos matrix for 3 dimensions, i.e. 4x4 matrix. Mainly used for perspective views.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public struct Matrix4 : ISerializable
     {
@@ -732,7 +730,6 @@ namespace CADability
     /// If you want to move, rotate, scale reflect or generally modify a GeoObject you will need this class.
     /// Use the static methods to create ModOps that do a required modification (like <see cref="Rotate"/>, <see cref="Translate"/> etc.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     [JsonVersion(serializeAsStruct = true, version = 1)]
     public struct ModOp : ISerializable, IJsonSerialize

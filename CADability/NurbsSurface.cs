@@ -13,7 +13,6 @@ namespace CADability.GeoObject
     /// <summary>
     /// A NURBS surface implementing <see cref="ISurface"/>. 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class NurbsSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IExportStep
     {

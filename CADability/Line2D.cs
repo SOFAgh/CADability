@@ -9,7 +9,6 @@ namespace CADability.Curve2D
     /// Implements a line in 2D space. By implementing the ICurve2D interface this line
     /// can be handled as any 2D curve.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Line2D : GeneralCurve2D, ISerializable, IJsonSerialize
     {

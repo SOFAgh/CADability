@@ -208,7 +208,6 @@ namespace CADability
     /// The Edge may be an outer or an inner edge on each face or some curve on the inside of a face (typically an
     /// outlining curve for a certain <see cref="Projection"/>). The edge may not be outside of a face.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     [DebuggerDisplayAttribute("Edge, hc = {hashCode.ToString()}")]
     public class Edge : ISerializable, IGeoObjectOwner, IDeserializationCallback, IComparable<Edge>, IJsonSerialize, IJsonSerializeDone, IExportStep

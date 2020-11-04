@@ -51,7 +51,6 @@ namespace CADability.GeoObject
     /// <summary>
     /// Implements a point as a <see cref="IGeoObject"/>. 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Point : IGeoObjectImpl, IColorDef, ISerializable
     {

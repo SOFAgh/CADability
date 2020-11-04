@@ -174,7 +174,6 @@ namespace CADability.GeoObject
     /// If a face is contained in a <see cref="Model"/> it doesnt share its edges with other faces. If a face is part of a <see cref="Shell"/>
     /// (which maybe a part of a <see cref="Solid"/>) it shares some or all of its edges with other faces.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     [DebuggerDisplayAttribute("Face, hc = {hashCode.ToString()}")]
     public class Face : IGeoObjectImpl, ISerializable, IColorDef, IGetSubShapes, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone, IExportStep

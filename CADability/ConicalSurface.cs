@@ -11,7 +11,6 @@ namespace CADability.GeoObject
     /// A conical surface which implements <see cref="ISurface"/>. The surface represents a circular or elliptical
     /// cone. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class ConicalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, ISurfaceOfRevolution, IExportStep
     {

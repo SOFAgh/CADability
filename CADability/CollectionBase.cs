@@ -25,7 +25,6 @@ namespace Wintellect.PowerCollections
     /// may not be very efficient.</para>
     /// </remarks>
     /// <typeparam name="T">The item type of the collection.</typeparam>
-    // created by MakeClassComVisible
     [Serializable]
     [DebuggerDisplay("{DebuggerDisplayString()}")]
     public abstract class CollectionBase<T> : ICollection<T>, ICollection

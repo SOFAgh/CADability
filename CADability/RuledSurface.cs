@@ -13,7 +13,6 @@ namespace CADability
     /// first curve and ending on the second curve. It is the surface described by a wire or rubber band synchronously moving along
     /// the two curves. the default parameter space is 0.0 to 1.0 on u and v.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class RuledSurface : ISurfaceImpl, ISerializable, IExportStep
     {

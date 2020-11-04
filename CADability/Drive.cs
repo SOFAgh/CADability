@@ -35,7 +35,6 @@ namespace CADability
         List<IGeoObject> MovedObjects { get; }
     }
 
-    // created by MakeClassComVisible
     [Serializable]
     public class DriveList : IEnumerable<IDrive>, ISerializable, IDeserializationCallback, IJsonSerialize
     {
@@ -148,7 +147,6 @@ namespace CADability
     /// <summary>
     /// Describes a movement along a curve (which may be any path or simple curve like a line)
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class CurveDrive : IShowPropertyImpl, IDrive, ISerializable, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
@@ -657,7 +655,6 @@ namespace CADability
         #endregion
     }
 
-    // created by MakeClassComVisible
     [Serializable]
     public class DualCurveDrive : IShowPropertyImpl, IDrive, ICommandHandler, ISerializable, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
@@ -1021,7 +1018,6 @@ namespace CADability
     /// <summary>
     /// Describes a rotation around an axis.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class AxisDrive : IShowPropertyImpl, IDrive, ICommandHandler, IDeserializationCallback, ISerializable, IJsonSerialize, IJsonSerializeDone
     {

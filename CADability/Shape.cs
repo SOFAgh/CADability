@@ -15,7 +15,6 @@ namespace CADability.Shapes
     /// The holes don't overlap (disjunct) and reside totally inside the outline.
     /// </summary>
 #if DEBUG
-    // created by MakeClassComVisible
     [System.Diagnostics.DebuggerVisualizer(typeof(SimpleShapeVisualizer))]
 #endif
     [Serializable()]
@@ -1667,7 +1666,6 @@ namespace CADability.Shapes
     /// All simple shapes are disjoint. 
     /// </summary>
 #if DEBUG
-    // created by MakeClassComVisible
     [System.Diagnostics.DebuggerVisualizer(typeof(CompoundShapeVisualizer))]
 #endif
     [Serializable()]

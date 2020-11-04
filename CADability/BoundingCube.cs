@@ -9,7 +9,6 @@ namespace CADability
     /// <summary>
     /// Represents a bounding cuboid, that is an extent in 3 dimensions
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public struct BoundingCube : ISerializable
     {

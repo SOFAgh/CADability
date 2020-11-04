@@ -15,7 +15,6 @@ namespace CADability.Attribute
     /// default filtering machanism (or both). The FilterList of the project is displayed in the ControlCenter
     /// and may be interactively manipulated.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class FilterList : IShowPropertyImpl, ISerializable, ICommandHandler, INameChange, IDeserializationCallback
     {

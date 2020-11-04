@@ -27,7 +27,6 @@ namespace Wintellect.PowerCollections
     /// </remarks>
     /// <typeparam name="TKey">The key type of the dictionary.</typeparam>
     /// <typeparam name="TValue">The value type of the dictionary.</typeparam>
-    // created by MakeClassComVisible
     [Serializable]
     [DebuggerDisplay("{DebuggerDisplayString()}")]
     public abstract class MultiDictionaryBase<TKey, TValue> : CollectionBase<KeyValuePair<TKey, ICollection<TValue>>>,

@@ -37,7 +37,6 @@ namespace CADability.GeoObject
     /// project.GetActiveModel().Add(d);
     /// </code>
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Dimension : IGeoObjectImpl, ISerializable, IDimensionStyle, IGeoObjectOwner
     {

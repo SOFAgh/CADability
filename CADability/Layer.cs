@@ -215,7 +215,6 @@ namespace CADability.Attribute
     /// if the according feature is enabled in a <see cref="ModelView"/> or <see cref="Layout"/>.
     /// Layer implements the <see cref="IShowProperty"/> interface to present ist properties.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Layer : IShowPropertyImpl, ISerializable, INamedAttribute,
             ICommandHandler
