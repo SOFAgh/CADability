@@ -6,17 +6,21 @@ namespace CADability
 {
     /// <summary>
     /// Wrappes an int value. The value represents a choice of severel predefined choices.
-    /// It represents a setting defined by a <see cref="SettingName"/> and a <see cref="Selected"/> value.
-    /// Ths setting can be displayed and modified in the control center. 
+    /// It represents a setting defined by a name and a value.
+    /// This setting can be displayed and modified in the control center. 
     /// It is represented as a combo box. The label left of the combo box is given
     /// by the resourceId <see cref="StringTable.GetString"/>, the values are
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class MultipleChoiceSetting : MultipleChoiceProperty, ISerializable, ISettingChanged, IJsonSerialize
     {
         int selected;
         string settingName;
+        /// <summary>
+        /// Constructs a <see cref="MultipleChoiceSetting"/> object.
+        /// </summary>
+        /// <param name="resourceId">the string table id for the presentation of the setting in the PropertyExplorer (<see cref="IControlCenter"/></param>
+        /// <param name="settingName">the name of the setting</param>
         public MultipleChoiceSetting(string resourceId, string settingName) : base()
         {
             this.resourceId = resourceId;
@@ -26,6 +30,12 @@ namespace CADability
             base.choices = StringTable.GetSplittedStrings(resourceId + ".Values");
             selected = -1;
         }
+        /// <summary>
+        /// Constructs a <see cref="MultipleChoiceSetting"/> object.
+        /// </summary>
+        /// <param name="resourceId">the string table id for the presentation of the setting in the PropertyExplorer (<see cref="IControlCenter"/></param>
+        /// <param name="settingName">the name of the setting</param>
+        /// <param name="values">the possible choices</param>
         public MultipleChoiceSetting(string resourceId, string settingName, string[] values)
             : base()
         {

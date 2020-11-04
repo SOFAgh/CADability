@@ -4603,7 +4603,7 @@ namespace CADability.Actions
                 return geoObjects;
             }
             /// <summary>
-            /// Delegate definition for <see cref="MouseOverCurvesEvent"/>
+            /// Delegate definition for <see cref="MouseOverGeoObjectsEvent"/>
             /// </summary>
             /// <param name="sender">this object</param>
             /// <param name="TheGeoObjects">GeoObjects under the cursor</param>
@@ -4611,14 +4611,14 @@ namespace CADability.Actions
             /// <returns>true, if you accept (one of the) GeoObjects</returns>
             public delegate bool MouseOverGeoObjectsDelegate(GeoObjectInput sender, IGeoObject[] TheGeoObjects, bool up);
             /// <summary>
-            /// Provide a method here to react on the user moving the cursor over curves.
+            /// Provide a method here to react on the user moving the cursor over GeoObjects.
             /// </summary>
             public event MouseOverGeoObjectsDelegate MouseOverGeoObjectsEvent;
             /// <summary>
             /// Delegate definition for <see cref="CurveSelectionChangedEvent"/>
             /// </summary>
             /// <param name="sender">this object</param>
-            /// <param name="SelectedCurve">the usere selected curve</param>
+            /// <param name="SelectedGeoObject">the user selected GeoObject</param>
             public delegate void GeoObjectSelectionChangedDelegate(GeoObjectInput sender, IGeoObject SelectedGeoObject);
             /// <summary>
             /// Provide a method here to react on the user selecting a different curve

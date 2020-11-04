@@ -1590,7 +1590,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.GetContextMenu"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.ContextMenu"/>, 
         /// returns the context menu with the id "MenuId.ModelView".
         /// (see <see cref="MenuResource.LoadContextMenu"/>)
         /// </summary>

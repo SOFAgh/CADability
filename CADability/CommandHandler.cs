@@ -7,9 +7,8 @@ using System.Text;
 namespace CADability.UserInterface
 {
     /// <summary>
-    /// State of a menu entry or toolbar button. Used in the <see cref="IFrame.UpdateCommand"/> event.
+    /// State of a menu entry or toolbar button. Used in the <see cref="ICommandHandler.UpdateCommand"/> event.
     /// </summary>
-
     public class CommandState
     {
         bool enabled;
@@ -52,7 +51,7 @@ namespace CADability.UserInterface
     }
     /// <summary>
     /// Objects that implement this interface can receive menu command.
-    /// Usually used in calls to <see cref="MenuResource.LoadContextMenu"/> to specify
+    /// Usually used in calls to <see cref="MenuResource.LoadMenuDefinition(string, bool, ICommandHandler)"/> to specify
     /// the target object for that menu.
     /// </summary>
 

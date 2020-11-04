@@ -8,11 +8,11 @@ namespace CADability.UserInterface
     /// <summary>
     /// Defines a base clas for editable properties shown on a property page (IPropertyPage) in the controlcenter (properties explorer).
     /// It is a single entry in the property page which may have subentries.
-    /// Usually a property of type <see cref="T"/> of some object is connected with this EditableProperty, e.g. the startpoint of a line 
+    /// Usually a property of type <typeparamref name="T"/> of some object is connected with this EditableProperty, e.g. the startpoint of a line 
     /// or the distance of hatch lines or some setting value. The communication with the object which hold the property is either done via delegates
     /// or via reflection.
     /// When the user clicks on the value part of the <see cref="IPropertyEntry"/>, an editbox is activated to edit the value of the property. There must be 
-    /// a <see cref="EditableProperty{T}.ValueToText(T)"/> and <see cref="EditableProperty{T}.TextToValue(string)"/> method defined in the derived class, which
+    /// a <see cref="ValueToText(T)"/> and <see cref="TextToValue(string, out T)"/> method defined in the derived class, which
     /// convert the property value in a string and vice versa. The value of the property may be changed by the editbox (typing) or from the outside.
     /// </summary>
     /// <typeparam name="T"></typeparam>

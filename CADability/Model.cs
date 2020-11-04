@@ -1254,7 +1254,7 @@ namespace CADability
             return res;
         }
         /// <summary>
-        /// Determins whether an attribute (e.g. <see cref="Layer"/>, <see cref="LineStyle"/>) is used by any GeoObjects of this model.
+        /// Determins whether an attribute (e.g. <see cref="Layer"/>, <see cref="LinePattern"/>) is used by any GeoObjects of this model.
         /// </summary>
         /// <param name="Attribute">Attribut to test</param>
         /// <returns>True, if attribute is used, false otherwise.</returns>

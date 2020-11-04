@@ -1219,7 +1219,7 @@ namespace CADability
             return addToList.ToArray();
         }
         /// <summary>
-        /// Returns an array of all objects that interfere with the provided <see cref="PickArea"/>. If <paramref name="onlyInside"/> is true
+        /// Returns an array of all objects that interfere with the provided <see cref="Projection.PickArea"/> area. If <paramref name="onlyInside"/> is true
         /// only objects inside the frustum or box of the <paramref name="area"/> are returned, otherwise there may also be objects
         /// that are aoutside this area.
         /// </summary>
@@ -1286,7 +1286,7 @@ namespace CADability
         /// <summary>
         /// Returns all objects that are close to the provided plane
         /// </summary>
-        /// <param name="plane">Plne for selection</param>
+        /// <param name="plane">Plane for selection</param>
         /// <returns>All objects close to the plane</returns>
         public T[] GetObjectsFromPlane(Plane plane)
         {
@@ -1365,7 +1365,7 @@ namespace CADability
         /// <returns>true if accepted, false if rejected</returns>
         public delegate bool Filter(T toCheck);
         /// <summary>
-        /// Delegate definition of a filtering method restricting <see cref="Node"/>s.
+        /// Delegate definition of a filtering method restricting <see cref="Node<typeparamref name="T"/>"/>s.
         /// </summary>
         /// <param name="toCheck">The node beeing checked</param>
         /// <returns>true if accepted, false if rejected</returns>
