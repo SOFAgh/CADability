@@ -272,12 +272,12 @@ namespace CADability.Forms
         {
             add
             {
-                throw new NotImplementedException();
+                Application.Idle += value;
             }
 
             remove
             {
-                throw new NotImplementedException();
+                Application.Idle -= value;
             }
         }
         #endregion
