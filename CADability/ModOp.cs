@@ -56,7 +56,7 @@ namespace CADability
 
     /// <summary>
     /// A 2-dimensional modification operation implemented as a homogenous matix 3*2. You can apply
-    /// such modificaion to <see cref="GeoVector2D"/> and <see cref="GeoPoint2D"/> points or to <see cref="ICurve2D"/>
+    /// such modificaion to <see cref="GeoVector2D"/> and <see cref="GeoPoint2D"/> points or to <see cref="CADability.Curve2D.ICurve2D"/>
     /// implementing objects.
     /// </summary>
     [
@@ -1599,7 +1599,7 @@ namespace CADability
         }
         /// <summary>
         /// Combines two modification into one modification. If two modifications have to be applied to
-        /// several <see cref="GeoPoint"/>s or <see cref="GeoVector"/>s or to <see cref="IGeoObject"/>s
+        /// several <see cref="GeoPoint"/>s or <see cref="GeoVector"/>s or to <see cref="GeoObject.IGeoObject"/>s
         /// it is faster to use the combination.
         /// </summary>
         /// <param name="lhs">second modification</param>

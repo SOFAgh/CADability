@@ -284,16 +284,6 @@ namespace CADability
             }
         }
         #region ISerializable Members
-        /// <summary>
-        /// Used by deserialization.
-        /// </summary>
-        /// <param name="info">see ISerializable</param>
-        /// <param name="context">see ISerializable</param>
-        /// <summary>
-        /// Constructor required by deserialization
-        /// </summary>
-        /// <param name="info">SerializationInfo</param>
-        /// <param name="context">StreamingContext</param>
         protected Layout(SerializationInfo info, StreamingContext context)
         {
             SerializationInfoEnumerator e = info.GetEnumerator();

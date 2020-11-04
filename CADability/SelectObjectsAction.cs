@@ -269,8 +269,8 @@ namespace CADability.Actions
         private PickMode pickMode;
         internal bool dragDrop;
         /// <summary>
-        /// Constructs a new SelectObjectsAction. This is automatically done when a <see cref="SingleDocumentFrame"/>
-        /// is created and the instance of this class can be retrieved from <see cref="SingleDocumentFrame.ActiveAction"/>.
+        /// Constructs a new SelectObjectsAction. This is automatically done when a <see cref="IFrame"/> derived object
+        /// is created and the instance of this class can be retrieved from <see cref="IFrame.ActiveAction"/>.
         /// </summary>
         /// <param name="Frame">The <see cref="IFrame">Frame</see> on which this action operates.</param>
         public SelectObjectsAction(IFrame Frame)

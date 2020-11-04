@@ -256,11 +256,6 @@ namespace CADability.UserInterface
         /// </summary>
         void Refresh();
         /// <summary>
-        /// Will be called when a windows "drag and drop" operation enters the space of this object.
-        /// You may modify the <paramref name="drgevent"/> parameter, especially the <see cref="DragEventArgs.Effect"/>.
-        /// </summary>
-        /// <param name="drgevent">Argument that indicates the state of the drag and drop action</param>
-        /// <summary>
         /// Alt+Enter was pressed in the controlcenter while this entry was selected
         /// </summary>
         void OnEnterPressed();
@@ -268,11 +263,11 @@ namespace CADability.UserInterface
         bool IsSelected { get; set; }
     }
     /// <summary>
-    /// Standard implementation of <see cref="IShowProperty"/>. Implements many interface methods in a 
+    /// Deprecated: for new objects use <see cref="IPropertyEntry"/> instead.
+    /// Deprecated standard implementation of <see cref="IShowProperty"/>. Implements many interface methods in a 
     /// standard way as a virtual method to give derived classes the possibility to override
-    /// these implementations
+    /// these implementations.
     /// </summary>
-
     public class IShowPropertyImpl : IShowProperty
         , IPropertyEntry
     {

@@ -107,17 +107,6 @@ namespace CADability
         /// </summary>
         PaintCapabilities Capabilities { get; }
 
-        // Init and Disconnect removed to get rid of Windows.Forms
-        ///// <summary>
-        ///// Will be called before any other paint methods are called.
-        ///// </summary>
-        ///// <param name="ctrl">The <see cref="Windows.Forms.Control"/> object assiciated with this interface</param>
-        //void Init(Control ctrl);
-        ///// <summary>
-        ///// Will be called when the control is about to disappear.
-        ///// </summary>
-        ///// <param name="ctrl"></param>
-        //void Disconnect(Control ctrl);
         /// <summary>
         /// Will be called before any other paint methods are called. May be called multiple times after <see cref="Init"/> has been called
         /// </summary>
@@ -294,7 +283,7 @@ namespace CADability
         /// <param name="background">Color to clear display with</param>
         void Clear(Color background);
         /// <summary>
-        /// Called when the size of the <see cref="Windows.Forms.Control"/> associated with this interface changes.
+        /// Called when the size of the container associated with this interface changes.
         /// </summary>
         /// <param name="width">New width in pixels</param>
         /// <param name="height">New height in pixels</param>

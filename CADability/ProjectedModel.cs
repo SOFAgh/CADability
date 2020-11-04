@@ -762,7 +762,7 @@ namespace CADability
         }
         /// <summary>
         /// Returns all GeoObjects that coincide with the given BoundingRect in the projection
-        /// of this ProjectedModel. If parameter <see cref="childOfThis"/> is null, this function
+        /// of this ProjectedModel. If parameter <paramref name="childOfThis"/> is null, this function
         /// will return the topmost parents of the objects else it will return direct children
         /// of "childOfthis".
         /// </summary>

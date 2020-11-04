@@ -851,9 +851,9 @@ namespace CADability
         }
         public GeoObjectList AdditionalSymbols { get { return symbolList; } }
         /// <summary>
-        /// The <see cref="UserData"/> object can take any kind of data. If the data objects
-        /// are serializable i.e. implement <see cref="System.Runtime.Serialization.ISerialzable"/> they are serialized
-        /// together with the project. If they implement the <see cref="IShowProperty"/> interface
+        /// The <see cref="CADability.UserData"/> object can take any kind of data. If the data objects
+        /// are serializable i.e. implement <see cref="System.Runtime.Serialization.ISerializable"/> they are serialized
+        /// together with the project. If they implement the <see cref="IPropertyEntry"/> interface
         /// they are displayed and can be modified on the project tab page of the control center.
         /// </summary>
         public UserData UserData;
@@ -2279,11 +2279,6 @@ namespace CADability
         //        }
         //    }
         //}
-        /// <summary>
-        /// Implements ISerializable.GetObjectData. Override this method if your object is also serializable.
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
         /// <summary>
         /// Implements <see cref="ISerializable.GetObjectData"/>
         /// </summary>

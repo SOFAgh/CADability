@@ -585,7 +585,7 @@ namespace CADability
             YZPlane
         }
         /// <summary>
-        /// Creates a new plane parallel to a <see cref="Standardplane"/> with a given offset
+        /// Creates a new plane parallel to a <see cref="StandardPlane"/> with a given offset
         /// </summary>
         /// <param name="std">the standard plane</param>
         /// <param name="offset">the offset to the standard plane</param>
