@@ -13,7 +13,6 @@ namespace CADability.Curve2D
     /// and stored in the right order, i.e. SubCurve[i].EndPoint is identical or close to 
     /// SubCurve[i+1].StartPoint. Path2D may be open or closed. It also may be self-intersecting.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Path2D : GeneralCurve2D, ISerializable
     {

@@ -174,11 +174,15 @@ namespace CADability
         /// <param name="popupCOntextMenu">the context menu of this entry should be displayed</param>
         bool SetControlCenterFocus(string tabPageName, string resourceId, bool openEntry, bool popupCOntextMenu);
         /// <summary>
-        /// Gets the <see cref="Settings"/> for the provided <paramref name="Name"/>. First the <see cref="Project"/>s settings are 
-        /// checked, if it is not defined there, the global settings will be queried.
+        /// Returns the global settings
         /// </summary>
-        /// <param name="Name"></param>
-        /// <returns></returns>
+        Settings GlobalSettings { get; set; }
+        /// <summary>
+                                                    /// Gets the <see cref="Settings"/> for the provided <paramref name="Name"/>. First the <see cref="Project"/>s settings are 
+                                                    /// checked, if it is not defined there, the global settings will be queried.
+                                                    /// </summary>
+                                                    /// <param name="Name"></param>
+                                                    /// <returns></returns>
         object GetSetting(string Name);
         /// <summary>
         /// Gets the boolen setting for the <paramref name="Name"/>. If not found <paramref name="Default"/> will be returned.
@@ -410,6 +414,64 @@ namespace CADability
                 SetViewProperties();
             }
         }
+        public void AddView(IView toAdd)
+        {
+            if (toAdd is ModelView)
+            {
+                ModelView mv = toAdd as ModelView;
+                project.AddProjectedModel(mv.Name, mv.Model, mv.Projection);
+                modelViews.Add(mv.Name, mv);
+                SetViewProperties();
+            }
+            if (toAdd is AnimatedView)
+            {
+                project.AnimatedViews.Add(toAdd as AnimatedView);
+                animatedViews.Add(toAdd as AnimatedView);
+                SetViewProperties();
+            }
+            if (toAdd is GDI2DView)
+            {
+                project.GdiViews.Add(toAdd as GDI2DView);
+                gdiViews.Add(toAdd as GDI2DView);
+                SetViewProperties();
+            }
+            if (toAdd is LayoutView)
+            {
+                LayoutView lv = toAdd as LayoutView;
+                project.AddLayout(lv.Layout);
+                layoutViews.Add(lv.Layout.Name, lv);
+                SetViewProperties();
+            }
+        }
+        public void RemoveView(IView toRemove)
+        {
+            if (toRemove is AnimatedView)
+            {
+                project.AnimatedViews.Remove(toRemove as AnimatedView);
+                animatedViews.Remove(toRemove as AnimatedView);
+                SetViewProperties();
+            }
+            else if (toRemove is ModelView)
+            {
+                project.RemoveModelView(toRemove as ModelView);
+                modelViews.Remove((toRemove as ModelView).Name);
+                SetViewProperties();
+            }
+            else if (toRemove is GDI2DView)
+            {
+                project.GdiViews.Remove(toRemove as GDI2DView);
+                gdiViews.Remove(toRemove as GDI2DView);
+                SetViewProperties();
+            }
+            else if (toRemove is LayoutView)
+            {
+                LayoutView lv = toRemove as LayoutView;
+                project.RemoveLayout(lv.Layout);
+                layoutViews.Remove(lv.Layout.Name);
+                SetViewProperties();
+            }
+        }
+
 
         //public Control DisplayArea => throw new NotImplementedException();
 
@@ -502,6 +564,49 @@ namespace CADability
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or set the GlobalSettings object (<see cref="Settings"/>). The global settings
+        /// are saved in the file CADability.GlobalSettings.bin. If you set a different settings object
+        /// you are responsible for saving the content.
+        /// </summary>
+        public Settings GlobalSettings
+        {
+            get { return Settings.GlobalSettings; }
+            set
+            {
+                Settings.GlobalSettings.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
+                Settings.GlobalSettings = value;
+                Settings.AddMissingSettings();
+                Settings.GlobalSettings.SettingChangedEvent += new SettingChangedDelegate(OnSettingChanged);
+                IAttributeListContainer alc = Settings.GlobalSettings as IAttributeListContainer;
+                if (alc != null)
+                {
+                    if (alc.ColorList != null) alc.ColorList.menuResourceId = "MenuId.Settings.ColorList";
+                    if (alc.LayerList != null) alc.LayerList.menuResourceId = "MenuId.Settings.LayerList";
+                    if (alc.LineWidthList != null) alc.LineWidthList.menuResourceId = "MenuId.Settings.LineWidthList";
+                    if (alc.LinePatternList != null) alc.LinePatternList.menuResourceId = "MenuId.Settings.LinePatternList";
+                    if (alc.HatchStyleList != null) alc.HatchStyleList.menuResourceId = "MenuId.Settings.HatchStyleList";
+                    if (alc.DimensionStyleList != null) alc.DimensionStyleList.menuResourceId = "MenuId.Settings.DimStyleList";
+                    if (alc.StyleList != null) alc.StyleList.menuResourceId = "MenuId.Settings.StyleList";
+                }
+
+                globalProperties.Clear();
+                globalProperties.Add(Settings.GlobalSettings, true);
+                globalProperties.Refresh(Settings.GlobalSettings);
+            }
+        }
+        private void OnSettingChanged(string Name, object NewValue)
+        {	
+            object o = this.GetSetting(Name);
+            SettingChangedEvent?.Invoke(Name, NewValue);
+            // }
+            if (Name == "Ruler.Show" && NewValue != null)
+            {
+                // this.condorScrollableCtrls[activeControl].ShowRuler = ((int)NewValue != 0);
+            }
+        }
+
 
         public string CurrentMenuId { get; set; }
 

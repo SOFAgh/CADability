@@ -14,7 +14,6 @@ namespace CADability.Attribute
     /// Die Namen müssen eindeutig sein. Das Zufügen bzw. Umbenennen eines Layers, so
     /// dass Mehrdeutigkeiten entstehen würden, führt zu einer Exception.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class LayerList : IShowPropertyImpl, INotifyModification, ISerializable,
         ICollection, IAttributeList, ICommandHandler, IDeserializationCallback
@@ -635,7 +634,6 @@ namespace CADability.Attribute
     /// provided list with a checkbox next to each layer. The titel of the entry is specified by
     /// the provided resourceId. 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class CheckedLayerList : IShowPropertyImpl, ICommandHandler, ISerializable, IDeserializationCallback
     {

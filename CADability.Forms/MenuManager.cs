@@ -171,8 +171,8 @@ namespace CADability.Forms
         {
             MenuWithHandler definition = (Tag as MenuWithHandler);
             if (definition.Target != null) definition.Target.OnCommand(definition.ID);
-            // Sometimes all menu texts are blank. This is not reproducable. I guess, it is because the menus are not disposed. I debugged by overriding Dispose of ContextMenuWithHandler
-            // If a menu item is clicked, the menu disappears and can be disposed. This is forced here. But if the menue disappears because of some other reason (ESC, click somewhere else)
+            // Sometimes all menu texts are blank. I cannot reproduce it. I guess, it is because the menus are not disposed. I debugged by overriding Dispose of ContextMenuWithHandler
+            // If a menu item is clicked, the menu disappears and can be disposed. This is forced here. But if the menu disappears because of some other reason (ESC, click somewhere else)
             // Dispose doesn't get called until maybe much later or when the form closes.
             ContextMenuWithHandler toDispose = null;
             Menu parent = this.Parent;

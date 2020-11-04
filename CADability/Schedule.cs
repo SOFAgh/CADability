@@ -12,7 +12,6 @@ namespace CADability
         void SetDrivePositions(double time, AnimatedView animatedView);
     }
 
-    // created by MakeClassComVisible
     [Serializable]
     public class ScheduleList : IEnumerable<Schedule>, ISerializable, IDeserializationCallback, IJsonSerialize
     {
@@ -96,7 +95,6 @@ namespace CADability
         }
     }
 
-    // created by MakeClassComVisible
     [Serializable]
     public class Schedule : IShowPropertyImpl, ISchedule, ICommandHandler, ISerializable, IDeserializationCallback, IJsonSerialize
     {

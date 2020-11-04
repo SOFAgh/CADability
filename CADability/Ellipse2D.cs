@@ -10,7 +10,6 @@ namespace CADability.Curve2D
     /// <summary>
     /// Describes an ellipse in 2D. Implements the ICurve2D interface.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Ellipse2D : GeneralCurve2D, ISerializable
     {

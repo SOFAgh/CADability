@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace CADability.Forms
 {
-    class ProgressForm : Form
+    public class ProgressForm : Form
     {
         private ProgressBar progressBar;
         private Label label;

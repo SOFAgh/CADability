@@ -33,7 +33,6 @@ namespace CADability.LinearAlgebra
     /// returns a partial decomposition and sets an internal flag that may
     /// be queried by the <see cref="CholeskyDecomposition.IsSPD"/> property.
     /// </remarks>
-    // created by MakeClassComVisible
     [Serializable]
     public class CholeskyDecomposition
     {

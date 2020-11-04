@@ -874,7 +874,6 @@ namespace CADability.Attribute
         public event StyleChangedDelegate StyleChangedEvent;
     }
 
-    // created by MakeClassComVisible
     [Serializable()]
     public class StyleList : IShowPropertyImpl, ICloneable, ISerializable, IAttributeList, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {

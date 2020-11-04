@@ -16,10 +16,12 @@ namespace CADability
         private LengthInput radiusInput;
         private LengthInput diameterInput;
         private bool validResult;
-        public ParametricsRadius(Face faceWithRadius, IFrame frame)
+        private bool useRadius;
+        public ParametricsRadius(Face faceWithRadius, IFrame frame, bool useRadius)
         {
             this.faceWithRadius = faceWithRadius;
             this.frame = frame;
+            this.useRadius = useRadius;
             shell = faceWithRadius.Owner as Shell;
         }
 
@@ -65,25 +67,37 @@ namespace CADability
         {
             base.TitleId = "Constr.Parametrics.Cylinder.Radius";
             base.ActiveObject = shell.Clone();
-            shell.Layer.Transparency = 128;
 
-
-            radiusInput = new LengthInput("Parametrics.Cylinder.Radius");
-            radiusInput.GetLengthEvent += RadiusInput_GetLength;
-            radiusInput.SetLengthEvent += RadiusInput_SetLength;
-            radiusInput.Optional = diameter;
-
-            diameterInput = new LengthInput("Parametrics.Cylinder.Diameter");
-            diameterInput.GetLengthEvent += DiameterInput_GetLength;
-            diameterInput.SetLengthEvent += DiameterInput_SetLength;
-            diameterInput.Optional = !diameter;
-
-            base.SetInput(radiusInput, diameterInput);
+            if (useRadius)
+            {
+                radiusInput = new LengthInput("Parametrics.Cylinder.Radius");
+                radiusInput.GetLengthEvent += RadiusInput_GetLength;
+                radiusInput.SetLengthEvent += RadiusInput_SetLength;
+                radiusInput.Optional = diameter;
+                base.SetInput(radiusInput);
+            }
+            else
+            {
+                diameterInput = new LengthInput("Parametrics.Cylinder.Diameter");
+                diameterInput.GetLengthEvent += DiameterInput_GetLength;
+                diameterInput.SetLengthEvent += DiameterInput_SetLength;
+                diameterInput.Optional = !diameter;
+                base.SetInput(diameterInput);
+            }
             base.OnSetAction();
 
             validResult = false;
         }
-
+        public override void OnActivate(Actions.Action OldActiveAction, bool SettingAction)
+        {
+            if (shell.Layer != null) shell.Layer.Transparency = 128;
+            base.OnActivate(OldActiveAction, SettingAction);
+        }
+        public override void OnInactivate(Actions.Action NewActiveAction, bool RemovingAction)
+        {
+            if (shell.Layer != null) shell.Layer.Transparency = 0;
+            base.OnInactivate(NewActiveAction, RemovingAction);
+        }
         private bool RadiusInput_SetLength(double length)
         {
             validResult = false;
@@ -111,7 +125,7 @@ namespace CADability
 
         private double RadiusInput_GetLength()
         {
-            if (faceWithRadius.Surface is CylindricalSurface cyl) return cyl.RadiusX; // we only have round cylinders here
+            if (faceWithRadius.Surface is ISurfaceOfArcExtrusion sae) return sae.Radius; // we only have round cylinders here
             else return 0.0;
         }
         private bool DiameterInput_SetLength(double length)

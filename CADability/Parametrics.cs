@@ -23,6 +23,7 @@ namespace CADability
             edgeDict = new Dictionary<Edge, Edge>();
             vertexDict = new Dictionary<Vertex, Vertex>();
             clonedShell = shell.Clone(edgeDict, vertexDict, faceDict);
+            clonedShell.Layer = shell.Layer;
             edgesToRecalculate = new HashSet<Edge>();
             modifiedFaces = new HashSet<Face>();
             verticesToRecalculate = new HashSet<Vertex>();
@@ -72,6 +73,7 @@ namespace CADability
         /// <param name="newRadius">the new radius of the surface</param>
         public bool ModifyRadius(Face toModify, double newRadius)
         {
+            if (newRadius <= 0.0) return false;
             HashSet<Face> sameSurfaceFaces = new HashSet<Face>();
             HashSet<Edge> sameSurfaceEdges = new HashSet<Edge>();
             if (!faceDict.TryGetValue(toModify, out Face faceToModify)) return false; // must be a face from the original shell
@@ -97,6 +99,7 @@ namespace CADability
                     }
                     face.Surface = modifiedSurface;
                     verticesToRecalculate.UnionWith(face.Vertices);
+                    modifiedFaces.Add(face);
                 }
                 foreach (Vertex vtx in verticesToRecalculate)
                 {
@@ -110,25 +113,27 @@ namespace CADability
                 // missing: follow the pipe!
                 return true;
             }
-            else if (faceToModify.Surface is ISurfaceOfExtrusion extrusion)
-            {   // there are no other faces with the same surface, so we have to check, whether this face is tangential to some other faces
-                // there could be tangential edges between the fillet and the two faces of the original edge or to the previous or next fillet
+            else if (faceToModify.Surface is ISurfaceOfArcExtrusion extrusion)
+            {   // there are no other faces with the same surface, so we have to check, whether this face is tangential to some other faces, whether it is a fillet
+                // there can be tangential edges between the fillet and the two faces of the original edge or to the previous or next fillet
+                // there cannot be a fillet composed of two parts with the same surface, because these would be combined by Shell.CombineConnectedFaces
+
                 HashSet<Face> lengthwayTangential = new HashSet<Face>(); // the two faces that this fillet rounds
-                HashSet<Face> crosswayTangential = new HashSet<Face>(); // the following or previous fillet
+                HashSet<Edge> crosswayTangential = new HashSet<Edge>(); // the following or previous fillet
                 foreach (Edge edge in faceToModify.AllEdgesIterated())
                 {
                     Face otherFace = edge.OtherFace(faceToModify);
                     if (edge.IsTangentialEdge())
                     {
-                        if (edge.Curve2D(faceToModify).DirectionAt(0.5).IsHorizontal != extrusion.ExtrusionDirectionIsV) lengthwayTangential.Add(otherFace);
-                        else crosswayTangential.Add(otherFace);
+                        if (edge.Curve2D(faceToModify).DirectionAt(0.5).IsMoreHorizontal != extrusion.ExtrusionDirectionIsV) lengthwayTangential.Add(otherFace);
+                        else crosswayTangential.Add(edge);
                     }
                 }
                 if (lengthwayTangential.Count == 2)
                 {
                     // a cylinder or torus or swept curve as a fillet to two surfaces:
                     // 1. find the new axis
-                    ICurve axis = extrusion.Axis; // a line for a cylinder, an arc for a torus, some 3d curve for a swept curve
+                    ICurve axis = extrusion.Axis(faceToModify.Domain); // a line for a cylinder, an arc for a torus, some 3d curve for a swept curve
                     Face[] t = lengthwayTangential.ToArray();
                     GeoPoint mp = axis.PointAt(0.5);
                     //double d = t[0].Surface.GetDistance(mp); // this should be the current radius, unfortunately GetDistance is the absolute value
@@ -143,33 +148,79 @@ namespace CADability
                     ICurve newAxis = Hlp.GetClosest(cvs, crv => crv.DistanceTo(mp));
                     if (newAxis != null)
                     {
-                        ISurface modifiedSurface = null;
-                        if (faceToModify.Surface is CylindricalSurface cyl)
-                        {
-                            GeoPoint newLocation = newAxis.PointAt(newAxis.PositionOf(cyl.Location)); // drop the old location onto the new axis. this preserves the parametric space
-                            modifiedSurface  = new CylindricalSurface(cyl.Location, newRadius * cyl.XAxis.Normalized, newRadius * cyl.YAxis.Normalized, cyl.ZAxis);
-                        }
-                        //else if (face.Surface is ToroidalSurface tor)
-                        //{
-                        //    modifiedSurface = new ToroidalSurface(tor.Location, tor.XAxis.Normalized, tor.YAxis.Normalized, tor.ZAxis.Normalized, tor.XAxis.Length, newRadius);
-                        //}
-                        //else if (face.Surface is SphericalSurface sph)
-                        //{
-                        //    modifiedSurface = new SphericalSurface(sph.Location, newRadius * sph.XAxis.Normalized, newRadius * sph.YAxis.Normalized, newRadius * sph.ZAxis.Normalized);
-                        //}
-                        faceToModify.Surface = modifiedSurface;
+                        ISurfaceOfArcExtrusion modifiedSurface = faceToModify.Surface.Clone() as ISurfaceOfArcExtrusion;
+                        modifiedSurface.ModifyAxis(newAxis.PointAt(newAxis.PositionOf(newAxis.PointAt(0.5))));
+                        modifiedSurface.Radius = newRadius;
+                        faceToModify.Surface = modifiedSurface as ISurface;
                         verticesToRecalculate.UnionWith(faceToModify.Vertices);
                         foreach (Vertex vtx in verticesToRecalculate)
                         {
                             edgesToRecalculate.UnionWith(vtx.AllEdges);
                         }
-                        // missing: follow the crossway tangential faces
+                        modifiedFaces.Add(faceToModify);
+                        // this modified face is tangential to t[0] and t[1]. The edges between this faceToModify and t[0] resp. t[1] need to be recalculated
+                        // in order to have a curve for recalculating the vertices in Result()
+                        foreach (Edge edg in faceToModify.AllEdgesIterated())
+                        {
+                            for (int i = 0; i < 2; i++)
+                            {
+                                if (edg.OtherFace(faceToModify) == t[i])
+                                {
+                                    ICurve[] crvs = faceToModify.Surface.Intersect(faceToModify.Domain, t[i].Surface, t[i].Domain);
+                                    ICurve crv = Hlp.GetClosest(crvs, c => c.DistanceTo(edg.Vertex1.Position) + c.DistanceTo(edg.Vertex2.Position));
+                                    if (crv!=null) // which must be the case, because the surfaces are tangential
+                                    {
+                                        edg.Curve3D = crv;
+                                        tangentialEdgesModified[edg] = crv;
+                                    }
+                                }
+
+                            }
+                        }
+                        // follow the crossway tangential faces
+                        foreach (Edge edge in crosswayTangential)
+                        {
+                            followCrosswayTangential(edge, axis, newRadius);
+                        }
                         return true;
                     }
                 }
             }
             return false;
         }
+
+        private void followCrosswayTangential(Edge edge, ICurve axis, double newRadius)
+        {   // one of the faces of edge has been modified, the other face (which should be a ISurfaceOfExtrusion-face) must now be adapted to the correct axis
+            Face faceToModify = null;
+            if (!modifiedFaces.Contains(edge.PrimaryFace)) faceToModify = edge.PrimaryFace;
+            if (!modifiedFaces.Contains(edge.SecondaryFace)) faceToModify = edge.SecondaryFace; // can only be one of the faces
+            if (faceToModify is ISurfaceOfArcExtrusion extrusion) // which it should be
+            {
+                ISurfaceOfArcExtrusion modifiedSurface = faceToModify.Surface.Clone() as ISurfaceOfArcExtrusion;
+                modifiedSurface.ModifyAxis(axis.PointAt(0.5));
+                modifiedSurface.Radius = newRadius;
+                faceToModify.Surface = modifiedSurface as ISurface;
+                verticesToRecalculate.UnionWith(faceToModify.Vertices);
+                foreach (Vertex vtx in verticesToRecalculate)
+                {
+                    edgesToRecalculate.UnionWith(vtx.AllEdges);
+                }
+                modifiedFaces.Add(faceToModify);
+                // follow the crossway tangential faces
+                foreach (Edge edg in faceToModify.AllEdgesIterated())
+                {
+                    Face otherFace = edge.OtherFace(faceToModify);
+                    if (edg.IsTangentialEdge())
+                    {
+                        if (edg.Curve2D(faceToModify).DirectionAt(0.5).IsMoreHorizontal == extrusion.ExtrusionDirectionIsV && otherFace.Surface is ISurfaceOfArcExtrusion arcExtrusion)
+                        {
+                            followCrosswayTangential(edg, arcExtrusion.Axis(otherFace.Domain), newRadius);
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Find all faces that share a common surface
         /// </summary>
@@ -324,7 +375,10 @@ namespace CADability
             {
                 face.ForceAreaRecalc();
             }
-            if (clonedShell.CheckConsistency()) return clonedShell;
+            if (clonedShell.CheckConsistency())
+            {
+                return clonedShell;
+            }
             return null;
         }
     }

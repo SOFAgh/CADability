@@ -131,7 +131,7 @@ namespace CADability
     }
 
     /// <summary>
-    /// This class is used to give acces and store information that influences global behaviour of the
+    /// This class is used to give access and store information that influences global behavior of the
     /// CADability system.
     /// There is a static variable <see cref="Settings.GlobalSettings"/>. This is the only use of settings in CADability.
     /// This class behaves as a hierarchical dictionary. The keys are strings, which may have the form "mainkey.subkey"
@@ -141,7 +141,6 @@ namespace CADability
     /// <see cref="StringProperty"/> which can be used as a setting value. If you instead simply use a double or string value
     /// the setting will be only available to programming code but not to the user in the ControlCenter.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Settings : IShowPropertyImpl, ISerializable, ISettingChanged, IAttributeListContainer, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {

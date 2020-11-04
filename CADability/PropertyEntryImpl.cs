@@ -10,11 +10,15 @@ namespace CADability.UserInterface
         protected string resourceId;
         protected string labelText;
         private IFrame frame;
-        private readonly IShowPropertyImpl dumy = null; // will never be set. Dumy implementation of IShowProperty
+        private readonly IShowPropertyImpl dumy = null; // will never be set. Dummy implementation of IShowProperty
 
         public PropertyEntryImpl()
         {
 
+        }
+        public PropertyEntryImpl(IFrame Frame)
+        {
+            frame = Frame;
         }
         /// <summary>
         /// Provides the resource id for the label text
@@ -89,7 +93,7 @@ namespace CADability.UserInterface
         /// </summary>
         public virtual string Value => null;
 
-        public virtual string ToolTip
+        public virtual string ResourceId
         {
             get
             {

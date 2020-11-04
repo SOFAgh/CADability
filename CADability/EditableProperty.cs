@@ -333,7 +333,7 @@ namespace CADability.UserInterface
         {
             if (isEditingValue)
             {
-                // ContextFrame: each keystroke resuls in a SetValue call. these calls all use the same context object (namely "this")
+                // ContextFrame: each keystroke results in a SetValue call. these calls all use the same context object (namely "this")
                 // to only create one undo step. With the first keystroke, the  object is also removed from the models octtree (continuos change)
                 // and has to be inserted again, which is done by ClearContext. It would also be done with the next change with a different context,
                 // but it is clean and correct to do it here

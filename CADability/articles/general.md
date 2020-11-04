@@ -1,4 +1,4 @@
-﻿# Some toplevel objects of CADability
+﻿# Introduction to CADability
 The CADability solution is composed of two class libraries and an application:
 - CADability, a dll, which contains all the classes of the geometrical objects, the action classes, the structure (but not the graphical implementation) of 
 the user interface and some organizational classes.
@@ -9,3 +9,7 @@ For your first experience you can simply build and start the solution and try to
 by your own application or use only the CADability.dll to analyze some 3d models.
 
 Here is a quick overview of the [organizational classes](orgclass.html)
+
+This is an overview of the CAD [database](articles/database.html), the geometrical entities that make up a model.
+
+And this is the [complete table of contents](api/toc.html).

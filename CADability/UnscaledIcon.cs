@@ -10,7 +10,6 @@ namespace CADability.GeoObject
     /// and will not be scaled. The icon appears with a small offset in direction to the viewer, so it will not be covered
     /// by a face whith which it coincides.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Icon : IGeoObjectImpl, ISerializable
     {

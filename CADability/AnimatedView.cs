@@ -34,7 +34,6 @@ namespace CADability
     /// <summary>
     /// A view in which mechanical dependencies of objects can be defined and animated.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class AnimatedView : IShowPropertyImpl, IView, ICommandHandler, ISerializable
     {

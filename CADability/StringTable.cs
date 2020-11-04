@@ -10,12 +10,12 @@ namespace CADability.UserInterface
     public enum InfoLevelMode { NoInfo, SimpleInfo, DetailedInfo };
 
     /// <summary>
-    /// StringTable is a class that returns language dependant strings from (hardcoded)
-    /// string IDs. All language dependant user interface texts are processed here.
-    /// CADability contains an xml file as a primary string resource, containing all user 
-    /// interface texts in german and enlish language.
+    /// StringTable is a class that returns language dependent strings from (hard-coded)
+    /// string IDs. All language dependent user interface texts are processed here.
+    /// CADability contains an XML file as a primary string resource, containing all user 
+    /// interface texts in German and English language.
     /// You can Add more strings and more languages by calling <see cref="AddStrings"/>,
-    /// or by simply providing an xml file named "CADability.StringTable.xxx.xml" (where xxx
+    /// or by simply providing an XML file named "CADability.StringTable.xxx.xml" (where xxx
     /// stands for any language or application specific abbreviation) in the directory where
     /// CADability.dll is located.
     /// </summary>

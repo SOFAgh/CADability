@@ -174,7 +174,6 @@ namespace CADability
     /// one or more Models (which contain GeoObjects) lists of attributes, views and UserData.
     /// A Project is usually saved in a file.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     [JsonVersion(1)]
     public class Project : IShowPropertyImpl, ISerializable, IAttributeListContainer,

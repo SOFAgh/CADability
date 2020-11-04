@@ -10,7 +10,6 @@ namespace CADability.Attribute
     /// A HatchStyle which fills the shape with a solid color.
     /// May be used as a base class for different kinds of solid fillings.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class HatchStyleSolid : HatchStyle, ISerializable
     {

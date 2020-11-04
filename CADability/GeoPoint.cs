@@ -24,7 +24,6 @@ namespace CADability
     /// </para>
     /// </note>
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     [DebuggerDisplayAttribute("(x,y,z)={DebugString}")]
     [JsonVersion(serializeAsStruct = true, version = 1)]
@@ -467,7 +466,6 @@ namespace CADability
     /// inside the invoked method leaves the original unchanged.
     /// </alert>
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     [JsonVersion(serializeAsStruct = true, version = 1)]
     [DebuggerDisplayAttribute("(x,y,z)={DebugString}")]
@@ -982,7 +980,6 @@ namespace CADability
     /// inside the invoked method leaves the original unchanged.
     /// </alert>
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     [JsonVersion(serializeAsStruct = true, version = 1)]
     public struct Axis : ISerializable, IJsonSerialize
@@ -1059,7 +1056,6 @@ namespace CADability
     /// inside the invoked method leaves the original unchanged.
     /// </alert>
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     [DebuggerDisplayAttribute("(x,y)={DebugString}")]
     [JsonVersion(serializeAsStruct = true, version = 1)]
@@ -1375,7 +1371,6 @@ namespace CADability
     /// inside the invoked method leaves the original unchanged.
     /// </alert>
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     [JsonVersion(serializeAsStruct = true, version = 1)]
     [DebuggerDisplayAttribute("(x,y)={DebugString}")]
@@ -1451,7 +1446,7 @@ namespace CADability
         /// <summary>
         /// Simple test, whether the vector is more horizontal than vertical
         /// </summary>
-        public bool IsHorizontal
+        public bool IsMoreHorizontal
         {
             get
             {

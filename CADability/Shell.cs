@@ -179,7 +179,6 @@ namespace CADability.GeoObject
         #endregion
     }
 
-    // created by MakeClassComVisible
     [Serializable()]
     public class Shell : IGeoObjectImpl, ISerializable, IColorDef, IGetSubShapes, IGeoObjectOwner, IDeserializationCallback, IExportStep
     {

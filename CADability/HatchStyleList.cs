@@ -14,7 +14,6 @@ namespace CADability.Attribute
     /// The list is serializable and can be shown and modified in the <see cref="ControlCenter"/>.
     /// There can not be two hatchstyles with the same name.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class HatchStyleList : IShowPropertyImpl, ISerializable, ICommandHandler, IAttributeList, IDeserializationCallback
     {

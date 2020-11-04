@@ -31,7 +31,6 @@ namespace CADability.Curve2D
     /// 
     /// </summary>
 #if DEBUG
-    // created by MakeClassComVisible
     [System.Diagnostics.DebuggerVisualizer(typeof(GeneralDebuggerVisualizer))]
 #endif
     [Serializable()]

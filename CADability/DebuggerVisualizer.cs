@@ -131,7 +131,6 @@ namespace CADability
     /// darstellen kann.
     /// Wenn man spontan Arrays von etwas darstellbarem zeigen will, dann in CommandWindow gehen und ??DebuggerContainer.Show(array) eingeben
     /// </summary>
-    // created by MakeClassComVisible
     [System.Diagnostics.DebuggerVisualizer(typeof(GeneralDebuggerVisualizer))]
     [Serializable()]
     public class DebuggerContainer : IDebuggerVisualizer

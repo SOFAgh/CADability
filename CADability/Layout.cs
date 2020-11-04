@@ -13,7 +13,6 @@ namespace CADability
     /// visibility of layers etc. 
     /// A Layout can be viewed with the LayoutView and can be printed.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class Layout : ISerializable
     {

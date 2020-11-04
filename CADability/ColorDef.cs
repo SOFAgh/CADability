@@ -29,7 +29,6 @@ namespace CADability.Attribute
     /// <summary>
     /// Summary description for ColorDef.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class ColorDef : ISerializable, INamedAttribute, IJsonSerialize
     {

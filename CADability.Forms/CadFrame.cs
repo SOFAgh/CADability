@@ -20,22 +20,17 @@ namespace CADability.Forms
     /// </summary>
     public class CadFrame : FrameImpl, IUIService
     {
-        private readonly CadCanvas cadCanvas;
-        private MainForm mainForm; // we need the MainMenu and ProgressBar here
+        private CadForm cadForm; // we need the MainMenu and ProgressBar here
 
-        internal CadFrame(MainForm mainForm) : base(mainForm.PropertiesExplorer, mainForm.CadCanvas)
+        public CadFrame(CadForm cadForm) : base(cadForm.PropertiesExplorer, cadForm.CadCanvas)
         {
-            this.mainForm = mainForm;
+            this.cadForm = cadForm;
         }
 
         public override bool OnCommand(string MenuId)
         {
-            if (MenuId == "MenuId.App.Exit")
-            {   // this command cannot be handled by CADability.dll
-                Application.Exit();
-                return true;
-            }
-            else return base.OnCommand(MenuId);
+            if (cadForm != null && cadForm.OnCommand(MenuId)) return true;
+            return base.OnCommand(MenuId);
         }
         public override bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
@@ -83,9 +78,9 @@ namespace CADability.Forms
 
         public override void UpdateMRUMenu(string[] mruFiles)
         {
-            if (mainForm.Menu != null)
+            if (cadForm.Menu != null)
             {
-                foreach (MenuItem mi in mainForm.Menu.MenuItems)
+                foreach (MenuItem mi in cadForm.Menu.MenuItems)
                 {
                     UpdateMRUMenu(mi, mruFiles);
                 }
@@ -182,7 +177,7 @@ namespace CADability.Forms
         }
         void IUIService.ShowProgressBar(bool show, double percent, string title)
         {
-            mainForm.ProgressForm.ShowProgressBar(show, percent, title);
+            cadForm.ProgressForm.ShowProgressBar(show, percent, title);
         }
         /// <summary>
         /// Returns a bitmap from the specified embeded resource. the name is in the form filename:index
@@ -277,12 +272,12 @@ namespace CADability.Forms
         {
             add
             {
-                throw new NotImplementedException();
+                Application.Idle += value;
             }
 
             remove
             {
-                throw new NotImplementedException();
+                Application.Idle -= value;
             }
         }
         #endregion

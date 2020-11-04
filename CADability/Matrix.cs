@@ -59,7 +59,6 @@ namespace CADability.LinearAlgebra
     /// on matrices (addition, multiplication, inversion, transposition, ...).
     /// Helpers to handle sub-matrices are also provided.
     /// </remarks>
-    // created by MakeClassComVisible
     [Serializable]
     public class Matrix : ICloneable
     {

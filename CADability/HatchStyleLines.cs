@@ -11,7 +11,6 @@ namespace CADability.Attribute
     /// An implementation of a <see cref="HatchStyle"/>, that defines a style consisting of
     /// parallel lines.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class HatchStyleLines : HatchStyle, ISerializable
     {

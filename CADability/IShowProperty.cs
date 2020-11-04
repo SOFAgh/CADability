@@ -722,7 +722,7 @@ namespace CADability.UserInterface
         public virtual string Label => LabelText;
         public virtual string Value => null;
         //public string ToolTip => StringTable.GetString(HelpLink, StringTable.Category.info);
-        public string ToolTip => HelpLink;
+        public string ResourceId => HelpLink;
         public object Parent { get; set; }
         public IPropertyEntry[] SubItems
         {
@@ -761,6 +761,7 @@ namespace CADability.UserInterface
         public virtual void Added(IPropertyPage pp)
         {
             propertyPage = pp;
+            Parent = pp;
         }
         public virtual void Removed(IPropertyPage pp)
         {

@@ -12,9 +12,8 @@ namespace CADability.GeoObject
     /// A cylindrical surface which implements <see cref="ISurface"/>. The surface represents a circular or elliptical
     /// cylinder. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
-    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfExtrusion
+    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfArcExtrusion
     {
         // Der Zylinder ist so beschaffen, dass er lediglich durch eine ModOp definiert ist.
         // Der Einheitszylinder steht im Ursprung mit Radius 1, u beschreibt einen Kreis, v eine Mantellinie
@@ -31,7 +30,7 @@ namespace CADability.GeoObject
         /// <param name="directiony"></param>
         public CylindricalSurface(GeoPoint location, GeoVector directionx, GeoVector directiony, GeoVector directionz) : base()
         {
-            // die drei Vektoren können auch linkshändig sein!
+            // this may also be a left handed system
             ModOp m1 = ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis },
                 new GeoVector[] { directionx, directiony, directionz });
             ModOp m2 = ModOp.Translate(location.x, location.y, location.z);
@@ -52,7 +51,6 @@ namespace CADability.GeoObject
         {
             return "CylindricalSurface: " + "loc: " + Location.ToString() + "dirx: " + XAxis.ToString() + "diry: " + YAxis.ToString();
         }
-        // es fehlen noch jede Menge Properties
         public double RadiusX
         {
             get
@@ -280,7 +278,7 @@ namespace CADability.GeoObject
         public override ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)
         {   // this is a general implementation, which is good when Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds) is implemented. Should be used in base class
             ICurve[] res = Intersect(thisBounds, other, otherBounds);
-            if (res!=null)
+            if (res != null)
             {
                 double mindist = double.MaxValue;
                 int found = -1;
@@ -2159,18 +2157,6 @@ namespace CADability.GeoObject
         {
             return Precision.SameDirection(Axis, direction, false);
         }
-        public override MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face)
-        {
-            MenuWithHandler mhRadius = new MenuWithHandler();
-            mhRadius.ID = "MenuId.Parametrics.Cylinder.Radius";
-            mhRadius.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Radius", StringTable.Category.label);
-            mhRadius.Target = new ParametricsRadius(face, frame);
-            MenuWithHandler mhDiameter = new MenuWithHandler();
-            mhDiameter.ID = "MenuId.Parametrics.Cylinder.Diameter";
-            mhDiameter.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Diameter", StringTable.Category.label);
-            mhDiameter.Target = new ParametricsRadius(face, frame);
-            return new MenuWithHandler[] { mhRadius, mhDiameter };
-        }
 
         #endregion
         #region ISerializable Members
@@ -2284,41 +2270,40 @@ namespace CADability.GeoObject
             }
         }
         #endregion
-        #region ISurfaceOfExtrusion
-        ICurve ISurfaceOfExtrusion.Axis
+        #region ISurfaceOf(Arc)Extrusion
+        ICurve ISurfaceOfExtrusion.Axis(BoundingRect domain)
         {
-            get
-            {
-                if (usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid())
-                {
-                    return Line.TwoPoints(Location, Location + ZAxis);
-                }
-                else
-                {
-                    return Line.TwoPoints(toCylinder * new GeoPoint(0, 0, usedArea.Bottom), toCylinder * new GeoPoint(0, 0, usedArea.Top));
-                }
-            }
+            return Line.TwoPoints(Location + domain.Bottom * ZAxis, Location + domain.Top * ZAxis);
         }
-
+        bool ISurfaceOfExtrusion.ModifyAxis(GeoPoint throughPoint)
+        {
+            GeoPoint onAxis = Geometry.DropPL(throughPoint, Location, ZAxis);
+            this.Modify(ModOp.Translate(throughPoint - onAxis));
+            return true;
+        }
         IOrientation ISurfaceOfExtrusion.Orientation => throw new NotImplementedException();
+        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid() ? 
+            FixedV(0.0, 0.0, Math.PI) : FixedV(0.0, usedArea.Left, usedArea.Right);
 
-        public ICurve ExtrudedCurve
+        double ISurfaceOfArcExtrusion.Radius
         {
             get
             {
-                if (usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid())
-                {
-                    return FixedV(0.0, 0.0, Math.PI * 2.0);
-                }
-                else
-                {
-                    return FixedV(0.0, usedArea.Left,usedArea.Right);
-                }
-
+                return XAxis.Length;
+            }
+            set
+            {
+                GeoVector directionx = value * XAxis.Normalized;
+                GeoVector directiony = value * YAxis.Normalized;
+                ModOp m1 = ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis },
+                    new GeoVector[] { directionx, directiony, ZAxis });
+                ModOp m2 = ModOp.Translate(Location.x, Location.y, Location.z);
+                toCylinder = m2 * m1;
+                toUnit = toCylinder.GetInverse();
             }
         }
 
-        public bool ExtrusionDirectionIsV => true;
+        bool ISurfaceOfExtrusion.ExtrusionDirectionIsV => true;
         #endregion
         int IExportStep.Export(ExportStep export, bool topLevel)
         {

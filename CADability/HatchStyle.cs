@@ -16,7 +16,6 @@ namespace CADability.Attribute
     /// Abstract base class for all hatchstyles. A hatchstyle is used to define the
     /// interior of a <see cref="Hatch"/> object.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public abstract class HatchStyle : IShowPropertyImpl, ISerializable, INamedAttribute, ICommandHandler
     {

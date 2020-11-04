@@ -174,7 +174,6 @@ namespace CADability.GeoObject
     /// If a face is contained in a <see cref="Model"/> it doesnt share its edges with other faces. If a face is part of a <see cref="Shell"/>
     /// (which maybe a part of a <see cref="Solid"/>) it shares some or all of its edges with other faces.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     [DebuggerDisplayAttribute("Face, hc = {hashCode.ToString()}")]
     public class Face : IGeoObjectImpl, ISerializable, IColorDef, IGetSubShapes, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone, IExportStep
@@ -344,7 +343,7 @@ namespace CADability.GeoObject
                                 double dmin = Math.Min(Math.Min(d1, d2), Math.Min(d3, d4));
                                 if (dmin == d1)
                                 {
-                                    // everything ok, this is what we expect
+                                    // everything OK, this is what we expect
                                 }
                                 else if (dmin == d2)
                                 {
@@ -1178,7 +1177,7 @@ namespace CADability.GeoObject
                 List<int> openLoops = new List<int>();
                 for (int i = 0; i < loops.Count; i++)
                 {
-                    if (i > 0 && loopExt[i].Size > loopExt[outerLoop].Size) outerLoop = i; // ok, there could be bounds with the same size, but do you have an example?
+                    if (i > 0 && loopExt[i].Size > loopExt[outerLoop].Size) outerLoop = i; // OK, there could be bounds with the same size, but do you have an example?
                     if (!Precision.IsEqual(loops[i][0].curve2d.StartPoint, loops[i][loops[i].Count - 1].curve2d.EndPoint))
                     {   // a loop might be open, such as the top and bottom of a cylinder, which has two outer loops
                         if ((surface.IsUPeriodic && Math.Abs(loops[i][0].curve2d.StartPoint.x - loops[i][loops[i].Count - 1].curve2d.EndPoint.x) > surface.UPeriod / 2) ||
@@ -1567,7 +1566,7 @@ namespace CADability.GeoObject
                                         if (loops[i][j].vertex1 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex1
                                             && loops[i][j].vertex1 != loops[i][j].createdEdges[loops[i][j].createdEdges.Count - 1].Vertex2) ok = false;
                                     }
-                                    // System.Diagnostics.Debug.Assert(ok); this may happen and is valid
+                                    // System.Diagnostics.Debug.Assert(OK); this may happen and is valid
 #endif
                                 }
                                 for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
@@ -1790,7 +1789,7 @@ namespace CADability.GeoObject
                         uPlaneValid = Curves.GetCommonPlane(cv1, cv2, out uSplitPlane);
                         if (!uPlaneValid)
                         {   // we cannot simply use a plane to cut the face, because the curves at 0 and period/2 don't reside in a plane
-                            // instead of this simple approach, which is ok for cones cylinders, torii, spheres, rotated 2d curves and most nurbs surfaces,
+                            // instead of this simple approach, which is OK for cones cylinders, torii, spheres, rotated 2d curves and most nurbs surfaces,
                             // we have to split the periodic parameter range into period/2 segments at 0, period/2, period, 3/2*period and so on
                             List<double> lPositions = new List<double>();
                             double left = ext.Left + uperiod * 1e-6;
@@ -5135,7 +5134,7 @@ namespace CADability.GeoObject
         {
             Face res = this.Clone(new Dictionary<Edge, Edge>(), new Dictionary<Vertex, Vertex>());
             // res.area = Area.Clone();
-            // SimpleShape forceArea = res.Area; // dauert zu lange, ist area.clone ok? es sind dann nicht die 2d
+            // SimpleShape forceArea = res.Area; // dauert zu lange, ist area.clone OK? es sind dann nicht die 2d
             Vertex[] vtxs = res.Vertices;
             res.CopyAttributes(this);
             return res;
@@ -5985,8 +5984,12 @@ namespace CADability.GeoObject
             }
             triangleExtent = BoundingCube.EmptyBoundingCube; // muss neu berechnet werden
         }
-
-        internal bool SameSurface(Face otherFace)
+        /// <summary>
+        /// Returns true, when the <paramref name="otherFace"/> has a geometrically equal surface
+        /// </summary>
+        /// <param name="otherFace"></param>
+        /// <returns></returns>
+        public bool SameSurface(Face otherFace)
         {
             ModOp2D fts;
             return surface.SameGeometry(Area.GetExtent(), otherFace.Surface, otherFace.Area.GetExtent(), Precision.eps, out fts);
@@ -10276,7 +10279,49 @@ namespace CADability.GeoObject
             }
             return false;
         }
+        /// <summary>
+        /// Returns true, if this face can be considered as a fillet between two other faces
+        /// </summary>
+        /// <returns></returns>
+        public bool IsFillet()
+        {
+            if (Surface is ISurfaceOfArcExtrusion sae)
+            {
+                HashSet<Face> tangentialFaces = new HashSet<Face>();
+                for (int i = 0; i < outline.Length; i++)
+                {
+                    if (outline[i].IsTangentialEdge())
+                    {
+                        if (outline[i].Curve2D(this).DirectionAt(0.5).IsMoreHorizontal != sae.ExtrusionDirectionIsV) 
+                            tangentialFaces.Add(outline[i].OtherFace(this)); // OK, this is not necessarily the case
+                    }
+                }
+                if (tangentialFaces.Count == 2) return true;
+            }
+            return false;
+        }
+        public bool IsClosedSurface()
+        {
+            if (Surface is ISurfaceOfArcExtrusion sae)
+            {
+                for (int i = 0; i < outline.Length; i++)
+                {
+                    if (outline[i].IsTangentialEdge())
+                    {
+                        Face otherFace = outline[i].OtherFace(this);
+                        ModOp2D fts;
+                        if (surface.SameGeometry(Area.GetExtent(), otherFace.Surface, otherFace.Area.GetExtent(), Precision.eps, out fts))
+                        {
+                            HashSet<Edge> edges = new HashSet<Edge>(otherFace.OutlineEdges);
+                            edges.IntersectWith(OutlineEdges);
+                            if (edges.Count >= 2) return true; // OK, this test is not perfect, we would have to unite the two domains and see whether it is a full period
+                        }
+                    }
+                }
+            }
+            return false;
 
+        }
         internal bool RepairFromOcasEdges()
         {
             // outline und holes sind schon richtig spezifiziert, vorausgesetzt, die 2d Kurven haben einigermaßen die richtige Geometrie
@@ -10570,10 +10615,12 @@ namespace CADability.GeoObject
         /// <returns></returns>
         internal MenuWithHandler[] GetContextMenu(IFrame frame)
         {
+            List<MenuWithHandler> res = new List<MenuWithHandler>();
             MenuWithHandler mhdist = new MenuWithHandler();
             mhdist.ID = "MenuId.Parametrics.DistanceTo";
             mhdist.Text = StringTable.GetString("MenuId.Parametrics.DistanceTo", StringTable.Category.label);
             mhdist.Target = new ParametricsDistance(this, frame);
+            res.Add(mhdist);
             MenuWithHandler mhsel = new MenuWithHandler();
             mhsel.ID = "MenuId.Selection.Set";
             mhsel.Text = StringTable.GetString("MenuId.Selection.Set", StringTable.Category.label);
@@ -10582,10 +10629,22 @@ namespace CADability.GeoObject
             mhadd.ID = "MenuId.Selection.Add";
             mhadd.Text = StringTable.GetString("MenuId.Selection.Add", StringTable.Category.label);
             mhadd.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
-            MenuWithHandler[] parametrixCtxMenu = Surface.GetContextMenuForParametrics(frame, this);
-            List<MenuWithHandler> res = new List<MenuWithHandler>();
-            res.Add(mhdist);
-            res.AddRange(parametrixCtxMenu);
+            if (IsFillet()) // it is a fillet, let us change the radius
+            {
+                MenuWithHandler mhRadius = new MenuWithHandler();
+                mhRadius.ID = "MenuId.Parametrics.Cylinder.Radius";
+                mhRadius.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Radius", StringTable.Category.label);
+                mhRadius.Target = new ParametricsRadius(this, frame, true);
+                res.Add(mhRadius);
+            }
+            if (Surface is ISurfaceOfArcExtrusion &&  IsClosedSurface()) // it is a hole, let us change the diameter
+            {
+                MenuWithHandler mhDiameter = new MenuWithHandler();
+                mhDiameter.ID = "MenuId.Parametrics.Cylinder.Diameter";
+                mhDiameter.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Diameter", StringTable.Category.label);
+                mhDiameter.Target = new ParametricsRadius(this, frame, false);
+                res.Add(mhDiameter);
+            }
             res.Add(mhsel);
             res.Add(mhadd);
             return res.ToArray();

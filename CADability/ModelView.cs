@@ -747,24 +747,8 @@ namespace CADability
                         canvas?.Invalidate();
                         return true;
                     }
-                case "MenuId.DebugTest":
-                    {
-#if DEBUG
-#endif
-                        return true;
-                    }
                 case "MenuId.ModelView.Show":
-                    foreach (IView vw in base.Frame.AllViews)
-                    {
-                        if (vw == this) return true;
-                    }
-                    base.Frame.ActiveView = this;
-                    //Model.ClearDisplayLists();
-                    //(paintToOpenGl as IPaintTo3D).MakeCurrent();
-                    //(paintToOpenGl as IPaintTo3D).Init(condorCtrl);
-                    //Model.RecalcDisplayLists(this.paintToOpenGl);
-                    //projectedModel.ForceRecalc();
-                    //condorCtrl.Invalidate();
+                    if (Frame.ActiveView != this) base.Frame.ActiveView = this;
                     return true;
                 case "MenuId.ModelView.Rename":
                     propertyTreeView.StartEditLabel(this);
@@ -785,12 +769,7 @@ namespace CADability
             {
                 case "MenuId.ModelView.Show":
                     {
-                        bool check = false;
-                        foreach (IView vw in base.Frame.AllViews)
-                        {
-                            if (vw == this) check = true;
-                        }
-                        CommandState.Checked = check;
+                        CommandState.Checked = Frame.ActiveView == this;
                     }
                     return true;
             }
@@ -1587,6 +1566,14 @@ namespace CADability
             if (!Frame.Project.RenameModelView(this, NewText))
             {
                 // Messagebox oder nicht?
+            }
+        }
+        public override void EndEdit(bool aborted, bool modified, string newValue)
+        {
+            if (newValue == this.Name) return;
+            if (!Frame.Project.RenameModelView(this, newValue))
+            {
+                // display a Message-box?
             }
         }
         /// <summary>

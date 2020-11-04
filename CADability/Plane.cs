@@ -101,7 +101,6 @@ namespace CADability
     /// A simple plane as a value type. Is used e.g. as a drawing plane, an intersection plane etc.
     /// It also serves as a coordinate system (see <see cref="CoordSys"/>).
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     [JsonVersion(serializeAsStruct = true, version = 1)]
     public struct Plane : ISerializable, IJsonSerialize

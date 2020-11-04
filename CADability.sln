@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CADability", "CADability\CA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CADability.Forms", "CADability.Forms\CADability.Forms.csproj", "{5806C7E4-E796-42BE-BDDB-833D637E072F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CADability.App", "CADability.App\CADability.App.csproj", "{D0881091-FE64-44A5-BFE9-2502ADDA2161}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{5806C7E4-E796-42BE-BDDB-833D637E072F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5806C7E4-E796-42BE-BDDB-833D637E072F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5806C7E4-E796-42BE-BDDB-833D637E072F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D0881091-FE64-44A5-BFE9-2502ADDA2161}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0881091-FE64-44A5-BFE9-2502ADDA2161}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0881091-FE64-44A5-BFE9-2502ADDA2161}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0881091-FE64-44A5-BFE9-2502ADDA2161}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

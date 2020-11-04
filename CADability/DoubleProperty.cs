@@ -65,9 +65,10 @@ namespace CADability.UserInterface
         #endregion
     }
 
-    public class DoubleProperty : EditableProperty<double>, IJsonSerialize
+    public class DoubleProperty : EditableProperty<double>, IJsonSerialize, ISerializable
     {
         private NumberFormatInfo numberFormatInfo;
+        private string settingName = "";
 
         public DoubleProperty(IFrame frame, string resourceId = null) : base(resourceId, null)
         {
@@ -272,11 +273,41 @@ namespace CADability.UserInterface
         {
             data.AddProperty("ResourceId", resourceId);
             data.AddProperty("Value", GetValue());
+            if (!string.IsNullOrEmpty(settingName)) data.AddProperty("SettingName", settingName);
         }
         void IJsonSerialize.SetObjectData(IJsonReadData data)
         {
             resourceId = data.GetProperty<string>("ResourceId");
             SetValue(data.GetProperty<double>("Value"), false);
+            if (data.HasProperty("SettingName")) settingName = data.GetStringProperty("SettingName");
+        }
+        #endregion
+        #region ISerializable
+        protected DoubleProperty(SerializationInfo info, StreamingContext context)
+        {
+            SetValue(info.GetDouble("Value"), false);
+            resourceId = (string)info.GetValue("resourceId", typeof(string));
+            settingName = (string)info.GetValue("SettingName", typeof(string));
+            //try
+            //{
+            //    minValue = info.GetDouble("MinValue");
+            //    maxValue = info.GetDouble("MaxValue");
+            //}
+            //catch (SerializationException)
+            //{
+            //    minValue = double.MinValue;
+            //    maxValue = double.MaxValue;
+            //}
+            numberFormatInfo = (NumberFormatInfo)CultureInfo.CurrentCulture.NumberFormat.Clone();
+            numberFormatInfo.NumberDecimalDigits = 29;
+        }
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue("InternalValue", GetValue(), typeof(double));
+            info.AddValue("resourceId", resourceId, resourceId.GetType());
+            info.AddValue("SettingName", settingName, settingName.GetType());
+            //info.AddValue("MinValue", minValue);
+            //info.AddValue("MaxValue", maxValue);
         }
         #endregion
     }

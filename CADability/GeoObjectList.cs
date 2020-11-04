@@ -11,7 +11,6 @@ namespace CADability.GeoObject
     /// Simple list of GeoObjects (IGeoObject). Implemented as an ArrayList.
     /// </summary>
 #if DEBUG
-    // created by MakeClassComVisible
     [System.Diagnostics.DebuggerVisualizer(typeof(GeoObjectListVisualizer))]
 #endif
     [Serializable]

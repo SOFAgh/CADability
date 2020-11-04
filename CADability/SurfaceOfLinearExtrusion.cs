@@ -13,7 +13,6 @@ namespace CADability.GeoObject
     /// vector. Also the curve is defined in the interval [0,1], the parameterspace of this curve may also
     /// be defined by a startParameter and an endParameter. 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class SurfaceOfLinearExtrusion : ISurfaceImpl, ISerializable, IExportStep
     {

@@ -14,7 +14,6 @@ namespace CADability.UserInterface
     /// Dieses Objekt kann auch in den Settings verwendet werden. Dann hält es den int
     /// Wert selbst und kann serialisiert werden.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class IntegerProperty : IShowPropertyImpl, ISerializable, ISettingChanged, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {

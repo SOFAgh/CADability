@@ -11,11 +11,11 @@ namespace CADability.Forms
     /// <summary>
     /// Implements a Windows.Forms.Control to render a CADability view with OpenGL or GDI.
     /// </summary>
-    internal class CadCanvas : Control, ICanvas
+    public class CadCanvas : Control, ICanvas
     {
 
         private static CADability.Substitutes.DragEventArgs Subst(System.Windows.Forms.DragEventArgs v)
-        {   // CADability doesnt use Windows.Forms. Substitutes contains a simple replacement of DragEventArgs (and some other Windows.Forms classes and enums).
+        {   // CADability doesn't use Windows.Forms. Substitutes contains a simple replacement of DragEventArgs (and some other Windows.Forms classes and enums).
             // here it is the case, that the property Effect has a feedback to the system, which is implemented via an event.
             void EffectChanged(Substitutes.DragEventArgs e)
             {

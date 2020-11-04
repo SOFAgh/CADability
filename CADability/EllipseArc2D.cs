@@ -9,7 +9,6 @@ namespace CADability.Curve2D
     /// <summary>
     /// Describes an arc of an ellipse in 2D. Implements the ICurve2D interface
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class EllipseArc2D : Ellipse2D, ISerializable, IDeserializationCallback
     {

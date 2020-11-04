@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="log.txt" />
     <None Remove="MenuResource.xml" />
     <None Remove="StringTableDeutsch.xml" />
     <None Remove="StringTableEnglish.xml" />

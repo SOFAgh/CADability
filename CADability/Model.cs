@@ -58,7 +58,6 @@ namespace CADability
     /// <summary>
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class Model : IShowPropertyImpl, ISerializable, IGeoObjectOwner,
             IEnumerable, ICommandHandler, ICategorizedDislayLists, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone

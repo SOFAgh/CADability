@@ -7,7 +7,6 @@ namespace CADability.Curve2D
     /// <summary>
     /// 
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class Circle2D : GeneralCurve2D, ISerializable
     {

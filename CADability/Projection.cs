@@ -10,7 +10,6 @@ namespace CADability
     /// screen coordinate system or to a normalized 3-dimensional cube for the paint or rendering interface (<see cref="IPaintTo3D"/>).
     /// Contains also additional hints for the paint interface and the drawing plane.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable]
     public class Projection : ISerializable, IDeserializationCallback
     {

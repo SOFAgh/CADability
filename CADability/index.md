@@ -10,4 +10,6 @@ by your own application or use only the CADability.dll to analyze or compose 3d 
 
 Here is a quick overview of the [organizational classes](articles/orgclass.html).
 
+This is an overview of the CAD [database](articles/database.html), the geometrical entities that make up a model.
+
 And this is the [complete table of contents](api/toc.html).

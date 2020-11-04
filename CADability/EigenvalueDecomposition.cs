@@ -41,7 +41,6 @@ namespace CADability.LinearAlgebra
     /// conditioned, or even singular, so the validity of the equation
     /// A = V*D*Inverse(V) depends upon V.cond().
     /// </remarks>
-    // created by MakeClassComVisible
     [Serializable]
     public class EigenvalueDecomposition
     {

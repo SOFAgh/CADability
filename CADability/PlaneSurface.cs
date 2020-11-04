@@ -10,7 +10,6 @@ namespace CADability.GeoObject
     /// A planar infinite surface. Implements ISurface.
     /// The plane is defined by two vectors which are not necessary perpendicular or normed.
     /// </summary>
-    // created by MakeClassComVisible
     [Serializable()]
     public class PlaneSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IExportStep
         , IPropertyEntry
