@@ -65,6 +65,7 @@ namespace CADability.UserInterface
         #endregion
     }
 
+    [Serializable()]
     public class DoubleProperty : EditableProperty<double>, IJsonSerialize, ISerializable
     {
         private NumberFormatInfo numberFormatInfo;
@@ -285,7 +286,7 @@ namespace CADability.UserInterface
         #region ISerializable
         protected DoubleProperty(SerializationInfo info, StreamingContext context)
         {
-            SetValue(info.GetDouble("Value"), false);
+            SetValue(info.GetDouble("InternalValue"), false);
             resourceId = (string)info.GetValue("resourceId", typeof(string));
             settingName = (string)info.GetValue("SettingName", typeof(string));
             //try
@@ -301,7 +302,7 @@ namespace CADability.UserInterface
             numberFormatInfo = (NumberFormatInfo)CultureInfo.CurrentCulture.NumberFormat.Clone();
             numberFormatInfo.NumberDecimalDigits = 29;
         }
-        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("InternalValue", GetValue(), typeof(double));
             info.AddValue("resourceId", resourceId, resourceId.GetType());
