@@ -13,6 +13,7 @@ namespace CADability.Forms
         TabControl tabControl; // the TabControl containing the tab pages
         public IFrame Frame { get; set; }
         HashSet<string> entriesToHide;
+        public ImageList ImageList { set { tabControl.ImageList = value; } }
         public PropertiesExplorer()
         {
             tabPages = new List<PropertyPage>();
