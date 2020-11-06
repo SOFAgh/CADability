@@ -3560,6 +3560,19 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.PropertiesExplorer.HideTextBox
   nameWithType: PropertiesExplorer.HideTextBox
+- uid: CADability.Forms.PropertiesExplorer.ImageList
+  name: ImageList
+  href: api/CADability.Forms.PropertiesExplorer.html#CADability_Forms_PropertiesExplorer_ImageList
+  commentId: P:CADability.Forms.PropertiesExplorer.ImageList
+  fullName: CADability.Forms.PropertiesExplorer.ImageList
+  nameWithType: PropertiesExplorer.ImageList
+- uid: CADability.Forms.PropertiesExplorer.ImageList*
+  name: ImageList
+  href: api/CADability.Forms.PropertiesExplorer.html#CADability_Forms_PropertiesExplorer_ImageList_
+  commentId: Overload:CADability.Forms.PropertiesExplorer.ImageList
+  isSpec: "True"
+  fullName: CADability.Forms.PropertiesExplorer.ImageList
+  nameWithType: PropertiesExplorer.ImageList
 - uid: CADability.Forms.PropertiesExplorer.isHidden(System.String)
   name: isHidden(String)
   href: api/CADability.Forms.PropertiesExplorer.html#CADability_Forms_PropertiesExplorer_isHidden_System_String_

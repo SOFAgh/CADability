@@ -42,27 +42,51 @@ namespace CADability
             int pickRadius = soa.Frame.GetIntSetting("Select.PickRadius", 5);
             Projection.PickArea pa = vw.Projection.GetPickSpace(new System.Drawing.Rectangle(mousePoint.X - pickRadius, mousePoint.Y - pickRadius, pickRadius * 2, pickRadius * 2));
             IActionInputView pm = vw as IActionInputView;
+            GeoObjectList fl = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.onlyFaces, null); // returns all the face under the cursor
+            // in most cases there is only a single face, which is of interest, only when we have two solids with same or overlapping faces
+            // and one of them is not selectable without also selecting the other, we want both.
+            faces = new List<Face>();
+            shells = new List<Shell>(); // only Shells, which have are not part of a Solid
+            solids = new List<Solid>();
+            double delta = vw.Model.Extent.Size * 1e-4;
+            double mindist = double.MaxValue;
+            for (int i = 0; i < fl.Count; i++)
+            {
+                if (fl[i] is Face face) // this should always be the case
+                {
+                    double z = face.Position(pa.FrontCenter, pa.Direction, 0);
+                    if (z < mindist)
+                    {
+                        if (z < mindist - delta) faces.Clear();
+                        faces.Add(face);
+                        mindist = z;
+                    }
+                }
+            }
+            HashSet<Edge> relevantEdges = new HashSet<Edge>();
+            for (int i = 0; i < faces.Count; i++)
+            {
+                relevantEdges.UnionWith(faces[i].AllEdges);
+                if (faces[i].Owner is Shell shell)
+                {
+                    if (shell.Owner is Solid sld) { if (!solids.Contains(sld)) solids.Add(sld); }
+                    else { if (!shells.Contains(shell)) shells.Add(shell); }
+                }
+            }
             curves = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.onlyEdges, null); // returns edges and curves
             edges = new List<Edge>();
+            // we only accept edges, which belong to one of the selected faces
             for (int i = curves.Count - 1; i >= 0; --i)
             {
                 if (curves[i].Owner is Edge edge)
                 {
-                    edges.Add(edge);
+                    if (relevantEdges.Contains(edge)) edges.Add(edge);
                     curves.Remove(i);
                 }
-            }
-            GeoObjectList fl = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.onlyFaces, null); // returns only faces
-            faces = new List<Face>();
-            shells = new List<Shell>(); // only Shells, which have are not part of a Solid
-            solids = new List<Solid>();
-            for (int i = 0; i < fl.Count; i++)
-            {
-                if (fl[i] is Face face) faces.Add(face); // this should always be the case
-                if (fl[i].Owner is Shell shell)
+                else
                 {
-                    if (shell.Owner is Solid sld) { if (!solids.Contains(sld)) solids.Add(sld); }
-                    else { if (!shells.Contains(shell)) shells.Add(shell); }
+                    double z = curves[i].Position(pa.FrontCenter, pa.Direction, 0);
+                    if (z- delta > mindist) curves.Remove(i);
                 }
             }
 
@@ -71,20 +95,18 @@ namespace CADability
             List<MenuWithHandler> cm = new List<MenuWithHandler>();
             MenuWithHandler mhdumy = new MenuWithHandler();
             mhdumy.ID = "MenuId.dumy";
-            mhdumy.Text = "dumy menu entry";
+            mhdumy.Text = "dummy menu entry";
             for (int i = 0; i < curves.Count; i++)
             {
-                double z = curves[i].Position(pa.FrontCenter, pa.Direction, vw.Model.displayListPrecision);
                 MenuWithHandler mh = new MenuWithHandler();
                 mh.ID = "MenuId.Curve." + i.ToString();
-                mh.Text = curves[i].Description + " " + z.ToString();
+                mh.Text = curves[i].Description;
                 mh.SubMenus = new MenuWithHandler[] { mhdumy };
                 mh.Target = this;
                 cm.Add(mh);
             }
             for (int i = 0; i < edges.Count; i++)
             {
-                double z = (edges[i].Curve3D as IGeoObject).Position(pa.FrontCenter, pa.Direction, vw.Model.displayListPrecision);
                 MenuWithHandler mh = new MenuWithHandler();
                 mh.ID = "MenuId.Edge." + i.ToString();
                 mh.Text = StringTable.GetString("MenuId.Edge", StringTable.Category.label);
@@ -94,7 +116,6 @@ namespace CADability
             }
             for (int i = 0; i < faces.Count; i++)
             {
-                double z = faces[i].Position(pa.FrontCenter, pa.Direction, vw.Model.displayListPrecision);
                 MenuWithHandler mh = new MenuWithHandler();
                 mh.ID = "MenuId.Face." + i.ToString();
                 mh.Text = StringTable.GetString("MenuId.Face", StringTable.Category.label);

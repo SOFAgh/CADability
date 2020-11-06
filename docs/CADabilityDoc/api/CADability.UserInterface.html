@@ -98,7 +98,7 @@
       <h4><a class="xref" href="CADability.UserInterface.ColorSelectionProperty.html">ColorSelectionProperty</a></h4>
       <section></section>
       <h4><a class="xref" href="CADability.UserInterface.CommandState.html">CommandState</a></h4>
-      <section><p>State of a menu entry or toolbar button. Used in the <see cref="!:IFrame.UpdateCommand"></see> event.</p>
+      <section><p>State of a menu entry or toolbar button. Used in the <see cref="!:ICommandHandler.UpdateCommand"></see> event.</p>
 </section>
       <h4><a class="xref" href="CADability.UserInterface.CursorTable.html">CursorTable</a></h4>
       <section></section>
@@ -118,11 +118,11 @@
       <h4><a class="xref" href="CADability.UserInterface.EditableProperty-1.html">EditableProperty&lt;T&gt;</a></h4>
       <section><p>Defines a base clas for editable properties shown on a property page (IPropertyPage) in the controlcenter (properties explorer).
 It is a single entry in the property page which may have subentries.
-Usually a property of type <see cref="!:T"></see> of some object is connected with this EditableProperty, e.g. the startpoint of a line
+Usually a property of type <code data-dev-comment-type="typeparamref" class="typeparamref">T</code> of some object is connected with this EditableProperty, e.g. the startpoint of a line
 or the distance of hatch lines or some setting value. The communication with the object which hold the property is either done via delegates
 or via reflection.
 When the user clicks on the value part of the <a class="xref" href="CADability.UserInterface.IPropertyEntry.html">IPropertyEntry</a>, an editbox is activated to edit the value of the property. There must be
-a <a class="xref" href="CADability.UserInterface.EditableProperty-1.html#CADability_UserInterface_EditableProperty_1_ValueToText__0_">ValueToText(T)</a> and <see cref="!:EditableProperty&lt;T>.TextToValue(string)"></see> method defined in the derived class, which
+a <a class="xref" href="CADability.UserInterface.EditableProperty-1.html#CADability_UserInterface_EditableProperty_1_ValueToText__0_">ValueToText(T)</a> and <a class="xref" href="CADability.UserInterface.EditableProperty-1.html#CADability_UserInterface_EditableProperty_1_TextToValue_System_String__0__">TextToValue(String, out T)</a> method defined in the derived class, which
 convert the property value in a string and vice versa. The value of the property may be changed by the editbox (typing) or from the outside.</p>
 </section>
       <h4><a class="xref" href="CADability.UserInterface.GeoPointHotSpot.html">GeoPointHotSpot</a></h4>
@@ -148,9 +148,10 @@ Dieses Objekt kann auch in den Settings verwendet werden. Dann hält es den int
 Wert selbst und kann serialisiert werden.</p>
 </section>
       <h4><a class="xref" href="CADability.UserInterface.IShowPropertyImpl.html">IShowPropertyImpl</a></h4>
-      <section><p>Standard implementation of <a class="xref" href="CADability.UserInterface.IShowProperty.html">IShowProperty</a>. Implements many interface methods in a
+      <section><p>Deprecated: for new objects use <a class="xref" href="CADability.UserInterface.IPropertyEntry.html">IPropertyEntry</a> instead.
+Deprecated standard implementation of <a class="xref" href="CADability.UserInterface.IShowProperty.html">IShowProperty</a>. Implements many interface methods in a
 standard way as a virtual method to give derived classes the possibility to override
-these implementations</p>
+these implementations.</p>
 </section>
       <h4><a class="xref" href="CADability.UserInterface.LengthHotSpot.html">LengthHotSpot</a></h4>
       <section><p>Implements a hotspot <a class="xref" href="CADability.IHotSpot.html">IHotSpot</a> to manipulate a lenth via a length property</p>
@@ -258,7 +259,7 @@ CADability.dll is located.</p>
   </h3>
       <h4><a class="xref" href="CADability.UserInterface.ICommandHandler.html">ICommandHandler</a></h4>
       <section><p>Objects that implement this interface can receive menu command.
-Usually used in calls to <see cref="!:MenuResource.LoadContextMenu"></see> to specify
+Usually used in calls to <a class="xref" href="CADability.UserInterface.MenuResource.html#CADability_UserInterface_MenuResource_LoadMenuDefinition_System_String_System_Boolean_CADability_UserInterface_ICommandHandler_">LoadMenuDefinition(String, Boolean, ICommandHandler)</a> to specify
 the target object for that menu.</p>
 </section>
       <h4><a class="xref" href="CADability.UserInterface.IConstructProperty.html">IConstructProperty</a></h4>

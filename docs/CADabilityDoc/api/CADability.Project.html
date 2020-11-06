@@ -415,9 +415,9 @@ attributes and attribute lists (like colors, layers etc.)</p>
     <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L859">View Source</a>
   </span>
   <h4 id="CADability_Project_UserData" data-uid="CADability.Project.UserData">UserData</h4>
-  <div class="markdown level1 summary"><p>The <a class="xref" href="CADability.Project.html#CADability_Project_UserData">UserData</a> object can take any kind of data. If the data objects
-are serializable i.e. implement <see cref="!:System.Runtime.Serialization.ISerialzable"></see> they are serialized
-together with the project. If they implement the <a class="xref" href="CADability.UserInterface.IShowProperty.html">IShowProperty</a> interface
+  <div class="markdown level1 summary"><p>The <a class="xref" href="CADability.UserData.html">UserData</a> object can take any kind of data. If the data objects
+are serializable i.e. implement <span class="xref">System.Runtime.Serialization.ISerializable</span> they are serialized
+together with the project. If they implement the <a class="xref" href="CADability.UserInterface.IPropertyEntry.html">IPropertyEntry</a> interface
 they are displayed and can be modified on the project tab page of the control center.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -1065,7 +1065,7 @@ returns the number of subentries in this property view.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_Add_System_Object_.md&amp;value=---%0Auid%3A%20CADability.Project.Add(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2543">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2538">View Source</a>
   </span>
   <a id="CADability_Project_Add_" data-uid="CADability.Project.Add*"></a>
   <h4 id="CADability_Project_Add_System_Object_" data-uid="CADability.Project.Add(System.Object)">Add(Object)</h4>
@@ -1778,11 +1778,11 @@ in this project a standard Layout is created and adde to the project</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_.md&amp;value=---%0Auid%3A%20CADability.Project.GetObjectData(System.Runtime.Serialization.SerializationInfo%2CSystem.Runtime.Serialization.StreamingContext)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2292">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2287">View Source</a>
   </span>
   <a id="CADability_Project_GetObjectData_" data-uid="CADability.Project.GetObjectData*"></a>
   <h4 id="CADability_Project_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_" data-uid="CADability.Project.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">GetObjectData(SerializationInfo, StreamingContext)</h4>
-  <div class="markdown level1 summary"><p>Implements ISerializable.GetObjectData. Override this method if your object is also serializable.</p>
+  <div class="markdown level1 summary"><p>Implements <span class="xref">System.Runtime.Serialization.ISerializable.GetObjectData(System.Runtime.Serialization.SerializationInfo, System.Runtime.Serialization.StreamingContext)</span></p>
 </div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
@@ -1802,12 +1802,14 @@ in this project a standard Layout is created and adde to the project</p>
       <tr>
         <td><span class="xref">System.Runtime.Serialization.SerializationInfo</span></td>
         <td><span class="parametername">info</span></td>
-        <td></td>
+        <td><p>The <span class="xref">System.Runtime.Serialization.SerializationInfo</span> to populate with data.</p>
+</td>
       </tr>
       <tr>
         <td><span class="xref">System.Runtime.Serialization.StreamingContext</span></td>
         <td><span class="parametername">context</span></td>
-        <td></td>
+        <td><p>The destination (<span class="xref">System.Runtime.Serialization.StreamingContext</span>) for this serialization.</p>
+</td>
       </tr>
     </tbody>
   </table>
@@ -3296,7 +3298,7 @@ of an constructable object as a result.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_CADability_IJsonSerialize_GetObjectData_CADability_IJsonWriteData_.md&amp;value=---%0Auid%3A%20CADability.Project.CADability%23IJsonSerialize%23GetObjectData(CADability.IJsonWriteData)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2308">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2303">View Source</a>
   </span>
   <a id="CADability_Project_CADability_IJsonSerialize_GetObjectData_" data-uid="CADability.Project.CADability#IJsonSerialize#GetObjectData*"></a>
   <h4 id="CADability_Project_CADability_IJsonSerialize_GetObjectData_CADability_IJsonWriteData_" data-uid="CADability.Project.CADability#IJsonSerialize#GetObjectData(CADability.IJsonWriteData)">IJsonSerialize.GetObjectData(IJsonWriteData)</h4>
@@ -3328,7 +3330,7 @@ of an constructable object as a result.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_CADability_IJsonSerialize_SetObjectData_CADability_IJsonReadData_.md&amp;value=---%0Auid%3A%20CADability.Project.CADability%23IJsonSerialize%23SetObjectData(CADability.IJsonReadData)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2325">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2320">View Source</a>
   </span>
   <a id="CADability_Project_CADability_IJsonSerialize_SetObjectData_" data-uid="CADability.Project.CADability#IJsonSerialize#SetObjectData*"></a>
   <h4 id="CADability_Project_CADability_IJsonSerialize_SetObjectData_CADability_IJsonReadData_" data-uid="CADability.Project.CADability#IJsonSerialize#SetObjectData(CADability.IJsonReadData)">IJsonSerialize.SetObjectData(IJsonReadData)</h4>
@@ -3360,7 +3362,7 @@ of an constructable object as a result.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_CADability_IJsonSerializeDone_SerializationDone.md&amp;value=---%0Auid%3A%20CADability.Project.CADability%23IJsonSerializeDone%23SerializationDone%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2348">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2343">View Source</a>
   </span>
   <a id="CADability_Project_CADability_IJsonSerializeDone_SerializationDone_" data-uid="CADability.Project.CADability#IJsonSerializeDone#SerializationDone*"></a>
   <h4 id="CADability_Project_CADability_IJsonSerializeDone_SerializationDone" data-uid="CADability.Project.CADability#IJsonSerializeDone#SerializationDone">IJsonSerializeDone.SerializationDone()</h4>
@@ -3375,7 +3377,7 @@ of an constructable object as a result.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_CADability_UserInterface_ICommandHandler_OnCommand_System_String_.md&amp;value=---%0Auid%3A%20CADability.Project.CADability%23UserInterface%23ICommandHandler%23OnCommand(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2501">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2496">View Source</a>
   </span>
   <a id="CADability_Project_CADability_UserInterface_ICommandHandler_OnCommand_" data-uid="CADability.Project.CADability#UserInterface#ICommandHandler#OnCommand*"></a>
   <h4 id="CADability_Project_CADability_UserInterface_ICommandHandler_OnCommand_System_String_" data-uid="CADability.Project.CADability#UserInterface#ICommandHandler#OnCommand(System.String)">ICommandHandler.OnCommand(String)</h4>
@@ -3422,7 +3424,7 @@ of an constructable object as a result.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_CADability_UserInterface_ICommandHandler_OnSelected_System_String_System_Boolean_.md&amp;value=---%0Auid%3A%20CADability.Project.CADability%23UserInterface%23ICommandHandler%23OnSelected(System.String%2CSystem.Boolean)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2540">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2535">View Source</a>
   </span>
   <a id="CADability_Project_CADability_UserInterface_ICommandHandler_OnSelected_" data-uid="CADability.Project.CADability#UserInterface#ICommandHandler#OnSelected*"></a>
   <h4 id="CADability_Project_CADability_UserInterface_ICommandHandler_OnSelected_System_String_System_Boolean_" data-uid="CADability.Project.CADability#UserInterface#ICommandHandler#OnSelected(System.String,System.Boolean)">ICommandHandler.OnSelected(String, Boolean)</h4>
@@ -3459,7 +3461,7 @@ of an constructable object as a result.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_CADability_UserInterface_ICommandHandler_OnUpdateCommand_System_String_CADability_UserInterface_CommandState_.md&amp;value=---%0Auid%3A%20CADability.Project.CADability%23UserInterface%23ICommandHandler%23OnUpdateCommand(System.String%2CCADability.UserInterface.CommandState)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2527">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2522">View Source</a>
   </span>
   <a id="CADability_Project_CADability_UserInterface_ICommandHandler_OnUpdateCommand_" data-uid="CADability.Project.CADability#UserInterface#ICommandHandler#OnUpdateCommand*"></a>
   <h4 id="CADability_Project_CADability_UserInterface_ICommandHandler_OnUpdateCommand_System_String_CADability_UserInterface_CommandState_" data-uid="CADability.Project.CADability#UserInterface#ICommandHandler#OnUpdateCommand(System.String,CADability.UserInterface.CommandState)">ICommandHandler.OnUpdateCommand(String, CommandState)</h4>
@@ -3511,7 +3513,7 @@ of an constructable object as a result.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_System_Collections_IEnumerable_GetEnumerator.md&amp;value=---%0Auid%3A%20CADability.Project.System%23Collections%23IEnumerable%23GetEnumerator%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2546">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2541">View Source</a>
   </span>
   <a id="CADability_Project_System_Collections_IEnumerable_GetEnumerator_" data-uid="CADability.Project.System#Collections#IEnumerable#GetEnumerator*"></a>
   <h4 id="CADability_Project_System_Collections_IEnumerable_GetEnumerator" data-uid="CADability.Project.System#Collections#IEnumerable#GetEnumerator">IEnumerable.GetEnumerator()</h4>
@@ -3541,7 +3543,7 @@ of an constructable object as a result.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_Project_System_Runtime_Serialization_IDeserializationCallback_OnDeserialization_System_Object_.md&amp;value=---%0Auid%3A%20CADability.Project.System%23Runtime%23Serialization%23IDeserializationCallback%23OnDeserialization(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2553">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/Project.cs/#L2548">View Source</a>
   </span>
   <a id="CADability_Project_System_Runtime_Serialization_IDeserializationCallback_OnDeserialization_" data-uid="CADability.Project.System#Runtime#Serialization#IDeserializationCallback#OnDeserialization*"></a>
   <h4 id="CADability_Project_System_Runtime_Serialization_IDeserializationCallback_OnDeserialization_System_Object_" data-uid="CADability.Project.System#Runtime#Serialization#IDeserializationCallback#OnDeserialization(System.Object)">IDeserializationCallback.OnDeserialization(Object)</h4>

@@ -18,7 +18,7 @@ namespace CADability.Forms
         {
             tabPages = new List<PropertyPage>();
 
-            listBox = new ListBox(); // a ListBox which only becomes visible (and positioned and filled) when a dropdown button of an PropertyEntry has been clicked
+            listBox = new ListBox(); // a ListBox which only becomes visible (and positioned and filled) when a drop-down button of an PropertyEntry has been clicked
             listBox.Visible = false;
             listBox.LostFocus += ListBox_LostFocus;
             listBox.SelectedIndexChanged += ListBox_SelectedIndexChanged;
@@ -79,7 +79,7 @@ namespace CADability.Forms
             {
                 HideListBox();
             }
-            ActivePropertyPage.SelectEntry(ActivePropertyPage.GetCurrentSelection()); // this shows the textbox or listbox
+            ActivePropertyPage.SelectEntry(ActivePropertyPage.GetCurrentSelection()); // this shows the text-box or list-box
         }
         private static PropertyPage GetPropertyPage(IPropertyEntry propertyEntry)
         {
@@ -93,7 +93,7 @@ namespace CADability.Forms
         }
 
         #region listBox 
-        ListBox listBox; // the only listbox, which is hidden and, when needed, moved and filled befor it is shown
+        ListBox listBox; // the only listbox, which is hidden and, when needed, moved and filled before it is shown
         public void ShowListBox(Rectangle screenLocation, string[] items, int selected, IPropertyEntry sender)
         {
             if (EntryWithListBox == sender) return;
@@ -146,7 +146,7 @@ namespace CADability.Forms
         private void ListBox_LostFocus(object sender, EventArgs e)
         {
             if (EntryWithListBox != null)
-            {   // nothong has been selected, the user clicked somwhere else
+            {   // nothing has been selected, the user clicked somewhere else
                 HideListBox();
             }
         }

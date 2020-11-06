@@ -8,7 +8,7 @@ namespace CADability.UserInterface
 {
 
     /// <summary>
-    /// Implements a hotspot <see cref="IHotSpot"/> to manipulate a lenth via a length property
+    /// Implements a hotspot <see cref="IHotSpot"/> to manipulate a length via a length property
     /// </summary>
 
     public class DoubleHotSpot : IHotSpot

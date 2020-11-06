@@ -75,11 +75,11 @@
   </h1>
   <div class="markdown level0 summary"><p>Defines a base clas for editable properties shown on a property page (IPropertyPage) in the controlcenter (properties explorer).
 It is a single entry in the property page which may have subentries.
-Usually a property of type <see cref="!:T"></see> of some object is connected with this EditableProperty, e.g. the startpoint of a line
+Usually a property of type <code data-dev-comment-type="typeparamref" class="typeparamref">T</code> of some object is connected with this EditableProperty, e.g. the startpoint of a line
 or the distance of hatch lines or some setting value. The communication with the object which hold the property is either done via delegates
 or via reflection.
 When the user clicks on the value part of the <a class="xref" href="CADability.UserInterface.IPropertyEntry.html">IPropertyEntry</a>, an editbox is activated to edit the value of the property. There must be
-a <a class="xref" href="CADability.UserInterface.EditableProperty-1.html#CADability_UserInterface_EditableProperty_1_ValueToText__0_">ValueToText(T)</a> and <see cref="!:EditableProperty&lt;T>.TextToValue(string)"></see> method defined in the derived class, which
+a <a class="xref" href="CADability.UserInterface.EditableProperty-1.html#CADability_UserInterface_EditableProperty_1_ValueToText__0_">ValueToText(T)</a> and <a class="xref" href="CADability.UserInterface.EditableProperty-1.html#CADability_UserInterface_EditableProperty_1_TextToValue_System_String__0__">TextToValue(String, out T)</a> method defined in the derived class, which
 convert the property value in a string and vice versa. The value of the property may be changed by the editbox (typing) or from the outside.</p>
 </div>
   <div class="markdown level0 conceptual"></div>

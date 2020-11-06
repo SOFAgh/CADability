@@ -251,8 +251,8 @@ A Layout can be viewed with the LayoutView and can be printed.</p>
 </section>
       <h4><a class="xref" href="CADability.MultipleChoiceSetting.html">MultipleChoiceSetting</a></h4>
       <section><p>Wrappes an int value. The value represents a choice of severel predefined choices.
-It represents a setting defined by a <see cref="!:SettingName"></see> and a <see cref="!:Selected"></see> value.
-Ths setting can be displayed and modified in the control center.
+It represents a setting defined by a name and a value.
+This setting can be displayed and modified in the control center.
 It is represented as a combo box. The label left of the combo box is given
 by the resourceId <a class="xref" href="CADability.UserInterface.StringTable.html#CADability_UserInterface_StringTable_GetString_System_String_CADability_UserInterface_StringTable_Category_">GetString(String, StringTable.Category)</a>, the values are</p>
 </section>
@@ -396,8 +396,8 @@ CADability system.
 There is a static variable <a class="xref" href="CADability.Settings.html#CADability_Settings_GlobalSettings">GlobalSettings</a>. This is the only use of settings in CADability.
 This class behaves as a hierarchical dictionary. The keys are strings, which may have the form &quot;mainkey.subkey&quot;
 The values are objects, i.e. any kind of data.
-If the objects implement the IShowProperty interface they are displayed in the global setting tab of the control-center.
-There are some classes like <a class="xref" href="CADability.ColorSetting.html">ColorSetting</a>, <see cref="!:IntergerProperty"></see>, <a class="xref" href="CADability.UserInterface.DoubleProperty.html">DoubleProperty</a>,
+If the objects implement the IShowProperty interface they are displayed in the global setting tab of the controlcenter.
+There are some classes like <a class="xref" href="CADability.ColorSetting.html">ColorSetting</a>, <a class="xref" href="CADability.UserInterface.IntegerProperty.html">IntegerProperty</a>, <a class="xref" href="CADability.UserInterface.DoubleProperty.html">DoubleProperty</a>,
 <a class="xref" href="CADability.UserInterface.StringProperty.html">StringProperty</a> which can be used as a setting value. If you instead simply use a double or string value
 the setting will be only available to programming code but not to the user in the ControlCenter.</p>
 </section>
@@ -552,7 +552,7 @@ Use the static methods to create ModOps that do a required modification (like <s
 </section>
       <h4><a class="xref" href="CADability.ModOp2D.html">ModOp2D</a></h4>
       <section><p>A 2-dimensional modification operation implemented as a homogenous matix 3*2. You can apply
-such modificaion to <a class="xref" href="CADability.GeoVector2D.html">GeoVector2D</a> and <a class="xref" href="CADability.GeoPoint2D.html">GeoPoint2D</a> points or to <see cref="!:ICurve2D"></see>
+such modificaion to <a class="xref" href="CADability.GeoVector2D.html">GeoVector2D</a> and <a class="xref" href="CADability.GeoPoint2D.html">GeoPoint2D</a> points or to <a class="xref" href="CADability.Curve2D.ICurve2D.html">ICurve2D</a>
 implementing objects.</p>
 </section>
       <h4><a class="xref" href="CADability.Plane.html">Plane</a></h4>
@@ -820,8 +820,7 @@ can be modified using this event</p>
       <section><p>Delegate definition of a filtering method restricting <a class="xref" href="CADability.IOctTreeInsertable.html">IOctTreeInsertable</a> objects.</p>
 </section>
       <h4><a class="xref" href="CADability.OctTree-1.FilterNode.html">OctTree&lt;T&gt;.FilterNode</a></h4>
-      <section><p>Delegate definition of a filtering method restricting <see cref="!:Node"></see>s.</p>
-</section>
+      <section></section>
       <h4><a class="xref" href="CADability.OctTree-1.SplitTestFunction.html">OctTree&lt;T&gt;.SplitTestFunction</a></h4>
       <section><p>Constructs an octtree providing an initial size and a precision</p>
 </section>
