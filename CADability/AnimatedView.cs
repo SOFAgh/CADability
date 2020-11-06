@@ -1318,7 +1318,7 @@ namespace CADability
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         void OnApplicationIdle(object sender, EventArgs e)
         {
             //displayLists = null;

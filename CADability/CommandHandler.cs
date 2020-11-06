@@ -61,22 +61,22 @@ namespace CADability.UserInterface
         /// Process the command with the given MenuId. Return true if handled, false otherwise.
         /// </summary>
         /// <param name="MenuId">Id of the menu command to be processed</param>
-        /// <returns>true, if handled, fals otherwise</returns>
+        /// <returns>true, if handled, false otherwise</returns>
         bool OnCommand(string MenuId);
         /// <summary>
         /// Update the command user interface of the given command. Return true if handled, false otherwise.
         /// </summary>
         /// <param name="MenuId">Id of the menu command to be processed</param>
-        /// <param name="CommandState">State object to modify if apropriate</param>
-        /// <returns>true, if handled, fals otherwise</returns>
+        /// <param name="CommandState">State object to modify if appropriate</param>
+        /// <returns>true, if handled, false otherwise</returns>
         bool OnUpdateCommand(string MenuId, CommandState CommandState);
         /// <summary>
-        /// Notify that the menu item is beeing selected. No need to react on this notification
+        /// Notify that the menu item is being selected. No need to react on this notification
         /// </summary>
         /// <param name="MenuId">Id of the menu command that was selected</param>
         /// <param name="selected">true, if selected, false if deselected</param>
         /// <returns></returns>
-        void OnSelected(string MenuId, bool selected);
+        void OnSelected(MenuWithHandler selectedMenu, bool selected);
     }
 
 }

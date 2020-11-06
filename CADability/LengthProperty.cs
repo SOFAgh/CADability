@@ -71,7 +71,7 @@ namespace CADability.UserInterface
         {
             return ((ICommandHandler)lengthProperty).OnUpdateCommand(MenuId, CommandState);
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
     }
 
 
@@ -248,7 +248,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
 
         #region deprecated adaption to old implementation of LengthProperty

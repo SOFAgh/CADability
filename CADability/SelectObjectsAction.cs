@@ -199,7 +199,7 @@ namespace CADability.Actions
             return false;
         }
 
-        public void OnSelected(string MenuId, bool selected)
+        public void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
         {
         }
 
@@ -626,7 +626,7 @@ namespace CADability.Actions
             selectedObjectsProperty.Focus(geoObject);
         }
         /// <summary>
-        /// Gets or sets the pickmode or selection mode for this SelectObjectsAction.
+        /// Gets or sets the pick-mode or selection mode for this SelectObjectsAction.
         /// </summary>
         public PickMode PickMode
         {

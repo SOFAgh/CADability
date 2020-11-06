@@ -689,7 +689,7 @@ namespace CADability.Actions
         /// </summary>
         /// <param name="MenuId"></param>
         /// <param name="selected"></param>
-        public virtual void OnSelected(string MenuId, bool selected) { }
+        public virtual void OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
 

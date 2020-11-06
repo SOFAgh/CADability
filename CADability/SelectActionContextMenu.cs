@@ -121,6 +121,7 @@ namespace CADability
                 mh.Text = StringTable.GetString("MenuId.Face", StringTable.Category.label);
                 mh.SubMenus = faces[i].GetContextMenu(soa.Frame);
                 mh.Target = this;
+                cm.AddRange(GetFacesSubmenus(faces));
                 cm.Add(mh);
             }
             for (int i = 0; i < shells.Count; i++)
@@ -145,6 +146,82 @@ namespace CADability
             mousePoint.X += vw.DisplayRectangle.Width / 8; // find a better place for the menu position, using the extent of the objects
             vw.Canvas.ShowContextMenu(cm.ToArray(), mousePoint, ContextMenuCollapsed);
         }
+
+        private class FeatureCommandHandler : MenuWithHandler, ICommandHandler
+        {
+            Face[] involvedFaces;
+            bool ICommandHandler.OnCommand(string MenuId)
+            {
+                throw new NotImplementedException();
+            }
+
+            void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected)
+            {
+                throw new NotImplementedException();
+            }
+
+            bool ICommandHandler.OnUpdateCommand(string MenuId, CommandState CommandState)
+            {
+                throw new NotImplementedException();
+            }
+        }
+        private List<MenuWithHandler> GetFacesSubmenus(List<Face> faces)
+        {
+            List<FeatureCommandHandler> fchs = new List<FeatureCommandHandler>();
+            List<MenuWithHandler> res = new List<MenuWithHandler>();
+            for (int i = 0; i < faces.Count; i++)
+            {
+                if (faces[i].IsFillet())
+                {
+                    HashSet<Face> connectedFillets = new HashSet<Face>();
+                    CollectConnectedFillets(faces[i], connectedFillets);
+                    FeatureCommandHandler fch = new FeatureCommandHandler();
+                    fch.ID = "MenuId.Feature." + fchs.Count.ToString();
+                    fchs.Add(fch);
+                    res.Add(fch);
+                }
+            }
+            return res;
+        }
+
+        private void CollectConnectedFillets(Face face, HashSet<Face> connectedFillets)
+        {
+            if (!connectedFillets.Contains(face))
+            {
+                connectedFillets.Add(face);
+                if (face.Surface is ISurfaceOfArcExtrusion extrusion)
+                {
+                    foreach (Edge edge in face.OutlineEdges)
+                    {
+                        Face otherFace = edge.OtherFace(face);
+                        if (edge.IsTangentialEdge())
+                        {
+                            if (edge.Curve2D(face).DirectionAt(0.5).IsMoreHorizontal == extrusion.ExtrusionDirectionIsV && otherFace.Surface is ISurfaceOfArcExtrusion arcExtrusion)
+                            {
+                                CollectConnectedFillets(otherFace, connectedFillets);
+                            }
+                        }
+
+                    }
+                }
+                else if (face.Surface is SphericalSurface)
+                {   // at a sphere a fillet might branch out
+                    foreach (Edge edge in face.OutlineEdges)
+                    {
+                        Face otherFace = edge.OtherFace(face);
+                        if (edge.IsTangentialEdge())
+                        {
+                            if (otherFace.Surface is ISurfaceOfArcExtrusion)
+                            {
+                                CollectConnectedFillets(otherFace, connectedFillets);
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
         private void OnRepaintSelect(System.Drawing.Rectangle IsInvalid, IView View, IPaintTo3D PaintToSelect)
         {
             if (currentMenuSelection != null)
@@ -173,32 +250,31 @@ namespace CADability
             return true;
         }
 
-        void ICommandHandler.OnSelected(string MenuId, bool selected)
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenu, bool selected)
         {
-            System.Diagnostics.Trace.WriteLine("OnSelected: " + MenuId);
-            if (MenuId.StartsWith("MenuId.Curve."))
+            if (selectedMenu.ID.StartsWith("MenuId.Curve."))
             {
-                int ind = int.Parse(MenuId.Substring("MenuId.Curve.".Length));
+                int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Curve.".Length));
                 currentMenuSelection = curves[ind];
             }
-            else if (MenuId.StartsWith("MenuId.Edge."))
+            else if (selectedMenu.ID.StartsWith("MenuId.Edge."))
             {
-                int ind = int.Parse(MenuId.Substring("MenuId.Edge.".Length));
+                int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Edge.".Length));
                 currentMenuSelection = edges[ind].Curve3D as IGeoObject;
             }
-            else if (MenuId.StartsWith("MenuId.Face."))
+            else if (selectedMenu.ID.StartsWith("MenuId.Face."))
             {
-                int ind = int.Parse(MenuId.Substring("MenuId.Face.".Length));
+                int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Face.".Length));
                 currentMenuSelection = faces[ind];
             }
-            else if (MenuId.StartsWith("MenuId.Shell."))
+            else if (selectedMenu.ID.StartsWith("MenuId.Shell."))
             {
-                int ind = int.Parse(MenuId.Substring("MenuId.Shell.".Length));
+                int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Shell.".Length));
                 currentMenuSelection = shells[ind];
             }
-            else if (MenuId.StartsWith("MenuId.Solid."))
+            else if (selectedMenu.ID.StartsWith("MenuId.Solid."))
             {
-                int ind = int.Parse(MenuId.Substring("MenuId.Solid.".Length));
+                int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Solid.".Length));
                 currentMenuSelection = solids[ind];
             }
             else currentMenuSelection = null;

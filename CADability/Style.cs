@@ -776,7 +776,7 @@ namespace CADability.Attribute
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
 
@@ -1461,7 +1461,7 @@ namespace CADability.Attribute
             // TODO:  Add StyleList.OnUpdateCommand implementation
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         internal void CheckDefault(Style style)
         {

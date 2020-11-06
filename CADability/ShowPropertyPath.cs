@@ -62,7 +62,7 @@ namespace CADability.UserInterface
                 }
                 return false;
             }
-            void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+            void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
             #endregion
         }
@@ -379,7 +379,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         #region IGeoObjectShowProperty Members
         public event CADability.GeoObject.CreateContextMenueDelegate CreateContextMenueEvent;

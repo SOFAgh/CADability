@@ -62,7 +62,7 @@ namespace CADability.UserInterface
         {
             return ((ICommandHandler)geoVectorProperty).OnUpdateCommand(MenuId, CommandState);
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
     }
 
     public class GeoVectorProperty : EditableProperty<GeoVector>, IUserData, ICommandHandler
@@ -693,7 +693,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
 
         #region deprecated adaption to old implementation of GeoVectorProperty

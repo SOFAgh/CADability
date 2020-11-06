@@ -821,7 +821,7 @@ namespace CADability
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         // Get real page bounds based on printable area of the page (http://www.ddj.com/dept/windows/184416821)
         static Rectangle GetRealPageBounds(PrintPageEventArgs e, bool preview)

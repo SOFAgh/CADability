@@ -375,7 +375,7 @@ namespace CADability.Forms
         protected override void OnSelect(EventArgs e)
         {
             MenuWithHandler definition = (Tag as MenuWithHandler);
-            if (definition.Target != null) definition.Target.OnSelected(definition.ID, true);
+            if (definition.Target != null) definition.Target.OnSelected(definition, true);
             base.OnSelect(e);
         }
     }

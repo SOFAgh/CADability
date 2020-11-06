@@ -626,7 +626,7 @@ namespace CADability.Attribute
                     return false;
             }
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
     /// <summary>
@@ -824,7 +824,7 @@ namespace CADability.Attribute
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         public void Refresh()
         {

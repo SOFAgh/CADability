@@ -98,7 +98,7 @@ namespace CADability.Forms
             return false;
         }
 
-        public virtual void OnSelected(string MenuId, bool selected)
+        public virtual void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
         {
             
         }

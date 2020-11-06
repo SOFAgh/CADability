@@ -303,7 +303,7 @@ namespace CADability.Attribute
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         private void OnAddFromGlobal()
         {
             foreach (DimensionStyle ds in Settings.GlobalSettings.DimensionStyleList.entries.Values)

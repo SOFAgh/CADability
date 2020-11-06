@@ -46,7 +46,7 @@ namespace CADability
             return false;
         }
 
-        public override void OnSelected(string MenuId, bool selected)
+        public override void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
         {
 
         }
