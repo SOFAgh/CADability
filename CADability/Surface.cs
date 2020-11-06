@@ -3314,6 +3314,7 @@ namespace CADability.GeoObject
         public virtual ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
         {
             GetExtremePositions(thisBounds, other, otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
+            if (usedArea.IsEmpty() || usedArea.IsInfinite) usedArea = thisBounds;
             return BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null, extremePositions);
         }
         public virtual ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)

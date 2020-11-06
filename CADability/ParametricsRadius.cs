@@ -9,7 +9,7 @@ namespace CADability
 {
     class ParametricsRadius : ConstructAction
     {
-        private Face faceWithRadius;
+        private Face[] facesWithRadius;
         private IFrame frame;
         private bool diameter;
         private Shell shell;
@@ -17,12 +17,12 @@ namespace CADability
         private LengthInput diameterInput;
         private bool validResult;
         private bool useRadius;
-        public ParametricsRadius(Face faceWithRadius, IFrame frame, bool useRadius)
+        public ParametricsRadius(Face[] facesWithRadius, IFrame frame, bool useRadius)
         {
-            this.faceWithRadius = faceWithRadius;
+            this.facesWithRadius = facesWithRadius;
             this.frame = frame;
             this.useRadius = useRadius;
-            shell = faceWithRadius.Owner as Shell;
+            shell = facesWithRadius[0].Owner as Shell;
         }
 
         public override string GetID()
@@ -104,7 +104,7 @@ namespace CADability
             if (shell!=null)
             {
                 Parametrics pm = new Parametrics(shell);
-                if (pm.ModifyRadius(faceWithRadius, length))
+                if (pm.ModifyFilletRadius(facesWithRadius, length))
                 {
                     Shell sh = pm.Result(out HashSet<Face> involvedFaces);
                     if (sh != null)
@@ -125,7 +125,7 @@ namespace CADability
 
         private double RadiusInput_GetLength()
         {
-            if (faceWithRadius.Surface is ISurfaceOfArcExtrusion sae) return sae.Radius; // we only have round cylinders here
+            if (facesWithRadius[0].Surface is ISurfaceOfArcExtrusion sae) return sae.Radius; // we only have round cylinders here
             else return 0.0;
         }
         private bool DiameterInput_SetLength(double length)

@@ -79,7 +79,7 @@ namespace CADability
             base.TitleId = "Constr.Parametrics.DistanceTo";
             FeedBack.AddSelected(offsetFeedBack);
             base.ActiveObject = shell.Clone();
-            shell.Layer.Transparency = 128;
+            if (shell.Layer!=null) shell.Layer.Transparency = 128;
 
             otherObjectInput = new GeoObjectInput("DistanceTo.OtherObject");
             otherObjectInput.FacesOnly = true;

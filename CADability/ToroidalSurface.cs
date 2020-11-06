@@ -1886,6 +1886,15 @@ namespace CADability.GeoObject
             //}
             base.Intersect(curve, uvExtent, out ips, out uvOnFaces, out uOnCurve3Ds);
         }
+        public override ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {   // fill in more special cases
+            if (other is CylindricalSurface) return other.Intersect(otherBounds, this, thisBounds);
+            return base.Intersect(thisBounds, other, otherBounds);
+        }
+        public override ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)
+        {
+            return base.Intersect(thisBounds, other, otherBounds, seed);
+        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.CopyData (ISurface)"/>
         /// </summary>

@@ -168,7 +168,7 @@ namespace CADability
                                 {
                                     ICurve[] crvs = faceToModify.Surface.Intersect(faceToModify.Domain, t[i].Surface, t[i].Domain);
                                     ICurve crv = Hlp.GetClosest(crvs, c => c.DistanceTo(edg.Vertex1.Position) + c.DistanceTo(edg.Vertex2.Position));
-                                    if (crv!=null) // which must be the case, because the surfaces are tangential
+                                    if (crv != null) // which must be the case, because the surfaces are tangential
                                     {
                                         edg.Curve3D = crv;
                                         tangentialEdgesModified[edg] = crv;
@@ -243,6 +243,86 @@ namespace CADability
                     }
                 }
             }
+        }
+        /// <summary>
+        /// A fillet is to be modified with a new radius.  Th parameter <paramref name="toModify"/> contains all relevant faces, which are either
+        /// faces where the surface is a <see cref="ISurfaceOfArcExtrusion"/> or a <see cref="SphericalSurface"/>. there is no need to follow
+        /// these faces, the caller is responsible for this.
+        /// </summary>
+        /// <param name="toModify"></param>
+        /// <param name="newRadius"></param>
+        /// <returns>true, if possible (but not guaranteed to be possible)</returns>
+        public bool ModifyFilletRadius(Face[] toModify, double newRadius)
+        {
+            foreach (Face faceToModify in toModify)
+            {
+                if (faceToModify.Surface is ISurfaceOfArcExtrusion extrusion)
+                {
+
+                    ICurve axis = extrusion.Axis(faceToModify.Domain); // a line for a cylinder, an arc for a torus, some 3d curve for a swept curve
+                    HashSet<Face> lengthwayTangential = new HashSet<Face>(); // the two faces that this fillet rounds
+                    HashSet<Edge> crosswayTangential = new HashSet<Edge>(); // the following or previous fillet
+                    foreach (Edge edge in faceToModify.AllEdgesIterated())
+                    {
+                        Face otherFace = edge.OtherFace(faceToModify);
+                        if (edge.IsTangentialEdge())
+                        {
+                            if (edge.Curve2D(faceToModify).DirectionAt(0.5).IsMoreHorizontal != extrusion.ExtrusionDirectionIsV) lengthwayTangential.Add(otherFace);
+                            else crosswayTangential.Add(edge);
+                        }
+                    }
+                    if (lengthwayTangential.Count != 2) continue; // there must be two other faces tangential in the extrusion direction
+                    Face[] t = lengthwayTangential.ToArray();
+                    GeoPoint mp = axis.PointAt(0.5);
+                    //double d = t[0].Surface.GetDistance(mp); // this should be the current radius, unfortunately GetDistance is the absolute value
+                    GeoPoint2D fp = t[0].Surface.PositionOf(mp);
+                    double par = Geometry.LinePar(t[0].Surface.PointAt(fp), t[0].Surface.GetNormal(fp), mp);
+                    double offset;
+                    if (par > 0) offset = newRadius;
+                    else offset = -newRadius;
+                    ISurface surface0 = t[0].Surface.GetOffsetSurface(offset);
+                    ISurface surface1 = t[1].Surface.GetOffsetSurface(offset);
+                    ICurve[] cvs = surface0.Intersect(t[0].Domain, surface1, t[1].Domain); // this should yield the new axis
+                    ICurve newAxis = Hlp.GetClosest(cvs, crv => crv.DistanceTo(mp));
+                    if (newAxis != null)
+                    {
+                        ISurfaceOfArcExtrusion modifiedSurface = faceToModify.Surface.Clone() as ISurfaceOfArcExtrusion;
+                        modifiedSurface.ModifyAxis(newAxis.PointAt(newAxis.PositionOf(newAxis.PointAt(0.5))));
+                        modifiedSurface.Radius = newRadius;
+                        faceToModify.Surface = modifiedSurface as ISurface;
+                        verticesToRecalculate.UnionWith(faceToModify.Vertices);
+                        foreach (Vertex vtx in verticesToRecalculate)
+                        {
+                            edgesToRecalculate.UnionWith(vtx.AllEdges);
+                        }
+                        modifiedFaces.Add(faceToModify);
+                        // this modified face is tangential to t[0] and t[1]. The edges between this faceToModify and t[0] resp. t[1] need to be recalculated
+                        // in order to have a curve for recalculating the vertices in Result()
+                        foreach (Edge edg in faceToModify.AllEdgesIterated())
+                        {
+                            for (int i = 0; i < 2; i++)
+                            {
+                                if (edg.OtherFace(faceToModify) == t[i])
+                                {
+                                    ICurve[] crvs = faceToModify.Surface.Intersect(faceToModify.Domain, t[i].Surface, t[i].Domain);
+                                    ICurve crv = Hlp.GetClosest(crvs, c => c.DistanceTo(edg.Vertex1.Position) + c.DistanceTo(edg.Vertex2.Position));
+                                    if (crv != null) // which must be the case, because the surfaces are tangential
+                                    {
+                                        edg.Curve3D = crv;
+                                        tangentialEdgesModified[edg] = crv;
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+                else if (faceToModify.Surface is SphericalSurface sph)
+                {
+                    // there must be 3 tangential faces with ISurfaceOfArcExtrusion surfaces
+                }
+            }
+            return modifiedFaces.Count > 0;
         }
 
         public Shell Result(out HashSet<Face> involvedFaces)

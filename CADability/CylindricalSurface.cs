@@ -406,8 +406,8 @@ namespace CADability.GeoObject
                         // concentric
                         if (Precision.SameDirection(this.ZAxis, ts.ZAxis, false))
                         {   // same or opposite orientation should result in one or two circles
-                            if ((Math.Abs(ts.XAxis.Length + ts.MinorRadius - RadiusX) < Precision.eps) || // concentric, torus fits exactely inside cylinder
-                                (Math.Abs(ts.XAxis.Length - ts.MinorRadius - RadiusX) < Precision.eps)) // concentric, cylinderfits exactely inside torus 
+                            if ((Math.Abs(ts.XAxis.Length + ts.MinorRadius - RadiusX) < Precision.eps) || // concentric, torus fits exactly inside cylinder
+                                (Math.Abs(ts.XAxis.Length - ts.MinorRadius - RadiusX) < Precision.eps)) // concentric, cylinder fits exactly inside torus 
                             {
                                 GeoPoint c = toUnit * ts.Location;
                                 return new ICurve[] { this.FixedV(c.z, thisBounds.Left, thisBounds.Right) };
@@ -422,6 +422,22 @@ namespace CADability.GeoObject
                                     return new ICurve[] { this.FixedV(c1.z, thisBounds.Left, thisBounds.Right), this.FixedV(c2.z, thisBounds.Left, thisBounds.Right) };
                                 }
                             }
+                        }
+                    }
+                    else if (Precision.IsPerpendicular(ts.ZAxis, ZAxis, false) && Geometry.CommonPlane(Location, ZAxis, ts.Location, ts.ZAxis ^ ZAxis, out Plane pln))
+                    {   // the axis of the cylinder lies in the plane of the torus (axis-circle plane)
+                        Ellipse circle = (ts as ISurfaceOfExtrusion).Axis(otherBounds) as Ellipse;
+                        if (circle != null) // must be the case
+                        {
+                            GeoPoint pOnAxis = Geometry.DropPL(ts.Location, Location, ZAxis);
+                            if (Math.Abs(RadiusX - circle.Radius) < Precision.eps && Math.Abs((pOnAxis | circle.Center) - circle.Radius) < Precision.eps)
+                            {
+                                // the cylinder is tangential to the torus
+                                GeoPoint c = toUnit * pOnAxis;
+                                double v = c.z;
+                                return new ICurve[] { FixedV(v, thisBounds.Left, thisBounds.Right) };
+                            }
+
                         }
                     }
                 }
@@ -2282,7 +2298,7 @@ namespace CADability.GeoObject
             return true;
         }
         IOrientation ISurfaceOfExtrusion.Orientation => throw new NotImplementedException();
-        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid() ? 
+        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid() ?
             FixedV(0.0, 0.0, Math.PI) : FixedV(0.0, usedArea.Left, usedArea.Right);
 
         double ISurfaceOfArcExtrusion.Radius

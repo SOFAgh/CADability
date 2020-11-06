@@ -196,6 +196,17 @@ namespace CADability.GeoObject
         private Edge[] outline; // die Kanten des Umrisses in richtiger Reihenfolge, die jeweilige Richtung steht in Edge
         private Edge[][] holes; // die Kanten der Löcher in richtiger Reihenfolge, die jeweilige Richtung steht in Edge
         private bool orientedOutward; // wenn das Face Bestandteil eines solid ist, dann kann hier festgestellt werden
+
+        internal IEnumerable<Face> GetSameSurfaceConnected()
+        {
+            HashSet<Face> res = new HashSet<Face>();
+            for (int i = 0; i < outline.Length; i++)
+            {
+                if (SameSurface(outline[i].OtherFace(this))) res.Add(outline[i].OtherFace(this));
+            }
+            return res;
+        }
+
         // ob es so orientiert ist, dass der Normalenvektor nach außen zeigt
         internal static int hashCodeCounter = 0; // jedes Face bekommt eine Nummer, damit ist es für den HasCode Algorithmus einfach
         private int hashCode;
@@ -10629,22 +10640,6 @@ namespace CADability.GeoObject
             mhadd.ID = "MenuId.Selection.Add";
             mhadd.Text = StringTable.GetString("MenuId.Selection.Add", StringTable.Category.label);
             mhadd.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
-            if (IsFillet()) // it is a fillet, let us change the radius
-            {
-                MenuWithHandler mhRadius = new MenuWithHandler();
-                mhRadius.ID = "MenuId.Parametrics.Cylinder.Radius";
-                mhRadius.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Radius", StringTable.Category.label);
-                mhRadius.Target = new ParametricsRadius(this, frame, true);
-                res.Add(mhRadius);
-            }
-            if (Surface is ISurfaceOfArcExtrusion &&  IsClosedSurface()) // it is a hole, let us change the diameter
-            {
-                MenuWithHandler mhDiameter = new MenuWithHandler();
-                mhDiameter.ID = "MenuId.Parametrics.Cylinder.Diameter";
-                mhDiameter.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Diameter", StringTable.Category.label);
-                mhDiameter.Target = new ParametricsRadius(this, frame, false);
-                res.Add(mhDiameter);
-            }
             res.Add(mhsel);
             res.Add(mhadd);
             return res.ToArray();

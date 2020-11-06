@@ -5,6 +5,7 @@ using CADability.Substitutes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Wintellect.PowerCollections;
 using static CADability.Actions.SelectObjectsAction;
@@ -19,12 +20,13 @@ namespace CADability
         private List<Solid> solids;
         private GeoObjectList curves;
         private List<Edge> edges;
-        private IGeoObject currentMenuSelection;
+        private GeoObjectList currentMenuSelection;
         private IPaintTo3DList displayList;
         private IView currentView;
         public SelectActionContextMenu(SelectObjectsAction soa)
         {
             this.soa = soa;
+            currentMenuSelection = new GeoObjectList();
         }
         public void FilterMouseMessages(MouseAction mouseAction, MouseEventArgs e, IView vw, ref bool handled)
         {
@@ -117,12 +119,7 @@ namespace CADability
             for (int i = 0; i < faces.Count; i++)
             {
                 MenuWithHandler mh = new MenuWithHandler();
-                mh.ID = "MenuId.Face." + i.ToString();
-                mh.Text = StringTable.GetString("MenuId.Face", StringTable.Category.label);
-                mh.SubMenus = faces[i].GetContextMenu(soa.Frame);
-                mh.Target = this;
                 cm.AddRange(GetFacesSubmenus(faces));
-                cm.Add(mh);
             }
             for (int i = 0; i < shells.Count; i++)
             {
@@ -149,25 +146,41 @@ namespace CADability
 
         private class FeatureCommandHandler : MenuWithHandler, ICommandHandler
         {
-            Face[] involvedFaces;
+            public Face[] involvedFaces;
+            SelectActionContextMenu selectActionContextMenu;
+            public FeatureCommandHandler(Face[] involvedFaces, SelectActionContextMenu selectActionContextMenu)
+            {
+                this.involvedFaces = involvedFaces;
+                this.selectActionContextMenu = selectActionContextMenu;
+            }
             bool ICommandHandler.OnCommand(string MenuId)
             {
-                throw new NotImplementedException();
+                switch (MenuId)
+                {
+                    case "MenuId.Fillet.ChangeRadius":
+                        ParametricsRadius pr = new ParametricsRadius(involvedFaces, selectActionContextMenu.soa.Frame, true);
+                        selectActionContextMenu.soa.Frame.SetAction(pr);
+                        return true;
+                    case "MenuId.Fillet.Remove":
+                        return true;
+                }
+                return false;
             }
 
             void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected)
             {
-                throw new NotImplementedException();
+                selectActionContextMenu.currentMenuSelection.Clear();
+                selectActionContextMenu.currentMenuSelection.AddRange(involvedFaces);
+                selectActionContextMenu.currentView.Invalidate(PaintBuffer.DrawingAspect.Select, selectActionContextMenu.currentView.DisplayRectangle);
             }
 
             bool ICommandHandler.OnUpdateCommand(string MenuId, CommandState CommandState)
             {
-                throw new NotImplementedException();
+                return true;
             }
         }
         private List<MenuWithHandler> GetFacesSubmenus(List<Face> faces)
         {
-            List<FeatureCommandHandler> fchs = new List<FeatureCommandHandler>();
             List<MenuWithHandler> res = new List<MenuWithHandler>();
             for (int i = 0; i < faces.Count; i++)
             {
@@ -175,12 +188,37 @@ namespace CADability
                 {
                     HashSet<Face> connectedFillets = new HashSet<Face>();
                     CollectConnectedFillets(faces[i], connectedFillets);
-                    FeatureCommandHandler fch = new FeatureCommandHandler();
-                    fch.ID = "MenuId.Feature." + fchs.Count.ToString();
-                    fchs.Add(fch);
+                    FeatureCommandHandler fch = new FeatureCommandHandler(connectedFillets.ToArray(), this);
+                    fch.ID = "MenuId.Fillet." + res.Count.ToString();
+                    fch.Target = this;
+                    fch.Text = StringTable.GetString("MenuId.Fillet", StringTable.Category.label);
+                    MenuWithHandler fr = new MenuWithHandler();
+                    fr.ID = "MenuId.Fillet.ChangeRadius";
+                    fr.Target = fch;
+                    fr.Text = StringTable.GetString("MenuId.Fillet.ChangeRadius", StringTable.Category.label);
+                    MenuWithHandler fd = new MenuWithHandler();
+                    fd.ID = "MenuId.Fillet.Remove";
+                    fd.Target = fch;
+                    fd.Text = StringTable.GetString("MenuId.Fillet.Remove", StringTable.Category.label);
+                    fch.SubMenus = new MenuWithHandler[] { fr, fd };
                     res.Add(fch);
                 }
             }
+            for (int i = 0; i < faces.Count; i++)
+            {
+                IEnumerable<Face> connected = faces[i].GetSameSurfaceConnected();
+                if (connected.Any())
+                {
+                    List<Face> lconnected = new List<Face>(connected);
+                    lconnected.Add(faces[i]);
+                    FeatureCommandHandler fch = new FeatureCommandHandler(lconnected.ToArray(), this);
+                    fch.ID = "MenuId.Fillet." + res.Count.ToString();
+                    fch.Target = fch;
+                    fch.Text = StringTable.GetString("MenuId.Fillet", StringTable.Category.label);
+                    res.Add(fch);
+                }
+            }
+            // TODO: a menu entry for the face alone is missing
             return res;
         }
 
@@ -224,26 +262,25 @@ namespace CADability
 
         private void OnRepaintSelect(System.Drawing.Rectangle IsInvalid, IView View, IPaintTo3D PaintToSelect)
         {
-            if (currentMenuSelection != null)
-            {
-                System.Diagnostics.Trace.WriteLine("currentMenuSelection: " + currentMenuSelection.Description);
                 PaintToSelect.SelectMode = true;
                 PaintToSelect.SelectColor = System.Drawing.Color.Yellow;
                 int wobbleWidth = 3;
                 if ((PaintToSelect.Capabilities & PaintCapabilities.ZoomIndependentDisplayList) != 0)
                 {
                     PaintToSelect.OpenList();
-                    currentMenuSelection.PaintTo3D(PaintToSelect);
+                    foreach (IGeoObject go  in currentMenuSelection)
+                    {
+                        go.PaintTo3D(PaintToSelect);
+                    }
                     displayList = PaintToSelect.CloseList();
                     PaintToSelect.SelectedList(displayList, wobbleWidth);
                 }
-            }
         }
 
         private void ContextMenuCollapsed(int dumy)
         {
             currentView.RemovePaintHandler(PaintBuffer.DrawingAspect.Select, new PaintView(OnRepaintSelect));
-            currentMenuSelection = null;
+            currentMenuSelection.Clear();
         }
         bool ICommandHandler.OnCommand(string MenuId)
         {
@@ -252,32 +289,37 @@ namespace CADability
 
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenu, bool selected)
         {
-            if (selectedMenu.ID.StartsWith("MenuId.Curve."))
+            currentMenuSelection.Clear();
+            if (selectedMenu is FeatureCommandHandler fch)
+            {
+                currentMenuSelection.AddRange(fch.involvedFaces);
+            } 
+            else if (selectedMenu.ID.StartsWith("MenuId.Curve."))
             {
                 int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Curve.".Length));
-                currentMenuSelection = curves[ind];
+                currentMenuSelection.Add(curves[ind]);
             }
             else if (selectedMenu.ID.StartsWith("MenuId.Edge."))
             {
                 int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Edge.".Length));
-                currentMenuSelection = edges[ind].Curve3D as IGeoObject;
+                currentMenuSelection.Add(edges[ind].Curve3D as IGeoObject);
             }
             else if (selectedMenu.ID.StartsWith("MenuId.Face."))
             {
                 int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Face.".Length));
-                currentMenuSelection = faces[ind];
+                currentMenuSelection.Add(faces[ind]);
             }
             else if (selectedMenu.ID.StartsWith("MenuId.Shell."))
             {
                 int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Shell.".Length));
-                currentMenuSelection = shells[ind];
+                currentMenuSelection.Add(shells[ind]);
             }
             else if (selectedMenu.ID.StartsWith("MenuId.Solid."))
             {
                 int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Solid.".Length));
-                currentMenuSelection = solids[ind];
+                currentMenuSelection.Add(solids[ind]);
             }
-            else currentMenuSelection = null;
+            else currentMenuSelection.Clear();
             currentView.Invalidate(PaintBuffer.DrawingAspect.Select, currentView.DisplayRectangle);
         }
 
