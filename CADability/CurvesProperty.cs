@@ -64,9 +64,9 @@ namespace CADability.UserInterface
         {
             get
             {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
+                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable;
+                if (contextMenuId != null) res |= ShowPropertyLabelFlags.ContextMenu;
                 if (highlight) res |= ShowPropertyLabelFlags.Highlight;
-
                 return res;
             }
         }
