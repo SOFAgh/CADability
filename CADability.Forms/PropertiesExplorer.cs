@@ -339,11 +339,14 @@ namespace CADability.Forms
             // refresh is called. But we are in the middle of entering text and changing the value would not be desired.
             if (EntryWithTextBox == toRefresh && textBox.Visible && !textBoxIsUpdatingFromKeystroke)
             {
-                bool allSelected = textBox.SelectionLength == textBox.Text.Length;
-                textBox.Text = toRefresh.Value;
-                textBox.Modified = false;
-                if (allSelected) textBox.SelectAll();
-                textBox.Update(); // to show smooth updateing of the text when the mouse is moving
+                textBox.BeginInvoke((Action)delegate () // may be called from a worker thread
+                {
+                    bool allSelected = textBox.SelectionLength == textBox.Text.Length;
+                    textBox.Text = toRefresh.Value;
+                    textBox.Modified = false;
+                    if (allSelected) textBox.SelectAll();
+                    textBox.Update(); // to show smooth updateing of the text when the mouse is moving
+                });
             }
         }
         public void UnSelected(IPropertyEntry unselected)

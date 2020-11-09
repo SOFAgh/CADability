@@ -720,12 +720,12 @@ namespace CADability
         }
         void OnEndContinousChanges(object source)
         {
-            System.Diagnostics.Trace.WriteLine("OnEndContinousChanges " + source.ToString());
+            // System.Diagnostics.Trace.WriteLine("OnEndContinousChanges " + source.ToString());
             if (continousChanges != null)
             {
                 foreach (IGeoObject go in continousChanges)
                 {
-                    System.Diagnostics.Trace.WriteLine(go.ToString());
+                    // System.Diagnostics.Trace.WriteLine(go.ToString());
                     AddOctreeObjects(go, octTree);
                 }
             }
@@ -733,7 +733,7 @@ namespace CADability
         }
         void OnBeginContinousChanges(object source)
         {
-            System.Diagnostics.Trace.WriteLine("OnBeginContinousChanges " + source.ToString());
+            // System.Diagnostics.Trace.WriteLine("OnBeginContinousChanges " + source.ToString());
             continousChanges = new Set<IGeoObject>();
         }
 

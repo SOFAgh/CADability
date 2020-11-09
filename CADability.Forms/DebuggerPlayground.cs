@@ -40,7 +40,7 @@ namespace CADability.Forms
                 //ExtendBSpline();
                 //SomeTestCode();
                 //TestVoxelTree();
-                TestParametrics();
+                DrawUVGrid();
                 return true;
             }
             return false;
@@ -81,6 +81,21 @@ namespace CADability.Forms
             Line l = Line.MakeLine(new GeoPoint(2, 4, 6), new GeoPoint(100, 98, 96));
             VoxelTree vt = new VoxelTree(l, 6);
             GeoObjectList dbg = vt.Debug;
+        }
+        private void DrawUVGrid()
+        {
+            GeoObjectList list = new GeoObjectList();
+            if (frame.SelectedObjects.Count == 1 && frame.SelectedObjects[0] is Face face)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    ICurve fixedu = face.Surface.FixedU(face.Domain.Left + i * (face.Domain.Width) / 9.0, face.Domain.Bottom, face.Domain.Top);
+                    list.Add(fixedu as IGeoObject);
+                    ICurve fixedv = face.Surface.FixedV(face.Domain.Bottom+ i * (face.Domain.Height) / 9.0, face.Domain.Left, face.Domain.Right);
+                    list.Add(fixedv as IGeoObject);
+                }
+            }
+
         }
         private void SomeTestCode()
         {
