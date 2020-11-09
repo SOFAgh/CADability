@@ -1734,7 +1734,7 @@ Year_Month:-Date,month_component
 Zero_Surface_Normal:-Geometry_With_Local_Irregularity
 Zone_Structural_Makeup:-Laminate_Table
 ";
-        private static string[] deflines = def.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+        private static string[] deflines = def.Split(new string[] { "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
         private static Dictionary<string, string[]> subType = null;
         private static Dictionary<string, string[]> parameter = null;
         public static Dictionary<string, string[]> SubType

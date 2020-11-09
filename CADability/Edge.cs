@@ -1803,6 +1803,14 @@ namespace CADability
             this.forwardOnPrimaryFace = forward;
             oriented = true;
         }
+        internal void SetSecondary(Face fc, bool forward)
+        {
+            this.secondaryFace = fc;
+            this.curveOnSecondaryFace = fc.Surface.GetProjectedCurve(curve3d, Precision.eps);
+            if (!forward) this.curveOnPrimaryFace.Reverse();
+            this.forwardOnSecondaryFace = forward;
+            oriented = true;
+        }
         internal void UpdateInterpolatedDualSurfaceCurve()
         {
             if (curve3d is InterpolatedDualSurfaceCurve)

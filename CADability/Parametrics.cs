@@ -246,7 +246,7 @@ namespace CADability
         }
         /// <summary>
         /// A fillet is to be modified with a new radius.  Th parameter <paramref name="toModify"/> contains all relevant faces, which are either
-        /// faces where the surface is a <see cref="ISurfaceOfArcExtrusion"/> or a <see cref="SphericalSurface"/>. there is no need to follow
+        /// faces where the surface is a <see cref="ISurfaceOfArcExtrusion"/> or a <see cref="SphericalSurface"/>. There is no need to follow
         /// these faces, the caller is responsible for this.
         /// </summary>
         /// <param name="toModify"></param>
@@ -254,6 +254,7 @@ namespace CADability
         /// <returns>true, if possible (but not guaranteed to be possible)</returns>
         public bool ModifyFilletRadius(Face[] toModify, double newRadius)
         {
+            HashSet<Face> toModifySet = new HashSet<Face>(toModify);
             foreach (Face faceToModify in toModify)
             {
                 if (faceToModify.Surface is ISurfaceOfArcExtrusion extrusion)
@@ -315,6 +316,14 @@ namespace CADability
 
                             }
                         }
+                        foreach (Edge edg in crosswayTangential)
+                        {
+                            if (toModifySet.Contains(edg.OtherFace(faceToModify)) && edg.IsTangentialEdge() && !tangentialEdgesModified.ContainsKey(edg))
+                            {   // this is a tangential edge between two adjacent parts of the fillet
+                                ICurve crv = faceToModify.Surface.Make3dCurve(edg.Curve2D(faceToModify));
+                                tangentialEdgesModified[edg] = crv;
+                            }
+                        }
                     }
                 }
                 else if (faceToModify.Surface is SphericalSurface sph)
@@ -332,7 +341,11 @@ namespace CADability
             {
                 bool done = false;
                 // first lets see, whether two tangential surfaces are involved with this vertex. Then we need to intersect the tangential edge with the third surface
-                foreach (Edge edge in vertex.AllEdges) // there are at least three
+                HashSet<Edge> tm = new HashSet<Edge>(vertex.AllEdges);
+                IEnumerable<Edge> toTest;
+                toTest = tm.Intersect(tangentialEdgesModified.Keys);
+                if (!toTest.Any()) toTest = tm; // preferably use edges from tangentialEdgesModified, if there are none use all edges
+                foreach (Edge edge in toTest) // there are at least three
                 {
                     ICurve crv; // either a already moved tangential edge or an unmodified edge
                     if (!tangentialEdgesModified.TryGetValue(edge, out crv) && edge.IsTangentialEdge()) crv = edge.Curve3D;

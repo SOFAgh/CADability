@@ -3319,7 +3319,7 @@ namespace CADability.GeoObject
         }
         public virtual ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)
         {
-            ICurve[] sol = boxedSurfaceEx.Intersect(thisBounds, other, otherBounds, new List<GeoPoint>(new GeoPoint[] { seed }));
+            ICurve[] sol = BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, new List<GeoPoint>(new GeoPoint[] { seed }));
             if (sol == null || sol.Length == 0) sol = Intersect(thisBounds, other, otherBounds);
             for (int i = 0; i < sol.Length; i++)
             {
@@ -4667,8 +4667,7 @@ namespace CADability.GeoObject
                 }
             }
             if (cvs.Length == 0)
-            {   // was tun, kein Schnitt, aber die Edge Berechnung braucht einen. Es kann tangential mit zu großem Abstand sein
-                // also senkrecht zur TorusAchse...
+            {  
             }
             return null;
         }

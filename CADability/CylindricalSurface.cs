@@ -430,7 +430,7 @@ namespace CADability.GeoObject
                         if (circle != null) // must be the case
                         {
                             GeoPoint pOnAxis = Geometry.DropPL(ts.Location, Location, ZAxis);
-                            if (Math.Abs(RadiusX - circle.Radius) < Precision.eps && Math.Abs((pOnAxis | circle.Center) - circle.Radius) < Precision.eps)
+                            if (Math.Abs(RadiusX - ts.MinorRadius) < Precision.eps && Math.Abs((pOnAxis | circle.Center) - circle.Radius) < Precision.eps)
                             {
                                 // the cylinder is tangential to the torus
                                 GeoPoint c = toUnit * pOnAxis;

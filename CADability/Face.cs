@@ -4676,6 +4676,7 @@ namespace CADability.GeoObject
             internal set
             {
                 surface = value;
+                if (surface is ISurfaceImpl si) si.usedArea = Domain;
             }
         }
         internal ISurface internalSurface
@@ -6015,6 +6016,7 @@ namespace CADability.GeoObject
         {
             area = null;
             area = Area;
+            if (surface is ISurfaceImpl si) si.usedArea = Domain;
         }
 
         internal void ClearVertices()

@@ -405,6 +405,12 @@ namespace CADability.GeoObject
             dirline.Norm();
             double dl = Geometry.DistPL(GeoPoint.Origin, sp, dirline);
             if (dl > 1 + minorRadius) return new GeoPoint[0]; // certainly no intersection
+            List<GeoPoint> sol = new List<GeoPoint>();
+            // test for tangential (because polynomial is bad in this case)
+            GeoPoint closest = Geometry.DropPL(GeoPoint.Origin, sp, dirline);
+            GeoPoint2D closest2D = PositionOfInUnit(closest);
+            GeoPoint punit = GeoPoint.Origin + (1 + minorRadius * Math.Cos(closest2D.y)) * (Math.Cos(closest2D.x) * GeoVector.XAxis + Math.Sin(closest2D.x) * GeoVector.YAxis) + minorRadius * Math.Sin(closest2D.y) * GeoVector.ZAxis;
+            if ((punit | closest) < 1e-6) sol.Add(punit); // in the unit system!
             double a, b, c, d, e;
             double x1, x2, x3;
             x1 = dirline.x * dirline.x + dirline.y * dirline.y + dirline.z * dirline.z;
@@ -417,7 +423,6 @@ namespace CADability.GeoObject
             e = x3 * x3 - 4 * (sp.x * sp.x + sp.y * sp.y);
             //double[] s1 = new double[4];
             //int nl = Geometry.ragle4(a, b, c, d, e, s1);
-            List<GeoPoint> sol = new List<GeoPoint>();
             try
             {
                 List<double> s = RealPolynomialRootFinder.FindRoots(a, b, c, d, e);
@@ -796,7 +801,7 @@ namespace CADability.GeoObject
                     for (int i = 0; i < isps.Length; i++)
                     {   // it is important to not have duplicate results.
                         SurfaceHelper.AdjustPeriodic(this, bounds, ref isps[i]);
-                        if (!bounds.Contains(isps[i])) continue;
+                        // if (!bounds.Contains(isps[i])) continue;
                         bool alreadyused = false;
                         for (int j = 0; j < usedIps.Count; j++)
                         {
@@ -1888,11 +1893,26 @@ namespace CADability.GeoObject
         }
         public override ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
         {   // fill in more special cases
-            if (other is CylindricalSurface) return other.Intersect(otherBounds, this, thisBounds);
+            if (other is PlaneSurface ps)
+            {
+                IDualSurfaceCurve[] pli = GetPlaneIntersection(ps, thisBounds.Left, thisBounds.Right, thisBounds.Bottom, thisBounds.Top, 0.0);
+                ICurve[] res = new ICurve[pli.Length];
+                for (int i = 0; i < pli.Length; i++)
+                {
+                    res[i] = pli[i].Curve3D;
+                }
+                return res;
+            }
+            else if (other is CylindricalSurface) return other.Intersect(otherBounds, this, thisBounds);
             return base.Intersect(thisBounds, other, otherBounds);
         }
         public override ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)
         {
+            ICurve[] crvs = Intersect(thisBounds, other, otherBounds);
+            for (int i = 0; i < crvs.Length; i++)
+            {
+                if (crvs[i].DistanceTo(seed) < Precision.eps) return crvs[i];
+            }
             return base.Intersect(thisBounds, other, otherBounds, seed);
         }
         /// <summary>
@@ -2544,8 +2564,12 @@ namespace CADability.GeoObject
         }
         #region ISurfaceOf(Arc)Extrusion
         ICurve ISurfaceOfExtrusion.Axis(BoundingRect domain)
-        {   // the length of the axis is irrelevant
-            return Line.TwoPoints(Location - MinorRadius * ZAxis, Location + MinorRadius * ZAxis);
+        {   // the axis of the extrusion is an arc
+            Ellipse elli = Ellipse.Construct();
+            elli.SetArcPlaneCenterRadius(new Plane(Location, XAxis, YAxis), Location, XAxis.Length);
+            elli.StartParameter = domain.Left;
+            elli.SweepParameter = domain.Width;
+            return elli;
         }
         bool ISurfaceOfExtrusion.ModifyAxis(GeoPoint throughPoint)
         {   // a movement along the axis and a change of the major radius. The axis to modify is the circular axis of the torus
