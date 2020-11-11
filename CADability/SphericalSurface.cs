@@ -101,8 +101,10 @@ namespace CADability.GeoObject
         public override GeoVector GetNormal(GeoPoint2D uv)
         {
             //GeoVector res = toSphere * new GeoVector(Math.Cos(uv.x) * Math.Cos(uv.y), Math.Sin(uv.x) * Math.Cos(uv.y), Math.Sin(uv.y));
-            GeoVector res = UDirection(uv) ^ VDirection(uv); // wg. Berücksichtigung der Orientierung
-            res.Norm();
+            //GeoVector res = UDirection(uv) ^ VDirection(uv); // wg. Berücksichtigung der Orientierung
+            GeoVector res = (PointAt(uv) - toSphere * GeoPoint.Origin).Normalized;
+            if (!toSphere.Oriented) res = -res;
+            //res.Norm();
             return res;
         }
         /// <summary>
