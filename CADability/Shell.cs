@@ -287,7 +287,7 @@ namespace CADability.GeoObject
                     catch (PlaneException pe) { }
                 }
             }
-            System.Diagnostics.Trace.WriteLine((sum / 6).ToString() + ", " + (4188.79 - sum / 6).ToString() + ", " + corr.ToString());
+            //System.Diagnostics.Trace.WriteLine((sum / 6).ToString() + ", " + (4188.79 - sum / 6).ToString() + ", " + corr.ToString());
             //System.Diagnostics.Trace.WriteLine(pr.ToString() + ", " + num.ToString() + ", " + (sum / 6).ToString() + ", " + (Math.PI*1000 - sum / 6).ToString() + ", " + dbg1.ToString() + ", " + dbg2.ToString() + ", " + dbg3.ToString() + ", " + dbg4.ToString() + ", " + dbg5.ToString());
             return sum / 6 + corr;
         }
