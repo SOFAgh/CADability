@@ -69,10 +69,10 @@ namespace CADability.GeoObject
                     se.Add(dbghashcode);
 #endif
                     // Volume dauert zu lange
-                    //DoubleProperty vol = new DoubleProperty("Solid.Volume", base.Frame);
-                    //vol.DoubleValue = solid.Volume;
-                    //vol.ReadOnly = true;
-                    //se.Add(vol);
+                    DoubleProperty vol = new DoubleProperty(base.Frame, "Solid.Volume");
+                    vol.SetDouble(solid.Volume);
+                    vol.ReadOnly = true;
+                    se.Add(vol);
                     se.Add(new NameProperty(this.solid, "Name", "Solid.Name"));
                     foreach (Shell shell in solid.Shells)
                     {
@@ -318,7 +318,12 @@ namespace CADability.GeoObject
         {
             get
             {
-                return 0.0;
+                double v = 0.0;
+                for (int i = 0; i < shells.Length; i++)
+                {
+                    v += shells[i].Volume(0.0);
+                }
+                return v;
             }
         }
         #region IGeoObject Members

@@ -254,6 +254,33 @@ namespace CADability.GeoObject
                 return res.ToArray();
             }
         }
+        public double Volume(double precision)
+        {
+            double sum = 0.0;
+            foreach (Face fc in Faces)
+            {
+                fc.GetTriangulation(precision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
+                GeoVector[] triangleNormals = new GeoVector[triangleUVPoint.Length];
+                for (int i = 0; i < triangleUVPoint.Length; i++)
+                {
+                    triangleNormals[i] = fc.Surface.GetNormal(triangleUVPoint[i]);
+                }
+                for (int i = 0; i < triangleIndex.Length; i += 3)
+                {
+                    sum += trianglePoint[triangleIndex[i]].x * trianglePoint[triangleIndex[i + 1]].y * trianglePoint[triangleIndex[i + 2]].z -
+                           trianglePoint[triangleIndex[i]].x * trianglePoint[triangleIndex[i + 1]].z * trianglePoint[triangleIndex[i + 2]].y -
+                           trianglePoint[triangleIndex[i]].y * trianglePoint[triangleIndex[i + 1]].x * trianglePoint[triangleIndex[i + 2]].z +
+                           trianglePoint[triangleIndex[i]].y * trianglePoint[triangleIndex[i + 1]].z * trianglePoint[triangleIndex[i + 2]].x +
+                           trianglePoint[triangleIndex[i]].z * trianglePoint[triangleIndex[i + 1]].x * trianglePoint[triangleIndex[i + 2]].y -
+                           trianglePoint[triangleIndex[i]].z * trianglePoint[triangleIndex[i + 1]].y * trianglePoint[triangleIndex[i + 2]].x;
+                    double d = (trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]]) * triangleNormals[triangleIndex[i + 1]] +
+                        (trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i + 1]]) * triangleNormals[triangleIndex[i + 2]] +
+                        (trianglePoint[triangleIndex[i]] - trianglePoint[triangleIndex[i + 2]]) * triangleNormals[triangleIndex[i]];
+                    sum -= d * d * d;
+                }
+            }
+            return sum / 6.0;
+        }
         /// <summary>
         /// The name of the shell. 
         /// </summary>
@@ -1097,7 +1124,7 @@ namespace CADability.GeoObject
                         cylPoints.Add(cylConeTest.Project(vtx.Position));
                     }
                     double prec = Geometry.CircleFitLs(cylPoints.ToArray(), out GeoPoint2D cnt2d, out double r);
-                    double maxError = GaussNewtonMinimizer.CylinderFit(new ListToIArray<GeoPoint>(allPoints), cylConeTest.ToGlobal(cnt2d), cylConeTest.Normal, r, precision*100, out CylindricalSurface gncs);
+                    double maxError = GaussNewtonMinimizer.CylinderFit(new ListToIArray<GeoPoint>(allPoints), cylConeTest.ToGlobal(cnt2d), cylConeTest.Normal, r, precision * 100, out CylindricalSurface gncs);
                     maxError = GaussNewtonMinimizer.QuadricFit(new ListToIArray<GeoPoint>(allPoints));
                     if (prec < extent.Size * 1e-3)
                     {
@@ -2245,7 +2272,7 @@ namespace CADability.GeoObject
             {
                 List<Edge> open = new List<Edge>(OpenEdges);
                 bool ok = true;
-                for (int i = open.Count-1; i >=0; --i)
+                for (int i = open.Count - 1; i >= 0; --i)
                 {
                     if (open[i].Vertex1 == open[i].Vertex2)
                     {
