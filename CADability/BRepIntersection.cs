@@ -5542,7 +5542,7 @@ namespace CADability
                     for (int i = 0; i < connected.Count; i++)
                     {
                         SweepAngle swa = new SweepAngle(lastCurve.EndDirection, connected[i].Curve2D(onThisFace).StartDirection);
-                        if (swa.Radian>maxangle)
+                        if (swa.Radian > maxangle)
                         {
                             maxangle = swa.Radian;
                             besti = i;
@@ -9814,10 +9814,10 @@ namespace CADability
                 //        }
                 //    }
                 //}
-                
+
                 if (involvedVertices.Count < 2) continue;
 
-                List<Vertex> usedVertices = new List<Vertex>(involvedVertices.Count); 
+                List<Vertex> usedVertices = new List<Vertex>(involvedVertices.Count);
                 List<GeoPoint> points = new List<GeoPoint>(involvedVertices.Count); // usedVertices and points are synchronous arrays, so we later can find the vertex from a point (index)
                 foreach (Vertex v in involvedVertices)
                 {
@@ -10198,7 +10198,7 @@ namespace CADability
                                         le = edge.Vertex2.EdgesOnFace(item.Key.face2);
                                         for (int k = 0; k < le.Count; k++)
                                         {
-                                            if (le[k] == edge) continue;
+                                            if (le[k] == edge || le[k].Curve3D == null) continue;
                                             if (le[k].Vertex1 == edge.Vertex2 && Precision.SameDirection(le[k].Curve3D.StartDirection, edge.Curve3D.EndDirection, false)) tangential = true;
                                             else if (le[k].Vertex2 == edge.Vertex2 && Precision.SameDirection(le[k].Curve3D.EndDirection, edge.Curve3D.EndDirection, false)) tangential = true;
                                         }
