@@ -257,14 +257,15 @@ namespace CADability.GeoObject
         public double Volume(double precision)
         {
             double sum = 0.0;
+            double corr = 0.0;
             foreach (Face fc in Faces)
             {
                 fc.GetTriangulation(precision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
-                GeoVector[] triangleNormals = new GeoVector[triangleUVPoint.Length];
-                for (int i = 0; i < triangleUVPoint.Length; i++)
-                {
-                    triangleNormals[i] = fc.Surface.GetNormal(triangleUVPoint[i]);
-                }
+                //GeoVector[] triangleNormals = new GeoVector[triangleUVPoint.Length];
+                //for (int i = 0; i < triangleUVPoint.Length; i++)
+                //{
+                //    triangleNormals[i] = fc.Surface.GetNormal(triangleUVPoint[i]).Normalized;
+                //}
                 for (int i = 0; i < triangleIndex.Length; i += 3)
                 {
                     sum += trianglePoint[triangleIndex[i]].x * trianglePoint[triangleIndex[i + 1]].y * trianglePoint[triangleIndex[i + 2]].z -
@@ -273,14 +274,24 @@ namespace CADability.GeoObject
                            trianglePoint[triangleIndex[i]].y * trianglePoint[triangleIndex[i + 1]].z * trianglePoint[triangleIndex[i + 2]].x +
                            trianglePoint[triangleIndex[i]].z * trianglePoint[triangleIndex[i + 1]].x * trianglePoint[triangleIndex[i + 2]].y -
                            trianglePoint[triangleIndex[i]].z * trianglePoint[triangleIndex[i + 1]].y * trianglePoint[triangleIndex[i + 2]].x;
-                    double d = (trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]]) * triangleNormals[triangleIndex[i + 1]] +
-                        (trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i + 1]]) * triangleNormals[triangleIndex[i + 2]] +
-                        (trianglePoint[triangleIndex[i]] - trianglePoint[triangleIndex[i + 2]]) * triangleNormals[triangleIndex[i]];
-                    sum -= d * d * d;
+                    // if the triangle is not planar (a point in the middle has some distance to the triangle) then we use a correction value
+                    // which was experimentally calculated. the calculation can certainly be made easier
+                    try
+                    {
+                        Plane pln = new Plane(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
+                        double d = pln.Distance(fc.Surface.PointAt(new GeoPoint2D(triangleUVPoint[triangleIndex[i]], triangleUVPoint[triangleIndex[i + 1]], triangleUVPoint[triangleIndex[i + 2]])));
+                        GeoVector cp = (trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]]) ^ (trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
+                        double a = cp.Length / 2.0; // area of the triangle
+                        corr += a * d * 3 / 4;
+                    }
+                    catch (PlaneException pe) { }
                 }
             }
-            return sum / 6.0;
+            //System.Diagnostics.Trace.WriteLine((sum / 6).ToString() + ", " + (4188.79 - sum / 6).ToString() + ", " + corr.ToString());
+            //System.Diagnostics.Trace.WriteLine(pr.ToString() + ", " + num.ToString() + ", " + (sum / 6).ToString() + ", " + (Math.PI*1000 - sum / 6).ToString() + ", " + dbg1.ToString() + ", " + dbg2.ToString() + ", " + dbg3.ToString() + ", " + dbg4.ToString() + ", " + dbg5.ToString());
+            return sum / 6 + corr;
         }
+
         /// <summary>
         /// The name of the shell. 
         /// </summary>
@@ -374,7 +385,7 @@ namespace CADability.GeoObject
             for (int i = 0; i < faces.Length; i++)
             {   // nicht sicher ob das notwendig ist
                 faces[i].CheckPeriodic(); // macht wie Area
-                //SimpleShape forceArea = faces[i].Area;
+                                          //SimpleShape forceArea = faces[i].Area;
                 faces[i].ForceTriangulation(-1.0);
             }
         }
@@ -1074,8 +1085,8 @@ namespace CADability.GeoObject
             Dictionary<Edge, Edge> newEdges = new Dictionary<Edge, Edge>();
             List<Face> res = new List<Face>();
             OctTree<VectorInOctTree> normals = new OctTree<VectorInOctTree>(new BoundingCube(new GeoPoint(1e-5, 1e-5, 1e-5), 1.1), 1e-6); // octtree around the unit cube, 
-            // to collect the normals of all faces. This help to classify the faces
-            // a little bit excentric to collect vetors close to the unit (axis, e.g.: (0,0,1)) in a single OctTree box.
+                                                                                                                                          // to collect the normals of all faces. This help to classify the faces
+                                                                                                                                          // a little bit excentric to collect vetors close to the unit (axis, e.g.: (0,0,1)) in a single OctTree box.
             List<GeoPoint> ndirs = new List<GeoPoint>(); // all normals (on the unit sphere) to check, whether there is a cylinder or cone
             BoundingCube next = BoundingCube.EmptyBoundingCube;
             foreach (Face fc in subsetForTest)
@@ -1129,7 +1140,7 @@ namespace CADability.GeoObject
                     if (prec < extent.Size * 1e-3)
                     {
                         prec = Geometry.LineFit(cylPoints.ToArray(), out GeoPoint2D mloc, out GeoVector2D mdir); // this line is the main direction of the cylinder points
-                        // if prec is in the size of r, we have a full cylinder, if it is less than a half circle, all faces are on one side
+                                                                                                                 // if prec is in the size of r, we have a full cylinder, if it is less than a half circle, all faces are on one side
                         GeoPoint center = cylConeTest.ToGlobal(cnt2d);
                         CylindricalSurface cs = new CylindricalSurface(center, r * cylConeTest.DirectionX, r * cylConeTest.DirectionY, cylConeTest.Normal);
                         // split the faces into two parts to make sure, there will be no seam
@@ -1786,7 +1797,7 @@ namespace CADability.GeoObject
             if (Layer != null && Layer.Transparency > 0)
                 lists.Add(Layer, false, false, this); // in PaintTo3D wirds dann richtig gemacht
             else lists.Add(Layer, true, true, this); // in PaintTo3D wirds dann richtig gemacht
-            // paintTo3D.PaintSurfaces und paintTo3D.PaintEdges muss richtig eingestellt und zweimal aufgerufen werden
+                                                     // paintTo3D.PaintSurfaces und paintTo3D.PaintEdges muss richtig eingestellt und zweimal aufgerufen werden
         }
         public delegate bool PaintTo3DDelegate(Shell toPaint, IPaintTo3D paintTo3D);
         public static PaintTo3DDelegate OnPaintTo3D;
@@ -3240,8 +3251,8 @@ namespace CADability.GeoObject
             SplitPeriodicFaces();
             RecalcVertices();
             RecalcEdges(); // muss noch ausgebaut werden. Es muss aber stimmig sein, sonst Probleme beim Schneiden
-            // Edges, deren Krümmungsradius unter dist liegt. aufschneiden, an den Stellen, wo der Krümmungsradius genau dist ist.
-            // das hilft selbstüberschneidungen zu vermeiden
+                           // Edges, deren Krümmungsradius unter dist liegt. aufschneiden, an den Stellen, wo der Krümmungsradius genau dist ist.
+                           // das hilft selbstüberschneidungen zu vermeiden
             Shell res = GetRawOffset(dist, parallelEdges);
             BRepSelfIntersection si = new BRepSelfIntersection(res, this, dist);
             return si.Result(allowOpenEdges);
@@ -3685,7 +3696,7 @@ namespace CADability.GeoObject
             {
                 if (edg.PrimaryFace == null) continue;
                 edg.RemoveFace(toReplace); // damit wird ggf. Secondary zu Primary
-                // ggf. bei Säumen entsteht ein leeres edge
+                                           // ggf. bei Säumen entsteht ein leeres edge
                 if (edg.PrimaryFace != null && edg.PrimaryFace != toReplace)
                 {
                     affectedFaces.Add(edg.PrimaryFace);
@@ -3706,9 +3717,9 @@ namespace CADability.GeoObject
             }
 #endif
             connectFaces(affectedFaces.ToArray(), precision); // jetzt sind alle Kanten verbunden
-            // aber die Kanten in replaceBy, die aufgebrochen wurden, haben noch innere Punkte, die nicht verbunden sind
-            // auf der einen Seite haben wir die aufgebrochenen Kanten, die nicht wieder verbunden wurden, weli ihr Gegenstück
-            // geteilt wurde, auf der anderen Seite die offenen kanten von replaceby, das sind die geteilten
+                                                              // aber die Kanten in replaceBy, die aufgebrochen wurden, haben noch innere Punkte, die nicht verbunden sind
+                                                              // auf der einen Seite haben wir die aufgebrochenen Kanten, die nicht wieder verbunden wurden, weli ihr Gegenstück
+                                                              // geteilt wurde, auf der anderen Seite die offenen kanten von replaceby, das sind die geteilten
             Set<Vertex> splitVertices = new Set<Vertex>(); // das sollen alle vertices sein, die in replaceBy sind, aber nicht in affected
             foreach (Face fc in replaceBy)
             {
@@ -4112,7 +4123,7 @@ namespace CADability.GeoObject
         internal void ReduceFaces(double precision)
         {
             Set<Face> facesset = new Set<Face>(faces); // die Faces ändern sich ggf.
-            // zuerst mal degenerierte Edges entfernen:
+                                                       // zuerst mal degenerierte Edges entfernen:
             Edge[] alledges = this.Edges;
             OrderedMultiDictionary<BRepOperationOld.DoubleVertexKey, Edge> dict = new OrderedMultiDictionary<BRepOperationOld.DoubleVertexKey, Edge>(true);
             foreach (Edge e in alledges)
@@ -4564,8 +4575,8 @@ namespace CADability.GeoObject
 #endif
 
                             Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse muss sein, das ist überprüft
-                            // ABER: firstToSecond kann um eine Periode verschoben sein, so dass das Ergebnis nicht zusammenpasst
-                            // es müsste noch eine Art AdjustPeriodic für firstToSecond geben
+                                                                                                                         // ABER: firstToSecond kann um eine Periode verschoben sein, so dass das Ergebnis nicht zusammenpasst
+                                                                                                                         // es müsste noch eine Art AdjustPeriodic für firstToSecond geben
                             BoundingRect ext = firstoutline.Extent;
                             ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
                             if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;

@@ -68,12 +68,11 @@ namespace CADability.GeoObject
                     IntegerProperty dbghashcode = new IntegerProperty(solid.UniqueId, "Debug.Hashcode");
                     se.Add(dbghashcode);
 #endif
-                    // Volume dauert zu lange
+                    se.Add(new NameProperty(this.solid, "Name", "Solid.Name"));
                     DoubleProperty vol = new DoubleProperty(base.Frame, "Solid.Volume");
-                    vol.SetDouble(solid.Volume);
+                    vol.SetDouble(solid.Volume(0.0));
                     vol.ReadOnly = true;
                     se.Add(vol);
-                    se.Add(new NameProperty(this.solid, "Name", "Solid.Name"));
                     foreach (Shell shell in solid.Shells)
                     {
                         IShowProperty sp = shell.GetShowProperties(base.Frame);
@@ -312,19 +311,17 @@ namespace CADability.GeoObject
             return res.ToArray();
         }
         /// <summary>
-        /// Returns the volume (capacity) of this solid.
+        /// Returns the volume of this solid. the calculation is based on a triangulation with at least the provided <paramref name="precision"/>.
         /// </summary>
-        public double Volume
+        /// <param name="precision">The precision of the triangulation</param>
+        public double Volume(double precision)
         {
-            get
+            double v = 0.0;
+            for (int i = 0; i < shells.Length; i++)
             {
-                double v = 0.0;
-                for (int i = 0; i < shells.Length; i++)
-                {
-                    v += shells[i].Volume(0.0);
-                }
-                return v;
+                v += shells[i].Volume(precision);
             }
+            return v;
         }
         #region IGeoObject Members
         /// <summary>
