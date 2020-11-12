@@ -88,7 +88,7 @@ namespace CADability
                 else
                 {
                     double z = curves[i].Position(pa.FrontCenter, pa.Direction, 0);
-                    if (z- delta > mindist) curves.Remove(i);
+                    if (z - delta > mindist) curves.Remove(i);
                 }
             }
 
@@ -162,6 +162,22 @@ namespace CADability
                         selectActionContextMenu.soa.Frame.SetAction(pr);
                         return true;
                     case "MenuId.Fillet.Remove":
+                        Shell orgShell = involvedFaces[0].Owner as Shell;
+                        if (orgShell != null)
+                        {
+                            RemoveFillet rf = new RemoveFillet(involvedFaces[0].Owner as Shell, new HashSet<Face>(involvedFaces));
+                            Shell sh = rf.Result();
+                            if (sh != null)
+                            {
+                                using (selectActionContextMenu.soa.Frame.Project.Undo.UndoFrame)
+                                {
+                                    sh.CopyAttributes(orgShell);
+                                    IGeoObjectOwner owner = orgShell.Owner;
+                                    owner.Remove(orgShell);
+                                    owner.Add(sh);
+                                }
+                            }
+                        }
                         return true;
                 }
                 return false;
@@ -232,27 +248,27 @@ namespace CADability
                     foreach (Edge edge in face.OutlineEdges)
                     {
                         Face otherFace = edge.OtherFace(face);
-                        if (edge.IsTangentialEdge())
+                        if (otherFace.IsFillet() && otherFace.Surface is ISurfaceOfArcExtrusion otherExtrusion && Precision.IsEqual(extrusion.Radius, otherExtrusion.Radius))
                         {
-                            if (edge.Curve2D(face).DirectionAt(0.5).IsMoreHorizontal == extrusion.ExtrusionDirectionIsV && otherFace.Surface is ISurfaceOfArcExtrusion arcExtrusion)
+                            // if (edge.Curve2D(face).DirectionAt(0.5).IsMoreHorizontal == extrusion.ExtrusionDirectionIsV && otherFace.Surface is ISurfaceOfArcExtrusion arcExtrusion)
                             {
                                 CollectConnectedFillets(otherFace, connectedFillets);
                             }
                         }
-
+                        else if (otherFace.Surface is SphericalSurface ss && Precision.IsEqual(ss.RadiusX, extrusion.Radius))
+                        {
+                            CollectConnectedFillets(otherFace, connectedFillets);
+                        }
                     }
                 }
-                else if (face.Surface is SphericalSurface)
+                else if (face.Surface is SphericalSurface ss)
                 {   // at a sphere a fillet might branch out
                     foreach (Edge edge in face.OutlineEdges)
                     {
                         Face otherFace = edge.OtherFace(face);
-                        if (edge.IsTangentialEdge())
+                        if (edge.IsTangentialEdge() && otherFace.IsFillet() && otherFace.Surface is ISurfaceOfArcExtrusion otherExtrusion && Precision.IsEqual(ss.RadiusX, otherExtrusion.Radius))
                         {
-                            if (otherFace.Surface is ISurfaceOfArcExtrusion)
-                            {
-                                CollectConnectedFillets(otherFace, connectedFillets);
-                            }
+                            CollectConnectedFillets(otherFace, connectedFillets);
                         }
 
                     }
@@ -262,19 +278,19 @@ namespace CADability
 
         private void OnRepaintSelect(System.Drawing.Rectangle IsInvalid, IView View, IPaintTo3D PaintToSelect)
         {
-                PaintToSelect.SelectMode = true;
-                PaintToSelect.SelectColor = System.Drawing.Color.Yellow;
-                int wobbleWidth = 3;
-                if ((PaintToSelect.Capabilities & PaintCapabilities.ZoomIndependentDisplayList) != 0)
+            PaintToSelect.SelectMode = true;
+            PaintToSelect.SelectColor = System.Drawing.Color.Yellow;
+            int wobbleWidth = 3;
+            if ((PaintToSelect.Capabilities & PaintCapabilities.ZoomIndependentDisplayList) != 0)
+            {
+                PaintToSelect.OpenList();
+                foreach (IGeoObject go in currentMenuSelection)
                 {
-                    PaintToSelect.OpenList();
-                    foreach (IGeoObject go  in currentMenuSelection)
-                    {
-                        go.PaintTo3D(PaintToSelect);
-                    }
-                    displayList = PaintToSelect.CloseList();
-                    PaintToSelect.SelectedList(displayList, wobbleWidth);
+                    go.PaintTo3D(PaintToSelect);
                 }
+                displayList = PaintToSelect.CloseList();
+                PaintToSelect.SelectedList(displayList, wobbleWidth);
+            }
         }
 
         private void ContextMenuCollapsed(int dumy)
@@ -293,7 +309,7 @@ namespace CADability
             if (selectedMenu is FeatureCommandHandler fch)
             {
                 currentMenuSelection.AddRange(fch.involvedFaces);
-            } 
+            }
             else if (selectedMenu.ID.StartsWith("MenuId.Curve."))
             {
                 int ind = int.Parse(selectedMenu.ID.Substring("MenuId.Curve.".Length));

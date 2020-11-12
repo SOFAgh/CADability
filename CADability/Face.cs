@@ -3368,9 +3368,9 @@ namespace CADability.GeoObject
             }
         }
 
-        internal void RemoveEdge(Edge edge)
+        internal void RemoveEdge(Edge edge, bool mayHaveDifferntVertices = false)
         {
-            if (edge.Vertex1 != edge.Vertex2) return;
+            if (!mayHaveDifferntVertices && edge.Vertex1 != edge.Vertex2) return;
             // only to remove edges with identical start- and endvertices and small length
             for (int i = 0; i < outline.Length; i++)
             {
@@ -9763,6 +9763,33 @@ namespace CADability.GeoObject
                 }
             }
         }
+
+        internal bool SubstituteEdge(Edge oldEdge, Edge newEdge)
+        {
+            for (int i = 0; i < outline.Length; i++)
+            {
+                if (outline[i] == oldEdge)
+                {
+                    outline[i] = newEdge;
+                    return true;
+                }
+            }
+            if (holes != null)
+            {
+                for (int j = 0; j < holes.Length; j++)
+                {
+                    for (int i = 0; i < holes[j].Length; i++)
+                    {
+                        if (holes[j][i] == oldEdge)
+                        {
+                            holes[j][i] = newEdge;
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
         internal bool IsDegenerated
         {
             get
@@ -10219,7 +10246,8 @@ namespace CADability.GeoObject
             {
                 int next = i + 1;
                 if (next >= outline.Length) next = 0;
-                if (GetNextEdge(outline[i]) != outline[next]) return false;
+                if (GetNextEdge(outline[i]) != outline[next]) 
+                    return false;
             }
             for (int i = 0; i < holes.Length; i++)
             {
@@ -10310,6 +10338,19 @@ namespace CADability.GeoObject
                     }
                 }
                 if (tangentialFaces.Count == 2) return true;
+            } else if (Surface is SphericalSurface sph)
+            {
+                HashSet<Face> tangentialFaces = new HashSet<Face>();
+                for (int i = 0; i < outline.Length; i++)
+                {
+                    if (outline[i].IsTangentialEdge())
+                    {
+                        if (outline[i].OtherFace(this).Surface is ISurfaceOfArcExtrusion && outline[i].OtherFace(this).IsFillet())
+                            tangentialFaces.Add(outline[i].OtherFace(this)); 
+                    }
+                }
+                // a spherical face can be the connection of three or more fillets
+                if (tangentialFaces.Count > 2) return true;
             }
             return false;
         }
@@ -10553,11 +10594,11 @@ namespace CADability.GeoObject
         }
 
         /// <summary>
-        /// Getst the Surface.PositionOf(p) in ther correct periodic domain
+        /// Gets the Surface.PositionOf(p) in the correct periodic domain
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
-        internal GeoPoint2D PositionOf(GeoPoint p)
+        public GeoPoint2D PositionOf(GeoPoint p)
         {
             GeoPoint2D res = surface.PositionOf(p);
             if (surface.IsUPeriodic || surface.IsVPeriodic)
@@ -10567,6 +10608,19 @@ namespace CADability.GeoObject
                 else
                     SurfaceHelper.AdjustPeriodic(surface, Area.GetExtent(), ref res);
             }
+            return res;
+        }
+        /// <summary>
+        /// Returns the on the surface projected curve in the correct periodic domain. Reverses the curve when requested
+        /// </summary>
+        /// <param name="crv">the curve to project</param>
+        /// <param name="forward">true: same direction as <paramref name="crv"/> false: reverse direction</param>
+        /// <returns>the projected curve</returns>
+        internal ICurve2D GetProjectedCurve(ICurve crv, bool forward)
+        {
+            ICurve2D res = Surface.GetProjectedCurve(crv, 0.0);
+            if (!forward) res.Reverse();
+            SurfaceHelper.AdjustPeriodic(surface, Area.GetExtent(), res);
             return res;
         }
         private int StepBound(ExportStep export, Edge[] edges)

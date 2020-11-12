@@ -261,6 +261,7 @@ namespace CADability.GeoObject
             foreach (Face fc in Faces)
             {
                 fc.GetTriangulation(precision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
+                // tried to use normals for correction, but the distance from plane had better results
                 //GeoVector[] triangleNormals = new GeoVector[triangleUVPoint.Length];
                 //for (int i = 0; i < triangleUVPoint.Length; i++)
                 //{
@@ -268,6 +269,7 @@ namespace CADability.GeoObject
                 //}
                 for (int i = 0; i < triangleIndex.Length; i += 3)
                 {
+                    // use the signed volume of the tetrahedron from the origin to the triangle 
                     sum += trianglePoint[triangleIndex[i]].x * trianglePoint[triangleIndex[i + 1]].y * trianglePoint[triangleIndex[i + 2]].z -
                            trianglePoint[triangleIndex[i]].x * trianglePoint[triangleIndex[i + 1]].z * trianglePoint[triangleIndex[i + 2]].y -
                            trianglePoint[triangleIndex[i]].y * trianglePoint[triangleIndex[i + 1]].x * trianglePoint[triangleIndex[i + 2]].z +
@@ -275,20 +277,18 @@ namespace CADability.GeoObject
                            trianglePoint[triangleIndex[i]].z * trianglePoint[triangleIndex[i + 1]].x * trianglePoint[triangleIndex[i + 2]].y -
                            trianglePoint[triangleIndex[i]].z * trianglePoint[triangleIndex[i + 1]].y * trianglePoint[triangleIndex[i + 2]].x;
                     // if the triangle is not planar (a point in the middle has some distance to the triangle) then we use a correction value
-                    // which was experimentally calculated. the calculation can certainly be made easier
+                    // which was experimentally set to 3/4 of the "thick triangle". The calculation can certainly be made easier 
                     try
                     {
                         Plane pln = new Plane(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
                         double d = pln.Distance(fc.Surface.PointAt(new GeoPoint2D(triangleUVPoint[triangleIndex[i]], triangleUVPoint[triangleIndex[i + 1]], triangleUVPoint[triangleIndex[i + 2]])));
                         GeoVector cp = (trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]]) ^ (trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
                         double a = cp.Length / 2.0; // area of the triangle
-                        corr += a * d * 3 / 4;
+                        corr += a * d * 3 / 4; // 3/4 is a good value for spheres and cylinders
                     }
                     catch (PlaneException pe) { }
                 }
             }
-            //System.Diagnostics.Trace.WriteLine((sum / 6).ToString() + ", " + (4188.79 - sum / 6).ToString() + ", " + corr.ToString());
-            //System.Diagnostics.Trace.WriteLine(pr.ToString() + ", " + num.ToString() + ", " + (sum / 6).ToString() + ", " + (Math.PI*1000 - sum / 6).ToString() + ", " + dbg1.ToString() + ", " + dbg2.ToString() + ", " + dbg3.ToString() + ", " + dbg4.ToString() + ", " + dbg5.ToString());
             return sum / 6 + corr;
         }
 

@@ -36,7 +36,7 @@ namespace CADability.Forms
             Menu = MenuManager.MakeMainMenu(mainMenu);
             // open an existing Project or create a new one
             ToolBars.CreateOrRestoreToolbars(topToolStripContainer, cadFrame);
-            Application.Idle += new EventHandler(OnIdle); // update the toolbars (menues are updated when they popup)
+            Application.Idle += new EventHandler(OnIdle); // update the toolbars (menus are updated when they popup)
         }
         // Access the components of the MainForm from the CadFrame. 
         public ProgressForm ProgressForm

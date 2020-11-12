@@ -653,7 +653,7 @@ namespace CADability.Forms
         public void Refresh(int index)
         {
             Invalidate(ItemArea(index));
-            //Update(); // for single entries: immediately update the result. Not sure, wether this is necessary, if there is a textBox, it will be updated immediately
+            //Update(); // for single entries: immediately update the result. Not sure, whether this is necessary, if there is a textBox, it will be updated immediately
         }
         internal void SelectNextPropertyEntry(bool forward)
         {

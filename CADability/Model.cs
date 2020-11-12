@@ -381,7 +381,7 @@ namespace CADability
         private void AddOctreeObjects(IGeoObject go, OctTree<IGeoObject> octTree)
         {   // hier werden die EInzelteile eingehängt, damit das Picken von Face oder Edge
             // schnell geht. Oft hat man ja nur ein einziges solid mit vielen Faces
-            if (octTree == null) return;
+            if (octTree == null || go==null) return;
             IGeoObject[] subEntities = go.OwnedItems;
             if (subEntities != null && subEntities.Length > 0)
             {

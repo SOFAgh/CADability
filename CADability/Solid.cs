@@ -4,7 +4,7 @@ using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-
+using System.Threading.Tasks;
 
 namespace CADability.GeoObject
 {
@@ -70,7 +70,7 @@ namespace CADability.GeoObject
 #endif
                     se.Add(new NameProperty(this.solid, "Name", "Solid.Name"));
                     DoubleProperty vol = new DoubleProperty(base.Frame, "Solid.Volume");
-                    vol.SetDouble(solid.Volume(0.0));
+                    vol.SetDouble(0.0);
                     vol.ReadOnly = true;
                     se.Add(vol);
                     foreach (Shell shell in solid.Shells)
@@ -81,6 +81,7 @@ namespace CADability.GeoObject
                     }
                     se.AddRange(attributeProperties);
                     subEntries = se.ToArray();
+                    Task task = Task.Run(() => { vol.SetDouble(solid.Volume(0.0)); });
                 }
                 return subEntries;
             }
@@ -248,6 +249,17 @@ namespace CADability.GeoObject
                 shells = new Shell[] { sh };
                 sh.Owner = this;
                 edges = null;
+            }
+        }
+        protected void RemoveShell(Shell sh)
+        {
+            if (Shells.Length>0 && sh == Shells[0])
+            {
+                using (new Changing(this, "SetShell", sh))
+                {
+                    shells = new Shell[0];
+                    edges = null;
+                }
             }
         }
         public static Solid MakeSolid(Shell sh)
@@ -929,12 +941,25 @@ namespace CADability.GeoObject
         #region IGeoObjectOwner Members
         void IGeoObjectOwner.Remove(IGeoObject toRemove)
         {
-            // Remove sollte nicht drankommen, es sei denn beim Zerlegen.
-            // dann könnte es ein Problem mit dem Undo geben. Dort sollte besser gecloned werden
+            if (toRemove is Shell shell && shell == Shells[0])
+            {
+                using (new Changing(this, "SetShell", Shells[0]))
+                {
+                    shells = new Shell[0];
+                }
+            }
         }
         void IGeoObjectOwner.Add(IGeoObject toAdd)
         {
-            // Add machen wir nur selbst, wenn das Objekt erzeugt wird, da bleibt hier nichts zu tun
+            if (toAdd is Shell shell )
+            {
+                using (new Changing(this, "RemoveShell", shell))
+                {
+                    if (Shells == null || Shells.Length == 0) shells = new Shell[1];
+                    Shells[0] = shell;
+                    shell.Owner = this;
+                }
+            }
         }
         #endregion
 
