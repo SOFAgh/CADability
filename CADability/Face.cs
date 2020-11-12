@@ -4676,7 +4676,7 @@ namespace CADability.GeoObject
             internal set
             {
                 surface = value;
-                if (surface is ISurfaceImpl si) si.usedArea = Domain;
+                if (surface is ISurfaceImpl si && outline != null) si.usedArea = Domain;
             }
         }
         internal ISurface internalSurface
@@ -10305,7 +10305,7 @@ namespace CADability.GeoObject
                 {
                     if (outline[i].IsTangentialEdge())
                     {
-                        if (outline[i].Curve2D(this).DirectionAt(0.5).IsMoreHorizontal != sae.ExtrusionDirectionIsV) 
+                        if (outline[i].Curve2D(this).DirectionAt(0.5).IsMoreHorizontal != sae.ExtrusionDirectionIsV)
                             tangentialFaces.Add(outline[i].OtherFace(this)); // OK, this is not necessarily the case
                     }
                 }
