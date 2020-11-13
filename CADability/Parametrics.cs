@@ -254,8 +254,12 @@ namespace CADability
         /// <returns>true, if possible (but not guaranteed to be possible)</returns>
         public bool ModifyFilletRadius(Face[] toModify, double newRadius)
         {
-            HashSet<Face> toModifySet = new HashSet<Face>(toModify);
-            foreach (Face faceToModify in toModify)
+            HashSet<Face> toModifySet = new HashSet<Face>();
+            for (int i = 0; i < toModify.Length; i++)
+            {
+                toModifySet.Add(faceDict[toModify[i]]);
+            }
+            foreach (Face faceToModify in toModifySet)
             {
                 if (faceToModify.Surface is ISurfaceOfArcExtrusion extrusion)
                 {
@@ -361,13 +365,15 @@ namespace CADability
                                     if (ips.Length > 1)
                                     {
                                         // find best point: closer to startpoint or endpoint of crv, depending on vertex, set it on ips[0]
-                                        GeoPoint testPoint = GeoPoint.Invalid;
-                                        if (edge.Vertex1 == vertex) testPoint = crv.StartPoint;
-                                        else if (edge.Vertex2 == vertex) testPoint = crv.EndPoint;
-                                        if (testPoint.IsValid)
-                                        {
-                                            ips[0] = Hlp.GetClosest(ips, p => p | testPoint);
-                                        }
+                                        // the following was sometimes incorrect, we use the old vertex position to find the closest candidate
+                                        //GeoPoint testPoint = GeoPoint.Invalid;
+                                        //if (edge.Vertex1 == vertex) testPoint = crv.StartPoint;
+                                        //else if (edge.Vertex2 == vertex) testPoint = crv.EndPoint;
+                                        //if (testPoint.IsValid)
+                                        //{
+                                        //    ips[0] = Hlp.GetClosest(ips, p => p | testPoint);
+                                        //}
+                                        ips[0] = Hlp.GetClosest(ips, p => p | vertex.Position);
                                     }
                                     vertex.Position = ips[0];
                                     done = true;
@@ -414,7 +420,7 @@ namespace CADability
                     }
                     if (!done)
                     {
-                        if (Surfaces.NewtonIntersect(faces[0].Surface, faces[0].Domain, faces[1].Surface, faces[1].Domain,
+                        if (Surfaces.IntersectThreeSurfaces(faces[0].Surface, faces[0].Domain, faces[1].Surface, faces[1].Domain,
                             faces[2].Surface, faces[2].Domain, ref ip, out GeoPoint2D uv0, out GeoPoint2D uv1, out GeoPoint2D uv2))
                         {
                             vertex.Position = ip;

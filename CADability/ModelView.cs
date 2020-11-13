@@ -19,37 +19,6 @@ using CheckState = CADability.Substitutes.CheckState;
 namespace CADability
 {
     public delegate void ScrollPositionChanged(double hRatio, double hPosition, double vRatio, double vPosition);
-    /// <summary>
-    /// Service für das CondorCtrl, um verschiedene Views (ModelView u.s.w.) darstellen
-    /// zu können
-    /// </summary>
-    internal interface ICondorViewInternal
-    {
-        void OnPaint(PaintEventArgs e);
-        void OnSizeChanged(Rectangle oldClientRectangle);
-        event ScrollPositionChanged ScrollPositionChangedEvent;
-        void HScroll(double Position);
-        void VScroll(double Position);
-        void ZoomDelta(double f);
-
-        void OnMouseDown(MouseEventArgs e);
-        void OnMouseEnter(EventArgs e);
-        void OnMouseHover(EventArgs e);
-        void OnMouseLeave(EventArgs e);
-        void OnMouseMove(MouseEventArgs e);
-        void OnMouseUp(MouseEventArgs e);
-        void OnMouseWheel(MouseEventArgs e);
-        void OnMouseDoubleClick(MouseEventArgs e);
-
-        bool AllowDrop { get; }
-        bool AllowDrag { get; }
-        bool AllowContextMenu { get; }
-        void OnDragDrop(DragEventArgs drgevent);
-        void OnDragEnter(DragEventArgs drgevent);
-        void OnDragLeave(EventArgs e);
-        void OnDragOver(DragEventArgs drgevent);
-    }
-
     public delegate void PaintView(Rectangle Extent, IView View, IPaintTo3D PaintTo3D);
     /// <summary>
     /// Filter mouse messages to the ModelView. return true, if you want to prevent further processing of the mouse message.
@@ -346,7 +315,7 @@ namespace CADability
         public event PaintView PaintBackgroundEvent;
         public event PaintView PaintClearEvent;
         /// <summary>
-        /// Which backgroung paint tasks were handled by the PrePaintBackground event (flags, combine with "|")
+        /// Which background paint tasks were handled by the PrePaintBackground event (flags, combine with "|")
         /// </summary>
         public enum BackgroungTaskHandled
         {
@@ -777,7 +746,7 @@ namespace CADability
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
-        #region ICondorViewInternal Members
+        #region IView Members
         public event ScrollPositionChanged ScrollPositionChangedEvent; // ist explizit schwierig
         void IView.OnPaint(PaintEventArgs e)
         {
@@ -1351,11 +1320,6 @@ namespace CADability
         {
             return canvas.DoDragDrop(dragList, all);
         }
-#if DEBUG
-#endif
-
-        #endregion
-        #region ICondorView Members
         ProjectedModel IView.ProjectedModel
         {
             get

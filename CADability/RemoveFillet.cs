@@ -28,7 +28,7 @@ namespace CADability
             // the fillets edges fall into one of three categories: 
             // - lengthwayTangential: edges that are tangential to other faces, i.e. they round the other faces
             // - crossway: edges that connect fillets
-            // - unrelated: here the fillets end or are otherwise broken up
+            // - filletEnd: here the fillets end or are otherwise broken up
             HashSet<Face> lengthwayTangential = new HashSet<Face>(); // the two faces that this fillet rounds
             HashSet<Edge> crossway = new HashSet<Edge>(); // connection to the following or previous fillet
             HashSet<Edge> lengthway = new HashSet<Edge>(); // connection between fillet and rounded face
@@ -92,7 +92,7 @@ namespace CADability
                 {
                     Face[] ia = involved.ToArray();
                     GeoPoint ip = edg.Curve3D.PointAt(0.5);
-                    if (Surfaces.NewtonIntersect(ia[0].Surface, ia[0].Domain, ia[1].Surface, ia[1].Domain, ia[2].Surface, ia[2].Domain, ref ip, out GeoPoint2D uv0, out GeoPoint2D uv1, out GeoPoint2D uv2))
+                    if (Surfaces.IntersectThreeSurfaces(ia[0].Surface, ia[0].Domain, ia[1].Surface, ia[1].Domain, ia[2].Surface, ia[2].Domain, ref ip, out GeoPoint2D uv0, out GeoPoint2D uv1, out GeoPoint2D uv2))
                     {   // there should be an intersection point close to the middle of the crossway edge
                         Vertex v = new Vertex(ip);
                         foreach (Edge edge in involvedCrosswayEdges)

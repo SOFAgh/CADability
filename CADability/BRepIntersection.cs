@@ -4861,8 +4861,8 @@ namespace CADability
                 dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, System.Drawing.Color.Blue, 0);
             }
 #endif
-            Set<Face> discardedFaces = new Set<Face>(faceToIntersectionEdges.Keys); // these faces may not apper in the final result, because they will be trimmed
-            Set<Face> trimmedFaces = new Set<Face>(); // collection of faces which are trimmed (splitted, cut, edged) during this process
+            Set<Face> discardedFaces = new Set<Face>(faceToIntersectionEdges.Keys); // these faces may not appear in the final result, because they will be trimmed
+            Set<Face> trimmedFaces = new Set<Face>(); // collection of faces which are trimmed (spitted, cut, edged) during this process
             faceToCommonFaces = new Dictionary<Face, Set<Face>>(); // to each overlapping face associate the common parts with other faces (both orientations)
             Set<Face> usedByOverlapping = new Set<Face>();
             Set<Face> overlappingCommonFaces = CollectOverlappingCommonFaces(usedByOverlapping); // same oriented overlapping faces yield their common parts
@@ -4887,8 +4887,8 @@ namespace CADability
                 }
 #endif
                 bool hasNonManifoldEdge = false;
-                // some intersection edges are created twice (e.g. when an edge fo shell2 is contained in a face of shell1)
-                // if the duplicates have the same orientation, discard one of the edges, if they have opposide direction, discard both
+                // some intersection edges are created twice (e.g. when an edge of shell2 is contained in a face of shell1)
+                // if the duplicates have the same orientation, discard one of the edges, if they have opposite direction, discard both
                 Dictionary<Pair<Vertex, Vertex>, Edge> avoidDuplicates = new Dictionary<Pair<Vertex, Vertex>, Edge>();
                 Dictionary<Pair<Vertex, Vertex>, Edge> avoidOriginalEdges = new Dictionary<Pair<Vertex, Vertex>, Edge>();
                 foreach (Edge edg in faceToSplit.AllEdgesIterated())

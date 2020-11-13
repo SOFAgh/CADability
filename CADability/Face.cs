@@ -10374,7 +10374,32 @@ namespace CADability.GeoObject
                 }
             }
             return false;
-
+        }
+        /// <summary>
+        /// Returns all other directly connected faces which have a common ISurfaceOfArcExtrusion surface
+        /// </summary>
+        /// <returns></returns>
+        public HashSet<Face> GetCylindricalConnected()
+        {
+            HashSet<Face> res = new HashSet<Face>();
+            if (Surface is ISurfaceOfArcExtrusion sae)
+            {
+                for (int i = 0; i < outline.Length; i++)
+                {
+                    if (outline[i].IsTangentialEdge())
+                    {
+                        Face otherFace = outline[i].OtherFace(this);
+                        ModOp2D fts;
+                        if (surface.SameGeometry(Area.GetExtent(), otherFace.Surface, otherFace.Area.GetExtent(), Precision.eps, out fts))
+                        {
+                            HashSet<Edge> edges = new HashSet<Edge>(otherFace.OutlineEdges);
+                            edges.IntersectWith(OutlineEdges);
+                            if (edges.Count >= 2) res.Add(otherFace);
+                        }
+                    }
+                }
+            }
+            return res;
         }
         internal bool RepairFromOcasEdges()
         {

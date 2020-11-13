@@ -101,7 +101,7 @@ namespace CADability
         private bool RadiusInput_SetLength(double length)
         {
             validResult = false;
-            if (shell!=null)
+            if (shell != null && length > 0.0)
             {
                 Parametrics pm = new Parametrics(shell);
                 if (pm.ModifyFilletRadius(facesWithRadius, length))

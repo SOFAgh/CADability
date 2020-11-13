@@ -833,17 +833,6 @@ namespace CADability
         /// <param name="ObjectToAdd">The GeoObject to add</param>
         public void Add(IGeoObject ObjectToAdd)
         {
-            // das Berechnen der Länge erfordert beim SPLine open cascade, und das soll hier vermieden werden
-            //if (ObjectToAdd is ICurve)
-            //{
-            //    if ((ObjectToAdd as ICurve).Length < Precision.eps)
-            //    {
-            //        // return; // nicht einfügen von Null-Linien und Null-Bögen
-            //        // sie machen überall Probleme (OpenCascade!)
-            //        // und sie sind immer unsichtbar. Man kann ja Punkte einfügen
-            //        // warum ist das wieder auskommentiert? die machenecht Probleme!
-            //    }
-            //}
             if (!ObjectToAdd.HasValidData()) return; // die Objekte überprüfen sich hier selbst
             bool cancel = false;
             if (AddingGeoObjectEvent != null) AddingGeoObjectEvent(ObjectToAdd, ref cancel);

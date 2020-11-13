@@ -6,6 +6,7 @@ using CADability.Shapes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Wintellect.PowerCollections;
@@ -186,6 +187,7 @@ namespace CADability.GeoObject
         private Edge[] edges; // sekundär: alle gesammelten edges
         private string name; // aus STEP oder IGES kommen benannte solids (Shells, Faces?)
         private bool orientedAndSeamless; // soll bedeuten, dass alle Faces "outwardoriented" sind und es keine Säume gibt (Kanten, die ein Face mit sich verbinden)
+        private GeoObjectList featureAxis;
         #region polymorph construction
         public delegate Shell ConstructionDelegate();
         public static ConstructionDelegate Constructor;
@@ -1808,9 +1810,6 @@ namespace CADability.GeoObject
         public override void PaintTo3D(IPaintTo3D paintTo3D)
         {
             if (OnPaintTo3D != null && OnPaintTo3D(this, paintTo3D)) return;
-#if DEBUG
-            // CheckConsistency();
-#endif
             if (paintTo3D.PaintSurfaces)
             {
                 for (int i = 0; i < faces.Length; ++i)
@@ -1842,6 +1841,11 @@ namespace CADability.GeoObject
                         }
                     }
                 }
+            }
+            for (int i = 0; i < FeatureAxis.Count; i++)
+            {
+                FeatureAxis[i].IsVisible = true;
+                FeatureAxis[i].PaintTo3D(paintTo3D);
             }
         }
         /// <summary>
@@ -1943,7 +1947,11 @@ namespace CADability.GeoObject
                 }
                 for (int i = 0; i < edges.Length; ++i)
                 {
-                    if (edges[i].Curve3D as IGeoObject != null) res.Add(edges[i].Curve3D as IGeoObject);
+                    if (edges[i].Curve3D is IGeoObject go) res.Add(go);
+                }
+                for (int i = 0; i < FeatureAxis.Count; i++)
+                {
+                    res.Add(FeatureAxis[i]);
                 }
                 return res.ToArray();
             }
@@ -2261,6 +2269,42 @@ namespace CADability.GeoObject
                     }
                 }
                 return res.ToArray();
+            }
+        }
+        public GeoObjectList FeatureAxis
+        {
+            get
+            {
+                if (featureAxis==null)
+                {
+                    featureAxis = new GeoObjectList();
+                    HashSet<Face> usedFaces = new HashSet<Face>();
+                    foreach (Face face in Faces)
+                    {
+                        if (usedFaces.Contains(face)) continue; // already used
+                        HashSet<Face> other = face.GetCylindricalConnected();
+                        if (other.Any())
+                        {
+                            if (face.Surface is CylindricalSurface cyl)
+                            {
+                                GeoPoint ll = cyl.PointAt(face.Domain.GetLowerLeft()); 
+                                GeoPoint ur = cyl.PointAt(face.Domain.GetUpperRight());
+                                GeoPoint sp = Geometry.DropPL(ll, cyl.Location, cyl.ZAxis);
+                                GeoPoint ep = Geometry.DropPL(ur, cyl.Location, cyl.ZAxis);
+                                Line ax = Line.TwoPoints(sp, ep);
+                                ax.Length *= 1.1;
+                                (ax as ICurve).Reverse();
+                                ax.Length *= 1.1;
+                                ax.UserData.Add("CADability.AxisOf", face);
+                                featureAxis.Add(ax);
+                                ax.IsVisible = false;
+                                ax.Owner = this;
+                            }
+                            usedFaces.UnionWith(other);
+                        }
+                    }
+                }
+                return featureAxis;
             }
         }
         public bool HasOpenEdgesExceptPoles()

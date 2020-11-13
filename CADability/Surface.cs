@@ -4628,48 +4628,60 @@ namespace CADability.GeoObject
         internal static ICurve Intersect(PlaneSurface surface1, BoundingRect bounds1, ToroidalSurface surface2, BoundingRect bounds2, List<GeoPoint> points)
         {
             IDualSurfaceCurve[] cvs = surface2.GetPlaneIntersection(surface1, bounds2.Left, bounds2.Right, bounds2.Bottom, bounds2.Top, 0.0);
-            for (int i = 0; i < cvs.Length; ++i)
+            if (cvs.Length == 1) return cvs[0].Curve3D;
+            if (cvs.Length > 1)
             {
-                ICurve c3d = cvs[i].Curve3D;
-                double spar = c3d.PositionOf(points[0]);
-                double epar = c3d.PositionOf(points[points.Count - 1]);
-                if (c3d is Ellipse)
-                {   // es gibt zwei Situationen, in denen ein Kreis entsteht: 
-                    // der Schnitt senkrecht zur Achse (großer Kreis) und der Schnitt einer Ebene durch die Achse
-                    // (kleiner Kreis). Der 3. mögliche Fall ist zu selten.
-                    Ellipse elli = c3d as Ellipse;
-                    elli.StartParameter = 0.0;
-                    elli.SweepParameter = Math.PI * 2.0; // damit klare Verhältnisse vorliegen
-                    elli.StartParameter = elli.ParameterOf(points[0]);
-                    epar = elli.PositionOf(points[points.Count - 1]); // zwischen 0 und 1
-                    elli.SweepParameter = epar * Math.PI * 2.0;
-                    if (points.Count > 2)
-                    {   // einfacher Fall, Zwischenpunkte prüfen
-                        int j = points.Count / 2; // mittlerer Punkt
-                        double pos = elli.PositionOf(points[j]);
-                        if (pos < 0.0 || pos > 1.0)
-                        {
-                            elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
-                        }
-                        double dbg = elli.PositionOf(points[points.Count - 1]);
-                    }
-                    else
-                    {   // kein Zwischenpunkt, eigentlich Lage in bounds2 überprüfen
-                        GeoPoint2D tst = surface2.PositionOf(elli.PointAt(0.5));
-                        SurfaceHelper.AdjustPeriodic(surface2, bounds2, ref tst);
-                        if (!bounds2.Contains(tst))
-                        //if (elli.SweepParameter > Math.PI)
-                        {
-                            elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
-                        }
-                    }
-                    return elli;
+                // the toroidal bounds are typically only a quarter of the full 0..2*PI square, so there should only be one valid solution inside
+                for (int i = 0; i < cvs.Length; i++)
+                {
+                    if (bounds2.Contains(cvs[i].Curve2D1.PointAt(0.5))) return cvs[i].Curve3D;
                 }
-            }
-            if (cvs.Length == 0)
-            {  
+                return cvs[0].Curve3D; // no good constraint
             }
             return null;
+            // don't know why there was the following test
+            //for (int i = 0; i < cvs.Length; ++i)
+            //{
+            //    ICurve c3d = cvs[i].Curve3D;
+            //    double spar = c3d.PositionOf(points[0]);
+            //    double epar = c3d.PositionOf(points[points.Count - 1]);
+            //    if (c3d is Ellipse)
+            //    {   // es gibt zwei Situationen, in denen ein Kreis entsteht: 
+            //        // der Schnitt senkrecht zur Achse (großer Kreis) und der Schnitt einer Ebene durch die Achse
+            //        // (kleiner Kreis). Der 3. mögliche Fall ist zu selten.
+            //        Ellipse elli = c3d as Ellipse;
+            //        elli.StartParameter = 0.0;
+            //        elli.SweepParameter = Math.PI * 2.0; // damit klare Verhältnisse vorliegen
+            //        elli.StartParameter = elli.ParameterOf(points[0]);
+            //        epar = elli.PositionOf(points[points.Count - 1]); // zwischen 0 und 1
+            //        elli.SweepParameter = epar * Math.PI * 2.0;
+            //        if (points.Count > 2)
+            //        {   // einfacher Fall, Zwischenpunkte prüfen
+            //            int j = points.Count / 2; // mittlerer Punkt
+            //            double pos = elli.PositionOf(points[j]);
+            //            if (pos < 0.0 || pos > 1.0)
+            //            {
+            //                elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
+            //            }
+            //            double dbg = elli.PositionOf(points[points.Count - 1]);
+            //        }
+            //        else
+            //        {   // kein Zwischenpunkt, eigentlich Lage in bounds2 überprüfen
+            //            GeoPoint2D tst = surface2.PositionOf(elli.PointAt(0.5));
+            //            SurfaceHelper.AdjustPeriodic(surface2, bounds2, ref tst);
+            //            if (!bounds2.Contains(tst))
+            //            //if (elli.SweepParameter > Math.PI)
+            //            {
+            //                elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
+            //            }
+            //        }
+            //        return elli;
+            //    }
+            //}
+            //if (cvs.Length == 0)
+            //{  
+            //}
+            //return null;
         }
         internal static ICurve Intersect(ISurface surface1, BoundingRect bounds1, ISurface surface2, BoundingRect bounds2, List<GeoPoint> points)
         {   // es muss einen Schnitt geben, sonst wird das hier garnicht aufgerufen, schließlich gibt es ja auch schon Punkte
@@ -5134,6 +5146,67 @@ namespace CADability.GeoObject
                 res[i] = dscs1[i].Curve2D2;
             }
             return res;
+        }
+        /// <summary>
+        /// Try to find a single intersection point of three surfaces close to a provided seed point <paramref name="ip"/>.
+        /// </summary>
+        /// <param name="surface1"></param>
+        /// <param name="bounds1"></param>
+        /// <param name="surface2"></param>
+        /// <param name="bounds2"></param>
+        /// <param name="surface3"></param>
+        /// <param name="bounds3"></param>
+        /// <param name="ip"></param>
+        /// <param name="uv1"></param>
+        /// <param name="uv2"></param>
+        /// <param name="uv3"></param>
+        /// <returns></returns>
+        internal static bool IntersectThreeSurfaces(ISurface surface1, BoundingRect bounds1, ISurface surface2, BoundingRect bounds2, ISurface surface3, BoundingRect bounds3, ref GeoPoint ip,
+            out GeoPoint2D uv1, out GeoPoint2D uv2, out GeoPoint2D uv3)
+        {
+            ISurface[] surfaces = new ISurface[] { surface1, surface2, surface3 };
+            BoundingRect[] bounds = new BoundingRect[] { bounds1, bounds2, bounds3 };
+            // if one of the surfaces is a planar surface handle it on the plans 2d system
+            List<GeoPoint> candidates = new List<GeoPoint>();
+            for (int i = 0; i < 3; i++)
+            {
+                if (surfaces[i] is PlaneSurface pls)
+                {
+                    int o1 = (i + 1) % 3;
+                    int o2 = (i + 2) % 3;
+                    IDualSurfaceCurve[] dsc1 = surfaces[o1].GetPlaneIntersection(pls, bounds[o1].Left, bounds[o1].Right, bounds[o1].Bottom, bounds[o1].Top, 0.0);
+                    IDualSurfaceCurve[] dsc2 = surfaces[o2].GetPlaneIntersection(pls, bounds[o2].Left, bounds[o2].Right, bounds[o2].Bottom, bounds[o2].Top, 0.0);
+                    if (dsc1!=null && dsc2!=null)
+                    {
+                        for (int j = 0; j < dsc1.Length; ++j)
+                        {
+                            for (int k = 0; k < dsc2.Length; k++)
+                            {
+                                ICurve2D c1, c2;
+                                if (dsc1[j].Surface1 == pls) c1 = dsc1[j].Curve2D1;
+                                else c1 = dsc1[j].Curve2D2;
+                                if (dsc2[k].Surface1 == pls) c2 = dsc2[k].Curve2D1;
+                                else c2 = dsc2[k].Curve2D2;
+                                GeoPoint2DWithParameter[] ips2d = c1.Intersect(c2);
+                                for (int l = 0; l < ips2d.Length; l++)
+                                {
+                                    candidates.Add(pls.PointAt(ips2d[l].p));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (candidates.Count > 0)
+            {   // here we could check, which of the candidates is more precise
+                GeoPoint lip = ip;
+                ip = Hlp.GetClosest(candidates, p => p | lip);
+                uv1 = surface1.PositionOf(ip);
+                uv2 = surface2.PositionOf(ip);
+                uv3 = surface3.PositionOf(ip);
+                return true;
+            }
+            return NewtonIntersect(surface1, bounds1, surface2, bounds2, surface3, bounds3, ref ip, out uv1, out uv2, out uv3);
         }
         internal static bool NewtonIntersect(ISurface surface1, BoundingRect bounds1, ISurface surface2, BoundingRect bounds2, ISurface surface3, BoundingRect bounds3, ref GeoPoint ip,
             out GeoPoint2D uv1, out GeoPoint2D uv2, out GeoPoint2D uv3)

@@ -1495,9 +1495,9 @@ namespace CADability.Actions
             }
             else if (e.Button == MouseButtons.Right)
             {
-                if (vw is ICondorViewInternal)
+                if (vw is IView)
                 {
-                    if (!(vw as ICondorViewInternal).AllowContextMenu) return;
+                    if (!(vw as IView).AllowContextMenu) return;
                 }
                 if (lastCursorHotspot != null)
                 {
@@ -1616,19 +1616,17 @@ namespace CADability.Actions
                         {
                             ClickOnSelectedObjectEvent(selectedObjects[0], vw, e, ref done);
                         }
-                        if (vw is ICondorViewInternal) canStartDrag = (vw as ICondorViewInternal).AllowDrag;
-                        else canStartDrag = true;
+                        canStartDrag = vw .AllowDrag;
                     }
                 }
-                else// Test für DragDrop-Möglichkeit
+                else
                 {
                     BoundingRect pickrect = vw.Projection.BoundingRectWorld2d(e.X - pickRadius, e.X + pickRadius, e.Y + pickRadius, e.Y - pickRadius);
                     for (int i = 0; i < selectedObjects.Count; i++)
                     {
                         if (selectedObjects[i].HitTest(vw.Projection, pickrect, false))
                         {
-                            if (vw is ICondorViewInternal) canStartDrag = (vw as ICondorViewInternal).AllowDrag;
-                            else canStartDrag = true;
+                            canStartDrag = vw.AllowDrag;
                             break;
                         }
                     }

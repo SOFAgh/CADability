@@ -971,11 +971,9 @@ namespace CADability
                     SetAction(new ZoomAction());
                     return true;
                 case "MenuId.Zoom.DetailPlus":
-                    (ActiveView as ICondorViewInternal).ZoomDelta(1 / mouseWheelZoomFactor);
-                    return true;
+                    return false;
                 case "MenuId.Zoom.DetailMinus":
-                    (ActiveView as ICondorViewInternal).ZoomDelta(mouseWheelZoomFactor);
-                    return true;
+                    return false;
                 case "MenuId.Zoom.Total":
                     ActiveView.ZoomTotal(1.1);
                     return true;
