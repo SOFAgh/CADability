@@ -12,7 +12,7 @@ namespace CADability.GeoObject
         public SurfaceOfRevolutionException(string msg) : base(msg) { }
     }
     [Serializable()]
-    public class SurfaceOfRevolution : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IExportStep, IJsonSerialize
+    public class SurfaceOfRevolution : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IExportStep, IJsonSerialize, IJsonSerializeDone
     {
         // the following properties should be removed:
         private double curveStartParameter, curveEndParameter;
@@ -1551,9 +1551,23 @@ namespace CADability.GeoObject
                 return export.WriteDefinition("SURFACE_OF_REVOLUTION('',#" + nc.ToString() + ",#" + na.ToString() + ")");
             }
         }
+        /// <summary>
+        /// Constructor for Json Serialization
+        /// </summary>
+        protected SurfaceOfRevolution()
+        {
 
+        }
         void IJsonSerialize.GetObjectData(IJsonWriteData data)
         {
+            if (curveToRotate == null)
+            {
+                IGeoObject go = basisCurve2D.MakeGeoObject(Plane.XYPlane);
+                go.Modify(toSurface);
+                curveToRotate = go as ICurve;
+                axisLocation = toSurface * GeoPoint.Origin;
+                axisDirection = toSurface * GeoVector.YAxis;
+            }
             data.AddProperty("CurveToRotate", curveToRotate);
             data.AddProperty("AxisDirection", axisDirection);
             data.AddProperty("AxisLocation", axisLocation);
@@ -1564,6 +1578,11 @@ namespace CADability.GeoObject
             curveToRotate = data.GetProperty<ICurve>("CurveToRotate");
             axisDirection = data.GetProperty<GeoVector>("AxisDirection");
             axisLocation = data.GetProperty<GeoPoint>("AxisLocation");
+            data.RegisterForSerializationDoneCallback(this);
+        }
+
+        void IJsonSerializeDone.SerializationDone()
+        {
         }
         #endregion
         #region ISurfaceOfRevolution Members
