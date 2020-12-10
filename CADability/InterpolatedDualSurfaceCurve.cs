@@ -26,7 +26,7 @@ namespace CADability
     /// Internal: ein Kante, gegeben durch zwei Oberflächen und ein Array von 3d/2d/2d Punkten
     /// </summary>
     [Serializable()]
-    internal class InterpolatedDualSurfaceCurve : GeneralCurve, IDualSurfaceCurve, IJsonSerialize, IExportStep, IJsonSerializeDone, IDeserializationCallback
+    internal class InterpolatedDualSurfaceCurve : GeneralCurve, IDualSurfaceCurve, IJsonSerialize, IExportStep, IJsonSerializeDone, IDeserializationCallback, IOrientation
     {
         ISurface surface1;
         ISurface surface2;
@@ -1353,6 +1353,23 @@ namespace CADability
                 Polyline dbgpl = Polyline.Construct();
                 dbgpl.SetPoints(dbgpnts, false);
                 return dbgpl;
+            }
+        }
+        internal GeoObjectList DebugOrientation
+        {
+            get
+            {
+                GeoObjectList res = new GeoObjectList();
+                Polyline pl = Debug100Points as Polyline;
+                res.Add(pl);
+                double l = pl.Length / 50;
+                for (int i = 0; i < 100; i++)
+                {
+                    GeoVector dir = (this as IOrientation).OrientationAt(i / 99.0);
+                    Line line = Line.TwoPoints(pl.GetPoint(i), pl.GetPoint(i) + l * dir.Normalized);
+                    res.Add(line);
+                }
+                return res;
             }
         }
         GeoObjectList DebugBasePoints
@@ -2819,6 +2836,15 @@ namespace CADability
                 res[i] = crvs[i] as IDualSurfaceCurve;
             }
             return res;
+        }
+
+        GeoVector IOrientation.OrientationAt(double u)
+        {
+            GeoPoint2D uv1, uv2;
+            GeoPoint p;
+            ApproximatePosition(u, out uv1, out uv2, out p);
+            GeoVector v = surface1.GetNormal(uv1).Normalized + surface2.GetNormal(uv2).Normalized;
+            return v;
         }
 
         #endregion

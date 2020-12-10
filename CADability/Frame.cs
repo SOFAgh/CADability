@@ -2311,9 +2311,9 @@ namespace CADability
                         }
                     }
                     //Application.DoEvents();
-                    // System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.WaitCursor; dont want to use windows forms
+                    // System.Windows.Forms.Cursor.Current = System.Windows.Forms.Cursors.WaitCursor; don't want to use windows forms
                     Project newproject = Project.ReadFromFile(fileName, fileext);
-                    if (newproject == null) return; // abgearbeitet
+                    if (newproject == null) return;
                     Project = newproject;
                     FileNameChangedEvent?.Invoke(fileName);
                     if (fileext != "cdb")
@@ -2322,20 +2322,20 @@ namespace CADability
                         // parallel triangulate all faces with this precision to show a progress bar
                         // then zoom total 
                         ModelView mv = FirstModelView;
-                        // den ersten ModelView anzeigen
+                        // display the firts ModelView
                         if (mv != null)
                         {
                             Projection fromTop = Projection.FromTop;
                             BoundingRect ext = mv.Model.GetExtent(fromTop);
-                            System.Diagnostics.Trace.WriteLine("Starting ParallelTriangulation " + Environment.TickCount.ToString());
+                            // System.Diagnostics.Trace.WriteLine("Starting ParallelTriangulation " + Environment.TickCount.ToString());
                             fromTop.SetPlacement(mv.DisplayRectangle, ext);
                             double precision = 1.0 / fromTop.WorldToDeviceFactor;
                             mv.Model.ParallelTriangulation(precision);
-                            System.Diagnostics.Trace.WriteLine("Starting OctTree " + Environment.TickCount.ToString());
+                            // System.Diagnostics.Trace.WriteLine("Starting OctTree " + Environment.TickCount.ToString());
                             mv.Model.InitOctTree();
-                            System.Diagnostics.Trace.WriteLine("OctTree done " + Environment.TickCount.ToString());
+                            // System.Diagnostics.Trace.WriteLine("OctTree done " + Environment.TickCount.ToString());
                             mv.ZoomTotal(1.1);
-                            System.Diagnostics.Trace.WriteLine("ZoomTotal done " + Environment.TickCount.ToString());
+                            // System.Diagnostics.Trace.WriteLine("ZoomTotal done " + Environment.TickCount.ToString());
                             // mv.ZoomToModelExtent(condorScrollableCtrls[activeControl].ClientRectangle, 1.1);
                         }
                     }

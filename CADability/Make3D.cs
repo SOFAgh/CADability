@@ -1173,7 +1173,7 @@ namespace CADability.GeoObject
                 }
                 else
                 {
-                    SurfaceOfRevolution sr = new SurfaceOfRevolution(toExtrude, arc.Center, arc.Normal, 0.0, 1.0);
+                    SurfaceOfRevolution sr = new SurfaceOfRevolution(toExtrude, arc.Center, arc.Normal);
                     Ellipse arc1 = arc.Clone() as Ellipse;
                     arc1.Center = Geometry.DropPL(toExtrude.StartPoint, arc.Center, arc.Normal);
                     arc1.Radius = arc1.Center | toExtrude.StartPoint;
@@ -2758,7 +2758,7 @@ namespace CADability.GeoObject
                             }
                             else
                             {
-                                surface = new SurfaceOfRevolution(l, axis.Location, axis.Direction, 0.0, 1.0);
+                                surface = new SurfaceOfRevolution(l, axis.Location, axis.Direction);
                             }
                         }
                         else if (path.Curve(i) is Ellipse && (path.Curve(i) as Ellipse).IsCircle)
@@ -2786,7 +2786,7 @@ namespace CADability.GeoObject
                             {
                                 try
                                 {
-                                    surface = new SurfaceOfRevolution(e, axis.Location, axis.Direction, 0.0, 1.0);
+                                    surface = new SurfaceOfRevolution(e, axis.Location, axis.Direction);
                                 }
                                 catch (SurfaceOfRevolutionException) { } // e.g. a Line identical with the axis
                             }
@@ -2795,7 +2795,7 @@ namespace CADability.GeoObject
                         {
                             try
                             {
-                                surface = new SurfaceOfRevolution(path.Curve(i), axis.Location, axis.Direction, 0.0, 1.0);
+                                surface = new SurfaceOfRevolution(path.Curve(i), axis.Location, axis.Direction);
                             }
                             catch (SurfaceOfRevolutionException) { } // e.g. a Line identical with the axis
                         }

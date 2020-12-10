@@ -970,84 +970,83 @@ namespace CADability
              * according to (p-a)*(p-a) = r² + ((p-a)*d)² , where a is an axis point and d is the axis direction, we get
              * (-r^2)-(dz*(pz-az)+dy*(py-ay)+dx*(px-ax))^2+(pz-az)^2+(py-ay)^2+(px-ax)^2;
              * 
+             * Now we choose az=0 and transform the input data so that center is origin and axis is z-axis.
+             * 
              * and the derivatives
-                2*dx*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax))-2*(px-ax);
-                2*dy*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax))-2*(py-ay);
-                2*dz*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax))-2*(pz-az);
-                -2*(px-ax)*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax));
-                -2*(py-ay)*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax));
-                -2*(pz-az)*(dz*(pz-az)+dy*(py-ay)+dx*(px-ax));
+                2*dx*(dz*(pz-0)+dy*(py-ay)+dx*(px-ax))-2*(px-ax);
+                2*dy*(dz*(pz-0)+dy*(py-ay)+dx*(px-ax))-2*(py-ay);
+                2*dz*(dz*(pz-0)+dy*(py-ay)+dx*(px-ax))-2*(pz-0);
+                -2*(px-ax)*(dz*(pz-0)+dy*(py-ay)+dx*(px-ax));
+                -2*(py-ay)*(dz*(pz-0)+dy*(py-ay)+dx*(px-ax));
+                -2*(pz-0)*(dz*(pz-0)+dy*(py-ay)+dx*(px-ax));
                 -2*r;
 
             */
-            // parameters: 0: ax, 1: ay, 2: az, 3: dx, 4: dy, 5: dz, 6: r (a: location, d: direction, r: radius)
+            // parameters: 0: ax, 1: ay, 2: dx, 3: dy, 4: dz, 5: r (a: location, d: direction, r: radius)
+            GeoPoint[] points = new GeoPoint[pnts.Length];
             void efunc(double[] parameters, out double[] values)
             {
-                values = new double[pnts.Length];
+                values = new double[points.Length];
                 double ax = parameters[0];
                 double ay = parameters[1];
-                double az = parameters[2];
-                double dx = parameters[3];
-                double dy = parameters[4];
-                double dz = parameters[5];
-                double r = parameters[6];
-                for (int i = 0; i < pnts.Length; i++)
+                double dx = parameters[2];
+                double dy = parameters[3];
+                double dz = parameters[4];
+                double r = parameters[5];
+                for (int i = 0; i < points.Length; i++)
                 {
-                    double px = pnts[i].x;
-                    double py = pnts[i].y;
-                    double pz = pnts[i].z;
-                    values[i] = (-r * r) - sqr(dz * (pz - az) + dy * (py - ay) + dx * (px - ax)) + sqr(pz - az) + sqr(py - ay) + sqr(px - ax);
+                    double px = points[i].x;
+                    double py = points[i].y;
+                    double pz = points[i].z;
+                    values[i] = (-r * r) - sqr(dz * (pz) + dy * (py - ay) + dx * (px - ax)) + sqr(pz) + sqr(py - ay) + sqr(px - ax);
                 }
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(pnts.Length, 7); // Jacobi Matrix 
+                derivs = new Matrix(points.Length, 6); // Jacobi Matrix 
                 double ax = parameters[0];
                 double ay = parameters[1];
-                double az = parameters[2];
-                double dx = parameters[3];
-                double dy = parameters[4];
-                double dz = parameters[5];
-                double r = parameters[6];
+                double dx = parameters[2];
+                double dy = parameters[3];
+                double dz = parameters[4];
+                double r = parameters[5];
 
-                for (int i = 0; i < pnts.Length; i++)
+                for (int i = 0; i < points.Length; i++)
                 {
-                    double px = pnts[i].x;
-                    double py = pnts[i].y;
-                    double pz = pnts[i].z;
+                    double px = points[i].x;
+                    double py = points[i].y;
+                    double pz = points[i].z;
 
-                    derivs[i, 0] = 2 * dx * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax)) - 2 * (px - ax);
-                    derivs[i, 1] = 2 * dy * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax)) - 2 * (py - ay);
-                    derivs[i, 2] = 2 * dz * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax)) - 2 * (pz - az);
-                    derivs[i, 3] = -2 * (px - ax) * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax));
-                    derivs[i, 4] = -2 * (py - ay) * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax));
-                    derivs[i, 5] = -2 * (pz - az) * (dz * (pz - az) + dy * (py - ay) + dx * (px - ax));
-                    derivs[i, 6] = -2 * r;
+                    derivs[i, 0] = 2 * dx * (dz * (pz) + dy * (py - ay) + dx * (px - ax)) - 2 * (px - ax);
+                    derivs[i, 1] = 2 * dy * (dz * (pz) + dy * (py - ay) + dx * (px - ax)) - 2 * (py - ay);
+                    derivs[i, 2] = -2 * (px - ax) * (dz * (pz) + dy * (py - ay) + dx * (px - ax));
+                    derivs[i, 3] = -2 * (py - ay) * (dz * (pz) + dy * (py - ay) + dx * (px - ax));
+                    derivs[i, 4] = -2 * (pz) * (dz * (pz) + dy * (py - ay) + dx * (px - ax));
+                    derivs[i, 5] = -2 * r;
                 }
             }
-            GeoVector diag = new GeoVector(1, 1, 1).Normalized;
-            ModOp toDiag = ModOp.Rotate(center, axis, diag);
-            for (int i = 0; i < pnts.Length; i++)
+            ModOp toZAxis = ModOp.Translate(-center.x, -center.y, -center.z) * ModOp.Rotate(center, axis, GeoVector.ZAxis);
+            for (int i = 0; i < points.Length; i++)
             {
-                pnts[i] = toDiag * pnts[i];
+                points[i] = toZAxis * pnts[i];
             }
-            axis = toDiag * axis;
-            center = toDiag * center;
+            //axis = toZAxis * axis;
+            //center = toZAxis * center;
             GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
-            bool ok = gnm.Solve(new double[] { center.x, center.y, center.z, axis.x, axis.y, axis.z, radius }, 30, 1e-6, precision * precision, out double minError, out int numiter, out double[] result);
+            bool ok = gnm.Solve(new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, radius }, 30, 1e-6, precision * precision, out double minError, out int numiter, out double[] result);
             if (ok)
             {
-                ModOp fromDiag = toDiag.GetInverse();
-                center = fromDiag * new GeoPoint(result[0], result[1], result[2]);
-                axis = fromDiag * new GeoVector(result[3], result[4], result[5]).Normalized;
+                ModOp fromZAxis = toZAxis.GetInverse();
+                center = fromZAxis * new GeoPoint(result[0], result[1], 0.0);
+                axis = fromZAxis * new GeoVector(result[2], result[3], result[4]).Normalized;
                 axis.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
-                radius = Math.Abs(result[6]);
+                radius = Math.Abs(result[5]);
                 cs = new CylindricalSurface(center, radius * dirx, radius * diry, axis);
 #if DEBUG
                 double dd = 0.0;
-                for (int i = 0; i < pnts.Length; i++)
+                for (int i = 0; i < points.Length; i++)
                 {
-                    dd += cs.GetDistance(pnts[i]);
+                    dd += cs.GetDistance(points[i]);
                 }
 #endif
                 return Math.Sqrt(minError);
@@ -1159,7 +1158,7 @@ namespace CADability
                     else if (ev[i] < 0) ++bq;
                     else ++cq;
                 }
-                Matrix trans = MQ.Inverse() * new Matrix(new double[]{ D, G, I }, true);
+                Matrix trans = MQ.Inverse() * new Matrix(new double[] { D, G, I }, true);
                 GeoPoint mp = new GeoPoint(trans[0, 0], trans[1, 0], trans[2, 0]);
                 GeoPoint mmp = new GeoPoint(-trans[0, 0], -trans[1, 0], -trans[2, 0]); // der liegt auf der Achse
                 return Math.Sqrt(minError);
@@ -1250,8 +1249,8 @@ namespace CADability
                 }
             }
             GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
-            // the algorithm doesn't converge when the axis is almost exactely aligned to the x-axis (or y-axis, z-axis). So we modify the data
-            // that the starting axis is (1,1,1) and and reverse the result to the original position. Maybe we need to do the same with other Fit methods?
+            // the algorithm doesn't converge when the axis is almost exactly aligned to the x-axis (or y-axis, z-axis). So we modify the data
+            // that the starting axis is (1,1,1) and reverse the result to the original position. Maybe we need to do the same with other Fit methods?
             GeoVector diag = new GeoVector(1, 1, 1).Normalized;
             ModOp toDiag = ModOp.Rotate(center, axis, diag);
             for (int i = 0; i < pnts.Length; i++)

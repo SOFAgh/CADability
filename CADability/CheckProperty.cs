@@ -95,8 +95,12 @@ namespace CADability.UserInterface
                     {
                         state = value;
                     }
-                    propertyPage?.Refresh(this);
                 }
+                else
+                {
+                    state = value;
+                }
+                propertyPage?.Refresh(this);
             }
         }
 

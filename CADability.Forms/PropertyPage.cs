@@ -834,7 +834,6 @@ namespace CADability.Forms
             }
             return null;
         }
-
         public bool ContainsEntry(IPropertyEntry toTest)
         {
             for (int i = 0; i < entries.Length; i++)

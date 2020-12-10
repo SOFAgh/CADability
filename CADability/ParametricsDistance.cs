@@ -59,6 +59,32 @@ namespace CADability
             facesToKeep = new List<Face>();
         }
 
+        public ParametricsDistance(IEnumerable<Face> facesToMove, Line axis)
+        {
+            this.facesToMove = new List<Face>(facesToMove);
+            distanceFromHere = axis;
+        }
+        public ParametricsDistance(Edge toHere, Edge fromHere, Line feedback)
+        {
+            distanceFromHere = fromHere;
+            distanceToHere = toHere;
+            offsetFeedBack = feedback;
+            originalOffset = feedback.EndPoint - feedback.StartPoint;
+            shell = fromHere.PrimaryFace.Owner as Shell;
+            facesToMove = new List<Face>();
+            facesToKeep = new List<Face>();
+            if (toHere != null)
+            {
+                if (!toHere.PrimaryFace.Surface.IsExtruded(originalOffset)) facesToMove.Add(toHere.PrimaryFace);
+                if (!toHere.SecondaryFace.Surface.IsExtruded(originalOffset)) facesToMove.Add(toHere.SecondaryFace);
+            }
+            if (fromHere != null)
+            {
+                if (!fromHere.PrimaryFace.Surface.IsExtruded(originalOffset)) facesToKeep.Add(fromHere.PrimaryFace);
+                if (!fromHere.SecondaryFace.Surface.IsExtruded(originalOffset)) facesToKeep.Add(fromHere.SecondaryFace);
+            }
+        }
+
         public override string GetID()
         {
             return "Constr.Parametrics.DistanceTo";
@@ -79,14 +105,17 @@ namespace CADability
             base.TitleId = "Constr.Parametrics.DistanceTo";
             FeedBack.AddSelected(offsetFeedBack);
             base.ActiveObject = shell.Clone();
-            if (shell.Layer!=null) shell.Layer.Transparency = 128;
+            if (shell.Layer != null) shell.Layer.Transparency = 128;
 
-            otherObjectInput = new GeoObjectInput("DistanceTo.OtherObject");
-            otherObjectInput.FacesOnly = true;
-            otherObjectInput.EdgesOnly = true;
-            //otherObjectInput.MultipleInput = true;
-            otherObjectInput.MouseOverGeoObjectsEvent += OtherObject_MouseOverGeoObjectsEvent;
-            otherObjectInput.GeoObjectSelectionChangedEvent += OtherObject_GeoObjectSelectionChangedEvent;
+            if (distanceToHere == null)
+            {
+                otherObjectInput = new GeoObjectInput("DistanceTo.OtherObject");
+                otherObjectInput.FacesOnly = true;
+                otherObjectInput.EdgesOnly = true;
+                //otherObjectInput.MultipleInput = true;
+                otherObjectInput.MouseOverGeoObjectsEvent += OtherObject_MouseOverGeoObjectsEvent;
+                otherObjectInput.GeoObjectSelectionChangedEvent += OtherObject_GeoObjectSelectionChangedEvent;
+            }
 
             distanceInput = new LengthInput("DistanceTo.Distance");
             distanceInput.GetLengthEvent += DistanceInput_GetLengthEvent;
@@ -95,7 +124,8 @@ namespace CADability
             modeInput = new MultipleChoiceInput("DistanceTo.Mode", "DistanceTo.Mode.Values", 0);
             modeInput.SetChoiceEvent += ModeInput_SetChoiceEvent;
             //modeInput.GetChoiceEvent += ModeInput_GetChoiceEvent;
-            base.SetInput(otherObjectInput, distanceInput, modeInput);
+            if (otherObjectInput != null) SetInput(otherObjectInput, distanceInput, modeInput);
+            else SetInput(distanceInput, modeInput);
             base.OnSetAction();
 
             validResult = false;
@@ -136,7 +166,7 @@ namespace CADability
         }
         public override void OnRemoveAction()
         {
-            shell.Layer.Transparency = 0; // make the layer intransparent again
+            if (shell.Layer != null) shell.Layer.Transparency = 0; // make the layer opaque again
             base.OnRemoveAction();
         }
         private bool DistanceInput_SetLengthEvent(double length)
@@ -148,31 +178,41 @@ namespace CADability
                 currentOffset.Length = length - originalOffset.Length;
                 offsetFeedBack.EndPoint = offsetFeedBack.StartPoint + originalOffset + currentOffset;
                 Parametrics pm = new Parametrics(shell);
+                Dictionary<Face, GeoVector> allFacesToMove = new Dictionary<Face, GeoVector>();
                 switch (mode)
                 {
                     case Mode.forward:
                         for (int i = 0; i < facesToMove.Count; i++)
                         {
-                            pm.MoveFace(facesToMove[i], currentOffset);
+                            allFacesToMove[facesToMove[i]] = currentOffset;
+                        }
+                        for (int i = 0; i < facesToKeep.Count; i++)
+                        {
+                            allFacesToMove[facesToKeep[i]] = GeoVector.NullVector;
                         }
                         break;
                     case Mode.symmetric:
                         for (int i = 0; i < facesToMove.Count; i++)
                         {
-                            pm.MoveFace(facesToMove[i], 0.5 * currentOffset);
+                            allFacesToMove[facesToMove[i]] = 0.5*currentOffset;
                         }
                         for (int i = 0; i < facesToKeep.Count; i++)
                         {
-                            pm.MoveFace(facesToKeep[i], -0.5 * currentOffset);
+                            allFacesToMove[facesToKeep[i]] = -0.5 * currentOffset;
                         }
                         break;
                     case Mode.backward:
+                        for (int i = 0; i < facesToMove.Count; i++)
+                        {
+                            allFacesToMove[facesToMove[i]] = GeoVector.NullVector;
+                        }
                         for (int i = 0; i < facesToKeep.Count; i++)
                         {
-                            pm.MoveFace(facesToKeep[i], -currentOffset);
+                            allFacesToMove[facesToKeep[i]] = -currentOffset;
                         }
                         break;
                 }
+                pm.MoveFaces(allFacesToMove, currentOffset);
                 Shell sh = pm.Result(out HashSet<Face> involvedFaces);
                 if (sh != null)
                 {
@@ -205,6 +245,8 @@ namespace CADability
             Edge edg2 = distanceToHere as Edge;
             Face fc1 = distanceFromHere as Face;
             Face fc2 = distanceToHere as Face;
+            ICurve crv1 = distanceFromHere as ICurve;
+            ICurve crv2 = distanceToHere as ICurve;
             originalOffset = GeoVector.NullVector;
             if (vtx1 != null && vtx2 != null)
             {
@@ -239,7 +281,7 @@ namespace CADability
                     }
                 }
             }
-            else if ((edg1 != null && edg2 != null))
+            else if (edg1 != null && edg2 != null && edg1 != edg2)
             {
                 double pos1 = 0.5, pos2 = 0.5;
                 if (Curves.NewtonMinDist(edg1.Curve3D, ref pos1, edg2.Curve3D, ref pos2))
@@ -358,8 +400,8 @@ namespace CADability
         }
 
         private bool OtherObject_MouseOverGeoObjectsEvent(GeoObjectInput sender, IGeoObject[] geoObjects, bool up)
-        {   // we need to implement more cases here, resulting in faceToMove, faceToKeep (maybe null) and a reference point from where to calculate footpoints for the offset vector
-            
+        {   // we need to implement more cases here, resulting in faceToMove, faceToKeep (maybe null) and a reference point from where to calculate foot-points for the offset vector
+
             Projection.PickArea pa = CurrentMouseView.Projection.GetPickSpace(new System.Drawing.Rectangle(sender.currentMousePoint.X - 5, sender.currentMousePoint.Y - 5, 10, 10));
             for (int i = 0; i < geoObjects.Length; i++)
             {

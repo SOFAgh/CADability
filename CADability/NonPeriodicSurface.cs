@@ -6,18 +6,90 @@ namespace CADability.GeoObject
     internal class NonPeriodicSurface : ISurfaceImpl
     {
         ISurface periodicSurface;
-        double vmin, vmax;
+        bool isPeriodicInU;
+        double a, b; // offset and factor for mapping a + b*par => [0, 1] when there is a pole or [0.5, 1.5] without pole
+        bool hasPole;
         /// <summary>
-        /// Non-periodic surface made from a periodic surface. The periodic surface must be peiodic in u and may have a pole at vmin or vmax
+        /// Non-periodic surface made from a periodic surface. The periodic surface must be periodic in u or in v and may have a pole at the minimum or maximum of the
+        /// non periodic parameter
         /// </summary>
         /// <param name="periodicSurface"></param>
         /// <param name="vmin"></param>
         /// <param name="vmax"></param>
-        public NonPeriodicSurface(ISurface periodicSurface, double vmin, double vmax)
+        public NonPeriodicSurface(ISurface periodicSurface, BoundingRect bounds)
         {
             this.periodicSurface = periodicSurface;
-            this.vmax = vmax;
-            this.vmin = vmin;
+            hasPole = false;
+            if (periodicSurface.IsUPeriodic && periodicSurface.IsVPeriodic)
+            {
+                isPeriodicInU = bounds.Width - periodicSurface.UPeriod > bounds.Height - periodicSurface.VPeriod;
+                throw new NotImplementedException("NonPeriodicSurface: both u and v are periodic");
+            }
+            else if (periodicSurface.IsUPeriodic)
+            {
+                isPeriodicInU = true;
+                double[] sv = periodicSurface.GetVSingularities();
+                if (sv != null && sv.Length > 0)
+                {
+                    if (sv.Length == 1)
+                    {
+                        hasPole = true;
+                        if (sv[0] == bounds.Bottom)
+                        {
+                            // bounds.Bottom => 0.0, bounds.Top => 1.0
+                            b = 1.0 / bounds.Height;
+                            a = -bounds.Bottom * b;
+                        }
+                        else if (sv[0] == bounds.Top)
+                        {
+                            b = -1.0 / bounds.Height;
+                            a = bounds.Top * b;
+                        }
+                        else throw new ApplicationException("pole must be on border");
+                    }
+                    else throw new ApplicationException("more than one pole");
+                }
+                else
+                {
+                    // bounds.Bottom => 0.5, bounds.Top => 1.5
+                    b = 1.0 / bounds.Height;
+                    a = 0.5 - bounds.Bottom / bounds.Height;
+                }
+            }
+            else if (periodicSurface.IsVPeriodic)
+            {
+                isPeriodicInU = false;
+                double[] su = periodicSurface.GetUSingularities();
+                if (su != null && su.Length > 0)
+                {
+                    if (su.Length == 1)
+                    {
+                        hasPole = true;
+                        if (su[0] == bounds.Left)
+                        {
+                            b = 1.0 / bounds.Width;
+                            a = -bounds.Left * b;
+                        }
+                        else if (su[0] == bounds.Right)
+                        {
+                            b = -1.0 / bounds.Width;
+                            a = bounds.Right * b;
+                        }
+                        else throw new ApplicationException("pole must be on border");
+                    }
+                    else throw new ApplicationException("more than one pole");
+                }
+                else
+                {
+                    // bounds.Bottom => 0.5, bounds.Top => 1.5
+                    b = 1.0 / bounds.Width;
+                    a = 0.5 - bounds.Left / bounds.Width;
+                }
+            }
+            else
+            {   // not periodic, only pole removal
+                throw new NotImplementedException("NonPeriodicSurface: implement only pole removal");
+            }
         }
         public override GeoVector UDirection(GeoPoint2D uv)
         {
@@ -48,31 +120,22 @@ namespace CADability.GeoObject
 
         private GeoPoint2D toPeriodic(GeoPoint2D uv)
         {
-            return new GeoPoint2D(Math.Atan2(uv.y, uv.x), vmin + Math.Sqrt(uv.x * uv.x + uv.y * uv.y));
+            if (isPeriodicInU) return new GeoPoint2D(Math.Atan2(uv.y, uv.x), (Math.Sqrt(uv.x * uv.x + uv.y * uv.y) - a) / b);
+            else return new GeoPoint2D((Math.Sqrt(uv.x * uv.x + uv.y * uv.y) - a) / b, Math.Atan2(uv.y, uv.x));
         }
         private GeoPoint2D fromPeriodic(GeoPoint2D uv)
         {
-            double r = uv.y - vmin;
-            return new GeoPoint2D(r * Math.Cos(uv.x), r * Math.Sin(uv.x));
-        }
-        private ICurve2D fromPeriodic(ICurve2D curve2d)
-        {
-            // gegeben: Kurve im periodischen System, gesucht: Kurve im nichtperiodischen System
-            //if (curve2d is Line2D)
-            //{
-            //    Line2D l2d = curve2d as Line2D;
-            //    if (Math.Abs(l2d.StartDirection.y) < 1e-6)
-            //    {   // horizontale Linie im periodischen System wird Kreisbogen um den Mittelpunkt im nichtperiodischen System
-            //        Arc2D a2d = new Arc2D(GeoPoint2D.Origin, l2d.StartPoint.y - vmin, fromPeriodic(l2d.StartPoint), fromPeriodic(l2d.EndPoint), l2d.EndPoint.x > l2d.StartPoint.x);
-            //        return a2d;
-            //    }
-            //    if (Math.Abs(l2d.StartDirection.x) < 1e-6)
-            //    {   // vertikale Linie um periodischen System sollte Linie durch den Ursprung im nichtperiodischen System werden
-            //        return new Line2D(fromPeriodic(l2d.StartPoint), fromPeriodic(l2d.EndPoint));
-            //    }
-            //}
-            return null; // new TransformedCurve2D(curve2d, new NonPeriodicTransformation(vmin));
-        }
 
+            if (isPeriodicInU)
+            {
+                double r = a + b * uv.y;
+                return new GeoPoint2D(r * Math.Cos(uv.x), r * Math.Sin(uv.x));
+            }
+            else
+            {
+                double r = a + b * uv.x;
+                return new GeoPoint2D(r * Math.Cos(uv.y), r * Math.Sin(uv.y));
+            }
+        }
     }
 }

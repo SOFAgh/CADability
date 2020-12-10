@@ -1137,7 +1137,7 @@ namespace CADability.GeoObject
             // upars, vpars describe an almost evenly spaced 5x5 grid while singularities and seams (of closed surface) are avoided
             // now lets see, whether in the middle we have a line or circular arc
 
-            precision = Math.Min(precision, PolesExtent.Size * 1e-6);
+            precision = Math.Min(precision, PolesExtent.Size * 1e-5);
 
             GeoPoint[,] samples = new GeoPoint[5, 5];
             for (int i = 0; i < 5; i++)
@@ -1256,7 +1256,7 @@ namespace CADability.GeoObject
                             double d2 = latcnt[2] | latcnt[4];
                             double d4 = latcnt[4] | latcnt[0];
                             GeoVector axis;
-                            if (d0<d2)
+                            if (d0 < d2)
                             {
                                 if (d2 < d4) axis = latcnt[4] - latcnt[0];
                                 else axis = latcnt[2] - latcnt[4];
@@ -1268,11 +1268,18 @@ namespace CADability.GeoObject
                             }
                             GeoPoint center = Geometry.DropPL(loncnt[0], latcnt[0], axis);
                             axis.Length = center | loncnt[0];
-                            double minerror = GaussNewtonMinimizer.TorusFit(samples.Linear(), center,axis,lonrad[0], precision, out ToroidalSurface ts);
-                            if (minerror < precision) found = ts;
-                            else
+                            double minerror = GaussNewtonMinimizer.TorusFit(samples.Linear(), center, axis, lonrad[0], precision, out ToroidalSurface ts);
+                            if (minerror < precision)
                             {
-
+                                if (ts.MinorRadius > ts.XAxis.Length * 10)
+                                {   // almost a sphere
+                                    minerror = GaussNewtonMinimizer.SphereFit(samples.Linear(), ts.Location, ts.MinorRadius, precision, out SphericalSurface ss);
+                                    if (minerror < precision) found = ss;
+                                }
+                                else
+                                {
+                                    found = ts; // no torus with pole, this is usually meant to be a sphere
+                                }
                             }
                         }
                     }
@@ -2797,7 +2804,7 @@ namespace CADability.GeoObject
                 adjustVPeriod(ref vmin);
                 adjustVPeriod(ref vmax);
                 if (vmin >= vmax)
-                {   // was ist besser: vmin oder vmax verändern?
+                {
                     if (Math.Abs(vmin - VPeriod - vKnots[0]) < Math.Abs(vmax + VPeriod - vKnots[vKnots.Length - 1]))
                     {
                         vmin = vKnots[0];
@@ -2812,6 +2819,14 @@ namespace CADability.GeoObject
             if (vmin < vKnots[0]) vmin = vKnots[0];
             if (vmin == vmax) return null;
             adjustUPeriod(ref u);
+            double[] us = GetUSingularities();
+            if (us != null)
+            {
+                for (int i = 0; i < us.Length; i++)
+                {
+                    if (us[i] == u) return null;
+                }
+            }
             return FixedU(u).TrimParam(vmin, vmax);
         }
         private void adjustUPeriod(ref double u)
@@ -2855,7 +2870,18 @@ namespace CADability.GeoObject
                     }
                 }
             }
+            if (umax > uKnots[uKnots.Length - 1]) umax = uKnots[uKnots.Length - 1];
+            if (umin < uKnots[0]) umin = uKnots[0];
+            if (umin == umax) return null;
             adjustVPeriod(ref v);
+            double[] vs = GetVSingularities();
+            if (vs != null)
+            {
+                for (int i = 0; i < vs.Length; i++)
+                {
+                    if (vs[i] == v) return null;
+                }
+            }
             return FixedV(v).TrimParam(umin, umax);
         }
         private BSpline FixedU(double u)
@@ -4021,6 +4047,15 @@ namespace CADability.GeoObject
             }
             uSteps.Add(umax);
             if (uSteps.Count == 2 && uDegree > 1) uSteps.Insert(1, (uSteps[0] + uSteps[1]) / 2.0);
+            if (uSteps.Count <= 4 && uPeriodic)
+            {
+                uSteps.Clear();
+                uSteps.Add(umin);
+                uSteps.Add(umin + (umax - umin) * 0.25);
+                uSteps.Add(umin + (umax - umin) * 0.5);
+                uSteps.Add(umin + (umax - umin) * 0.75);
+                uSteps.Add(umax);
+            }
             vSteps.Add(vmin);
             for (int i = 0; i < vKnots.Length; ++i)
             {
@@ -4028,6 +4063,15 @@ namespace CADability.GeoObject
             }
             vSteps.Add(vmax);
             if (vSteps.Count == 2 && vDegree > 1) vSteps.Insert(1, (vSteps[0] + vSteps[1]) / 2.0);
+            if (vSteps.Count <= 4 && vPeriodic)
+            {
+                vSteps.Clear();
+                vSteps.Add(vmin);
+                vSteps.Add(vmin + (vmax - vmin) * 0.25);
+                vSteps.Add(vmin + (vmax - vmin) * 0.5);
+                vSteps.Add(vmin + (vmax - vmin) * 0.75);
+                vSteps.Add(vmax);
+            }
             intu = uSteps.ToArray();
             intv = vSteps.ToArray();
         }
@@ -4471,7 +4515,7 @@ namespace CADability.GeoObject
                 NurbsSurface nother = other as NurbsSurface;
                 // zuerst der wahrscheinliche Fall, dass gleiche Pole u.s.w. vorhanden sind
                 bool same = true;
-                if (uDegree == nother.uDegree && vDegree == nother.vDegree && upoles == nother.upoles && vpoles == nother.vpoles)
+                if (uDegree == nother.uDegree && vDegree == nother.vDegree && poles.GetLength(0) == nother.poles.GetLength(0) && poles.GetLength(1) == nother.poles.GetLength(1))
                 {
                     // gleicher Grad und gleiche Polzahl, kann jetzt noch verschiedene Richtung haben
                     int imax = poles.GetLength(0);
@@ -5237,13 +5281,13 @@ namespace CADability.GeoObject
             }
             GeoPoint location = new GeoPoint(samples); // center of all points
             GeoVector direction = GeoVector.NullVector;
-            for (int i = 0; i < normals.Length-1; i++)
+            for (int i = 0; i < normals.Length - 1; i++)
             {
                 direction += normals[i] ^ normals[i + 1];
             }
             direction.Norm();
             double halfAngle = -Math.PI / 4.0;
-            if (GaussNewtonMinimizer.ConeFitNew(samples.ToIArray(), location, direction, halfAngle, Precision.eps, out ConicalSurface cs)< Precision.eps)
+            if (GaussNewtonMinimizer.ConeFitNew(samples.ToIArray(), location, direction, halfAngle, Precision.eps, out ConicalSurface cs) < Precision.eps)
             {
                 return cs;
             }
@@ -5263,7 +5307,7 @@ namespace CADability.GeoObject
                     dirx = direction ^ GeoVector.YAxis;
                     diry = direction ^ dirx;
                 }
-                ConicalSurface res = new ConicalSurface(location, dirx, diry, direction, -(Math.PI/2-halfAngle), 0.0);
+                ConicalSurface res = new ConicalSurface(location, dirx, diry, direction, -(Math.PI / 2 - halfAngle), 0.0);
                 return res;
             }
             return null;
@@ -5673,6 +5717,11 @@ namespace CADability.GeoObject
                     spoles.Append(n.ToString());
                 }
             }
+            string closed;
+            if (uPeriodic && vPeriodic) closed = ".T.,.T.";
+            else if (uPeriodic) closed = ".T.,.F.";
+            else if (vPeriodic) closed = ".F.,.T.";
+            else closed = ".F.,.F.";
             if (isRational)
             {
                 //#1292=(
@@ -5696,13 +5745,13 @@ namespace CADability.GeoObject
                         sweights.Append(export.ToString(weights[i, j]));
                     }
                 }
-                return export.WriteDefinition("(BOUNDED_SURFACE()B_SPLINE_SURFACE(" + uDegree.ToString() + "," + vDegree.ToString() + spoles.ToString() + ")),.UNSPECIFIED.,.F.,.F.,.F.)B_SPLINE_SURFACE_WITH_KNOTS(("
+                return export.WriteDefinition("(BOUNDED_SURFACE()B_SPLINE_SURFACE(" + uDegree.ToString() + "," + vDegree.ToString() + spoles.ToString() + ")),.UNSPECIFIED.," + closed + ",.F.)B_SPLINE_SURFACE_WITH_KNOTS(("
                     + export.ToString(uMults, false) + "),(" + export.ToString(vMults, false) + "),(" + export.ToString(uKnots) + "),(" + export.ToString(vKnots) + "),.UNSPECIFIED.)GEOMETRIC_REPRESENTATION_ITEM()RATIONAL_B_SPLINE_SURFACE((("
                     + sweights + ")))REPRESENTATION_ITEM('')SURFACE())");
             }
             else
             {
-                return export.WriteDefinition("B_SPLINE_SURFACE_WITH_KNOTS(''," + uDegree.ToString() + "," + vDegree.ToString() + spoles.ToString() + ")),.UNSPECIFIED.,.F.,.F.,.F.,("
+                return export.WriteDefinition("B_SPLINE_SURFACE_WITH_KNOTS(''," + uDegree.ToString() + "," + vDegree.ToString() + spoles.ToString() + ")),.UNSPECIFIED.," + closed + ",.F.,("
                     + export.ToString(uMults, false) + "),(" + export.ToString(vMults, false) + "),(" + export.ToString(uKnots) + "),(" + export.ToString(vKnots) + "),.UNSPECIFIED.)");
             }
         }

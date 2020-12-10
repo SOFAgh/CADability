@@ -407,12 +407,15 @@ namespace CADability.GeoObject
                 // self intersecting loop. Of course a loop cannot intersect itself, but in some files they do (83855_elp11b.stp)
                 // We try here to remove smaller parts
                 double vprec = Math.Min(precision, minCurveLength / 10.0);
+                BoundingCube vertexExtent = BoundingCube.EmptyBoundingCube;
                 Set<Vertex> allVertices = new Set<Vertex>();
                 for (int i = 0; i < loops.Count; i++)
                 {
                     Set<Vertex> vertices = new Set<Vertex>();
                     for (int j = 0; j < loops[i].Count; j++)
                     {
+                        vertexExtent.MinMax(loops[i][j].vertex1.Position);
+                        vertexExtent.MinMax(loops[i][j].vertex2.Position);
                         bool duplicateFound = false;
                         foreach (Vertex vtx in vertices)
                         {
@@ -482,6 +485,11 @@ namespace CADability.GeoObject
                                     break; // the vertex vtx has been handled
                                 }
                             }
+                        }
+                        for (int k = subloops.Count - 1; k >= 0; --k)
+                        {
+                            if (subloops[k].Count == 1 && subloops[k][0].vertex1 == subloops[k][0].vertex2 && subloops[k][0].curve.Length < vertexExtent.Size * 1e-2)
+                                subloops.RemoveAt(k);
                         }
                         loops.RemoveAt(i);
                         loops.InsertRange(i, subloops);
@@ -641,29 +649,12 @@ namespace CADability.GeoObject
                     }
                 }
 
-                ISurface canonical = surface.GetCanonicalForm(precision);
-                if (canonical != null)
-                {
-                    surface = canonical; // they have different uv systems, but this doesn't matter here
-                    GeoVector move = GeoVector.NullVector;
-                    foreach (Vertex vtx in allVertices)
-                    {
-                        GeoVector diff = vtx.Position - surface.PointAt(surface.PositionOf(vtx.Position));
-                        move += diff;
-                    }
-                    move = (1.0 / allVertices.Count) * move;
-                    surface.Modify(ModOp.Translate(move));
-                    move = GeoVector.NullVector;
-                    foreach (Vertex vtx in allVertices)
-                    {
-                        GeoVector diff = vtx.Position - surface.PointAt(surface.PositionOf(vtx.Position));
-                        move += diff;
-                    }
-                }
-                else if (!(surface is PlaneSurface))
+                double surfacePrecision = Math.Min(precision, vertexExtent.Size * 1e-6);
+                if (!(surface is PlaneSurface))
                 {   // introduced because of a conical surface with opening angle of almost 180° and curves residing in the plane between the two
                     // parts of the cone. In 2d this turns out to be difficult, because points are mapped on different parts of the cone.
                     // file "1528_Einsätze_DS-oben.stp"
+                    // test before canonical
                     GeoPoint[] vtxpnts = new GeoPoint[allVertices.Count];
                     int vii = 0;
                     foreach (Vertex vtx in allVertices)
@@ -672,7 +663,7 @@ namespace CADability.GeoObject
                         ++vii;
                     }
                     Plane pln = Plane.FromPoints(vtxpnts, out double maxDist, out bool isLinear);
-                    if (maxDist < precision)
+                    if (maxDist < surfacePrecision)
                     {
                         bool curvesAreInPlane = true;
                         for (int i = 0; i < loops.Count; i++)
@@ -691,6 +682,30 @@ namespace CADability.GeoObject
                             if (!curvesAreInPlane) break;
                         }
                         if (curvesAreInPlane) surface = new PlaneSurface(pln);
+                    }
+                }
+                ISurface canonical = surface.GetCanonicalForm(surfacePrecision);
+                if (canonical is ToroidalSurface ts)
+                {
+                    canonical = null;
+                    //if (ts.MinorRadius > ts.XAxis.Length * 10) canonical = null; // torus with poles are not very stable, especially when they almost resemble a sphere
+                }
+                if (canonical != null)
+                {
+                    surface = canonical; // they have different uv systems, but this doesn't matter here
+                    GeoVector move = GeoVector.NullVector;
+                    foreach (Vertex vtx in allVertices)
+                    {
+                        GeoVector diff = vtx.Position - surface.PointAt(surface.PositionOf(vtx.Position));
+                        move += diff;
+                    }
+                    move = (1.0 / allVertices.Count) * move;
+                    surface.Modify(ModOp.Translate(move));
+                    move = GeoVector.NullVector;
+                    foreach (Vertex vtx in allVertices)
+                    {
+                        GeoVector diff = vtx.Position - surface.PointAt(surface.PositionOf(vtx.Position));
+                        move += diff;
                     }
                 }
                 if (surface is SphericalSurface && (surface as SphericalSurface).IsRealSphere)
@@ -719,11 +734,51 @@ namespace CADability.GeoObject
                     }
                     double radius = sphericalSurface.RadiusX;
                     bool done = false;
+                    // the following idea (making the first circle in the outline to a latitude) produces bad orientations for a spherical octant
+                    //for (int i = 0; i < loops[loopind].Count; i++)
+                    //{
+                    //    if (loops[loopind][i].curve is Ellipse elli)
+                    //    {   // if the outer loop contains a circle, then orient the sphere so that the circle is a latitude
+                    //        surface = new SphericalSurface(loc, radius * elli.Plane.DirectionX, radius * elli.Plane.DirectionY, radius * elli.Plane.Normal);
+                    //        done = true;
+                    //    }
+                    //}
+                    List<GeoPoint> vtxpoints = new List<GeoPoint>();
                     for (int i = 0; i < loops[loopind].Count; i++)
                     {
-                        if (loops[loopind][i].curve is Ellipse elli)
-                        {   // if the outer loop contains a circle, then orient the sphere so that the circle is a latitude
-                            surface = new SphericalSurface(loc, radius * elli.Plane.DirectionX, radius * elli.Plane.DirectionY, radius * elli.Plane.Normal);
+                        if (loops[loopind][i].curve != null)
+                        {
+                            if (loops[loopind][i].vertex1 != null) vtxpoints.Add(loops[loopind][i].vertex1.Position);
+                        }
+                    }
+                    Plane pln = Plane.FromPoints(vtxpoints.ToArray(), out double maxdist, out bool islinear);
+                    if (!islinear)
+                    {
+                        GeoVector axdir = (sphericalSurface.Axis^pln.Normal);
+                        axdir.NormIfNotNull();
+                        if (axdir.IsNullVector()) axdir = GeoVector.XAxis;
+                        // if all points are in one half of the sphere, this axis should be good
+                        Plane tstpln = new Plane(loc, axdir);
+                        List<ICurve2D> projectedLoop = new List<ICurve2D>();
+                        for (int i = 0; i < loops[loopind].Count; i++)
+                        {
+                            if (loops[loopind][i].curve != null)
+                            {
+                                ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
+                                if (c2d == null) continue;
+                                if (!loops[0][loopind].forward) c2d.Reverse();
+                                projectedLoop.Add(c2d);
+                            }
+                        }
+                        ICurve2D[] pla = projectedLoop.ToArray();
+
+                        if (!Border.IsPointOnOutline(pla, GeoPoint2D.Origin, precision)&& Border.IsInside(pla, GeoPoint2D.Origin) != Border.CounterClockwise(pla))
+                        {
+                            GeoVector dirx = axdir ^ GeoVector.ZAxis;
+                            GeoVector diry = dirx ^ axdir;
+                            dirx.Norm();
+                            diry.Norm();
+                            surface = new SphericalSurface(loc, radius * dirx, radius * diry, radius * axdir);
                             done = true;
                         }
                     }
@@ -761,8 +816,11 @@ namespace CADability.GeoObject
                         surface = new SphericalSurface(loc, radius * dirx, radius * diry, radius * axdir);
                     }
                 }
+                {
+                    if (surface is ConicalSurface cs) cs.MakeCanonicalForm(); // remove v-offset here, before 2d curves are calculated
+                }
                 if (surface is CylindricalSurface || surface is ConicalSurface || surface is ToroidalSurface || surface is SurfaceOfRevolution)
-                {   // avoid vertices close to 0 or 180°, because here the surface might be splitted and cause very short edges which might make problems
+                {   // avoid vertices close to 0 or 180°, because here the surface might be split and cause very short edges which might make problems
                     List<double> uvalues = new List<double>();
                     foreach (Vertex vtx in allVertices)
                     {
@@ -968,7 +1026,7 @@ namespace CADability.GeoObject
                                     {
                                         if (Precision.IsEqual(loops[i][j].vertex1.Position, poles[k]) || Precision.IsEqual(loops[i][j].vertex2.Position, poles[k])) continue;
                                         double pos = loops[i][j].curve.PositionOf(poles[k]);
-                                        if (pos >= 1 - 1e-5 || pos <= 1e-5) continue;
+                                        if (pos >= 1 - 1e-3 || pos <= 1e-3) continue; // this is difficult, don't make short parts with identical start- and end vertex
                                         ICurve[] parts = loops[i][j].curve.Split(pos);
                                         StepEdgeDescriptor se = loops[i][j];
                                         loops[i].RemoveAt(j);
@@ -997,8 +1055,8 @@ namespace CADability.GeoObject
                         {
                             for (int k = 0; k < poles.Count; k++)
                             {
-                                if ((loops[i][j].vertex1.Position | poles[k]) < 10 * precision) vertexToPole[loops[i][j].vertex1] = k;
-                                if ((loops[i][j].vertex2.Position | poles[k]) < 10 * precision) vertexToPole[loops[i][j].vertex2] = k;
+                                if ((loops[i][j].vertex1.Position | poles[k]) < vprec) vertexToPole[loops[i][j].vertex1] = k; // changed to vprec, because in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp, face 12018 two vertices are found
+                                if ((loops[i][j].vertex2.Position | poles[k]) < vprec) vertexToPole[loops[i][j].vertex2] = k;
                             }
                         }
                         if (vertexToPole.Count > 1)
@@ -1108,7 +1166,7 @@ namespace CADability.GeoObject
                                 SurfaceHelper.AdjustPeriodicStartPoint(surface, lastEndPoint, ref ep);
                                 crv2d = new Line2D(sp, ep);
                             }
-                            else crv2d = surface.GetProjectedCurve(loops[i][j].curve, 0.0);
+                            else crv2d = surface.GetProjectedCurve(loops[i][j].curve, surfacePrecision);
                             if (!loops[i][j].forward) crv2d.Reverse();
                             if (!lastEndPoint.IsValid)
                             {
@@ -1231,7 +1289,7 @@ namespace CADability.GeoObject
                         int last = loops[i].Count - 1;
                         if (loops[i][last].forward) ep = loops[i][last].curve.EndPoint;
                         else ep = loops[i][last].curve.StartPoint;
-                        if ((sp | ep) > precision) closed = false;
+                        if ((sp | ep) > precision * 10) closed = false; // added *10 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
                     }
                     if (Math.Abs(area) < (ext.Width + ext.Height) * 1e-8 || !closed)
                     {   // probably a seam: two curves going forth and back on the same path
@@ -1422,7 +1480,7 @@ namespace CADability.GeoObject
                                 loopsToreverse.Add(oppii);
                                 reverseCount += 2;
                             }
-                            ext = BoundingRect.EmptyBoundingRect; // recalc the extent since 2d curves have been moved
+                            ext = BoundingRect.EmptyBoundingRect; // recalculate the extent since 2d curves have been moved
                             loopExt = new BoundingRect[loops.Count]; // maybe loops.Count has changed
                             for (int i = 0; i < loops.Count; i++)
                             {
@@ -1782,12 +1840,12 @@ namespace CADability.GeoObject
                             umax = uperiod;
                         }
                         else
-                        {   // are ther poles in the middle of the surface?
+                        {   // are their poles in the middle of the surface?
                             // if so, we would have to split the surface here as well (e. a conic, which contains the waist)
                             // REMOVED: poles are included as 2d curves and in ext
                         }
                     }
-                    // in most cases we can use one plane (spere, cylinder, cone) or two planes (torus) to split the periodic space in two resp. four parts.
+                    // in most cases we can use one plane (sphere, cylinder, cone) or two planes (torus) to split the periodic space in two resp. four parts.
                     // working in 3d is probably more accurate. If there should be a case, where this is not possible (strangely distorted periodic nurbs surface)
                     // we would have to implement a 2d intersection mechanism as well.
                     Plane uSplitPlane = Plane.XYPlane, vSplitPlane = Plane.XYPlane;
@@ -1967,12 +2025,15 @@ namespace CADability.GeoObject
                                         }
                                         else
                                         {
-                                            crv2d = surface.GetProjectedCurve(crv3d, 0.0);
-                                            // if (!loops[i][j].forward) crv2d.Reverse(); crv3d is forward on this surface at this point of code
+                                            crv2d = surface.GetProjectedCurve(crv3d, 0.0); // if crv3d we must mark this projected curve as reversed
                                             SurfaceHelper.AdjustPeriodic(surface, loops[i][j].curve2d.GetExtent(), crv2d); // move into the same domain as the original curve2d
                                         }
                                         lastIntersection = splitVertex;
-                                        if (!loops[i][j].forward) crv3d.Reverse(); // crv3d was forward oriented, now it is oriented according to loop[i][j].forward again
+                                        if (!loops[i][j].forward)
+                                        {
+                                            crv3d.Reverse(); // crv3d was forward oriented, now it is oriented according to loop[i][j].forward again
+                                            if (crv2d is ProjectedCurve pc) pc.IsReverse = true; // mark this projected curve as reversed
+                                        }
                                         crv2d.UserData["EdgeDescriptor"] = loops[i][j];
                                         crv2d.UserData["Curves3DIndex"] = crvs3d.Count - 1;
                                         crv2d.UserData["Unsplitted"] = unsplitted;
@@ -2432,7 +2493,17 @@ namespace CADability.GeoObject
                                                 sed.createdEdges.Add(edg);
                                             }
                                             // don't use null edges
-                                            if (edg.Vertex1 != edg.Vertex2 || (edg.Curve3D != null && edg.Curve3D.Length < minLength / 2) || (edg.Curve3D == null)) ledge.Add(edg);
+                                            if (edg.Vertex1 != edg.Vertex2 || (edg.Curve3D != null && edg.Curve3D.Length < minLength / 2) || (edg.Curve3D == null))
+                                            {
+                                                if (edg.Curve3D == null && ledge.Count > 0 && ledge[ledge.Count - 1].Curve3D == null)
+                                                {   // two adjacent poles is not allowed
+                                                    // skip this pole
+                                                }
+                                                else
+                                                {
+                                                    ledge.Add(edg);
+                                                }
+                                            }
                                             area += looplist[outlines[i]][j].GetArea();
                                         }
                                         else
@@ -2562,34 +2633,46 @@ namespace CADability.GeoObject
                         {
                             if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 2)
                             {
-                                // this edge has been split and maybe existed befor as a single edge
-                                // this single edge must now be replaced by its splitted parts
+                                // this edge has been split and maybe existed before as a single edge
+                                // this single edge must now be replaced by its split parts
                                 // only the first edge in createdEdges can belong to a different face 
                                 // the new created edges must use the vertices of the already defined edges
                                 if (!res.Contains(loops[i][j].createdEdges[0].PrimaryFace))
                                 {
-                                    Edge onOtherFace = loops[i][j].createdEdges[0]; // this edges belongs to an other Face not to this splitted faces
-                                    Edge[] replacementEdges = new Edge[loops[i][j].createdEdges.Count - 1];
+                                    Edge onOtherFace = loops[i][j].createdEdges[0]; // this edges belongs to an other Face not to this split faces
+                                    List<Edge> replacementEdges = new List<Edge>();
                                     Set<Vertex> toUse = new Set<Vertex>();
                                     toUse.Add(onOtherFace.Vertex1);
                                     toUse.Add(onOtherFace.Vertex2);
-                                    for (int k = 0; k < replacementEdges.Length; k++)
+                                    for (int k = 0; k < loops[i][j].createdEdges.Count - 1; k++)
                                     {
-                                        replacementEdges[k] = loops[i][j].createdEdges[k + 1];
-                                        replacementEdges[k].UseVertices(toUse, precision);
-                                        toUse.Add(replacementEdges[k].Vertex1);
-                                        toUse.Add(replacementEdges[k].Vertex2);
-                                        ICurve2D projC2d = onOtherFace.PrimaryFace.Surface.GetProjectedCurve(replacementEdges[k].Curve3D, 0.0);
-                                        SurfaceHelper.AdjustPeriodic(onOtherFace.PrimaryFace.Surface, onOtherFace.PrimaryFace.Area.GetExtent(), projC2d);
-                                        bool forward = !replacementEdges[k].Forward(replacementEdges[k].PrimaryFace);
-                                        if (!forward) projC2d.Reverse();
-                                        double pos1 = replacementEdges[k].Curve3D.PositionOf(onOtherFace.PrimaryFace.Surface.PointAt(projC2d.StartPoint));
-                                        double pos2 = replacementEdges[k].Curve3D.PositionOf(onOtherFace.PrimaryFace.Surface.PointAt(projC2d.EndPoint));
-                                        forward = pos1 < pos2;
-                                        replacementEdges[k].SetSecondary(onOtherFace.PrimaryFace, projC2d, forward);
-
+                                        replacementEdges.Add(loops[i][j].createdEdges[k + 1]);
+                                        int kk = replacementEdges.Count - 1;
+                                        replacementEdges[kk].UseVertices(toUse, precision);
+                                        if (replacementEdges[kk].Vertex1 == replacementEdges[kk].Vertex2)
+                                        {
+                                            replacementEdges.RemoveAt(kk);
+                                        }
+                                        else
+                                        {
+                                            toUse.Add(replacementEdges[kk].Vertex1);
+                                            toUse.Add(replacementEdges[kk].Vertex2);
+                                            ICurve2D projC2d = onOtherFace.PrimaryFace.Surface.GetProjectedCurve(replacementEdges[kk].Curve3D, 0.0);
+                                            SurfaceHelper.AdjustPeriodic(onOtherFace.PrimaryFace.Surface, onOtherFace.PrimaryFace.Area.GetExtent(), projC2d);
+                                            bool forward = !replacementEdges[kk].Forward(replacementEdges[kk].PrimaryFace);
+                                            if (!forward) projC2d.Reverse();
+                                            double pos1 = replacementEdges[kk].Curve3D.PositionOf(onOtherFace.PrimaryFace.Surface.PointAt(projC2d.StartPoint));
+                                            double pos2 = replacementEdges[kk].Curve3D.PositionOf(onOtherFace.PrimaryFace.Surface.PointAt(projC2d.EndPoint));
+                                            forward = pos1 < pos2;
+                                            replacementEdges[kk].SetSecondary(onOtherFace.PrimaryFace, projC2d, forward);
+                                        }
                                     }
-                                    SortEdges(onOtherFace.PrimaryFace, onOtherFace.StartVertex(onOtherFace.PrimaryFace), onOtherFace.EndVertex(onOtherFace.PrimaryFace), replacementEdges);
+                                    if (replacementEdges.Count > 1)
+                                    {
+                                        Edge[] replacementEdgesA = replacementEdges.ToArray();
+                                        SortEdges(onOtherFace.PrimaryFace, onOtherFace.StartVertex(onOtherFace.PrimaryFace), onOtherFace.EndVertex(onOtherFace.PrimaryFace), replacementEdgesA);
+                                        replacementEdges = new List<Edge>(replacementEdgesA);
+                                    }
                                     GeoVector2D dir1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).StartDirection;
                                     GeoVector2D dir2 = onOtherFace.Curve2D(onOtherFace.PrimaryFace).StartDirection;
                                     GeoPoint2D sp1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).StartPoint;
@@ -2597,25 +2680,22 @@ namespace CADability.GeoObject
                                     GeoPoint2D sp2 = onOtherFace.Curve2D(onOtherFace.PrimaryFace).StartPoint;
                                     if ((ep1 | sp2) < (sp1 | sp2))
                                     {
-                                        for (int k = 0; k < replacementEdges.Length; k++)
+                                        for (int k = 0; k < replacementEdges.Count; k++)
                                         {
                                             replacementEdges[k].Reverse(replacementEdges[k].SecondaryFace);
                                         }
                                     }
-                                    // Für nach dem Urlaub (4.4.19)
-                                    // in RAMPS-mount-1.step onOtherFace.PrimaryFace.GetHashCode()==3: beim ersten Durchlauf wird die einzige Edge (Kreis) von hole[0] mit 3 edges ersetzt: (37, 32, 36). 
-                                    // Das ist richtig.
-                                    // beim 2. Durchlauf wird die einzieg Edge von hole[1] auch richtig mit 3 Edges ersetzt, ABER in hole[0] ist mittlerweile die Reihenfolge verdreht: wer war das?
-                                    for (int k = 0; k < replacementEdges.Length; k++)
-                                    {
-                                        if (replacementEdges[k].Vertex1 == replacementEdges[k].Vertex2)
-                                        {
-                                            List<Edge> shortened = new List<Edge>(replacementEdges);
-                                            shortened.RemoveAt(k);
-                                            replacementEdges = shortened.ToArray();
-                                        }
-                                    }
-                                    onOtherFace.PrimaryFace.ReplaceEdge(onOtherFace, replacementEdges, true); // bug in RAMPS-mount-1.step Face 3
+                                    // following obsolete, vertex test already done above
+                                    //for (int k = 0; k < replacementEdges.Count; k++)
+                                    //{
+                                    //    if (replacementEdges[k].Vertex1 == replacementEdges[k].Vertex2)
+                                    //    {
+                                    //        List<Edge> shortened = new List<Edge>(replacementEdges);
+                                    //        shortened.RemoveAt(k);
+                                    //        replacementEdges = shortened;
+                                    //    }
+                                    //}
+                                    onOtherFace.PrimaryFace.ReplaceEdge(onOtherFace, replacementEdges.ToArray(), true); // bug in RAMPS-mount-1.step Face 3
 #if DEBUG
                                     bool cok = onOtherFace.PrimaryFace.CheckConsistency();
 #endif
@@ -2649,7 +2729,7 @@ namespace CADability.GeoObject
                         fc.ReduceVertices(); // in rare cases the vertices are defined multiple times in STEP. We need to have unique vertices
                         fc.MakeArea();
                     }
-                    return res.ToArray(); // the splitted parts of the face. The parts have no seams, no edges, that are used twice in a single face.
+                    return res.ToArray(); // the split parts of the face. The parts have no seams, no edges, that are used twice in a single face.
                 }
             } // end of locking all the edges in case of parallel creation of faces
         }
@@ -4053,52 +4133,6 @@ namespace CADability.GeoObject
                 edge.MakeVertices();
                 edge.Orient();
             }
-        }
-        internal Edge[] GetTangentEdgesUntrimmed(Projection pr)
-        {
-            // siehe "GetTangentTrimmedEdges" wenn die edges getrimmt sein sollen hier die ungetrimmten
-            // da sie so benötigt werden
-            double umin, umax, vmin, vmax;
-            GetUVBounds(out umin, out umax, out vmin, out vmax);
-
-            ICurve2D[] tangents = surface.GetTangentCurves(pr.Direction, umin, umax, vmin, vmax);
-            // dies war der alte Text, die Kurven wurden an der area getrimmt. 
-            List<Edge> res = new List<Edge>();
-            for (int i = 0; i < tangents.Length; i++)
-            {
-                Edge e = new Edge(this, surface.Make3dCurve(tangents[i]), this, tangents[i], true);
-                e.Kind = Edge.EdgeKind.projectionTangent;
-                res.Add(e);
-            }
-            return res.ToArray();
-        }
-        /// <summary>
-        /// Returns edges inside the Face, which appear as outline curves in the shadow projection of the face.
-        /// </summary>
-        /// <param name="pr">The projection</param>
-        /// <returns></returns>
-        public Edge[] GetTangentialEdges(Projection pr)
-        {
-            double umin, umax, vmin, vmax;
-            //CndHlp3DBuddy.GetUVBounds(out umin, out umax, out vmin, out vmax);
-            GetUVBounds(out umin, out umax, out vmin, out vmax);
-            ICurve2D[] tangents = surface.GetTangentCurves(pr.Direction, umin, umax, vmin, vmax);
-            List<Edge> res = new List<Edge>();
-            for (int i = 0; i < tangents.Length; i++)
-            {
-                double[] cl = Area.Clip(tangents[i], true);
-                for (int j = 0; j < cl.Length; j += 2)
-                {
-                    ICurve2D trimmed = tangents[i].Trim(cl[j], cl[j + 1]);
-                    if (trimmed != null)
-                    {
-                        Edge e = new Edge(this, surface.Make3dCurve(trimmed), this, trimmed, true);
-                        e.Kind = Edge.EdgeKind.projectionTangent;
-                        res.Add(e);
-                    }
-                }
-            }
-            return res.ToArray();
         }
         private SimpleShape[] splitTangential(GeoVector viewDirection)
         {
@@ -6003,6 +6037,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public bool SameSurface(Face otherFace)
         {
+            if (otherFace == null) return false;
             ModOp2D fts;
             return surface.SameGeometry(Area.GetExtent(), otherFace.Surface, otherFace.Area.GetExtent(), Precision.eps, out fts);
         }
@@ -6613,7 +6648,7 @@ namespace CADability.GeoObject
         /// <param name="paintTo3D"></param>
         public override void PaintTo3D(IPaintTo3D paintTo3D)
         {
-            if (surface == null) return; // noch nicht richtig erzeugt
+            if (surface == null) return; // has not been fully initialized
             if (OnPaintTo3D != null && OnPaintTo3D(this, paintTo3D)) return;
             if (paintTo3D.PaintSurfaces)
             {
@@ -6621,36 +6656,15 @@ namespace CADability.GeoObject
             }
             if (paintTo3D.PaintEdges && paintTo3D.PaintSurfaceEdges)
             {
-                if (paintTo3D.SelectMode)
-                {
-                    //paintTo3D.SetColor(paintTo3D.SelectColor);
-                }
-                else
-                {
-                    if (colorDef != null) paintTo3D.SetColor(colorDef.Color);
-                    else paintTo3D.SetColor(System.Drawing.Color.Black);
-                }
-                paintTo3D.SetLinePattern(null);
                 for (int i = 0; i < outline.Length; ++i)
                 {
-                    if (!outline[i].IsSeam())
-                    {
-                        IGeoObjectImpl go = outline[i].Curve3D as IGeoObjectImpl;
-                        if (go != null)
-                        {
-                            go.PaintTo3D(paintTo3D);
-                        }
-                    }
+                    outline[i].PaintTo3D(paintTo3D);
                 }
                 for (int i = 0; i < holes.Length; ++i)
                 {
                     for (int j = 0; j < holes[i].Length; ++j)
                     {
-                        IGeoObjectImpl go = holes[i][j].Curve3D as IGeoObjectImpl;
-                        if (go != null)
-                        {
-                            go.PaintTo3D(paintTo3D);
-                        }
+                        holes[i][j].PaintTo3D(paintTo3D);
                     }
                 }
             }
@@ -9654,66 +9668,68 @@ namespace CADability.GeoObject
                 }
             }
         }
-        internal void ReplaceEdge(Edge toReplace, Edge[] replaced, bool rawEdges = false)
-        {   // beim Aufbrechen einer Kante muss diese ersetzt werden. Es wird hier davon ausgegangen, dass die Reihenfolge stimmt
-            // kann man das?
+        /// <summary>
+        /// Replace an edge by an array of edges. If <paramref name="sortEdges"/> is false, the edges must be sorted correctly
+        /// </summary>
+        /// <param name="toReplace"></param>
+        /// <param name="replaceBy"></param>
+        /// <param name="sortEdges"></param>
+        internal void ReplaceEdge(Edge toReplace, Edge[] replaceBy, bool sortEdges = false)
+        {
             Vertex v1 = toReplace.StartVertex(this);
             Vertex v2 = toReplace.EndVertex(this);
-
-            // ACHTUNG: sortEdges auswerten!!!
-            if (rawEdges)
-            {   // edges may be in arbitrary order and may have no reference to this face. Also the vertices may be uninitialized
+            if (sortEdges)
+            {   // edges may be in arbitrary order and may have no reference to this face. Also the vertices may be uninitialized.
                 Vertex startHere = v1;
-                for (int i0 = 0; i0 < replaced.Length; i0++)
+                for (int i0 = 0; i0 < replaceBy.Length; i0++)
                 {
-                    for (int i = i0; i < replaced.Length; i++)
+                    for (int i = i0; i < replaceBy.Length; i++)
                     {
-                        if (replaced[i].StartVertex(this) == startHere)
+                        if (replaceBy[i].StartVertex(this) == startHere)
                         {
                             if (i != i0)
                             {
-                                Edge tmp = replaced[i];
-                                replaced[i] = replaced[i0];
-                                replaced[i0] = tmp;
+                                Edge tmp = replaceBy[i];
+                                replaceBy[i] = replaceBy[i0];
+                                replaceBy[i0] = tmp;
                             }
-                            startHere = replaced[i0].EndVertex(this);
+                            startHere = replaceBy[i0].EndVertex(this);
                             break;
                         }
                     }
                 }
             }
-            if (rawEdges)
+            if (sortEdges)
             {
                 List<Edge> sortedEdges = new List<Edge>();
                 Vertex startHere = v1;
-                while (sortedEdges.Count < replaced.Length)
+                while (sortedEdges.Count < replaceBy.Length)
                 {
                     bool found = false;
-                    for (int i = 0; i < replaced.Length; i++)
+                    for (int i = 0; i < replaceBy.Length; i++)
                     {
-                        if (replaced[i].StartVertex(this) == startHere)
+                        if (replaceBy[i].StartVertex(this) == startHere)
                         {
-                            sortedEdges.Add(replaced[i]);
-                            startHere = replaced[i].EndVertex(this);
+                            sortedEdges.Add(replaceBy[i]);
+                            startHere = replaceBy[i].EndVertex(this);
                             found = true;
                             break;
                         }
                     }
                     if (!found) break;
                 }
-                if (sortedEdges.Count == replaced.Length) replaced = sortedEdges.ToArray();
+                if (sortedEdges.Count == replaceBy.Length) replaceBy = sortedEdges.ToArray();
             }
 
-            Vertex v3 = replaced[0].StartVertex(this);
-            Vertex v4 = replaced[replaced.Length - 1].EndVertex(this);
-            vertices = null; // cache stimmt ja nicht mehr
+            Vertex v3 = replaceBy[0].StartVertex(this);
+            Vertex v4 = replaceBy[replaceBy.Length - 1].EndVertex(this);
+            vertices = null; // invalidate cache 
 
-            if (!toReplace.Forward(this) && !rawEdges)
+            if (!toReplace.Forward(this) && !sortEdges)
             {
-                Edge[] subst = replaced.Clone() as Edge[];
+                Edge[] subst = replaceBy.Clone() as Edge[];
                 Array.Reverse(subst);
-                // nicht klar ob folgendes in allen Fällen so gewünscht ist
-                // wird aber beim Aufruf aus Shell.ReduceFaces  so gebraucht
+                // this is needed by Shell.ReduceFaces. Not sure whether it is ok in this way in all other cases
                 if (subst[0].StartVertex(this) != toReplace.StartVertex(this))
                 {
                     if (subst[0].StartVertex(this) != toReplace.EndVertex(this))
@@ -9725,9 +9741,9 @@ namespace CADability.GeoObject
                         subst[i].Reverse(this);
                     }
                 }
-                replaced = subst;
+                replaceBy = subst;
                 v3 = subst[0].StartVertex(this);
-                v4 = subst[replaced.Length - 1].EndVertex(this);
+                v4 = subst[replaceBy.Length - 1].EndVertex(this);
             }
             for (int i = 0; i < outline.Length; ++i)
             {
@@ -9735,7 +9751,7 @@ namespace CADability.GeoObject
                 {
                     List<Edge> subst = new List<Edge>(outline);
                     subst.RemoveAt(i);
-                    subst.InsertRange(i, replaced);
+                    subst.InsertRange(i, replaceBy);
                     outline = subst.ToArray();
                     area = null;
 #if DEBUG
@@ -9752,7 +9768,7 @@ namespace CADability.GeoObject
                     {
                         List<Edge> subst = new List<Edge>(holes[i]);
                         subst.RemoveAt(j);
-                        subst.InsertRange(j, replaced);
+                        subst.InsertRange(j, replaceBy);
                         holes[i] = subst.ToArray();
                         area = null;
 #if DEBUG
@@ -10246,7 +10262,7 @@ namespace CADability.GeoObject
             {
                 int next = i + 1;
                 if (next >= outline.Length) next = 0;
-                if (GetNextEdge(outline[i]) != outline[next]) 
+                if (GetNextEdge(outline[i]) != outline[next])
                     return false;
             }
             for (int i = 0; i < holes.Length; i++)
@@ -10338,7 +10354,8 @@ namespace CADability.GeoObject
                     }
                 }
                 if (tangentialFaces.Count == 2) return true;
-            } else if (Surface is SphericalSurface sph)
+            }
+            else if (Surface is SphericalSurface sph)
             {
                 HashSet<Face> tangentialFaces = new HashSet<Face>();
                 for (int i = 0; i < outline.Length; i++)
@@ -10346,7 +10363,7 @@ namespace CADability.GeoObject
                     if (outline[i].IsTangentialEdge())
                     {
                         if (outline[i].OtherFace(this).Surface is ISurfaceOfArcExtrusion && outline[i].OtherFace(this).IsFillet())
-                            tangentialFaces.Add(outline[i].OtherFace(this)); 
+                            tangentialFaces.Add(outline[i].OtherFace(this));
                     }
                 }
                 // a spherical face can be the connection of three or more fillets
@@ -10674,6 +10691,11 @@ namespace CADability.GeoObject
             }
             else
             {
+#if DEBUG
+                IntegerProperty ip = UserData.GetData("StepImport.ItemNumber") as IntegerProperty;
+                int iv = 0;
+                if (ip != null) iv = ip.IntegerValue;
+#endif
                 StringBuilder boundList = new StringBuilder();
                 int outlnr = StepBound(export, outline);
                 boundList.Append("#" + outlnr.ToString());
@@ -10692,7 +10714,11 @@ namespace CADability.GeoObject
                     orient = ".F.";
                 }
                 else orient = ".T.";
+#if DEBUG
+                int af = export.WriteDefinition("ADVANCED_FACE('" + iv.ToString() + "',(" + boundList.ToString() + "),#" + surfacenr.ToString() + "," + orient + ")");
+#else
                 int af = export.WriteDefinition("ADVANCED_FACE('" + this.NameOrEmpty + "',(" + boundList.ToString() + "),#" + surfacenr.ToString() + "," + orient + ")");
+#endif
                 if (colorDef != null && Owner is IColorDef && (Owner as IColorDef).ColorDef != colorDef)
                 {
                     colorDef.MakeStepStyle(af, export);

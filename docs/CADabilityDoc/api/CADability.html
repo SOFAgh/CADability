@@ -178,6 +178,14 @@ These objects must implement <a class="xref" href="CADability.IFinishDeserializa
       <section></section>
       <h4><a class="xref" href="CADability.GDI2DView.html">GDI2DView</a></h4>
       <section></section>
+      <h4><a class="xref" href="CADability.GeneralSweptCurve.html">GeneralSweptCurve</a></h4>
+      <section><p>A general surface defined by a curve &quot;toSweep&quot;, which is swept along a curve &quot;along&quot;
+The u parameter moves along the curve &quot;toSweep&quot;, the v parameter moves along the curve &quot;along&quot;
+The curve &quot;along&quot; must implement IOrientation: the coordinate system is defined by the direction of &quot;along&quot; at parameter u, which is the z-axis, while the
+OrientationAt(u) is the x-axis</p>
+</section>
+      <h4><a class="xref" href="CADability.GeneralSweptCurve.FixedUCurve.html">GeneralSweptCurve.FixedUCurve</a></h4>
+      <section></section>
       <h4><a class="xref" href="CADability.Geometry.html">Geometry</a></h4>
       <section><p>The class Geometry only contains static methods to solve some basic
 geometric tasks.</p>
@@ -368,6 +376,8 @@ This Class might change in future, so the use of this class is deprecated</p>
 </section>
       <h4><a class="xref" href="CADability.QuadTree-1.html">QuadTree&lt;T&gt;</a></h4>
       <section></section>
+      <h4><a class="xref" href="CADability.RemoveFillet.html">RemoveFillet</a></h4>
+      <section></section>
       <h4><a class="xref" href="CADability.RemovingFromListEventArgs.html">RemovingFromListEventArgs</a></h4>
       <section><p>Used as a parameter in the event <a class="xref" href="CADability.RemovingFromListDelegate.html">RemovingFromListDelegate</a>.
 When handling an appropriate event, you can prevent the object beeing removed from the list.</p>
@@ -413,7 +423,7 @@ the setting will be only available to programming code but not to the user in th
       <section><p>Tries to find a good solution for the (metric) &quot;travelling salesman problem&quot;.
 This is still prliminary and may change in future.</p>
 </section>
-      <h4><a class="xref" href="CADability.SweptPlanarCurve.html">SweptPlanarCurve</a></h4>
+      <h4><a class="xref" href="CADability.SweptArc.html">SweptArc</a></h4>
       <section></section>
       <h4><a class="xref" href="CADability.ToIArray-1.html">ToIArray&lt;T&gt;</a></h4>
       <section><p>Convert a simple one dimensional array to an IArray
@@ -669,9 +679,6 @@ Objekte, die IQuadTreeInsertable unterstützen.</p>
       <h4><a class="xref" href="CADability.DisplayChangeArg.Reasons.html">DisplayChangeArg.Reasons</a></h4>
       <section><p>Reason</p>
 </section>
-      <h4><a class="xref" href="CADability.Edge.EdgeKind.html">Edge.EdgeKind</a></h4>
-      <section><p>Kind of the edge</p>
-</section>
       <h4><a class="xref" href="CADability.GeoVectorException.tExceptionType.html">GeoVectorException.tExceptionType</a></h4>
       <section><p>Type of exception.</p>
 </section>
@@ -689,7 +696,7 @@ Objekte, die IQuadTreeInsertable unterstützen.</p>
       <section><p>Units</p>
 </section>
       <h4><a class="xref" href="CADability.ModelView.BackgroungTaskHandled.html">ModelView.BackgroungTaskHandled</a></h4>
-      <section><p>Which backgroung paint tasks were handled by the PrePaintBackground event (flags, combine with &quot;|&quot;)</p>
+      <section><p>Which background paint tasks were handled by the PrePaintBackground event (flags, combine with &quot;|&quot;)</p>
 </section>
       <h4><a class="xref" href="CADability.ModOp.ModificationMode.html">ModOp.ModificationMode</a></h4>
       <section><p>Kind of operation</p>

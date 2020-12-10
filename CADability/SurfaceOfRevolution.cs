@@ -43,82 +43,11 @@ namespace CADability.GeoObject
             axisLocation = toSurface * GeoPoint.Origin;
             axisDirection = toSurface * GeoVector.YAxis;
         }
-        public SurfaceOfRevolution(ICurve basisCurve, GeoPoint axisLocation, GeoVector axisDirection, double curveStartParameter, double curveEndParameter, GeoPoint? axisRefPoint = null) : base()
+        public SurfaceOfRevolution(ICurve basisCurve, GeoPoint axisLocation, GeoVector axisDirection) : base()
         {
             this.axisLocation = axisLocation;
             this.axisDirection = axisDirection;
             curveToRotate = basisCurve;
-            return;
-            // old code of the old implementation
-            this.curveEndParameter = curveEndParameter;
-            this.curveStartParameter = curveStartParameter;
-            // curveStartParameter und curveEndParameter haben folgenden Sinn: 
-            // der Aufrufer werwartet ein bestimmtes u/v System. 
-            // in u ist es die Kreisbewegung, in v ist es die Kurve (andersrum als bei SurfaceOfLinearExtrusion)
-            // curveStartParameter und curveEndParameter definieren die Lage von v, die Lage von u ist durch die Ebene
-            // bestimmt
-            // finden der Hauptebene, in der alles stattfindet. Die ist gegeben durch die Achse und die Kurve
-            Plane pln;
-            if (axisRefPoint.HasValue)
-            {
-                GeoPoint cnt = Geometry.DropPL(axisRefPoint.Value, axisLocation, axisDirection);
-                pln = new Plane(axisLocation, axisRefPoint.Value - cnt, axisDirection);
-            }
-            else
-            {
-                double ds = Geometry.DistPL(basisCurve.StartPoint, axisLocation, axisDirection);
-                double de = Geometry.DistPL(basisCurve.EndPoint, axisLocation, axisDirection);
-                if (ds > de && ds > Precision.eps)
-                {
-                    GeoPoint cnt = Geometry.DropPL(basisCurve.StartPoint, axisLocation, axisDirection);
-                    pln = new Plane(axisLocation, basisCurve.StartPoint - cnt, axisDirection);
-                }
-                else if (de >= ds && de > Precision.eps)
-                {
-                    GeoPoint cnt = Geometry.DropPL(basisCurve.EndPoint, axisLocation, axisDirection);
-                    pln = new Plane(axisLocation, basisCurve.EndPoint - cnt, axisDirection);
-                }
-                else if (basisCurve.GetPlanarState() == PlanarState.Planar)
-                {
-                    Plane ppln = basisCurve.GetPlane();
-                    GeoVector dirx = ppln.Normal ^ axisDirection; // richtig rum?
-                    pln = new Plane(axisLocation, dirx, axisDirection);
-                }
-                else if (basisCurve.GetPlanarState() == PlanarState.UnderDetermined)
-                {
-                    pln = new Plane(axisLocation, basisCurve.StartDirection, axisDirection);
-                }
-                else
-                {   // es könnte sein, dass die ganze Fläche singulär ist
-                    // dann kann man nichts machen, sollte aber nicht vorkommen
-                    throw new SurfaceOfRevolutionException("Surface is invalid");
-                }
-            }
-            // pln hat jetzt den Ursprung bei axisLocation, die y-Achse ist axisDirection und die x-Achse durch die
-            // Kurve gegeben
-            // die Orientierung scheint mir noch fraglich, wierum wird gedreht, wierum läuft u
-            basisCurve2D = basisCurve.GetProjectedCurve(pln);
-            // ACHTUNG "Parameterproblem": durch die Projektion der Kurve verschiebt sich bei Kreisen der Parameterraum
-            // da 2D Kreise bzw. Bögen keine Achse haben und sich immer auf die X-Achse beziehen
-            if (basisCurve2D is Arc2D)
-            {
-                curveParameterOffset = (basisCurve2D as Arc2D).StartParameter - this.curveStartParameter;
-            }
-            else if (basisCurve2D is BSpline2D)
-            {   // beim BSpline fängt der Parameter im 3D bei knots[0] an, welches gleich this.curveStartParameter ist
-                // curveParameterOffset = this.curveStartParameter;
-                // wenn man einen geschlossenen Spline um eine Achse rotieren lässt
-                // dann entsteht mit obiger Zeile ein Problem, mit dieser jedoch nicht:
-                curveParameterOffset = (basisCurve2D as BSpline2D).Knots[0];
-            }
-            else
-            {
-                curveParameterOffset = 0.0;
-            }
-            toSurface = ModOp.Fit(new GeoPoint[] { GeoPoint.Origin, GeoPoint.Origin + GeoVector.XAxis, GeoPoint.Origin + GeoVector.YAxis },
-                                  new GeoPoint[] { axisLocation, axisLocation + pln.DirectionX, axisLocation + pln.DirectionY }, false);
-            fromSurface = toSurface.GetInverse();
-
         }
         /// <summary>
         /// Returns the location of the axis of revolution
@@ -250,7 +179,7 @@ namespace CADability.GeoObject
         {
             if (curveToRotate != null)
             {
-                return base.PositionOf(p);
+                return base.PositionOf(p); // we could do better here!
             }
             GeoPoint unit = fromSurface * p;
             double u = Math.Atan2(-unit.z, unit.x);
@@ -389,30 +318,43 @@ namespace CADability.GeoObject
                 Line2D l2d = curve2d as Line2D;
                 GeoVector2D dir = l2d.EndPoint - l2d.StartPoint;
                 if (Math.Abs(dir.x) < Precision.eps)
-                {   // die Basiskurve selbst, da nur v läuft
-                    ModOp rot = ModOp.Rotate(1, (SweepAngle)l2d.StartPoint.x);
+                {   
                     ICurve res;
                     if (curveToRotate != null)
-                    {   // new implementation
-                        res = curveToRotate;
-                    }
-                    else
-                    {
-                        res = basisCurve2D.MakeGeoObject(Plane.XYPlane) as ICurve;
-                    }
-                    res = res.CloneModified(toSurface * rot);
-                    double pos1 = GetPos(l2d.StartPoint.y);
-                    double pos2 = GetPos(l2d.EndPoint.y);
-                    if (pos2 < pos1)
-                    {   // läuft von "oben nach unten"
-                        res.Reverse();
-                        res.Trim(1.0 - pos1, 1.0 - pos2);
+                    {   // new implementation: part of the rotated curveToRotate
+                        ModOp rot = ModOp.Rotate(axisLocation, axisDirection, (SweepAngle)l2d.StartPoint.x);
+                        res = curveToRotate.CloneModified(rot);
+                        double spos = curveToRotate.ParameterToPosition(l2d.StartPoint.y);
+                        double epos = curveToRotate.ParameterToPosition(l2d.EndPoint.y);
+                        if (spos > epos)
+                        {
+                            res.Trim(epos, spos);
+                            res.Reverse();
+                        }
+                        else
+                        {
+                            res.Trim(spos, epos);
+                        }
                         return res;
                     }
                     else
                     {
-                        res.Trim(pos1, pos2);
-                        return res;
+                        ModOp rot = ModOp.Rotate(1, (SweepAngle)l2d.StartPoint.x);
+                        res = (basisCurve2D.MakeGeoObject(Plane.XYPlane) as ICurve).CloneModified(toSurface);
+                        res = res.CloneModified(rot);
+                        double pos1 = GetPos(l2d.StartPoint.y);
+                        double pos2 = GetPos(l2d.EndPoint.y);
+                        if (pos2 < pos1)
+                        {   // läuft von "oben nach unten"
+                            res.Reverse();
+                            res.Trim(1.0 - pos1, 1.0 - pos2);
+                            return res;
+                        }
+                        else
+                        {
+                            res.Trim(pos1, pos2);
+                            return res;
+                        }
                     }
                 }
                 else if (Math.Abs(dir.y) < Precision.eps)
@@ -560,7 +502,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface Clone()
         {
-            if (curveToRotate != null) return new SurfaceOfRevolution(curveToRotate, Location, Axis, curveStartParameter, curveEndParameter);
+            if (curveToRotate != null) return new SurfaceOfRevolution(curveToRotate, Location, Axis);
             return new SurfaceOfRevolution(basisCurve2D.Clone(), toSurface, curveStartParameter, curveEndParameter, curveParameterOffset);
         }
         /// <summary>
@@ -1274,7 +1216,7 @@ namespace CADability.GeoObject
                 GeoPoint cnt = Geometry.DropPL(sp, Location, Axis);
                 Plane pln = new Plane(cnt, Axis);
                 Ellipse res = Ellipse.Construct();
-                res.SetArcPlaneCenterStartEndPoint(pln, GeoPoint2D.Origin, pln.Project(sp), pln.Project(ep), pln, true);
+                res.SetArcPlaneCenterStartEndPoint(pln, GeoPoint2D.Origin, pln.Project(sp), pln.Project(ep), pln, umin > umax);
                 return res;
             }
             GeoPoint2D p2d = basisCurve2D.PointAt(GetPos(v));
