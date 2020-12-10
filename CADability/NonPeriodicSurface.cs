@@ -10,8 +10,8 @@ namespace CADability.GeoObject
         double a, b; // offset and factor for mapping a + b*par => [0, 1] when there is a pole or [0.5, 1.5] without pole
         bool hasPole;
         /// <summary>
-        /// Non-periodic surface made from a periodic surface. The periodic surface must be periodic in u or in v and may have a pole at the minimum or maximum of the
-        /// non periodic parameter
+        /// Non-periodic surface made from a underlying periodic surface. The underlying periodic surface must be periodic in u or in v and may have a pole at the minimum or maximum of the
+        /// non periodic parameter. The underlying periodic surface may also be non periodic but have one singularity, which will be removed
         /// </summary>
         /// <param name="periodicSurface"></param>
         /// <param name="vmin"></param>
