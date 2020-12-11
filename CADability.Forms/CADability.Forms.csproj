@@ -86,6 +86,13 @@
   <ItemGroup>
     <Compile Include="BitmapTable.cs" />
     <Compile Include="ButtonImages.cs" />
+    <Compile Include="CadControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="CadControl.Designer.cs">
+      <DependentUpon>CadControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CadFrame2.cs" />
     <Compile Include="CadFrame.cs" />
     <Compile Include="CadCanvas.cs">
       <SubType>Component</SubType>
@@ -114,6 +121,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ToolBars.cs" />
+    <EmbeddedResource Include="CadControl.resx">
+      <DependentUpon>CadControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="CadForm.resx">
       <DependentUpon>CadForm.cs</DependentUpon>
     </EmbeddedResource>

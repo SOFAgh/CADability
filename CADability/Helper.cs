@@ -20,7 +20,7 @@ namespace CADability
         /// <returns>the closest object or a default object (which is null for classes)</returns>
         public static T GetClosest<T>(IEnumerable<T> allObjects, Func<T, double> distance)
         {
-            T res = default;
+            T res = default(T);
             double mindist = double.MaxValue;
             if (allObjects != null)
             {
