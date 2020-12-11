@@ -209,7 +209,7 @@ namespace CADability.Curve2D
         /// <returns>positions found</returns>
         double[] TangentPointsToAngle(GeoVector2D direction);
         /// <summary>
-        /// Returns a list of onflection points of this curve. Teh list might be empty
+        /// Returns a list of inflection points of this curve. The list might be empty
         /// </summary>
         /// <returns>List of inflection points</returns>
         double[] GetInflectionPoints();
@@ -3249,7 +3249,8 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual ICurve2D GetFused(ICurve2D toFuseWith, double precision)
         {
-            throw new Exception("The method or operation is not implemented.");
+            return null; // should be implemented
+            // throw new Exception("The method or operation is not implemented.");
         }
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.TryPointDeriv2At (double, out GeoPoint2D, out GeoVector2D, out GeoVector2D)"/>

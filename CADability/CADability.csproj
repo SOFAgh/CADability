@@ -7,12 +7,12 @@
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;xPARALLEL,TESTNEWCONTEXTMENU</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;xPARALLEL,TESTNEWCONTEXTMENU</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;xPARALLEL, TESTNEWCONTEXTMENU</DefineConstants>
+    <DefineConstants>xPARALLEL, TESTNEWCONTEXTMENU</DefineConstants>
     <Optimize>false</Optimize>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>

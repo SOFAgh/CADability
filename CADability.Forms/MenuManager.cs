@@ -262,10 +262,6 @@ namespace CADability.Forms
                     else
                         textBrush = SystemBrushes.WindowText;
                     e.Graphics.DrawString(this.Text, SystemInformation.MenuFont, textBrush, TextX, TextY, sf);
-                    //if (!Enabled)
-                    //    e.Graphics.DrawString(this.Text,SystemInformation.MenuFont,SystemBrushes.FromSystemColor(SystemColors.GrayText),TextX,TextY,sf);
-                    //else
-                    //    e.Graphics.DrawString(this.Text,SystemInformation.MenuFont,SystemBrushes.WindowText,TextX,TextY,sf);
                 }
                 else
                 {
@@ -322,7 +318,7 @@ namespace CADability.Forms
                     {
                         if (definition.ImageIndex < 0)
                         {
-                            ButtonImages.ButtonImageList.Draw(e.Graphics, e.Bounds.Left + 3, e.Bounds.Top + 3, 84); // das ist das rote Häckchen
+                            ButtonImages.ButtonImageList.Draw(e.Graphics, e.Bounds.Left + 3, e.Bounds.Top + 3, 84); // the red check mark
                         }
                         int x1 = e.Bounds.Left + 1;
                         int y1 = e.Bounds.Top + 1;

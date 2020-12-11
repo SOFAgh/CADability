@@ -574,12 +574,12 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.CadForm.OnCommand
   nameWithType: CadForm.OnCommand
-- uid: CADability.Forms.CadForm.OnSelected(System.String,System.Boolean)
-  name: OnSelected(String, Boolean)
-  href: api/CADability.Forms.CadForm.html#CADability_Forms_CadForm_OnSelected_System_String_System_Boolean_
-  commentId: M:CADability.Forms.CadForm.OnSelected(System.String,System.Boolean)
-  fullName: CADability.Forms.CadForm.OnSelected(System.String, System.Boolean)
-  nameWithType: CadForm.OnSelected(String, Boolean)
+- uid: CADability.Forms.CadForm.OnSelected(CADability.UserInterface.MenuWithHandler,System.Boolean)
+  name: OnSelected(MenuWithHandler, Boolean)
+  href: api/CADability.Forms.CadForm.html#CADability_Forms_CadForm_OnSelected_CADability_UserInterface_MenuWithHandler_System_Boolean_
+  commentId: M:CADability.Forms.CadForm.OnSelected(CADability.UserInterface.MenuWithHandler,System.Boolean)
+  fullName: CADability.Forms.CadForm.OnSelected(CADability.UserInterface.MenuWithHandler, System.Boolean)
+  nameWithType: CadForm.OnSelected(MenuWithHandler, Boolean)
 - uid: CADability.Forms.CadForm.OnSelected*
   name: OnSelected
   href: api/CADability.Forms.CadForm.html#CADability_Forms_CadForm_OnSelected_

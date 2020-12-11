@@ -559,8 +559,12 @@ namespace CADability
         {
             return (x == 0.0 && y == 0.0 && z == 0.0);
         }
+        public bool IsValid()
+        {
+            return !double.IsNaN(x);
+        }
         /// <summary>
-        /// Determins whether this vector and the othe vector are perpendicular. Use <see cref="Precision.IsPerpendicular"/>
+        /// Determines whether this vector and the othe vector are perpendicular. Use <see cref="Precision.IsPerpendicular"/>
         /// if you need more control over precision.
         /// </summary>
         /// <param name="other">other vector</param>
@@ -860,7 +864,7 @@ namespace CADability
         {
             return new GeoVector2D(x, y);
         }
-        internal void ArbitraryNormals(out GeoVector dirx, out GeoVector diry)
+        public void ArbitraryNormals(out GeoVector dirx, out GeoVector diry)
         {
             switch (MainDirection)
             {

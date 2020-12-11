@@ -109,7 +109,7 @@
       <h4><a class="xref" href="CADability.UserInterface.DimensionStyleSelectionPropertyException.html">DimensionStyleSelectionPropertyException</a></h4>
       <section></section>
       <h4><a class="xref" href="CADability.UserInterface.DoubleHotSpot.html">DoubleHotSpot</a></h4>
-      <section><p>Implements a hotspot <a class="xref" href="CADability.IHotSpot.html">IHotSpot</a> to manipulate a lenth via a length property</p>
+      <section><p>Implements a hotspot <a class="xref" href="CADability.IHotSpot.html">IHotSpot</a> to manipulate a length via a length property</p>
 </section>
       <h4><a class="xref" href="CADability.UserInterface.DoubleProperty.html">DoubleProperty</a></h4>
       <section></section>
@@ -171,8 +171,10 @@ and its applications to compose the main menu, popup and context menues.</p>
       <h4><a class="xref" href="CADability.UserInterface.MenuWithHandler.html">MenuWithHandler</a></h4>
       <section><p>A simple structure describing a menu or an menu item (without the use of Windows.Forms).
 If <a class="xref" href="CADability.UserInterface.MenuWithHandler.html#CADability_UserInterface_MenuWithHandler_ID">ID</a> is null, this is a main menu, if <a class="xref" href="CADability.UserInterface.MenuWithHandler.html#CADability_UserInterface_MenuWithHandler_SubMenus">SubMenus</a> is null, it is a simple menu item.
-If <a class="xref" href="CADability.UserInterface.MenuWithHandler.html#CADability_UserInterface_MenuWithHandler_SubMenus">SubMenus</a> is not null, this structur contains a list of submenus.
-This structure must be converted to a platform dependant menue and displayed accordingly.</p>
+If <a class="xref" href="CADability.UserInterface.MenuWithHandler.html#CADability_UserInterface_MenuWithHandler_SubMenus">SubMenus</a> is not null, this structure contains a list of sub-menus.
+This structure must be converted to a platform dependent menu and displayed accordingly.
+The selection of the menu item is handled by <a class="xref" href="CADability.UserInterface.MenuWithHandler.html#CADability_UserInterface_MenuWithHandler_Target">Target</a>, but it can also be handled directly by setting <a class="xref" href="CADability.UserInterface.MenuWithHandler.html#CADability_UserInterface_MenuWithHandler_OnCommand">OnCommand</a>
+( and <a class="xref" href="CADability.UserInterface.MenuWithHandler.html#CADability_UserInterface_MenuWithHandler_OnUpdateCommand">OnUpdateCommand</a> and  <a class="xref" href="CADability.UserInterface.MenuWithHandler.html#CADability_UserInterface_MenuWithHandler_OnSelected">OnSelected</a>).</p>
 </section>
       <h4><a class="xref" href="CADability.UserInterface.ModelsProperty.html">ModelsProperty</a></h4>
       <section><p>The <a class="xref" href="CADability.UserInterface.IShowProperty.html">IShowProperty</a> implementation for the models contained in a <a class="xref" href="CADability.UserInterface.ModelsProperty.html#CADability_UserInterface_ModelsProperty_Project">Project</a>.</p>
@@ -231,6 +233,8 @@ for this group entry. All subentries must be added before this group entry is di
       <h4><a class="xref" href="CADability.UserInterface.ShowPropertyPolyline.html">ShowPropertyPolyline</a></h4>
       <section><p>Shows the properties of a polyline.</p>
 </section>
+      <h4><a class="xref" href="CADability.UserInterface.SimpleMenuCommand.html">SimpleMenuCommand</a></h4>
+      <section></section>
       <h4><a class="xref" href="CADability.UserInterface.SimplePropertyGroup.html">SimplePropertyGroup</a></h4>
       <section><p>A simple container for several <a class="xref" href="CADability.UserInterface.IShowProperty.html">IShowProperty</a> entries in the
 treeview of the controlcenter. Add subentries to this group before the group

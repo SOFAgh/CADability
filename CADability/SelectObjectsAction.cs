@@ -313,7 +313,7 @@ namespace CADability.Actions
         /// Method definition of the <see cref="ClickOnSelectedObjectEvent"/>
         /// </summary>
         /// <param name="selected">The object on which the click occurred.</param>
-        /// <param name="vw">The <see cref="IView">view</see> in which the click happend</param>
+        /// <param name="vw">The <see cref="IView">view</see> in which the click happened</param>
         /// <param name="e">The original MouseEventArgs propagated from the mouse event</param>
         /// <param name="handled">If handled set to true by the handler of the event, no further action will be performed.</param>
         public delegate void ClickOnSelectedObjectDelegate(IGeoObject selected, IView vw, MouseEventArgs e, ref bool handled);

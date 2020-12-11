@@ -862,15 +862,10 @@ namespace CADability.Forms
                     Gl.glColor4ub(255, 255, 255, color.A);
                 else
                     Gl.glColor4ub(0, 0, 0, color.A);
-                //byte R = (byte)((color.R + 128) % 256);
-                //byte G = (byte)((color.G + 128) % 256);
-                //byte B = (byte)((color.B + 128) % 256);
-                //Gl.glColor4ub(R, G, B, color.A);
             }
             else
             {
                 Gl.glColor4ub(color.R, color.G, color.B, color.A);
-                //Gl.glColor4ub(color.R, color.G, color.B, 120);
             }
             CheckError();
         }

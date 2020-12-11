@@ -100,6 +100,10 @@ namespace CADability.GeoObject
                 return toCylinder * GeoVector.ZAxis;
             }
         }
+        public Line AxisLine(double vmin, double vmax)
+        {
+            return Line.TwoPoints(toCylinder * new GeoPoint(0, 0, vmin), toCylinder * new GeoPoint(0, 0, vmax));
+        }
         #region ISurfaceImpl Overrides
         internal override ICurve2D CurveToHelper(ICurve2D original)
         {

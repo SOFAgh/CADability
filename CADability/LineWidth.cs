@@ -91,6 +91,7 @@ namespace CADability.Attribute
                 }
             }
         }
+        static public LineWidth ThinLine = new LineWidth();
         private void FireDidChange(string propertyName, object propertyOldValue)
         {   // Eine Eigenschaft hat sich geändert.
             // Wird an parent weitergeleitet

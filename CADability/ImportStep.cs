@@ -1439,12 +1439,38 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 }
                 catch (SyntaxError e)
                 {
+#if DEBUG
                     System.Diagnostics.Trace.WriteLine(e.Message);
+#endif
                     importProblems[0] = "SyntaxError: " + e.Message;
                 }
             }
             FrameImpl.MainFrame.UIService.ShowProgressBar(false);
+#if DEBUG
             System.Diagnostics.Trace.WriteLine("Finished step read" + Environment.TickCount.ToString());
+#endif
+#if DEBUG
+            for (int i = 0; i < res.Count; i++)
+            {
+                Shell shell = null;
+                if (res[i] is Shell sh) shell = sh;
+                if (res[i] is Solid sld) shell = sld.Shells[0];
+                if (shell!=null)
+                {
+                    if (!shell.CheckConsistency())
+                    {
+
+                    }
+                    foreach (Face face in shell.Faces)
+                    {
+                        if (face.GetHashCode()==2472)
+                        {
+                            face.AssureTriangles(0.005);
+                        }
+                    }
+                }
+            }
+#endif
             return res;
         }
 #if DEBUG
@@ -1833,7 +1859,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (19022 == item.definingIndex || 86562 == item.definingIndex)
+            if (194125 == item.definingIndex)
             {
 
             }
@@ -2154,9 +2180,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         }
                                     }
                                 }
-                                shell.TryConnectOpenEdges();
+                                shell.CloseOpenEdges(edgesToRepair);
                             }
-                            if (!shell.HasOpenEdgesExceptPoles())
+                            
+                            if (shell.OpenEdgesExceptPoles.Length==0)
                             {
                                 Solid sld = Solid.Construct();
                                 sld.SetShell(shell);
@@ -2273,7 +2300,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (39074 == item.definingIndex)
+                            //if (7890 == item.definingIndex || 9868 == item.definingIndex || 11534 == item.definingIndex)
+                            if (12496 == item.definingIndex)
+                            
                             {
                             }
 #endif
@@ -2291,14 +2320,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (surface != null && bounds.Count > 0)
                                 {
                                     item.val = Face.MakeFacesFromStepAdvancedFace(surface, bounds, item.parameter["same_sense"].bval, precision);
-                                
+
                                 }
                                 else item.val = null;
                                 if (item.val is Face[] && (item.val as Face[]).Length > 0)
                                 {
                                     for (int i = 0; i < (item.val as Face[]).Length; i++)
                                     {
-                                        (item.val as Face[])[i].Name = item.SubString(0);
+                                        Face fc = (item.val as Face[])[i];
+                                        fc.Name = item.SubString(0);
+
 #if DEBUG
                                         if (faceCount % 1000 == 0)
                                         {
@@ -2335,6 +2366,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 }
                             }
                             catch (Exception ex)
+                            
                             {
                                 item.val = null;
                                 item.val = bounds; // save the bounds, maybe we can reconstruct the face later
@@ -2577,7 +2609,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     }
                                     if (srf == null)
                                     {
-                                        srf = new SurfaceOfRevolution(crv, ((FreeCoordSys)o).Location, ((FreeCoordSys)o).DirectionZ, 0.0, 1.0);
+                                        srf = new SurfaceOfRevolution(crv, ((FreeCoordSys)o).Location, ((FreeCoordSys)o).DirectionZ);
                                     }
                                 }
                             }
@@ -2780,7 +2812,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     double ep = crv.PositionOf(v2.Position);
                                     if (sp >= -1e-6 && sp <= 1 + 1e-6 && ep >= -1e-6 && ep <= 1 + 1e-6)
                                     {
-                                        if (Math.Abs(sp - ep) < 1e-6)
+                                        if (Math.Abs(sp - ep) < 1e-8) // changed to 1e-8, because there are valid ellipses with very small arcs out there (20015-001-002_ELE_ASM.stp)
                                         {
                                             // this is typically a full circle or ellipse
                                             if (sp != 0.0 && crv is Ellipse)
@@ -2805,7 +2837,24 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                                 }
                                             }
                                         }
-                                        else if (sp < ep) crv.Trim(sp, ep);
+                                        else if (sp < ep)
+                                        {
+                                            crv.Trim(sp, ep);
+                                            if (crv is BSpline)
+                                            {   // make it more precise: setting the first and last pole
+                                                crv.StartPoint = v1.Position;
+                                                crv.EndPoint = v2.Position;
+                                            }
+                                            else if (crv is Ellipse elli)
+                                            {   // when the ellipse is trimmed there might be a big error, especially when the two radii differ very much
+                                                // so here we need to correct the ellipse (as in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp)
+                                                double error = (crv.StartPoint | v1.Position) + (crv.EndPoint | v2.Position);
+                                                if (error>elli.Length*1e-2)
+                                                {
+                                                    elli.SetElliStartEndPoint(v1.Position, v2.Position);
+                                                }
+                                            }
+                                        }
                                         else
                                         {
                                             if (crv is Ellipse)
@@ -3196,7 +3245,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             {
                                 double majorRadius = item.parameter["semi_axis_1"].fval;
                                 double minorRadius = item.parameter["semi_axis_2"].fval;
-                                item.val = new Ellipse2D(sys2.First, majorRadius*sys2.Second, minorRadius * sys2.Second.ToLeft());
+                                item.val = new Ellipse2D(sys2.First, majorRadius * sys2.Second, minorRadius * sys2.Second.ToLeft());
                             }
                             else
                             {
@@ -4181,6 +4230,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             BSpline bsp1 = bsp.TrimParam(bsp.Knots[1], bsp.Knots[bsp.Knots.Length - 2]);
                             return bsp1;
                         }
+                        else if (bsp.Knots.Length>6)
+                        {
+                            k1 = bsp.PointAtParam(bsp.Knots[2]);
+                            k2 = bsp.PointAtParam(bsp.Knots[bsp.Knots.Length - 3]);
+                            if (Precision.IsEqual(k1, k2))
+                            {
+                                BSpline bsp1 = bsp.TrimParam(bsp.Knots[2], bsp.Knots[bsp.Knots.Length - 3]);
+                                return bsp1;
+                            }
+                        }
                         double[] si = (bsp as ICurve).GetSelfIntersections();
                         if (si.Length == 2)
                         {
@@ -4188,6 +4247,25 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             (bsp1 as ICurve).Trim(si[0], si[1]);
                             return bsp1;
                         }
+                    }
+                    double poleLength = 0.0;
+                    for (int i = 0; i < bsp.PoleCount-1; i++)
+                    {
+                        poleLength += bsp.Poles[i] | bsp.Poles[i + 1];
+                    }
+                    int knotCount = bsp.Knots.Length;
+                    double knotLength = bsp.Knots[knotCount - 1] - bsp.Knots[0];
+                    if ((bsp.Poles[0] | bsp.Poles[1])<poleLength*1e-6 || (bsp.Poles[bsp.PoleCount-1] | bsp.Poles[bsp.PoleCount - 1]) < poleLength * 1e-6 ||
+                        (bsp.Knots[1]-bsp.Knots[0])<knotLength*1e-6 || (bsp.Knots[knotCount-1] - bsp.Knots[knotCount - 2]) < knotLength * 1e-6)
+                    {
+                        int n = bsp.PoleCount + bsp.degree;
+                        GeoPoint[] throughPoints = new GeoPoint[n];
+                        for (int i = 0; i < n; i++)
+                        {
+                            throughPoints[i] = (bsp as ICurve).PointAt(i / (double)(n - 1));
+                        }
+                        BSpline res = BSpline.Construct();
+                        if (res.ThroughPoints(throughPoints, 3, closed)) return res;
                     }
 
                     return bsp;
@@ -4264,11 +4342,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     break;
             }
 
-            double uMinRestrict = 0.0, uMaxRestrict = 0.0, vMinRestrict = 0.0, vMaxRestrict = 0.0; // restriction for periodic                         
+            double uMinRestrict = 0.0, uMaxRestrict = 0.0, vMinRestrict = 0.0, vMaxRestrict = 0.0; // restriction for periodic                 
             if (uClosed)
             {
                 double v = (vKnots[0] + vKnots[vKnots.Length - 1]) / 2.0;
-                ICurve fv = res.FixedV(v, uKnots[0], uKnots[uKnots.Length - 1]);
+                ICurve fv = res.FixedV(v, res.UKnots[0], res.UKnots[res.UKnots.Length - 1]);
                 double[] si = fv.GetSelfIntersections();
                 int bestPair = -1;
                 double minDist = double.MaxValue;
@@ -4290,7 +4368,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (vClosed)
             {
                 double u = (uKnots[0] + uKnots[uKnots.Length - 1]) / 2.0;
-                ICurve fu = res.FixedU(u, vKnots[0], vKnots[vKnots.Length - 1]);
+                ICurve fu = res.FixedU(u, res.VKnots[0], res.VKnots[res.VKnots.Length - 1]);
                 double[] si = fu.GetSelfIntersections();
                 int bestPair = -1;
                 double minDist = double.MaxValue;

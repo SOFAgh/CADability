@@ -37,15 +37,46 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                //ExtendBSpline();
-                //SomeTestCode();
-                //TestVoxelTree();
-                DrawUVGrid();
+                TestSphereNP();
                 return true;
             }
             return false;
         }
-
+        private void TestSurfaceOfRevolution()
+        {
+            GeoVector dx = new GeoVector(-0.707, 0.707, 0.000);
+            GeoVector dz = new GeoVector(0.707, 0.707, 0.000);
+            GeoVector dy = dz ^ dx;
+            Plane p = new Plane(new GeoPoint(17.401, 44.608, -2.111), dx, dy);
+            Ellipse c = Ellipse.Construct();
+            c.SetArc3Points(new GeoPoint(17.401, 44.608, -2.412), new GeoPoint(17.254, 44.754, -2.329), new GeoPoint(17.188, 44.820, -2.126), p);
+            double sp = (c as ICurve).PositionToParameter(0.0);
+            double ep = (c as ICurve).PositionToParameter(1.0);
+            SurfaceOfRevolution surf = new SurfaceOfRevolution(c, new GeoPoint(21.407, 40.602, -2.111), new GeoVector(0.000, 0.000, -1.000));
+            List<Curve2D.ICurve2D> border = new List<Curve2D.ICurve2D>();
+            border.Add(new Curve2D.Line2D(new GeoPoint2D(3.859, sp), new GeoPoint2D(3.859, ep)));
+            border.Add(new Curve2D.Line2D(new GeoPoint2D(3.859, ep), new GeoPoint2D(2.424, ep)));
+            border.Add(new Curve2D.Line2D(new GeoPoint2D(2.424, ep), new GeoPoint2D(2.424, sp)));
+            border.Add(new Curve2D.Line2D(new GeoPoint2D(2.424, sp), new GeoPoint2D(3.859, sp)));
+            List<List<Curve2D.ICurve2D>> edges = new List<List<Curve2D.ICurve2D>>();
+            edges.Add(border);
+            Face f = Face.MakeFace(surf, edges);
+        }
+        private void TestSphereNP()
+        {
+            GeoVector a = new GeoVector(100, 100, 100);
+            a.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+            SphericalSurfaceNP ss = new SphericalSurfaceNP(new GeoPoint(50, 50, 50), 100*dirx.Normalized, 100 * diry.Normalized, 100 * a.Normalized);
+            //SphericalSurfaceNP ss = new SphericalSurfaceNP(new GeoPoint(50, 50, 50), 100* GeoVector.XAxis, 100 * GeoVector.YAxis, 100 * GeoVector.ZAxis);
+            GeoObjectList dbg = ss.DebugDirectionsGrid;
+            GeoPoint pp = ss.PointAt(new GeoPoint2D(-3, 4));
+            GeoPoint2D po = ss.PositionOf(pp);
+        }
+        private void CloseShell()
+        {
+            if (frame.SelectedObjects.Count == 1 && frame.SelectedObjects[0] is Shell shell)
+                shell.CloseOpenEdges();
+        }
         private void TestParametrics()
         {
             if (frame.SelectedObjects.Count==1 && frame.SelectedObjects[0] is Face face && face.Owner is Shell shell)

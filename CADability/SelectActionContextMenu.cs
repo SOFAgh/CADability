@@ -139,6 +139,74 @@ namespace CADability
                 mh.Target = this;
                 cm.Add(mh);
             }
+            {   // selection independent menu items
+                MenuWithHandler mh = new MenuWithHandler();
+                mh.ID = "MenuId.Show";
+                mh.Text = StringTable.GetString("MenuId.Show", StringTable.Category.label);
+                MenuWithHandler mhShowHidden = new MenuWithHandler();
+                mhShowHidden.ID = "MenuId.ShowHidden";
+                mhShowHidden.Text = StringTable.GetString("MenuId.ShowHidden", StringTable.Category.label);
+                mhShowHidden.OnCommand = (menuId) =>
+                {
+                    foreach (IGeoObject geoObject in vw.Model)
+                    {
+                        if (geoObject.Layer != null && geoObject.Layer.Name == "CADability.Hidden")
+                        {
+                            Layer layer = geoObject.UserData.GetData("CADability.OriginalLayer") as Layer;
+                            if (layer != null) geoObject.Layer = layer;
+                        }
+                    }
+                    return true;
+                };
+                MenuWithHandler mhShowAxis = new MenuWithHandler();
+                mhShowAxis.ID = "MenuId.ShowAxis";
+                mhShowAxis.Text = StringTable.GetString("MenuId.ShowAxis", StringTable.Category.label);
+                mhShowAxis.OnCommand = (menuId) =>
+                {
+                    bool isOn = false;
+                    foreach (IGeoObject geoObject in vw.Model)
+                    {
+                        Shell shell = null;
+                        if (geoObject is Solid solid) shell = solid.Shells[0];
+                        else if (geoObject is Shell sh) shell = sh;
+                        if (shell != null && shell.FeatureAxis.Count > 0)
+                        {
+                            isOn = shell.FeatureAxis[0].IsVisible;
+                            break;
+                        }
+                    }
+
+                    using (vw.Canvas.Frame.Project.Undo.UndoFrame)
+                    {
+                        foreach (IGeoObject geoObject in vw.Model)
+                        {
+                            if (geoObject is Solid solid) solid.ShowFeatureAxis = !isOn;
+                            else if (geoObject is Shell shell) shell.ShowFeatureAxis = !isOn;
+                        }
+                    }
+                    return true;
+                };
+                mhShowAxis.OnUpdateCommand = (menuId, commandState) =>
+                {
+                    bool isOn = false;
+                    foreach (IGeoObject geoObject in vw.Model)
+                    {
+                        Shell shell = null;
+                        if (geoObject is Solid solid) shell = solid.Shells[0];
+                        else if (geoObject is Shell sh) shell = sh;
+                        if (shell != null && shell.FeatureAxis.Count > 0)
+                        {
+                            isOn = shell.FeatureAxis[0].IsVisible;
+                            break;
+                        }
+                    }
+                    commandState.Checked = isOn;
+                    return true;
+                };
+                mh.SubMenus = new MenuWithHandler[] { mhShowHidden, mhShowAxis };
+                mh.Target = this;
+                cm.Add(mh);
+            }
             vw.SetPaintHandler(PaintBuffer.DrawingAspect.Select, new PaintView(OnRepaintSelect));
             mousePoint.X += vw.DisplayRectangle.Width / 8; // find a better place for the menu position, using the extent of the objects
             vw.Canvas.ShowContextMenu(cm.ToArray(), mousePoint, ContextMenuCollapsed);
@@ -205,17 +273,43 @@ namespace CADability
                     HashSet<Face> connectedFillets = new HashSet<Face>();
                     CollectConnectedFillets(faces[i], connectedFillets);
                     FeatureCommandHandler fch = new FeatureCommandHandler(connectedFillets.ToArray(), this);
-                    fch.ID = "MenuId.Fillet." + res.Count.ToString();
-                    fch.Target = this;
-                    fch.Text = StringTable.GetString("MenuId.Fillet", StringTable.Category.label);
-                    MenuWithHandler fr = new MenuWithHandler();
-                    fr.ID = "MenuId.Fillet.ChangeRadius";
-                    fr.Target = fch;
-                    fr.Text = StringTable.GetString("MenuId.Fillet.ChangeRadius", StringTable.Category.label);
-                    MenuWithHandler fd = new MenuWithHandler();
-                    fd.ID = "MenuId.Fillet.Remove";
-                    fd.Target = fch;
-                    fd.Text = StringTable.GetString("MenuId.Fillet.Remove", StringTable.Category.label);
+                    MenuWithHandler mFillet = new MenuWithHandler("MenuId.Fillet");
+                    mFillet.OnCommand = (menuId) => { return true; }; // it has sub-menus, nothing to do here
+                    mFillet.OnSelected = (mh, selected) =>
+                    {
+                        currentMenuSelection.Clear();
+                        currentMenuSelection.AddRange(connectedFillets.ToArray());
+                        currentView.Invalidate(PaintBuffer.DrawingAspect.Select, currentView.DisplayRectangle);
+                    };
+                    MenuWithHandler fr = new MenuWithHandler("MenuId.Fillet.ChangeRadius");
+                    fr.OnCommand = (menuId) =>
+                    {
+                        ParametricsRadius pr = new ParametricsRadius(connectedFillets.ToArray(), soa.Frame, true);
+                        soa.Frame.SetAction(pr);
+                        return true;
+                    };
+                    MenuWithHandler fd = new MenuWithHandler("MenuId.Fillet.Remove");
+                    fd.OnCommand = (menuId) =>
+                    {
+                        Face[] involvedFaces = connectedFillets.ToArray();
+                        Shell orgShell = involvedFaces[0].Owner as Shell;
+                        if (orgShell != null)
+                        {
+                            RemoveFillet rf = new RemoveFillet(involvedFaces[0].Owner as Shell, new HashSet<Face>(involvedFaces));
+                            Shell sh = rf.Result();
+                            if (sh != null)
+                            {
+                                using (soa.Frame.Project.Undo.UndoFrame)
+                                {
+                                    sh.CopyAttributes(orgShell);
+                                    IGeoObjectOwner owner = orgShell.Owner;
+                                    owner.Remove(orgShell);
+                                    owner.Add(sh);
+                                }
+                            }
+                        }
+                        return true;
+                    };
                     fch.SubMenus = new MenuWithHandler[] { fr, fd };
                     res.Add(fch);
                 }
@@ -227,14 +321,86 @@ namespace CADability
                 {
                     List<Face> lconnected = new List<Face>(connected);
                     lconnected.Add(faces[i]);
-                    FeatureCommandHandler fch = new FeatureCommandHandler(lconnected.ToArray(), this);
-                    fch.ID = "MenuId.Fillet." + res.Count.ToString();
-                    fch.Target = fch;
-                    fch.Text = StringTable.GetString("MenuId.Fillet", StringTable.Category.label);
-                    res.Add(fch);
+                    // maybe a full sphere, cone, cylinder or torus:
+                    // except for the sphere: position axis
+                    // except for the cone: change radius or diameter
+                    // for the cone: smaller and larger diameter
+                    // for cone and cylinder: total length
+                    if (faces[i].Surface is CylindricalSurface || faces[i].Surface is ToroidalSurface)
+                    {
+                        MenuWithHandler mh = new MenuWithHandler("MenuId.FeatureDiameter");
+                        mh.OnCommand = (menuId) =>
+                        {
+                            ParametricsRadius pr = new ParametricsRadius(lconnected.ToArray(), soa.Frame, false);
+                            soa.Frame.SetAction(pr);
+                            return true;
+                        };
+                        res.Add(mh);
+                    }
+                    if (faces[i].Surface is CylindricalSurface || faces[i].Surface is ConicalSurface)
+                    {
+                        Line axis = null;
+                        if (faces[i].Surface is CylindricalSurface cyl) axis = cyl.AxisLine(faces[i].Domain.Bottom, faces[i].Domain.Top);
+                        if (faces[i].Surface is ConicalSurface cone) axis = cone.AxisLine(faces[i].Domain.Bottom, faces[i].Domain.Top);
+                        MenuWithHandler mh = new MenuWithHandler("MenuId.AxisPosition");
+                        mh.OnCommand = (menuId) =>
+                        {
+                            ParametricsDistance pd = new ParametricsDistance(lconnected, axis);
+                            soa.Frame.SetAction(pd);
+                            return true;
+                        };
+                        res.Add(mh);
+                    }
                 }
             }
-            // TODO: a menu entry for the face alone is missing
+            for (int i = 0; i < faces.Count; i++)
+            {
+                if (faces[i].Surface is PlaneSurface pls)
+                {
+                    // try to find parallel outline edges to modify the distance
+                    Edge[] outline = faces[i].OutlineEdges;
+                    for (int j = 0; j < outline.Length - 1; j++)
+                    {
+                        for (int k = j + 1; k < outline.Length; k++)
+                        {
+                            if (outline[j].Curve3D is Line l1 && outline[k].Curve3D is Line l2)
+                            {
+                                if (Precision.SameDirection(l1.StartDirection, l2.StartDirection, false))
+                                {
+                                    // two parallel outline lines, we could parametrize the distance
+                                    MenuWithHandler mh = new MenuWithHandler("MenuId.EdgeDistance");
+                                    Edge o1 = outline[j];
+                                    Edge o2 = outline[k]; // outline[i] is not captured correctly for the anonymous method. I don't know why. With local copies, it works.
+                                    double lmin = 0.0;
+                                    double lmax = 1.0;
+                                    double p = Geometry.LinePar(l1.StartPoint, l1.EndPoint, l2.StartPoint);
+                                    lmin = Math.Min(lmin, p);
+                                    lmax = Math.Max(lmax, p);
+                                    p = Geometry.LinePar(l1.StartPoint, l1.EndPoint, l2.EndPoint);
+                                    lmin = Math.Min(lmin, p);
+                                    lmax = Math.Max(lmax, p);
+                                    GeoPoint p1 = Geometry.LinePos(l1.StartPoint, l1.EndPoint, (lmin + lmax) / 2.0);
+                                    GeoPoint p2 = Geometry.DropPL(p1, l2.StartPoint, l2.EndPoint);
+                                    Line feedback = Line.TwoPoints(p1, p2);
+                                    mh.OnCommand = (menuId) =>
+                                    {
+                                        ParametricsDistance pd = new ParametricsDistance(o1, o2, feedback);
+                                        soa.Frame.SetAction(pd);
+                                        return true;
+                                    };
+                                    mh.OnSelected = (m, selected) =>
+                                    {
+                                        currentMenuSelection.Clear();
+                                        currentMenuSelection.Add(feedback);
+                                        currentView.Invalidate(PaintBuffer.DrawingAspect.Select, currentView.DisplayRectangle);
+                                    };
+                                    res.Add(mh);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             return res;
         }
 

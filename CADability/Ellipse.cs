@@ -845,6 +845,42 @@ namespace CADability.GeoObject
                 //sweepParameter = Math.PI * 2.0;
             }
         }
+        internal void SetElliStartEndPoint(GeoPoint p1, GeoPoint p2)
+        {
+            try
+            {
+                Plane pln = new Plane(Center, p1 - Center, p2 - Center);
+                GeoVector ma = pln.ToGlobal(pln.Project(MajorAxis));
+                GeoVector mi = pln.ToGlobal(pln.Project(MinorAxis));
+                plane = new Plane(Center, ma, mi);
+                GeoPoint2D p11 = plane.Project(p1);
+                GeoPoint2D p22 = plane.Project(p2);
+                double a = Math.Sqrt(Math.Abs(((p11.y * p11.y * p22.x * p22.x - p11.x * p11.x * p22.y * p22.y) / (p11.y * p11.y - p22.y * p22.y))));
+                double b = Math.Sqrt((Math.Abs(-(p11.y * p11.y * p22.x * p22.x - p11.x * p11.x * p22.y * p22.y) / (p11.x * p11.x - p22.x * p22.x))));
+                majorRadius = a;
+                minorRadius = b;
+                double sp = ParameterOf(p1);
+                double ep = ParameterOf(p2);
+
+                GeoPoint pp1 = plane.Location + Math.Cos(sp) * majorRadius * plane.DirectionX + Math.Sin(sp) * minorRadius * plane.DirectionY;
+                GeoPoint pp2 = plane.Location + Math.Cos(ep) * majorRadius * plane.DirectionX + Math.Sin(ep) * minorRadius * plane.DirectionY;
+                GeoVector2D dir = new GeoVector2D(-majorRadius * Math.Sin(sp), minorRadius * Math.Cos(sp));
+                GeoVector dir1 = plane.ToGlobal(dir);
+                dir = new GeoVector2D(-majorRadius * Math.Sin(ep), minorRadius * Math.Cos(ep));
+                GeoVector dir2 = plane.ToGlobal(dir);
+                double d1 = Geometry.LinePar(pp1, dir1, p1);
+                double d2 = Geometry.LinePar(pp2, dir2, p2);
+                sp += d1;
+                ep += d2;
+                startParameter = sp;
+                double sw = ep - sp;
+                if (sweepParameter < 0 && sw > 0) sweepParameter = sw - Math.PI * 2;
+                else if (sweepParameter > 0 && sw < 0) sweepParameter = sw + Math.PI * 2;
+                else sweepParameter = sw;
+            }
+            catch { }
+        }
+
         public void SetEllipseArcCenterAxis(GeoPoint center, GeoVector majorAxis, GeoVector minorAxis, double startParameter, double sweepParameter)
         {
             using (new Changing(this)) // mit allen Parametern bringt auch nichts
@@ -1445,7 +1481,8 @@ namespace CADability.GeoObject
             else
             {
                 GeoPoint[] points = GetCashedApproximation(paintTo3D.Precision);
-                paintTo3D.Polyline(points);
+                if (points != null && points.Length > 1) paintTo3D.Polyline(points);
+                else paintTo3D.Polyline(new GeoPoint[] { StartPoint, EndPoint });
             }
         }
         /// <summary>
@@ -2103,11 +2140,33 @@ namespace CADability.GeoObject
         public double ParameterOf(GeoPoint p)
         {
             GeoPoint2D p2d = plane.Project(p);
-            // in ihrer eigenen Ebene ist die Ellipse horizontal
             p2d.x /= majorRadius;
             p2d.y /= minorRadius;
             Angle a = new Angle(p2d.x, p2d.y);
             return a.Radian;
+        }
+
+        private double sqr(double s) {  return s*s; }
+        private double ParameterOf(GeoPoint p, double startValue)
+        {
+            double cx = Center.x;
+            double cy = Center.z;
+            double cz = Center.x;
+            double ax = MajorAxis.x;
+            double ay = MajorAxis.y;
+            double az = MajorAxis.z;
+            double bx = MinorAxis.x;
+            double by = MinorAxis.y;
+            double bz = MinorAxis.z;
+
+            double aa = Geometry.SimpleNewtonApproximation(w =>
+            {
+                return 2 * (az * Math.Sin(w) - bz * Math.Cos(w)) * (-bz * Math.Sin(w) - az * Math.Cos(w) - cz + p.z) + 2 * (ay * Math.Sin(w) - by * Math.Cos(w)) * (-by * Math.Sin(w) - ay * Math.Cos(w) - cy + p.y) + 2 * (ax * Math.Sin(w) - bx * Math.Cos(w)) * (-bx * Math.Sin(w) - ax * Math.Cos(w) - cx + p.x);
+            }, w =>
+            {
+                return 2 * sqr(az * Math.Sin(w) - bz * Math.Cos(w)) + 2 * sqr(ay * Math.Sin(w) - by * Math.Cos(w)) + 2 * sqr(ax * Math.Sin(w) - bx * Math.Cos(w)) + 2 * (-bz * Math.Sin(w) - az * Math.Cos(w) - cz + p.z) * (bz * Math.Sin(w) + az * Math.Cos(w)) + 2 * (-by * Math.Sin(w) - ay * Math.Cos(w) - cy + p.y) * (by * Math.Sin(w) + ay * Math.Cos(w)) + 2 * (-bx * Math.Sin(w) - ax * Math.Cos(w) - cx + p.x) * (bx * Math.Sin(w) + ax * Math.Cos(w));
+            }, startValue);
+            return aa;
         }
         public double Length
         {
@@ -2700,6 +2759,7 @@ namespace CADability.GeoObject
                 return res;
             }
         }
+
     }
 
     internal class QuadTreeEllipse : IQuadTreeInsertableZ

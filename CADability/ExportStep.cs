@@ -111,6 +111,7 @@ END-ISO-10303-21;"; // %0: filename, %1: date, %2: version, %3: List of MANIFOLD
             }
             representationItems.Add(mainAxis);
             string Name = pr.FileName;
+            Name = "";
             int sr = WriteDefinition("SHAPE_REPRESENTATION('" + Name + "',(" + ToString(representationItems.ToArray(), true) + "),#4)");
             int product = WriteDefinition("PRODUCT( '" + Name + "','" + Name + "','',(#2))");
             int pdf = WriteDefinition("PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE( ' ', 'NONE', #" + product.ToString() + ", .NOT_KNOWN. )");

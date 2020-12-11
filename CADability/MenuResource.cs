@@ -10,11 +10,58 @@ namespace CADability.UserInterface
     /// <summary>
     /// A simple structure describing a menu or an menu item (without the use of Windows.Forms).
     /// If <see cref="ID"/> is null, this is a main menu, if <see cref="SubMenus"/> is null, it is a simple menu item.
-    /// If <see cref="SubMenus"/> is not null, this structur contains a list of submenus.
-    /// This structure must be converted to a platform dependant menue and displayed accordingly.
+    /// If <see cref="SubMenus"/> is not null, this structure contains a list of sub-menus.
+    /// This structure must be converted to a platform dependent menu and displayed accordingly.
+    /// The selection of the menu item is handled by <see cref="Target"/>, but it can also be handled directly by setting <see cref="OnCommand"/> 
+    /// ( and <see cref="OnUpdateCommand"/> and  <see cref="OnSelected"/>).
     /// </summary>
-    public class MenuWithHandler
-    {   // da fehlen sicher nocht einige Properties und Methoden von MenuItem
+    public class MenuWithHandler: ICommandHandler
+    {
+        Func<string, bool> onCommand;
+        Func<string, CommandState, bool> onUpdateCommand;
+        Action<MenuWithHandler, bool> onSelected;
+        public Func<string, bool> OnCommand
+        {
+            set
+            {
+                Target = this;
+                onCommand = value;
+            }
+        }
+        public Func<string, CommandState, bool> OnUpdateCommand
+        {
+            set
+            {
+                Target = this;
+                onUpdateCommand = value;
+            }
+        }
+        public Action<MenuWithHandler, bool> OnSelected
+        {
+            set
+            {
+                Target = this;
+                onSelected = value;
+            }
+        }
+
+        public MenuWithHandler()
+        {
+            ImageIndex = -1;
+        }
+        /// <summary>
+        /// creates a new menu item with the provided <paramref name="menuId"/>. If <paramref name="resourceId"/> is null, the menuId is used as the resourceId.
+        /// The resourceId specifies the menu text from the string table.
+        /// </summary>
+        /// <param name="menuId">menu id which is passed on to the <see cref="ICommandHandler.OnCommand(string)"/> call</param>
+        /// <param name="resourceId">the id of the menu text from the string table</param>
+        public MenuWithHandler(string menuId, string resourceId=null)
+        {
+            ImageIndex = -1;
+            ID = menuId;
+            if (resourceId == null) Text = StringTable.GetString(menuId, StringTable.Category.label);
+            else Text = StringTable.GetString(resourceId, StringTable.Category.label);
+        }
         public string ID { get; set; }
         public string Text { get; set; }
         public int ImageIndex { get; set; }
@@ -36,6 +83,25 @@ namespace CADability.UserInterface
             }
         }
 
+        bool ICommandHandler.OnCommand(string MenuId)
+        {
+            if (onCommand != null) return onCommand(MenuId);
+            else if (Target != this) return Target.OnCommand(MenuId);
+            else return false;
+        }
+
+        bool ICommandHandler.OnUpdateCommand(string MenuId, CommandState CommandState)
+        {
+            if (onUpdateCommand != null) return onUpdateCommand(MenuId, CommandState);
+            else if (Target != this) return Target.OnUpdateCommand(MenuId, CommandState);
+            else return false;
+        }
+
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenu, bool selected)
+        {
+            if (onSelected != null) onSelected(selectedMenu, selected);
+            else if (Target!=this) Target.OnSelected(selectedMenu, selected);
+        }
     }
 
     /// <summary>

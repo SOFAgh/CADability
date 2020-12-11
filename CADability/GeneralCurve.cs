@@ -80,9 +80,8 @@ namespace CADability.GeoObject
      * Dient u.a. als Basis für Kanten, die auf zwei Oberflächen basieren.
      */
     /// <summary>
-    /// 
+    /// A base implementation of ICurve
     /// </summary>
-
     public abstract class GeneralCurve : IGeoObjectImpl, IColorDef, ICurve, ILineWidth, ILinePattern
     {
         [Serializable]
@@ -1986,7 +1985,7 @@ namespace CADability.GeoObject
                     if (u < umin || u > umax) return false; // aus dem Intervall gelaufen, Newton hier nicht geeignet, zurück und einmal Bisektion
                     ip = theCurve.PointAt(u);
                     l = ps.ToXYPlane * ip;
-                    if (error < Math.Abs(l.z)) return false; // wird nicht kleiner
+                    if (error <= Math.Abs(l.z)) return false; // wird nicht kleiner
                     error = Math.Abs(l.z);
                 } while (error > 1e-8); // konfigurierbar?
                 ip = theCurve.PointAt(u);

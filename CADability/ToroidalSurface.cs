@@ -2279,6 +2279,11 @@ namespace CADability.GeoObject
         {
             return new double[] { 0.0, Math.PI / 2.0, Math.PI, 3 * Math.PI / 2, 2 * Math.PI };
         }
+        public override void GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax)
+        {
+            umin = vmin = 0.0;
+            umax = vmax = Math.PI * 2.0;
+        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.SameGeometry (BoundingRect, ISurface, BoundingRect, double, out ModOp2D)"/>
         /// </summary>

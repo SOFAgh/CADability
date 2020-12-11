@@ -50,7 +50,7 @@ namespace CADability.GeoObject
             double semiAngle = Math.Atan2(r, 1);
             // noch nicht fertig!!!
         }
-        internal ConicalSurface(ModOp toCone, BoundingRect? usedArea = null): base(usedArea)
+        internal ConicalSurface(ModOp toCone, BoundingRect? usedArea = null) : base(usedArea)
         {
             this.toCone = toCone;
             toUnit = toCone.GetInverse();
@@ -67,7 +67,7 @@ namespace CADability.GeoObject
         {
             if (Precision.SameDirection(c1.Normal, c2.Normal, false) && Precision.SameDirection(c1.Normal, c2.Center - c1.Center, false))
             {   // the two circles have a common axis
-                // work in the plane where the circles appear als horizontal lines (c1 is the X-Axis) and the normal of the circles is th Y-axis
+                // work in the plane where the circles appear as horizontal lines (c1 is the X-Axis) and the normal of the circles is th Y-axis
                 if (Math.Abs(c1.Radius - c2.Radius) < Precision.eps) return null; // this would be a cylinder
                 if (c1.Radius < c2.Radius) Hlp.Swap(ref c1, ref c2);
                 Plane pln = new Plane(c1.Center, c1.MajorAxis, c1.Normal);
@@ -121,6 +121,10 @@ namespace CADability.GeoObject
             {
                 return new Angle(toCone * new GeoVector(1, 0, 1), toCone * new GeoVector(-1, 0, 1));
             }
+        }
+        public Line AxisLine(double vmin, double vmax)
+        {
+            return Line.TwoPoints(toCone * new GeoPoint(0, 0, vmin), toCone * new GeoPoint(0, 0, vmax));
         }
         #region ISurfaceImpl Overrides
         internal override ICurve2D CurveToHelper(ICurve2D original)
@@ -297,6 +301,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoVector UDirection(GeoPoint2D uv)
         {
+            uv.y += voffset; // voffset is not guaranteed to be 0, step import creates such surfaces
             return toCone * new GeoVector(-uv.y * Math.Sin(uv.x), uv.y * Math.Cos(uv.x), 0.0);
         }
         static double Sqrt2 = Math.Sqrt(2.0);
@@ -307,11 +312,13 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoVector VDirection(GeoPoint2D uv)
         {
+            uv.y += voffset; // v-offset is not guaranteed to be 0, step import creates such surfaces
             return toCone * new GeoVector(Math.Cos(uv.x), Math.Sin(uv.x), 1.0);
         }
         public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
         {
             location = PointAt(uv); // GeoPoint(uv.y * Math.Cos(uv.x), uv.y * Math.Sin(uv.x), uv.y);
+            uv.y += voffset; // v-offset is not guaranteed to be 0, step import creates such surfaces
             du = toCone * new GeoVector(-uv.y * Math.Sin(uv.x), uv.y * Math.Cos(uv.x), 0.0);
             dv = toCone * new GeoVector(Math.Cos(uv.x), Math.Sin(uv.x), 1.0);
             duu = toCone * new GeoVector(-uv.y * Math.Cos(uv.x), -uv.y * Math.Sin(uv.x), 0.0);
@@ -325,8 +332,8 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoVector GetNormal(GeoPoint2D uv)
         {
-            if (uv.y == 0.0) uv.y = 1.0; // gibt sonst keine Normale im singulären Punkt
-            return UDirection(uv) ^ VDirection(uv); ;
+            if (uv.y == 0.0) uv.y = 1.0; 
+            return UDirection(uv) ^ VDirection(uv);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.MakeCanonicalForm ()"/>
@@ -1545,7 +1552,7 @@ namespace CADability.GeoObject
                     double u = Math.Atan2(mp.y, mp.x);
                     if (l.StartPoint.z + l.EndPoint.z < 0) u += Math.PI; // start- or endpoint could be 0, crossing z=0 is not allowed
                     if (u < 0.0) u += 2.0 * Math.PI;
-                    return new Line2D(new GeoPoint2D(u, l.StartPoint.z), new GeoPoint2D(u, l.EndPoint.z));
+                    return new Line2D(new GeoPoint2D(u, l.StartPoint.z - voffset), new GeoPoint2D(u, l.EndPoint.z - voffset));
                 }
             }
             else if (crvunit is Ellipse)

@@ -515,7 +515,7 @@ namespace CADability.GeoObject
         /// <returns>true, when possible</returns>
         bool ModifyAxis(GeoPoint throughPoint);
     }
-    
+
     /// <summary>
     /// This surface interface is mainly for fillets
     /// </summary>
@@ -2367,7 +2367,7 @@ namespace CADability.GeoObject
 
                 }
                 GeoObjectList res = new GeoObjectList();
-                int n = 10;
+                int n = 25;
                 double length = 0.0;
                 for (int i = 0; i <= n; i++)
                 {   // über die Diagonale
@@ -2397,8 +2397,8 @@ namespace CADability.GeoObject
                     {
                     }
                 }
-                length /= 200.0; // durchschnittliche Länge einer linie
-                length /= 100.0; // durchschnittliche Maschengröße
+                length /= 50.0; // durchschnittliche Länge einer linie
+                length /= 25.0; // durchschnittliche Maschengröße
                 Attribute.ColorDef cdu = new Attribute.ColorDef("diru", System.Drawing.Color.Red);
                 Attribute.ColorDef cdv = new Attribute.ColorDef("dirv", System.Drawing.Color.Green);
                 for (int i = 0; i <= n; i++)
@@ -3071,8 +3071,10 @@ namespace CADability.GeoObject
                     GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax);
                     if (umin > double.MinValue && umax < double.MaxValue && vmin > double.MinValue && vmax < double.MaxValue) restricted = new BoundingRect(umin, vmin, umax, vmax);
                 }
-                return new ProjectedCurve(curve, this, true, restricted);
+                return new ProjectedCurve(curve, this, true, restricted, precision);
             }
+            if (!usedArea.IsInfinite) return new ProjectedCurve(curve, this, true, BoundingRect.EmptyBoundingRect, precision);
+            else return new ProjectedCurve(curve, this, true, usedArea, precision);
             int n = 16;
             bool ok = false;
             BSpline2D b2d = null;
@@ -3099,7 +3101,7 @@ namespace CADability.GeoObject
                 poles.Add(pl);
                 pole2d.Add(new GeoPoint2D(double.NaN, vs[i]));
             }
-            double poleprec = curve.Length * 1e-2;
+            double poleprec = curve.Length * 1e-3;
             while (!ok)
             {
                 GeoPoint2D[] through = new GeoPoint2D[n + 1];
@@ -3266,7 +3268,7 @@ namespace CADability.GeoObject
                 //    if (si.Length > 0) ok = false;
                 //}
                 n *= 2;
-                if (n > 1024) break;
+                if (ok || n > 1024) break;
             }
             return b2d;
         }
@@ -5176,7 +5178,7 @@ namespace CADability.GeoObject
                     int o2 = (i + 2) % 3;
                     IDualSurfaceCurve[] dsc1 = surfaces[o1].GetPlaneIntersection(pls, bounds[o1].Left, bounds[o1].Right, bounds[o1].Bottom, bounds[o1].Top, 0.0);
                     IDualSurfaceCurve[] dsc2 = surfaces[o2].GetPlaneIntersection(pls, bounds[o2].Left, bounds[o2].Right, bounds[o2].Bottom, bounds[o2].Top, 0.0);
-                    if (dsc1!=null && dsc2!=null)
+                    if (dsc1 != null && dsc2 != null)
                     {
                         for (int j = 0; j < dsc1.Length; ++j)
                         {
@@ -5569,6 +5571,80 @@ namespace CADability.GeoObject
             //n = du ^ dv;
 
             return false;
+        }
+        /// <summary>
+        /// A <paramref name="surface"/> should be tangential to other <paramref name="tangentialSurfaces"/>. This is used in the parametrics
+        /// and only implemented for a few cases here.
+        /// 
+        /// </summary>
+        /// <param name="surface"></param>
+        /// <param name="tangentialSurfaces"></param>
+        /// <returns></returns>
+        internal static ISurface ModifyTangential(ISurface surface, List<ISurface> tangentialSurfaces)
+        {
+            if (surface is PlaneSurface pls)
+            {
+                if (tangentialSurfaces.Count == 2 && tangentialSurfaces[0] is CylindricalSurface cyl0 && tangentialSurfaces[1] is CylindricalSurface cyl1)
+                {
+                    // a plane tangential to two cylinders
+                    if (Precision.SameDirection(cyl0.Axis, cyl1.Axis, false))
+                    {
+                        PlaneSurface res = null;
+                        Plane pln = new Plane(cyl0.Location, cyl0.Axis);
+                        Circle2D c0 = new Circle2D(GeoPoint2D.Origin, cyl0.RadiusX);
+                        Circle2D c1 = new Circle2D(pln.Project(cyl1.Location), cyl1.RadiusX);
+                        GeoPoint2D[] tp = Curves2D.TangentLines(c0, c1);
+                        double mindist = double.MaxValue;
+                        for (int i = 0; i < tp.Length; i += 2)
+                        {
+                            GeoPoint tp0 = pln.ToGlobal(tp[i]);
+                            GeoPoint tp1 = pln.ToGlobal(tp[i + 1]);
+                            double d = pls.GetDistance(tp0) + pls.GetDistance(tp1);
+                            if (d < mindist)
+                            {
+                                mindist = d;
+                                res = new PlaneSurface(tp0, tp1 - tp0, pln.Normal);
+                            }
+                        }
+                        return res;
+                    }
+
+                }
+            }
+            else if (surface is CylindricalSurface cyl)
+            {
+                if (tangentialSurfaces.Count == 2 && tangentialSurfaces[0] is ToroidalSurface tor0 && tangentialSurfaces[1] is ToroidalSurface tor1)
+                {
+                    if (Precision.SameDirection(tor0.ZAxis, tor1.ZAxis, false))
+                    {
+                        Plane pln = new Plane(tor0.Location, tor0.XAxis, tor0.YAxis);
+                        Circle2D c0 = new Circle2D(GeoPoint2D.Origin, tor0.XAxis.Length);
+                        Circle2D c1 = new Circle2D(pln.Project(tor1.Location), tor1.XAxis.Length);
+                        GeoPoint2D[] tp = Curves2D.TangentLines(c0, c1);
+                        double mindist = double.MaxValue;
+                        CylindricalSurface res = null;
+                        for (int i = 0; i < tp.Length; i += 2)
+                        {
+                            GeoPoint tp0 = pln.ToGlobal(tp[i]);
+                            GeoPoint tp1 = pln.ToGlobal(tp[i + 1]);
+                            double d = Geometry.DistPL(tp0,cyl.Location,cyl.Axis)+ Geometry.DistPL(tp1, cyl.Location, cyl.Axis);
+                            if (d < mindist)
+                            {
+                                mindist = d;
+                                GeoVector dirz = tp1 - tp0;
+                                GeoVector dirx =  dirz ^ pln.Normal;
+                                GeoVector diry =  pln.Normal;
+                                dirx.Length = tor0.MinorRadius;
+                                diry.Length = tor0.MinorRadius;
+                                res = new CylindricalSurface(tp0, dirx, diry, dirz);
+                            }
+                        }
+                        return res;
+                    }
+                }
+            }
+
+            return null;
         }
     }
     internal class FindTangentCurves
@@ -11471,6 +11547,10 @@ namespace CADability.GeoObject
                 {
                     if (fixedu) crv = surface2.FixedU(par, pmin, pmax);
                     else crv = surface2.FixedV(par, pmin, pmax);
+                }
+                if (crv==null)
+                {
+                    return res;
                 }
                 GeoPoint[] ips;
                 GeoPoint2D[] uvOnFaces;

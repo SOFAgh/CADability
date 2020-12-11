@@ -225,60 +225,14 @@ namespace CADability
         internal static int hashCodeCounter = 0; // jedes Face bekommt eine Nummer, damit ist es für den HasCode Algorithmus einfach
         private int hashCode;
         private Vertex v1, v2;
-        private bool oriented; // gibt an, ob die Orientierungen (forwardOnPrimaryFace, forwardOnSecondaryFace) stimmen
-        // kann später mal entfallen, wenn immer die richtige Orientierung garantiert ist
-        internal BRepOperation.EdgeInfo edgeInfo; // wird nur während einer BRepOperation gebraucht
+        private bool oriented; // obsolete, if false (forwardOnPrimaryFace, forwardOnSecondaryFace) have not yet been calculated
+        enum EdgeKind { unknown, sameSurface, tangential, sharp }
+        private EdgeKind edgeKind = EdgeKind.unknown;
+        internal BRepOperation.EdgeInfo edgeInfo; // only used for BRepOperation
         // TODO: überprüfen, ob isPartOf und startAtOriginal, endAtOriginal noch gebraucht wird (evtl. zu einem Objekt machen)
         // TODO: ist owner nicht immer primaryFace?
         public void FreeCachedMemory()
         {
-        }
-        /// <summary>
-        /// Kind of the edge
-        /// </summary>
-        public enum EdgeKind
-        {
-            /// <summary>
-            /// Kind has not yet been determined
-            /// </summary>
-            unknown,
-            /// <summary>
-            /// An edge that is only used as a projection aid. It is the outline (contour, silhouette) of
-            /// a face, not a real edge of a face
-            /// </summary>
-            projectionTangent,
-            /// <summary>
-            /// An edge that appears only on a single face and describes the outline of that face
-            /// </summary>
-            singleOutline,
-            /// <summary>
-            /// An edge that connects two faces and represents a sharp bend
-            /// </summary>
-            doubleSharp,
-            /// <summary>
-            /// An edge that connects two faces and represents a tangential (soft) transition
-            /// </summary>
-            doubleSoft,
-            /// <summary>
-            /// An edge that connects a single periodic face
-            /// </summary>
-            periodic,
-            /// <summary>
-            /// used internally for BRepIntersection
-            /// </summary>
-            excluded
-        }
-        private EdgeKind kind;
-        public EdgeKind Kind
-        {
-            get
-            {
-                return kind;
-            }
-            set
-            {
-                kind = value;
-            }
         }
         internal void MakeVertices(Vertex known1, Vertex known2, Vertex known3, Vertex known4)
         {
@@ -861,11 +815,10 @@ namespace CADability
         }
         internal Edge()
         {
-            kind = EdgeKind.unknown;
-            // alles bleibt null;
+            edgeKind = EdgeKind.unknown;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 918)
+            if (hashCode == 3599)
             {
             }
 #endif
@@ -959,8 +912,8 @@ namespace CADability
         public ICurve Curve3D
         {
             get { return curve3d; }
-            internal set 
-            { 
+            internal set
+            {
                 curve3d = value;
                 if (curve3d is IGeoObject go) go.Owner = this;
             }
@@ -1794,22 +1747,25 @@ namespace CADability
             this.curveOnPrimaryFace = curveOnPrimaryFace;
             this.forwardOnPrimaryFace = forwardOnPrimaryFace;
             oriented = true;
+            edgeKind = EdgeKind.unknown;
         }
         internal void SetPrimary(Face fc, bool forward)
         {
-            this.primaryFace = fc;
-            this.curveOnPrimaryFace = fc.Surface.GetProjectedCurve(curve3d, Precision.eps);
-            if (!forward) this.curveOnPrimaryFace.Reverse();
-            this.forwardOnPrimaryFace = forward;
+            primaryFace = fc;
+            curveOnPrimaryFace = fc.Surface.GetProjectedCurve(curve3d, Precision.eps);
+            if (!forward) curveOnPrimaryFace.Reverse();
+            forwardOnPrimaryFace = forward;
             oriented = true;
+            edgeKind = EdgeKind.unknown;
         }
         internal void SetSecondary(Face fc, bool forward)
         {
-            this.secondaryFace = fc;
-            this.curveOnSecondaryFace = fc.Surface.GetProjectedCurve(curve3d, Precision.eps);
-            if (!forward) this.curveOnPrimaryFace.Reverse();
-            this.forwardOnSecondaryFace = forward;
+            secondaryFace = fc;
+            curveOnSecondaryFace = fc.Surface.GetProjectedCurve(curve3d, Precision.eps);
+            if (!forward) curveOnSecondaryFace.Reverse();
+            forwardOnSecondaryFace = forward;
             oriented = true;
+            edgeKind = EdgeKind.unknown;
         }
         internal void UpdateInterpolatedDualSurfaceCurve()
         {
@@ -1818,7 +1774,7 @@ namespace CADability
                 InterpolatedDualSurfaceCurve dsc = (curve3d as InterpolatedDualSurfaceCurve);
                 if (secondaryFace != null)
                 {
-                    // InterpolatedDualSurfaceCurve is convertet to BSpline when new edges are created with overlappingFaces.
+                    // InterpolatedDualSurfaceCurve is converted to BSpline when new edges are created with overlappingFaces.
                     // These edges may be reconverted to InterpolatedDualSurfaceCurve, if the two involved surfaces are not tangential
                     GeoPoint2D uv1s = Vertex1.GetPositionOnFace(PrimaryFace);
                     GeoPoint2D uv1e = Vertex2.GetPositionOnFace(PrimaryFace);
@@ -1992,6 +1948,57 @@ namespace CADability
                 }
             }
         }
+
+        internal void PaintTo3D(IPaintTo3D paintTo3D)
+        {
+            IGeoObjectImpl go = Curve3D as IGeoObjectImpl;
+            if (edgeKind == EdgeKind.unknown)
+            {
+                edgeKind = EdgeKind.sharp;
+                if (secondaryFace == null) edgeKind = EdgeKind.sharp;
+                else if (primaryFace.Surface.SameGeometry(primaryFace.Domain, secondaryFace.Surface, secondaryFace.Domain, Precision.eps, out _)) edgeKind = EdgeKind.sameSurface;
+                else if ((primaryFace.Surface is PlaneSurface && (secondaryFace.Surface is CylindricalSurface || secondaryFace.Surface is ConicalSurface || secondaryFace.Surface is ToroidalSurface)) ||
+                    (secondaryFace.Surface is PlaneSurface && (primaryFace.Surface is CylindricalSurface || primaryFace.Surface is ConicalSurface || primaryFace.Surface is ToroidalSurface)))
+                {
+                    // we only need to check a single position
+                    GeoVector n1 = primaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(primaryFace));
+                    GeoVector n2 = secondaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(secondaryFace));
+                    if (Precision.SameNotOppositeDirection(n1, n2)) edgeKind = EdgeKind.tangential;
+                }
+                else
+                {
+                    GeoVector n1 = primaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(primaryFace));
+                    GeoVector n2 = secondaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(secondaryFace));
+                    if (Precision.SameNotOppositeDirection(n1, n2))
+                    {
+                        n1 = primaryFace.Surface.GetNormal(Vertex2.GetPositionOnFace(primaryFace));
+                        n2 = secondaryFace.Surface.GetNormal(Vertex2.GetPositionOnFace(secondaryFace));
+                        if (Precision.SameNotOppositeDirection(n1, n2))
+                        {
+                            // now there could be cases, where we would have to check more points, and I don't know, how to tell, so we check only the middle point
+                            GeoPoint m = curve3d.PointAt(0.5);
+                            n1 = primaryFace.Surface.GetNormal(primaryFace.Surface.PositionOf(m));
+                            n2 = secondaryFace.Surface.GetNormal(secondaryFace.Surface.PositionOf(m));
+                            if (Precision.SameNotOppositeDirection(n1, n2)) edgeKind = EdgeKind.tangential;
+                        }
+                    }
+                }
+                if (go!=null)
+                {
+                    (go as IColorDef).ColorDef = null;
+                    (go as ILinePattern).LinePattern = null;
+                    (go as ILineWidth).LineWidth = LineWidth.ThinLine;
+                }
+            }
+            if (edgeKind == EdgeKind.sameSurface || Curve3D == null) return;
+            if (go != null)
+            {
+                if (edgeKind == EdgeKind.tangential) paintTo3D.SetColor(System.Drawing.Color.FromArgb(128, 192, 192, 192));
+                if (edgeKind == EdgeKind.sharp) paintTo3D.SetColor(System.Drawing.Color.Black);
+                go.PaintTo3D(paintTo3D);
+            }
+        }
+
         internal void SetSecondary(Face secondaryFace, ICurve2D curveOnSecondaryFace, bool forwardOnSecondaryFace)
         {
 #if DEBUG
@@ -3425,6 +3432,7 @@ namespace CADability
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             if (curve3d == null) return -1;
+            if (Vertex1 == Vertex2) return -1; // no closed curves, this must be a minimal curve
             if (!export.EdgeToDefInd.TryGetValue(this, out int ec))
             {
                 // #64=EDGE_CURVE('',#44,#58,#63,.F.) ;
@@ -3438,7 +3446,15 @@ namespace CADability
             string orient; // topLevel used as direction
             if (topLevel) orient = ",.T.";
             else orient = ",.F.";
+#if DEBUG
+            IntegerProperty ip = (curve3d as IGeoObject).UserData.GetData("Step.DefiningIndex") as IntegerProperty;
+            int iv = 0;
+            if (ip != null) iv = ip.IntegerValue;
+            return export.WriteDefinition("ORIENTED_EDGE('" + iv.ToString() + "',*,*,#" + ec.ToString() + orient + ")");
+
+#else
             return export.WriteDefinition("ORIENTED_EDGE('',*,*,#" + ec.ToString() + orient + ")");
+#endif
         }
 
         internal bool IsTangentialEdge()

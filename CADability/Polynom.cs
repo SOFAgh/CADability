@@ -1825,6 +1825,40 @@ namespace CADability
             }
 
         }
+        public GeoVector Direction2At(double u)
+        {
+            int ind = 0;
+            if (knots != null) // nur ein Abschnitt, unendlich
+            {
+                ind = -1;
+                for (int i = 0; i < knots.Length - 1; i++)
+                {
+                    if (knots[i] <= u && knots[i + 1] > u)
+                    {
+                        ind = i;
+                        break;
+                    }
+                }
+                if (ind == -1)
+                {
+                    if (Math.Abs(u - knots[0]) < Math.Abs(u - knots[knots.Length - 1])) ind = 0;
+                    else ind = knots.Length - 2;
+                }
+            }
+            CalcDerivatives(true, true, false);
+            if (pw != null && pw[ind] != null)
+            {
+                double w = pw[ind].Eval(u);
+                double w1 = pw1[ind].Eval(u);
+                double w2 = pw2[ind].Eval(u); // not sure whether the following is correct:
+                return new GeoVector((px2[ind].Eval(u) * w - px[ind].Eval(u) * w2) / (w * w), (py2[ind].Eval(u) * w - py[ind].Eval(u) * w2) / (w * w), (pz2[ind].Eval(u) * w - pz[ind].Eval(u) * w2) / (w * w));
+            }
+            else
+            {
+                return new GeoVector(px2[ind].Eval(u), py2[ind].Eval(u), pz2[ind].Eval(u));
+            }
+
+        }
         public double RadiusAt(double u)
         {
             int ind = 0;

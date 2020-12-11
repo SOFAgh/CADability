@@ -79,4 +79,44 @@ namespace CADability.UserInterface
         void OnSelected(MenuWithHandler selectedMenu, bool selected);
     }
 
+    public class SimpleMenuCommand : ICommandHandler
+    {
+        Func<string, bool> OnCommand;
+        Func<string, CommandState , bool> OnUpdateCommand;
+        Action<MenuWithHandler> OnSelected;
+        public static ICommandHandler HandleCommand(Func<string, bool> action)
+        {
+            return new SimpleMenuCommand(action);
+        }
+        
+        public static ICommandHandler HandleAndUpdateCommand(Func<string, bool> action, Func<string, CommandState, bool> update)
+        {
+            return new SimpleMenuCommand(action, update);
+        }
+        public SimpleMenuCommand(Func<string, bool> action, Func<string, CommandState, bool> update)
+        {
+            this.OnCommand = action;
+            this.OnUpdateCommand = update;
+        }
+        public SimpleMenuCommand(Func<string, bool> action)
+        {
+            this.OnCommand = action;
+        }
+        bool ICommandHandler.OnCommand(string MenuId)
+        {
+            if (OnCommand!=null) return OnCommand(MenuId);
+            return false;
+        }
+
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenu, bool selected) 
+        {
+            if (OnSelected != null) OnSelected(selectedMenu);
+        }
+
+        bool ICommandHandler.OnUpdateCommand(string MenuId, CommandState CommandState)
+        {
+            if (OnUpdateCommand != null) return OnUpdateCommand(MenuId, CommandState);
+            else return true;
+        }
+    }
 }

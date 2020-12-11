@@ -16,6 +16,7 @@ namespace CADability
         private readonly HashSet<Edge> edgesToRecalculate; // when all surface modifications are done, these edges have to be recalculated
         private readonly HashSet<Vertex> verticesToRecalculate; // these vertices need to be recalculated, because the underlying surfaces changed
         private readonly HashSet<Face> modifiedFaces; // these faces have been (partially) modified, do not modify twice
+        private readonly HashSet<Face> constrainedFaces; // these faces must be adapted to their adjacent faces
         private readonly Dictionary<Edge, ICurve> tangentialEdgesModified; // tangential connection between two faces which both have been modified
         public Parametrics(Shell shell)
         {
@@ -26,6 +27,7 @@ namespace CADability
             clonedShell.Layer = shell.Layer;
             edgesToRecalculate = new HashSet<Edge>();
             modifiedFaces = new HashSet<Face>();
+            constrainedFaces = new HashSet<Face>();
             verticesToRecalculate = new HashSet<Vertex>();
             tangentialEdgesModified = new Dictionary<Edge, ICurve>();
         }
@@ -60,6 +62,67 @@ namespace CADability
                 edgesToRecalculate.UnionWith(edge.Vertex2.AllEdges);
             }
             faceToMove.ModifySurfaceOnly(move); // move after all tangential test have been made, otherwise the tangential tests fail
+        }
+        /// <summary>
+        /// Specifies the faces which should be moved or kept on its place. Faces to be moved kept on its place have a null-vector as the value 
+        /// in the provided dictionary <paramref name="toMove"/>. Other faces must be moved according to the provided vector.
+        /// Typically there are two vectors as values of <paramref name="toMove"/>: one is the null-vector, the other one the movement, or both
+        /// are the half movement in opposite directions. The <paramref name="mainMovement"/> is used to keep faces in place, which have surfaces
+        /// that are invariant in this direction.
+        /// </summary>
+        /// <param name="toMove"></param>
+        /// <param name="mainMovement"></param>
+        public void MoveFaces(Dictionary<Face, GeoVector> toMove, GeoVector mainMovement)
+        {
+            Dictionary<Face, GeoVector> nextLevel = new Dictionary<Face, GeoVector>();
+            foreach (KeyValuePair<Face, GeoVector> item in toMove)
+            {
+                Face tm = item.Key;
+                if (!faceDict.TryGetValue(tm, out Face faceToMove)) faceToMove = tm; // toMove may be from the original shell or from the cloned shell
+                GeoVector offset = item.Value;
+                ModOp move = ModOp.Translate(offset);
+                if (modifiedFaces.Contains(faceToMove))
+                {
+                    constrainedFaces.Add(faceToMove);
+                }
+                else
+                {
+                    modifiedFaces.Add(faceToMove);
+                    foreach (Edge edge in faceToMove.AllEdgesIterated())
+                    {
+                        Face otherFace = edge.OtherFace(faceToMove);
+                        bool tangential = edge.IsTangentialEdge();
+                        if (!modifiedFaces.Contains(otherFace) && tangential)
+                        {
+                            tangentialEdgesModified[edge] = edge.Curve3D.CloneModified(move); // these edges play a role in calculating the new vertices
+                                                                                              // the edges will be recalculated in "Result()", but here we need the already modified curve for intersection purposes
+                            if (!otherFace.Surface.IsExtruded(mainMovement))
+                            {
+                                if (nextLevel.ContainsKey(otherFace) && nextLevel[otherFace] != offset)
+                                {   // there are two different requirements to move this face. This face may not propagate its movement and must be modified
+                                    // according to the constraints by the surrounding faces
+                                    nextLevel.Remove(otherFace);
+                                    constrainedFaces.Add(otherFace);
+                                }
+                                else
+                                {
+                                    nextLevel[otherFace] = offset; // only if offset is not the extrusion direction of the otherFace
+                                }
+                            }
+                        }
+                        else if (tangential && !tangentialEdgesModified.ContainsKey(edge))
+                        {
+                            tangentialEdgesModified[edge] = edge.Curve3D.CloneModified(move); // these edges play a role in calculating the new vertices
+                        }
+                        verticesToRecalculate.Add(edge.Vertex1);
+                        verticesToRecalculate.Add(edge.Vertex2);
+                        edgesToRecalculate.UnionWith(edge.Vertex1.AllEdges);
+                        edgesToRecalculate.UnionWith(edge.Vertex2.AllEdges);
+                    }
+                    if (!offset.IsNullVector()) faceToMove.ModifySurfaceOnly(move); // move after all tangential test have been made, otherwise the tangential tests fail
+                }
+            }
+            if (nextLevel.Any()) MoveFaces(nextLevel, mainMovement);
         }
         /// <summary>
         /// For faces on <see cref="CylindricalSurface"/>, <see cref="ToroidalSurface"/>, (maybe not <see cref="SphericalSurface"/> maybe some swept curve surface)
@@ -337,9 +400,36 @@ namespace CADability
             }
             return modifiedFaces.Count > 0;
         }
-
+        private void ModifyConstrainedFaces()
+        {
+            while (constrainedFaces.Any())
+            {
+                Face toModify = constrainedFaces.First();
+                HashSet<Edge> constrainedEdges = new HashSet<Edge>(toModify.AllEdgesSet.Intersect(tangentialEdgesModified.Keys));
+                HashSet<Face> otherFaces = new HashSet<Face>();
+                foreach (Edge edge in constrainedEdges)
+                {
+                    Face other = edge.OtherFace(toModify);
+                    if (!constrainedFaces.Contains(other)) otherFaces.Add(other);
+                }
+                List<ISurface> otherSurfaces = new List<ISurface>();
+                foreach (Face face in otherFaces)
+                {
+                    otherSurfaces.Add(face.Surface);
+                }
+                constrainedFaces.Remove(toModify);
+                ISurface modified = Surfaces.ModifyTangential(toModify.Surface, otherSurfaces);
+                if (modified != null)
+                {
+                    toModify.Surface = modified;
+                    verticesToRecalculate.UnionWith(toModify.Vertices);
+                    edgesToRecalculate.UnionWith(toModify.AllEdges);
+                }
+            }
+        }
         public Shell Result(out HashSet<Face> involvedFaces)
         {
+            ModifyConstrainedFaces();
             involvedFaces = new HashSet<Face>();
             foreach (Vertex vertex in verticesToRecalculate)
             {

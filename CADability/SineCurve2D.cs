@@ -140,7 +140,7 @@ namespace CADability.Curve2D
                 double u = 0.0;
                 while (u < ustart) u += Math.PI / 2;
                 while (u > ustart) u -= Math.PI / 2;
-                while (u > ustart + udiff)
+                while (u > ustart + udiff+1e-4)
                 {
                     if (u < uvalues[uvalues.Count - 1] - 1e-4) uvalues.Add(u);
                     u -= Math.PI / 2;
@@ -151,7 +151,7 @@ namespace CADability.Curve2D
                 double u = 0.0;
                 while (u > ustart) u -= Math.PI / 2;
                 while (u < ustart) u += Math.PI / 2;
-                while (u < ustart + udiff)
+                while (u < ustart + udiff -1e-4)
                 {
                     if (u > uvalues[uvalues.Count - 1] + 1e-4) uvalues.Add(u);
                     u += Math.PI / 2;
