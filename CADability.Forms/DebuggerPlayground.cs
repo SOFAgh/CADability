@@ -1,4 +1,5 @@
-﻿using CADability.Curve2D;
+﻿using CADability.Attribute;
+using CADability.Curve2D;
 using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
@@ -37,36 +38,77 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                TestSphereNP();
+                TestPoleRemoval();
                 return true;
             }
             return false;
         }
-        private void TestSurfaceOfRevolution()
+        private void TestPoleRemoval()
         {
-            GeoVector dx = new GeoVector(-0.707, 0.707, 0.000);
-            GeoVector dz = new GeoVector(0.707, 0.707, 0.000);
-            GeoVector dy = dz ^ dx;
-            Plane p = new Plane(new GeoPoint(17.401, 44.608, -2.111), dx, dy);
-            Ellipse c = Ellipse.Construct();
-            c.SetArc3Points(new GeoPoint(17.401, 44.608, -2.412), new GeoPoint(17.254, 44.754, -2.329), new GeoPoint(17.188, 44.820, -2.126), p);
-            double sp = (c as ICurve).PositionToParameter(0.0);
-            double ep = (c as ICurve).PositionToParameter(1.0);
-            SurfaceOfRevolution surf = new SurfaceOfRevolution(c, new GeoPoint(21.407, 40.602, -2.111), new GeoVector(0.000, 0.000, -1.000));
-            List<Curve2D.ICurve2D> border = new List<Curve2D.ICurve2D>();
-            border.Add(new Curve2D.Line2D(new GeoPoint2D(3.859, sp), new GeoPoint2D(3.859, ep)));
-            border.Add(new Curve2D.Line2D(new GeoPoint2D(3.859, ep), new GeoPoint2D(2.424, ep)));
-            border.Add(new Curve2D.Line2D(new GeoPoint2D(2.424, ep), new GeoPoint2D(2.424, sp)));
-            border.Add(new Curve2D.Line2D(new GeoPoint2D(2.424, sp), new GeoPoint2D(3.859, sp)));
-            List<List<Curve2D.ICurve2D>> edges = new List<List<Curve2D.ICurve2D>>();
-            edges.Add(border);
-            Face f = Face.MakeFace(surf, edges);
+            Model model = frame.Project.GetActiveModel();
+            foreach (IGeoObject go in model)
+            {
+                if (go is Face face)
+                {
+                    BoundingRect natBounds = new BoundingRect();
+                    face.Surface.GetNaturalBounds(out natBounds.Left, out natBounds.Right, out natBounds.Bottom, out natBounds.Top);
+                    NonPeriodicSurface nps = new NonPeriodicSurface(face.Surface, natBounds);
+                    GeoObjectList dbgc = new GeoObjectList();
+                    ColorDef blue = new ColorDef("blue", System.Drawing.Color.Blue);
+                    for (int i = 0; i < 11; i++)
+                    {
+                        ICurve crvu = nps.FixedU(3 * i / 10.0 - 1.5, -1.5, 1.5);
+                        ICurve crvv = nps.FixedV(3 * i / 10.0 - 1.5, -1.5, 1.5);
+                        Polyline plu = Polyline.Construct();
+                        GeoPoint[] pnts = new GeoPoint[51];
+                        for (int j = 0; j < 51; j++)
+                        {
+                            pnts[j] = crvu.PointAt(j / 50.0);
+                        }
+                        try
+                        {
+                            plu.SetPoints(pnts, false);
+                            plu.ColorDef = blue;
+                            dbgc.Add(plu);
+                        }
+                        catch { }
+                        Polyline plv = Polyline.Construct();
+                        for (int j = 0; j < 51; j++)
+                        {
+                            pnts[j] = crvv.PointAt(j / 50.0);
+                        }
+                        try
+                        {
+                            plv.SetPoints(pnts, false);
+                            plv.ColorDef = blue;
+                            dbgc.Add(plv);
+                        }
+                        catch { }
+                    }
+                    ColorDef red = new ColorDef("red", System.Drawing.Color.Red);
+                    for (int i = 0; i < 11; i++)
+                    {
+                        for (int j = 0; j < 11; j++)
+                        {
+                            GeoPoint2D uv = new GeoPoint2D(i / 10.0, j / 10.0);
+                            Line l = Line.MakeLine(nps.PointAt(uv), nps.PointAt(uv) + 0.00001* nps.VDirection(uv).Normalized);
+                            l.ColorDef = red;
+                            dbgc.Add(l);
+                        }
+                    }
+                    List<ICurve2D> projectedEdges = new List<ICurve2D>();
+                    foreach (Edge edge in face.AllEdges)
+                    {
+                        if (edge.Curve3D != null) projectedEdges.Add(nps.GetProjectedCurve(edge.Curve3D, 0.0));
+                    }
+                }
+            }
         }
         private void TestSphereNP()
         {
             GeoVector a = new GeoVector(100, 100, 100);
             a.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
-            SphericalSurfaceNP ss = new SphericalSurfaceNP(new GeoPoint(50, 50, 50), 100*dirx.Normalized, 100 * diry.Normalized, 100 * a.Normalized);
+            SphericalSurfaceNP ss = new SphericalSurfaceNP(new GeoPoint(50, 50, 50), 100 * dirx.Normalized, 100 * diry.Normalized, 100 * a.Normalized);
             //SphericalSurfaceNP ss = new SphericalSurfaceNP(new GeoPoint(50, 50, 50), 100* GeoVector.XAxis, 100 * GeoVector.YAxis, 100 * GeoVector.ZAxis);
             GeoObjectList dbg = ss.DebugDirectionsGrid;
             GeoPoint pp = ss.PointAt(new GeoPoint2D(-3, 4));
@@ -79,7 +121,7 @@ namespace CADability.Forms
         }
         private void TestParametrics()
         {
-            if (frame.SelectedObjects.Count==1 && frame.SelectedObjects[0] is Face face && face.Owner is Shell shell)
+            if (frame.SelectedObjects.Count == 1 && frame.SelectedObjects[0] is Face face && face.Owner is Shell shell)
             {
                 Parametrics pm = new Parametrics(shell);
                 GeoVector offset = face.Surface.GetNormal(face.Domain.GetCenter());
@@ -102,7 +144,7 @@ namespace CADability.Forms
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         private void ExtendBSpline()
         {
-            if (frame.SelectedObjects.Count==1 && frame.SelectedObjects[0] is BSpline bspl)
+            if (frame.SelectedObjects.Count == 1 && frame.SelectedObjects[0] is BSpline bspl)
             {
                 //BSpline extended = bspl.Extend(0.1, 0.1);
             }
@@ -122,7 +164,7 @@ namespace CADability.Forms
                 {
                     ICurve fixedu = face.Surface.FixedU(face.Domain.Left + i * (face.Domain.Width) / 9.0, face.Domain.Bottom, face.Domain.Top);
                     list.Add(fixedu as IGeoObject);
-                    ICurve fixedv = face.Surface.FixedV(face.Domain.Bottom+ i * (face.Domain.Height) / 9.0, face.Domain.Left, face.Domain.Right);
+                    ICurve fixedv = face.Surface.FixedV(face.Domain.Bottom + i * (face.Domain.Height) / 9.0, face.Domain.Left, face.Domain.Right);
                     list.Add(fixedv as IGeoObject);
                 }
             }

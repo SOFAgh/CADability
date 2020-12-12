@@ -1,6 +1,7 @@
 ﻿using CADability.Curve2D;
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace CADability.GeoObject
@@ -8,7 +9,8 @@ namespace CADability.GeoObject
     /// <summary>
     /// A 3d curve which is generated when a point moves along a 2d curve on a certain surface
     /// </summary>
-    class SurfaceCurve: GeneralCurve
+    [Serializable]
+    class SurfaceCurve : GeneralCurve, ISerializable
     {
         ICurve2D curve2D;
         ISurface surface;
@@ -73,7 +75,7 @@ namespace CADability.GeoObject
 
         protected override double[] GetBasePoints()
         {
-            List<double> ips =new List<double>( curve2D.GetInflectionPoints());
+            List<double> ips = new List<double>(curve2D.GetInflectionPoints());
             ips.Add(0.0);
             ips.Add(0.25);
             ips.Add(0.5);
@@ -81,6 +83,19 @@ namespace CADability.GeoObject
             ips.Add(1.0);
             ips.Sort();
             return ips.ToArray();
+        }
+
+        protected SurfaceCurve(SerializationInfo info, StreamingContext context)
+        : base(info, context)
+        {
+            curve2D = info.GetValue("Curve2D", typeof(ICurve2D)) as ICurve2D;
+            surface = info.GetValue("Surface", typeof(ISurface)) as ISurface;
+        }
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+            info.AddValue("Curve2D", curve2D);
+            info.AddValue("Surface", surface);
         }
     }
 }

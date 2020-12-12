@@ -21,8 +21,9 @@ namespace CADability.UserInterface
             try
             {
                 if (path == null) return;
+                path = path.Replace('\\', '*'); // because '\' followed by an 'n' makes a problem (which I don't understand) '*' is not allowed in a filename
                 string mru = Settings.GlobalSettings.GetStringValue("MRUFileList", "");
-                string[] lastFiles = mru.Split('\n');
+                string[] lastFiles = mru.Split('|');
                 List<string> entries = new List<string>();
                 for (int i = 0; i < lastFiles.Length; ++i)
                 {
@@ -34,7 +35,7 @@ namespace CADability.UserInterface
                 for (int i = 0; i < entries.Count; ++i)
                 {
                     b.Append(entries[i] as string);
-                    if (i < entries.Count - 1) b.Append("\n"); // das letzte kein "\n"
+                    if (i < entries.Count - 1) b.Append("|"); // '|' is split character, previously used \n, which made problems when a filename starts with 'n' and the char before is '\'
                 }
                 mru = b.ToString();
                 Settings.GlobalSettings.SetValue("MRUFileList", mru);
@@ -45,7 +46,12 @@ namespace CADability.UserInterface
         {
 
             string mru = Settings.GlobalSettings.GetStringValue("MRUFileList", "");
-            return mru.Split('\n');
+            string[] res = mru.Split('|');
+            for (int i = 0; i < res.Length; i++)
+            {
+                res[i] = res[i].Replace('*', '\\'); 
+            }
+            return res;
         }
     }
 }

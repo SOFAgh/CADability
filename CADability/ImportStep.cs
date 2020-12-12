@@ -4394,42 +4394,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                 }
             }
-            //if (uClosed)
-            //{   // find a distance from the ends of the uKnots vector, where the surface is closed
-            //    double dumin = 0.0;
-            //    double dumax = (uKnots[uKnots.Length - 1] + uKnots[0]) / 4;
-            //    double du = dumax / 2.0;
-            //    double v = (vKnots[0] + vKnots[vKnots.Length- 1]) / 2.0;
-            //    double d1 = res.PointAt(new GeoPoint2D(uKnots[0] + dumin, v)) | res.PointAt(new GeoPoint2D(uKnots[uKnots.Length- 1] - dumin, v));
-            //    double d2 = res.PointAt(new GeoPoint2D(uKnots[0] + dumax, v)) | res.PointAt(new GeoPoint2D(uKnots[uKnots.Length - 1] - dumax, v));
-            //    double d = res.PointAt(new GeoPoint2D(uKnots[0] + du, v)) | res.PointAt(new GeoPoint2D(uKnots[uKnots.Length - 1] - du, v));
-            //    int cnt = 0;
-            //    while (d > Precision.eps && ++cnt < 40)
-            //    {
-            //        if (d2 > d1)
-            //        {
-            //            dumax = du;
-            //            d2 = d;
-            //        }
-            //        else
-            //        {
-            //            dumin = du;
-            //            d1 = d;
-            //        }
-            //        du = (dumax + dumin) / 2.0;
-            //        d = res.PointAt(new GeoPoint2D(uKnots[0] + du, v)) | res.PointAt(new GeoPoint2D(uKnots[uKnots.Length - 1] - du, v));
-            //    }
-            //    if (cnt < 40)
-            //    {
-            //        uMinRestrict = uKnots[0] + du;
-            //        uMaxRestrict = uKnots[uKnots.Length - 1] - du;
-            //    }
-            //}
             if (uMinRestrict != uMaxRestrict || vMinRestrict != vMaxRestrict)
             {
                 res.SetPeriodicRestriction(uClosed, vClosed, uMinRestrict, uMaxRestrict, vMinRestrict, vMaxRestrict);
             }
+#if DEBUG
+            if (res.GetVSingularities().Length == 1)
+            {
 
+            }
+#endif
             return res;
         }
         public static T ParseEnum<T>(string value)
