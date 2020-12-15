@@ -18,7 +18,8 @@ namespace CADability.Forms
         {
             InitializeComponent(); // makes the cadCanvas and the propertiesExplorer
             KeyPreview = true; // used to filter the escape key (and maybe some more?)
-            cadFrame = new CadFrame(this);
+            Action<bool, double, string> progressAction = (show, percent, title) => { this.ProgressForm.ShowProgressBar(show, percent, title); };
+            cadFrame = new CadFrame(propertiesExplorer, cadCanvas, this, progressAction);
             cadCanvas.Frame = cadFrame;
             propertiesExplorer.Frame = cadFrame;
             // show this menu in the MainForm
@@ -34,16 +35,17 @@ namespace CADability.Forms
             }
             #endregion DebuggerPlayground
             Menu = MenuManager.MakeMainMenu(mainMenu);
+            cadFrame.FormMenu = Menu;
             // open an existing Project or create a new one
             ToolBars.CreateOrRestoreToolbars(topToolStripContainer, cadFrame);
             Application.Idle += new EventHandler(OnIdle); // update the toolbars (menus are updated when they popup)
         }
         // Access the components of the MainForm from the CadFrame. 
         public ProgressForm ProgressForm
-        { 
+        {
             get
             {
-                if (progressForm==null)
+                if (progressForm == null)
                 {
                     progressForm = new ProgressForm
                     {
@@ -73,14 +75,14 @@ namespace CADability.Forms
         {
             Keys nmKeyData = (Keys)((int)keyData & 0x0FFFF);
             bool preProcess = nmKeyData >= Keys.F1 && nmKeyData <= Keys.F24;
-            preProcess = preProcess || (nmKeyData == Keys.Escape) ;
+            preProcess = preProcess || (nmKeyData == Keys.Escape);
             preProcess = preProcess || (nmKeyData == Keys.Up) || (nmKeyData == Keys.Down);
             preProcess = preProcess || (nmKeyData == Keys.Tab) || (nmKeyData == Keys.Enter);
             preProcess = preProcess || keyData.HasFlag(Keys.Control) || keyData.HasFlag(Keys.Alt); // menu shortcut
             if (propertiesExplorer.EntryWithTextBox == null) preProcess |= (nmKeyData == Keys.Delete); // the delete key is preferred by the textbox, if there is one 
             if (preProcess)
             {
-                Substitutes.KeyEventArgs e = new Substitutes.KeyEventArgs((Substitutes.Keys) keyData);
+                Substitutes.KeyEventArgs e = new Substitutes.KeyEventArgs((Substitutes.Keys)keyData);
                 e.Handled = false;
                 cadFrame.PreProcessKeyDown(e);
                 if (e.Handled) return true;
@@ -100,7 +102,7 @@ namespace CADability.Forms
 
         public virtual void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
         {
-            
+
         }
     }
 }
