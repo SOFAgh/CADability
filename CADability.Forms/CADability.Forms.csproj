@@ -92,7 +92,6 @@
     <Compile Include="CadControl.Designer.cs">
       <DependentUpon>CadControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="CadFrame2.cs" />
     <Compile Include="CadFrame.cs" />
     <Compile Include="CadCanvas.cs">
       <SubType>Component</SubType>

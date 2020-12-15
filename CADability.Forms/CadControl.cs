@@ -19,7 +19,7 @@ namespace CADability.Forms
     {
         #region PRIVATE FIELDS
 
-        private CadFrame2 cadFrame; // the frame, which knows about the views, the ControlCenter (PropertiesExplorer), the menu
+        private CadFrame cadFrame; // the frame, which knows about the views, the ControlCenter (PropertiesExplorer), the menu
 
         #endregion PRIVATE FIELDS
 
@@ -38,7 +38,7 @@ namespace CADability.Forms
 
         public PropertiesExplorer PropertiesExplorer => propertiesExplorer;
         public CadCanvas CadCanvas => cadCanvas;
-        public CadFrame2 CadFrame => cadFrame;
+        public CadFrame CadFrame => cadFrame;
 
         /// <summary>
         /// Action that delegate the progress.
@@ -121,7 +121,7 @@ namespace CADability.Forms
 
         protected override void OnHandleCreated(EventArgs e)
         {
-            cadFrame = new CadFrame2(propertiesExplorer, cadCanvas, this, this.ProgressAction);
+            cadFrame = new CadFrame(propertiesExplorer, cadCanvas, this, this.ProgressAction);
             cadCanvas.Frame = cadFrame;
             propertiesExplorer.Frame = cadFrame;
 
