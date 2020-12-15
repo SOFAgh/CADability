@@ -1253,7 +1253,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             {
                 try
                 {
-                    FrameImpl.MainFrame.UIService.ShowProgressBar(true, 0.0, "importing step file");
+                    FrameImpl.MainFrame?.UIService.ShowProgressBar(true, 0.0, "importing step file");
                     while (!tk.EndOfFile)
                     {
                         if (!Statement(roots)) throw new SyntaxError("general syntax error reading step file");
@@ -1445,7 +1445,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     importProblems[0] = "SyntaxError: " + e.Message;
                 }
             }
-            FrameImpl.MainFrame.UIService.ShowProgressBar(false);
+            FrameImpl.MainFrame?.UIService.ShowProgressBar(false);
 #if DEBUG
             System.Diagnostics.Trace.WriteLine("Finished step read" + Environment.TickCount.ToString());
 #endif
@@ -3936,7 +3936,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         private void CreatingFace()
         {
             ++createdFaces;
-            FrameImpl.MainFrame.UIService.ShowProgressBar(true, 100.0 * createdFaces / numFaces);
+            FrameImpl.MainFrame?.UIService.ShowProgressBar(true, 100.0 * createdFaces / numFaces);
         }
 
         private ModOp GetTransformation(Item origin, Item target, Item origContext, Item targContext)

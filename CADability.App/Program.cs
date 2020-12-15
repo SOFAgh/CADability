@@ -17,6 +17,7 @@ namespace CADability.App
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm(args));
+            //Application.Run(new MainForm2(args));
         }
     }
 }
