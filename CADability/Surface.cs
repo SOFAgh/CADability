@@ -8120,7 +8120,7 @@ namespace CADability.GeoObject
                 GeoObjectList dbggr = (surface as NurbsSurface).DebugGrid;
             }
 #endif
-            // dont uncomment the following, unless there is a better solution for C.17.2.063.0000.STEP
+            // don't uncomment the following, unless there is a better solution for C.17.2.063.0000.STEP
             //if (surface is NurbsSurface)
             //{   // das muss noch in NurbsSurface geklärt werden. Aber AddCube passt ja auch auf, und bei nicht allzuwilden NurbsSurfaces sollte das gut gehen
             //    usteps = new double[] { extent.Left, extent.Left + extent.Width * 0.333, extent.Left + extent.Width * 0.666, extent.Right };
@@ -8198,6 +8198,10 @@ namespace CADability.GeoObject
 #endif
         private void AddCube(BoundingRect uvPatch)
         {
+            if (surface is IRestrictedDomain rd)
+            {
+                if (!(rd.IsInside(uvPatch.GetLowerLeft()) || rd.IsInside(uvPatch.GetLowerRight()) || rd.IsInside(uvPatch.GetUpperLeft()) || rd.IsInside(uvPatch.GetUpperRight()))) return;
+            }
             bool singu = IsUSingularity(uvPatch.Left) || IsUSingularity(uvPatch.Right);
             bool singv = IsVSingularity(uvPatch.Bottom) || IsVSingularity(uvPatch.Top);
             ParEpi cube = new ParEpi();

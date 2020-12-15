@@ -39,59 +39,97 @@ namespace CADability.Forms
             if (MenuId == "DebuggerPlayground.Debug")
             {
                 TestPoleRemoval();
+                // TestBSpline();
                 return true;
             }
             return false;
         }
+        private void TestBSpline()
+        {
+            GeoPoint[] pole = new GeoPoint[5];
+            pole[0] = new GeoPoint(100, 100, 100);
+            pole[1] = new GeoPoint(201, 201, 30);
+            pole[2] = new GeoPoint(202, 302, 210);
+            pole[3] = new GeoPoint(303, 303, 20);
+            pole[4] = new GeoPoint(404, 204, 120);
+            double[] weight = new double[] { 0.9, 0.8, 0.7, 0.6, 0.5};
+            double[] knots = new double[] { 0, 1 };
+            BSpline bsp = BSpline.Construct();
+            bsp.SetData(4, pole, weight, knots, new int[] { 5, 5 }, false);
+            bsp.PointAtParam(0.2);
+        }
         private void TestPoleRemoval()
         {
             Model model = frame.Project.GetActiveModel();
+
+            //BSpline bsp = BSpline2D.MakeCircle(new GeoPoint2D(100, 100), 50).MakeGeoObject(Plane.XYPlane) as BSpline;
+            //SurfaceOfLinearExtrusion sl = new SurfaceOfLinearExtrusion(bsp, GeoVector.ZAxis, 0.0, 1.0);
+            //Face slface = Face.MakeFace(sl, new BoundingRect(0, 0, 1, 100));
+            //model.Add(slface);
             foreach (IGeoObject go in model)
             {
                 if (go is Face face)
                 {
                     BoundingRect natBounds = new BoundingRect();
                     face.Surface.GetNaturalBounds(out natBounds.Left, out natBounds.Right, out natBounds.Bottom, out natBounds.Top);
-                    NonPeriodicSurface nps = new NonPeriodicSurface(face.Surface, natBounds);
+                    NonPeriodicSurface nps = new NonPeriodicSurface(face.Surface, face.Domain);
                     GeoObjectList dbgc = new GeoObjectList();
                     ColorDef blue = new ColorDef("blue", System.Drawing.Color.Blue);
+                    ColorDef green = new ColorDef("green", System.Drawing.Color.Green);
                     for (int i = 0; i < 11; i++)
                     {
-                        ICurve crvu = nps.FixedU(3 * i / 10.0 - 1.5, -1.5, 1.5);
-                        ICurve crvv = nps.FixedV(3 * i / 10.0 - 1.5, -1.5, 1.5);
-                        Polyline plu = Polyline.Construct();
-                        GeoPoint[] pnts = new GeoPoint[51];
-                        for (int j = 0; j < 51; j++)
+                        nps.GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax);
+                        Line2D fu = new Line2D(new GeoPoint2D(umin + i / 10.0 *(umax-umin), vmin), new GeoPoint2D(umin + i / 10.0 * (umax - umin), vmax));
+                        Line2D fv = new Line2D(new GeoPoint2D(umin, vmin + i / 10.0 * (vmax - vmin)), new GeoPoint2D(umax, vmin + i / 10.0 * (vmax - vmin)));
+                        double[] uparts = nps.Clip(fu);
+                        double[] vparts = nps.Clip(fv);
+                        for (int k = 0; k < uparts.Length; k += 2)
                         {
-                            pnts[j] = crvu.PointAt(j / 50.0);
+                            ICurve2D fup = fu.Trim(uparts[k], uparts[k + 1]);
+                            ICurve crvu = nps.Make3dCurve(fup);
+                            Polyline plu = Polyline.Construct();
+                            GeoPoint[] pnts = new GeoPoint[51];
+                            for (int j = 0; j < 51; j++)
+                            {
+                                pnts[j] = crvu.PointAt(j / 50.0);
+                            }
+                            try
+                            {
+                                plu.SetPoints(pnts, false);
+                                plu.ColorDef = blue;
+                                dbgc.Add(plu);
+                            }
+                            catch { }
                         }
-                        try
+                        for (int k = 0; k < vparts.Length; k += 2)
                         {
-                            plu.SetPoints(pnts, false);
-                            plu.ColorDef = blue;
-                            dbgc.Add(plu);
+                            ICurve2D fvp = fv.Trim(vparts[k], vparts[k + 1]);
+                            ICurve crvv = nps.Make3dCurve(fvp);
+                            Polyline plv = Polyline.Construct();
+                            GeoPoint[] pnts = new GeoPoint[51];
+                            for (int j = 0; j < 51; j++)
+                            {
+                                pnts[j] = crvv.PointAt(j / 50.0);
+                            }
+                            try
+                            {
+                                plv.SetPoints(pnts, false);
+                                plv.ColorDef = green;
+                                dbgc.Add(plv);
+                            }
+                            catch { }
                         }
-                        catch { }
-                        Polyline plv = Polyline.Construct();
-                        for (int j = 0; j < 51; j++)
-                        {
-                            pnts[j] = crvv.PointAt(j / 50.0);
-                        }
-                        try
-                        {
-                            plv.SetPoints(pnts, false);
-                            plv.ColorDef = blue;
-                            dbgc.Add(plv);
-                        }
-                        catch { }
                     }
                     ColorDef red = new ColorDef("red", System.Drawing.Color.Red);
                     for (int i = 0; i < 11; i++)
                     {
                         for (int j = 0; j < 11; j++)
                         {
-                            GeoPoint2D uv = new GeoPoint2D(i / 10.0, j / 10.0);
-                            Line l = Line.MakeLine(nps.PointAt(uv), nps.PointAt(uv) + 0.00001* nps.VDirection(uv).Normalized);
+                            GeoPoint2D uv = new GeoPoint2D(3 * i / 10.0 - 1.5, 3 * j / 10.0 - 1.5);
+                            Line l = Line.MakeLine(nps.PointAt(uv), nps.PointAt(uv) + 10.00001* nps.UDirection(uv).Normalized);
+                            l.ColorDef = red;
+                            dbgc.Add(l);
+                            l = Line.MakeLine(nps.PointAt(uv), nps.PointAt(uv) + 10.00001 * nps.VDirection(uv).Normalized);
                             l.ColorDef = red;
                             dbgc.Add(l);
                         }
@@ -101,6 +139,7 @@ namespace CADability.Forms
                     {
                         if (edge.Curve3D != null) projectedEdges.Add(nps.GetProjectedCurve(edge.Curve3D, 0.0));
                     }
+                
                 }
             }
         }
