@@ -2565,6 +2565,7 @@ namespace CADability.GeoObject
             Polynom p = new Polynom(1, "x2", 1, "y2", 1, "z2", 1 - minorRadius * minorRadius, "");
             Polynom pp = p * p + new Polynom(-4, "x2", -4, "y2", 0, "z"); // 0 z to make a 3 dimensional polynom
             ImplicitPSurface res = new ImplicitPSurface(pp, toUnit); // yes, toUnit, not toTorus!
+
             return res;
         }
         #region ISurfaceOf(Arc)Extrusion

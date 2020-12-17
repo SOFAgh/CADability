@@ -47,7 +47,7 @@ namespace CADability.UserInterface
                 frame = value;
             }
         }
-        public void Refresh()
+        public virtual void Refresh()
         {
             propertyPage?.Refresh(this);
         }

@@ -1,6 +1,7 @@
 ﻿using CADability.Curve2D;
 using CADability.Shapes;
 using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace CADability.GeoObject
@@ -30,12 +31,13 @@ namespace CADability.GeoObject
     /// at the minimum or maximum of the non periodic parameter. The underlying periodic surface may also be non periodic but have one singularity, which will be removed.
     /// </summary>
     [Serializable]
-    public class NonPeriodicSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IRestrictedDomain
+    public class NonPeriodicSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IRestrictedDomain, IJsonSerialize, IJsonSerializeDone
     {
         ISurface periodicSurface;
         BoundingRect periodicBounds;
         bool hasPole, fullPeriod;
         ModOp2D toNonPeriodicBounds, toPeriodicBounds;
+        GeoPoint extendedPole; // when there is no pole, the definition area is a annulus (circular ring). extendedPole is the point at (0,0)
         /// <summary>
         /// </summary>
         /// <param name="periodicSurface"></param>
@@ -45,6 +47,20 @@ namespace CADability.GeoObject
         {
             this.periodicSurface = periodicSurface;
             this.periodicBounds = bounds;
+            if (periodicSurface.IsUPeriodic && periodicSurface.IsVPeriodic)
+            {
+                throw new NotImplementedException("NonPeriodicSurface: both u and v are periodic");
+            }
+            else if (periodicSurface.IsUPeriodic)
+            {
+                periodicBounds.Left = 0.0;
+                periodicBounds.Right = periodicSurface.UPeriod;
+            }
+            else if (periodicSurface.IsVPeriodic)
+            {
+                periodicBounds.Bottom = 0.0;
+                periodicBounds.Top = periodicSurface.VPeriod;
+            }
             Init();
         }
         private void Init()
@@ -178,17 +194,15 @@ namespace CADability.GeoObject
         {
             periodicSurface.DerivationAt(toPeriodic(uv), out GeoPoint location, out GeoVector dirU, out GeoVector dirV);
             double l = uv.x * uv.x + uv.y * uv.y;
-            double fy = uv.x / (Math.Sqrt(l) * (toPeriodicBounds * GeoVector2D.XAxis).Length);
-            double fx = -uv.y / (l * (toPeriodicBounds * GeoVector2D.YAxis).Length);
-            return 3 * (fx * dirU + fy * dirV);
+            GeoVector2D f = toPeriodicBounds * new GeoVector2D(-uv.y / l, uv.x / Math.Sqrt(l));
+            return (f.x * dirU + f.y * dirV);
         }
         public override GeoVector VDirection(GeoPoint2D uv)
         {
             periodicSurface.DerivationAt(toPeriodic(uv), out GeoPoint location, out GeoVector dirU, out GeoVector dirV);
             double l = uv.x * uv.x + uv.y * uv.y;
-            double fy = uv.y / (Math.Sqrt(l) * (toNonPeriodicBounds * GeoVector2D.YAxis).Length);
-            double fx = uv.x / (l * (toNonPeriodicBounds * GeoVector2D.XAxis).Length);
-            return -3*(fx * dirU + fy * dirV);
+            GeoVector2D f = toPeriodicBounds * new GeoVector2D(uv.x / l, uv.y / Math.Sqrt(l));
+            return (f.x * dirU + f.y * dirV);
         }
         public override GeoPoint PointAt(GeoPoint2D uv)
         {
@@ -199,18 +213,55 @@ namespace CADability.GeoObject
             Line2D l2d = new Line2D(new GeoPoint2D(u, vmin), new GeoPoint2D(u, vmax));
             return new SurfaceCurve(this, l2d);
         }
-
         public override ICurve FixedV(double v, double umin, double umax)
         {
             Line2D l2d = new Line2D(new GeoPoint2D(umin, v), new GeoPoint2D(umax, v));
             return new SurfaceCurve(this, l2d);
         }
-
         public override ISurface GetModified(ModOp m)
         {
             return new NonPeriodicSurface(periodicSurface.GetModified(m), periodicBounds);
         }
-
+        public override void GetSafeParameterSteps(double umin, double umax, double vmin, double vmax, out double[] intu, out double[] intv)
+        {   // here we want to provide parameter steps so that there are invalid patches, which are completely outside the annulus or circle.
+            // The boxed surface ignores patches which return false for "IsInside" for all its vertices. And with this segmentation, 
+            // these pathological patches are avoided.
+            List<double> usteps = new List<double>();
+            List<double> vsteps = new List<double>();
+            if (hasPole)
+            {
+                // a unit circle: the four corner patches are outside of the circular area
+                if (umin > -1.0) usteps.Add(umin);
+                if (vmin > -1.0) vsteps.Add(vmin);
+                for (int i = 0; i < 8; i++)
+                {
+                    double d = i * 2 / 7.0 - 1.0;
+                    if (d >= umin && d <= umax) usteps.Add(d);
+                    if (d >= vmin && d <= vmax) vsteps.Add(d);
+                }
+                if (umax < 1.0) usteps.Add(umax);
+                if (vmax < 1.0) vsteps.Add(vmax);
+                intu = usteps.ToArray();
+                intv = vsteps.ToArray();
+            }
+            else
+            {
+                // a annulus from -1.5 to 1.5: the four corner patches and the central patch are totally outside of the annulus
+                // The central patch may contain an infinite pole
+                if (umin > -1.5) usteps.Add(umin);
+                if (vmin > -1.5) vsteps.Add(vmin);
+                for (int i = 0; i < 8; i++)
+                {
+                    double d = i * 3 / 7.0 - 1.5;
+                    if (d >= umin && d <= umax) usteps.Add(d);
+                    if (d >= vmin && d <= vmax) vsteps.Add(d);
+                }
+                if (umax < 1.5) usteps.Add(umax);
+                if (vmax < 1.5) vsteps.Add(vmax);
+                intu = usteps.ToArray();
+                intv = vsteps.ToArray();
+            }
+        }
         public override void GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax)
         {   // The periodic surface (or the surface with a pole) comes with the periodic bounds: typically in the periodic direction this is [0..2*pi] or [0..1]
             // and in the non periodic direction it is some min and max value.
@@ -263,7 +314,6 @@ namespace CADability.GeoObject
             GeoVector2D np = toNonPeriodicBounds * uv;
             return new GeoVector2D(np.y * Math.Cos(np.x), np.y * Math.Sin(np.x));
         }
-
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("PeriodicSurface", periodicSurface);
@@ -278,7 +328,6 @@ namespace CADability.GeoObject
         {
             Init();
         }
-
         public bool IsInside(GeoPoint2D uv)
         {
             double l = (uv - GeoPoint2D.Origin).Length;
@@ -293,7 +342,6 @@ namespace CADability.GeoObject
                 return l <= 1.0 && a >= 0.0 && a <= Math.PI / 2.0;
             }
         }
-
         public double[] Clip(ICurve2D curve)
         {
             SimpleShape ss;
@@ -307,6 +355,25 @@ namespace CADability.GeoObject
                 ss = new SimpleShape(new Border(new ICurve2D[] { new Line2D(GeoPoint2D.Origin, new GeoPoint2D(1, 0)), new Arc2D(GeoPoint2D.Origin, 1, 0, Math.PI / 2.0), new Line2D(new GeoPoint2D(0, 1), new GeoPoint2D(0, 0)) }));
             }
             return ss.Clip(curve, true);
+        }
+        /// <summary>
+        /// Empty constructor for JSON serialization
+        /// </summary>
+        protected NonPeriodicSurface() { }
+        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("PeriodicSurface", periodicSurface);
+            data.AddProperty("PeriodicBounds", periodicBounds);
+        }
+        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        {
+            periodicSurface = data.GetProperty<ISurface>("PeriodicSurface");
+            periodicBounds = data.GetProperty<BoundingRect>("PeriodicBounds");
+            data.RegisterForSerializationDoneCallback(this);
+        }
+        void IJsonSerializeDone.SerializationDone()
+        {
+            Init();
         }
     }
 }

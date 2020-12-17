@@ -8,20 +8,15 @@ namespace CADability.GeoObject
 {
     /// <summary>
     /// A planar infinite surface. Implements ISurface.
-    /// The plane is defined by two vectors which are not necessary perpendicular or normed.
+    /// The plane is defined by two vectors which are not necessary perpendicular or normalized.
     /// </summary>
     [Serializable()]
     public class PlaneSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IExportStep
         , IPropertyEntry
     {
-        /*
-         * Da wir hier ein allgemeines ebenes u/v Sytsem haben, kann keine Ebene (Plane) als Basis dienen, sondern
-         * freie Vektoren, die auch nicht normiert sind. 
-         */
-        private ModOp fromUnitPlane; // bildet die XY Ebene in diese Ebene ab
-        private ModOp toUnitPlane; // invers zu fromUnitPlane
+        private ModOp fromUnitPlane; // projects the XY plane into this surface
+        private ModOp toUnitPlane; // inverted fromUnitPlane
 
-        private ModOp2D toHelper; // wird nur benötigt, wenn verzerrt für opencascade
         internal PlaneSurface(ModOp m, BoundingRect? usedArea = null) : base(usedArea)
         {
             fromUnitPlane = m;
@@ -114,28 +109,6 @@ namespace CADability.GeoObject
                 if (!Precision.IsNormedVector(diry)) return false;
                 if (!Precision.IsPerpendicular(dirx, diry, true)) return false;
                 return true;
-            }
-        }
-        internal override ICurve2D CurveToHelper(ICurve2D original)
-        {
-            if (fromUnitPlane.IsOrthogonal)
-            {
-                return original;
-            }
-            else
-            {
-                return original.GetModified(toHelper);
-            }
-        }
-        internal override ICurve2D CurveFromHelper(ICurve2D original)
-        {
-            if (fromUnitPlane.IsOrthogonal)
-            {
-                return original;
-            }
-            else
-            {
-                return original.GetModified(toHelper.GetInverse());
             }
         }
         /// <summary>

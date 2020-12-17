@@ -59,12 +59,12 @@ namespace CADability.UserInterface
     /// and remove GeoPoints to or from the list or modify existing GeoPoints in the list.
     /// </summary>
 
-    public class MultiGeoPointProperty : IShowPropertyImpl
+    public class MultiGeoPointProperty : PropertyEntryImpl
     {
         private IIndexedGeoPoint controlledObject;
         private MenuWithHandler[] prependContextMenue;
         private bool displayZComponent;
-        private IShowProperty[] subEntries; // die ggf. bereits erzeugten SubEntries
+        private IPropertyEntry[] subEntries; 
         /// <summary>
         /// Creates a MultiGeoPointProperty. The parameter "controlledObject" provides the owner
         /// of the list.
@@ -148,7 +148,7 @@ namespace CADability.UserInterface
             }
             for (int i = 0; i < subEntries.Length; i++)
             {
-                subEntries[i].Refresh();
+                //subEntries[i].Refresh();
             }
             if (wasOpen)
             {
@@ -205,7 +205,6 @@ namespace CADability.UserInterface
         public override void Added(IPropertyPage propertyTreeView)
         {
             base.Added(propertyTreeView);
-            // hier kann man refreshen, weil Frame gesetzt ist:
             IShowProperty[] sub = SubEntries;
             for (int i = 0; i < sub.Length; ++i)
             {
@@ -216,40 +215,14 @@ namespace CADability.UserInterface
                 }
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return controlledObject.GetGeoPointCount();
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
-        /// returns the subentries in this property view.
-        /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    subEntries = new IShowProperty[SubEntriesCount];
-                    for (int i = 0; i < SubEntriesCount; ++i)
+                    subEntries = new IPropertyEntry[controlledObject.GetGeoPointCount()];
+                    for (int i = 0; i < subEntries.Length; ++i)
                     {
                         GeoPointProperty gpp = new GeoPointProperty(resourceId + ".Point", this.Frame, false);
                         gpp.UserData["Index"] = i;
@@ -262,8 +235,6 @@ namespace CADability.UserInterface
                         gpp.ContextMenuId = "MenuId.IndexedPoint";
                         gpp.PrependContextMenu = prependContextMenue; // zusätzliches Menue
                         gpp.DisplayZComponent = displayZComponent;
-                        // wenn der LabelText formatierbar ist, d.h. "{0" enthält,
-                        // dann wird der LabelText durch den formatierten Text ersetzt
                         string lt = StringTable.GetString(resourceId + ".Point.Label");
                         if (lt.IndexOf("{0") >= 0)
                         {
@@ -273,14 +244,15 @@ namespace CADability.UserInterface
                             }
                             catch (FormatException) { } // geht halt nicht, Original bleibt
                         }
-                        // TODO: hier noch TAB und Enter abfangen...
                         subEntries[i] = gpp;
                     }
                 }
                 return subEntries;
+
             }
         }
-#endregion
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+        #endregion
         private void OnSetGeoPoint(GeoPointProperty sender, GeoPoint p)
         {
             int index = (int)sender.UserData["Index"];

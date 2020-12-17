@@ -138,7 +138,6 @@ namespace CADability.UserInterface
             polesProperty.ModifyWithMouseEvent += new CADability.UserInterface.MultiGeoPointProperty.ModifyWithMouseIndexDelegate(OnModifyPolesWithMouse);
             polesProperty.GeoPointSelectionChangedEvent += new CADability.UserInterface.GeoPointProperty.SelectionChangedDelegate(OnPointsSelectionChanged);
             polesProperty.StateChangedEvent += new StateChangedDelegate(OnPolesPropertyStateChanged);
-            polesProperty.Frame = base.Frame;
 
             if (bSpline.ThroughPoints3dExist)
             {

@@ -2475,23 +2475,6 @@ namespace CADability.GeoObject
 #if DEBUG
 #endif
         /// <summary>
-        /// Kann sein, dass der Helper nicht den selben ParameterSpace hat wie das ISurface Objekt.
-        /// z.B. eine verzerrte Ebene geht halt in opencascade nicht. 
-        /// Schlimmer noch bei verzerrten Kreisen (Zylinder, Kegel, Torus, Kugel, extrusion): dort kann man
-        /// die Oberfläche zwar exakt mit NURBS annähern, aber die Kurven sind i.a. nicht mehr linear auf
-        /// der NURBS-Fläche verzerrt. Dort muss man die Kurven vollkommen neu erzeugen
-        /// ACHTUNG!! immer erst Helper (get) aufrufen und dann GetHelperCurve, denn in Helper wird oft erst
-        /// die Modop oder andere Daten für GetHelperCurve berechnet.
-        /// </summary>
-        internal virtual ICurve2D CurveToHelper(ICurve2D original)
-        {
-            return original;
-        }
-        internal virtual ICurve2D CurveFromHelper(ICurve2D original)
-        {
-            return original;
-        }
-        /// <summary>
         /// Implements <see cref="CADability.GeoObject.ISurface.FixedU (double, double, double)"/>
         /// </summary>
         /// <param name="u"></param>

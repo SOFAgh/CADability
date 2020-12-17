@@ -1748,9 +1748,9 @@ namespace CADability.Curve2D
             tringulation = ltringulation.ToArray();
 #if DEBUGx
             DebuggerContainer dc = new DebuggerContainer();
-            ColorDef red = new ColorDef("red", System.Drawing.Color.Red);
-            ColorDef green = new ColorDef("green", System.Drawing.Color.Green);
-            ColorDef blue = new ColorDef("blue", System.Drawing.Color.Blue);
+            Attribute.ColorDef red = new Attribute.ColorDef("red", System.Drawing.Color.Red);
+            Attribute.ColorDef green = new Attribute.ColorDef("green", System.Drawing.Color.Green);
+            Attribute.ColorDef blue = new Attribute.ColorDef("blue", System.Drawing.Color.Blue);
             for (int i = 1; i < interpol.Length; ++i)
             {
                 Line2D l1 = new Line2D(interpol[i - 1], interpol[i]);

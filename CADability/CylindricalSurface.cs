@@ -19,20 +19,19 @@ namespace CADability.GeoObject
         // Der Einheitszylinder steht im Ursprung mit Radius 1, u beschreibt einen Kreis, v eine Mantellinie
         protected ModOp toCylinder; // diese ModOp modifiziert den Einheitszylinder in den konkreten Zylinder
         protected ModOp toUnit; // die inverse ModOp zum schnelleren Rechnen
-        private ModOp2D toHelper; // wird nur benötigt, wenn verzerrt für opencascade
         /// <summary>
-        /// Creates a cylindrical surface. The length of directionx and directiony specify the radius.
-        /// The axis is perpendicular to directionx and directiony (right hand). The u parameter starts at
-        /// location+directionx, the v parameter increments along the axis and is 0 at location.
+        /// Creates a cylindrical surface. The length of <paramref name="directionX"/> and <paramref name="directionY"/> specify the radius.
+        /// The axis is perpendicular to <paramref name="directionX"/> and <paramref name="directionY"/> (right hand). The u parameter starts at
+        /// <paramref name="location"/>+<paramref name="directionX"/>, the v parameter increments along the axis and is 0 at location.
         /// </summary>
         /// <param name="location"></param>
-        /// <param name="directionx"></param>
-        /// <param name="directiony"></param>
-        public CylindricalSurface(GeoPoint location, GeoVector directionx, GeoVector directiony, GeoVector directionz) : base()
+        /// <param name="directionX"></param>
+        /// <param name="directionY"></param>
+        public CylindricalSurface(GeoPoint location, GeoVector directionX, GeoVector directionY, GeoVector directionZ) : base()
         {
             // this may also be a left handed system
             ModOp m1 = ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis },
-                new GeoVector[] { directionx, directiony, directionz });
+                new GeoVector[] { directionX, directionY, directionZ });
             ModOp m2 = ModOp.Translate(location.x, location.y, location.z);
             toCylinder = m2 * m1;
             toUnit = toCylinder.GetInverse();
@@ -105,14 +104,6 @@ namespace CADability.GeoObject
             return Line.TwoPoints(toCylinder * new GeoPoint(0, 0, vmin), toCylinder * new GeoPoint(0, 0, vmax));
         }
         #region ISurfaceImpl Overrides
-        internal override ICurve2D CurveToHelper(ICurve2D original)
-        {
-            return original.GetModified(toHelper);
-        }
-        internal override ICurve2D CurveFromHelper(ICurve2D original)
-        {
-            return original.GetModified(toHelper.GetInverse());
-        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetModified (ModOp)"/>
         /// </summary>

@@ -38,8 +38,9 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                TestPoleRemoval();
+                // TestPoleRemoval();
                 // TestBSpline();
+                TestTorusImplicit();
                 return true;
             }
             return false;
@@ -52,7 +53,7 @@ namespace CADability.Forms
             pole[2] = new GeoPoint(202, 302, 210);
             pole[3] = new GeoPoint(303, 303, 20);
             pole[4] = new GeoPoint(404, 204, 120);
-            double[] weight = new double[] { 0.9, 0.8, 0.7, 0.6, 0.5};
+            double[] weight = new double[] { 0.9, 0.8, 0.7, 0.6, 0.5 };
             double[] knots = new double[] { 0, 1 };
             BSpline bsp = BSpline.Construct();
             bsp.SetData(4, pole, weight, knots, new int[] { 5, 5 }, false);
@@ -72,14 +73,14 @@ namespace CADability.Forms
                 {
                     BoundingRect natBounds = new BoundingRect();
                     face.Surface.GetNaturalBounds(out natBounds.Left, out natBounds.Right, out natBounds.Bottom, out natBounds.Top);
-                    NonPeriodicSurface nps = new NonPeriodicSurface(face.Surface, face.Domain);
+                    NonPeriodicSurface nps = new NonPeriodicSurface(face.Surface, natBounds); // face.Domain);
                     GeoObjectList dbgc = new GeoObjectList();
                     ColorDef blue = new ColorDef("blue", System.Drawing.Color.Blue);
                     ColorDef green = new ColorDef("green", System.Drawing.Color.Green);
                     for (int i = 0; i < 11; i++)
                     {
                         nps.GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax);
-                        Line2D fu = new Line2D(new GeoPoint2D(umin + i / 10.0 *(umax-umin), vmin), new GeoPoint2D(umin + i / 10.0 * (umax - umin), vmax));
+                        Line2D fu = new Line2D(new GeoPoint2D(umin + i / 10.0 * (umax - umin), vmin), new GeoPoint2D(umin + i / 10.0 * (umax - umin), vmax));
                         Line2D fv = new Line2D(new GeoPoint2D(umin, vmin + i / 10.0 * (vmax - vmin)), new GeoPoint2D(umax, vmin + i / 10.0 * (vmax - vmin)));
                         double[] uparts = nps.Clip(fu);
                         double[] vparts = nps.Clip(fv);
@@ -120,17 +121,26 @@ namespace CADability.Forms
                             catch { }
                         }
                     }
+                    GeoVector diru = nps.UDirection(new GeoPoint2D(0.3, 0.7));
+                    GeoVector diru1 = 100000 * (nps.PointAt(new GeoPoint2D(0.30001, 0.7)) - nps.PointAt(new GeoPoint2D(0.3, 0.7)));
+                    double ffu = diru1.Length / diru.Length;
+                    double cu = (diru ^ diru1).Length;
+                    GeoVector dirv = nps.VDirection(new GeoPoint2D(0.3, 0.7));
+                    GeoVector dirv1 = 100000 * (nps.PointAt(new GeoPoint2D(0.3, 0.70001)) - nps.PointAt(new GeoPoint2D(0.3, 0.7)));
+                    double ffv = dirv1.Length / dirv.Length;
+                    double cv = (dirv ^ dirv1).Length;
                     ColorDef red = new ColorDef("red", System.Drawing.Color.Red);
                     for (int i = 0; i < 11; i++)
                     {
                         for (int j = 0; j < 11; j++)
                         {
-                            GeoPoint2D uv = new GeoPoint2D(3 * i / 10.0 - 1.5, 3 * j / 10.0 - 1.5);
-                            Line l = Line.MakeLine(nps.PointAt(uv), nps.PointAt(uv) + 10.00001* nps.UDirection(uv).Normalized);
+                            // GeoPoint2D uv = new GeoPoint2D(3 * i / 10.0 - 1.5, 3 * j / 10.0 - 1.5);
+                            GeoPoint2D uv = new GeoPoint2D(i / 10.0, j / 10.0);
+                            Line l = Line.MakeLine(nps.PointAt(uv), nps.PointAt(uv) + 0.00001 * nps.UDirection(uv).Normalized);
                             l.ColorDef = red;
                             dbgc.Add(l);
-                            l = Line.MakeLine(nps.PointAt(uv), nps.PointAt(uv) + 10.00001 * nps.VDirection(uv).Normalized);
-                            l.ColorDef = red;
+                            l = Line.MakeLine(nps.PointAt(uv), nps.PointAt(uv) + 0.00001 * nps.VDirection(uv).Normalized);
+                            l.ColorDef = green;
                             dbgc.Add(l);
                         }
                     }
@@ -139,8 +149,32 @@ namespace CADability.Forms
                     {
                         if (edge.Curve3D != null) projectedEdges.Add(nps.GetProjectedCurve(edge.Curve3D, 0.0));
                     }
-                
+
                 }
+            }
+        }
+        private void TestTorusImplicit()
+        {
+            ToroidalSurface ts = null;
+            Model model = frame.Project.GetActiveModel();
+            foreach (IGeoObject go in model)
+            {
+                if (go is Face face && face.Surface is ToroidalSurface toroidalSurface)
+                {
+                    ts = toroidalSurface;
+                    break;
+                }
+            }
+            //(sqrt((ny * (z - cz) - nz * (y - cy)) ^ 2 + (nz * (x - cx) - nx * (z - cz)) ^ 2 + (nx * (y - cy) - ny * (x - cx)) ^ 2) - r) ^ 2 + (nz * (z - cz) + ny * (y - cy) + nx * (x - cx)) ^ 2 - s
+            // according to https://www.geometrictools.com/Documentation/DistanceToCircle3.pdf
+            if (ts != null)
+            {
+                GeoPoint somePoint = ts.PointAt(new GeoPoint2D(0.5, 0.5));
+                GeoVector d = somePoint - ts.Location;
+                GeoVector n = ts.ZAxis.Normalized;
+                double majorRadius = ts.XAxis.Length;
+                double r = (n * d) * (n * d) + ((n ^ d).Length - majorRadius) * ((n ^ d).Length - majorRadius);
+                // yes! the line above (-r²) is an implicit form of the torus, we can use this in maxima!
             }
         }
         private void TestSphereNP()

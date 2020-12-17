@@ -19,7 +19,6 @@ namespace CADability.GeoObject
         private ModOp toCone; // diese ModOp modifiziert den Einheitskegel in den konkreten Kegel
         private ModOp toUnit; // die inverse ModOp zum schnelleren Rechnen
         private double voffset; // OCas arbeitet mit anderem v, ggf. nach dem Einlesen die 2d Kuren verschieben und voffset wieder wegmachen
-        private ModOp2D toHelper; // wird nur benötigt, wenn verzerrt für opencascade
         public ConicalSurface(GeoPoint apex, GeoVector dirx, GeoVector diry, GeoVector dirz, double semiAngle, double voffset = 0.0)
         {
             double s = Math.Sin(semiAngle);
@@ -127,14 +126,6 @@ namespace CADability.GeoObject
             return Line.TwoPoints(toCone * new GeoPoint(0, 0, vmin), toCone * new GeoPoint(0, 0, vmax));
         }
         #region ISurfaceImpl Overrides
-        internal override ICurve2D CurveToHelper(ICurve2D original)
-        {
-            return original.GetModified(toHelper);
-        }
-        internal override ICurve2D CurveFromHelper(ICurve2D original)
-        {
-            return original.GetModified(toHelper.GetInverse());
-        }
         // im Folgenden noch mehr überschreiben, das hier ist erst der Anfang:
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetModified (ModOp)"/>

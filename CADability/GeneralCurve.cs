@@ -1354,7 +1354,7 @@ namespace CADability.GeoObject
                     {
                         GeoPoint p1 = area.ToUnitBox * tetraederBase[i];
                         GeoPoint p2 = area.ToUnitBox * tetraederBase[i + 1];
-                        return BoundingCube.UnitBoundingCube.Interferes(ref p1, ref p2);
+                        if (BoundingCube.UnitBoundingCube.Interferes(ref p1, ref p2)) return true;
                     }
                     else if (BoundingCube.UnitBoundingCube.Interferes(area.ToUnitBox * tetraederBase[i], area.ToUnitBox * tetraederBase[i + 1], area.ToUnitBox * tetraederVertex[2 * i], area.ToUnitBox * tetraederVertex[2 * i + 1]))
                     {   // die Basispunkte sind außerhalb, aber das Tetraeder berührt die area

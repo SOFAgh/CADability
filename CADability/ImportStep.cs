@@ -3577,8 +3577,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.geometricRepresentationItem:
                     case Item.ItemType.curve: // name, curve_3d, associated_geometry, master_representation
                         {
-                            item.val = CreateEntity(item.parameter["curve_3d"]);
-                            break;
                             switch (item.parameter["master_representation"].sval)
                             {
                                 case "CURVE_3D":
