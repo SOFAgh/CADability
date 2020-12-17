@@ -33,7 +33,8 @@ namespace CADability
             if (mouseAction == MouseAction.MouseUp && e.Button == MouseButtons.Right)
             {
                 handled = true;
-                ShowContextMenu(e.Location, vw);
+                if (vw.AllowContextMenu)
+                    ShowContextMenu(e.Location, vw);
             }
         }
         private void ShowContextMenu(System.Drawing.Point mousePoint, IView vw)

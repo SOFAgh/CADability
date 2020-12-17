@@ -68,7 +68,7 @@ namespace CADability.Forms
             a.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
             SphericalSurfaceNP ss = new SphericalSurfaceNP(new GeoPoint(50, 50, 50), 100*dirx.Normalized, 100 * diry.Normalized, 100 * a.Normalized);
             //SphericalSurfaceNP ss = new SphericalSurfaceNP(new GeoPoint(50, 50, 50), 100* GeoVector.XAxis, 100 * GeoVector.YAxis, 100 * GeoVector.ZAxis);
-            GeoObjectList dbg = ss.DebugDirectionsGrid;
+            //GeoObjectList dbg = ss.DebugDirectionsGrid;
             GeoPoint pp = ss.PointAt(new GeoPoint2D(-3, 4));
             GeoPoint2D po = ss.PositionOf(pp);
         }
