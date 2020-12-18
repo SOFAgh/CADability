@@ -1168,7 +1168,7 @@ namespace CADability.Actions
             }
             if (ObjectsUnderCursor.Count == 1)
             {
-                vw.Canvas.ShowToolTip(ObjectsUnderCursor[0].Description);
+                // vw.Canvas.ShowToolTip(ObjectsUnderCursor[0].Description);
             }
             else
             {
