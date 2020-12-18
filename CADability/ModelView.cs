@@ -921,6 +921,7 @@ namespace CADability
                 doScroll = true;
             if (doScroll)
             {
+                canvas.Cursor = "SizeAll";
                 lastPanPosition = new System.Drawing.Point(e.X, e.Y);
             }
             canvas.Frame.ActiveView = this;

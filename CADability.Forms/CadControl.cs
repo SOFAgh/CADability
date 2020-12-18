@@ -30,7 +30,11 @@ namespace CADability.Forms
         {
             InitializeComponent(); // makes the cadCanvas and the propertiesExplorer
 
-            // We cannot setup the control at this moment because the ParentForm is null
+            cadFrame = new CadFrame(propertiesExplorer, cadCanvas, this);
+            cadCanvas.Frame = cadFrame;
+            propertiesExplorer.Frame = cadFrame;
+
+            // We cannot complete the control setup at this moment because the ParentForm is null
             // We must use the OnHandleCreated method
         }
 
@@ -44,7 +48,11 @@ namespace CADability.Forms
         /// Action that delegate the progress.
         /// In this way we can use a custom progress ui.
         /// </summary>
-        public Action<bool, double, string> ProgressAction { get; set; }
+        public Action<bool, double, string> ProgressAction
+        {
+            get { return cadFrame.ProgressAction; }
+            set { cadFrame.ProgressAction = value; }
+        }
 
         /// <summary>
         /// Indicates to create the menu on the parent form
@@ -121,10 +129,6 @@ namespace CADability.Forms
 
         protected override void OnHandleCreated(EventArgs e)
         {
-            cadFrame = new CadFrame(propertiesExplorer, cadCanvas, this, this.ProgressAction);
-            cadCanvas.Frame = cadFrame;
-            propertiesExplorer.Frame = cadFrame;
-
             setupParentForm();
 
             // open an existing Project or create a new one
@@ -155,25 +159,29 @@ namespace CADability.Forms
 
         private void setupParentForm()
         {
-            if (this.CreateMainMenu)
+            Form parentForm = this.FindForm();
+            if (parentForm != null)
             {
-                // show this menu in the MainForm
-                MenuWithHandler[] mainMenu = MenuResource.LoadMenuDefinition("SDI Menu", true, cadFrame);
-                #region DebuggerPlayground, you can remove this region
-                // in the following lines a "DebuggerPlayground" object is created via reflection. This class is a playground to write testcode
-                // which is not included in the sources. This is why it is constructed via reflection, there is no need to have this class in the project.
-                Type dbgplygnd = Type.GetType("CADability.Forms.DebuggerPlayground", false);
-                if (dbgplygnd != null)
+                if (this.CreateMainMenu)
                 {
-                    MethodInfo connect = dbgplygnd.GetMethod("Connect");
-                    if (connect != null) mainMenu = connect.Invoke(null, new object[] { cadFrame, mainMenu }) as MenuWithHandler[];
+                    // show this menu in the MainForm
+                    MenuWithHandler[] mainMenu = MenuResource.LoadMenuDefinition("SDI Menu", true, cadFrame);
+                    #region DebuggerPlayground, you can remove this region
+                    // in the following lines a "DebuggerPlayground" object is created via reflection. This class is a playground to write testcode
+                    // which is not included in the sources. This is why it is constructed via reflection, there is no need to have this class in the project.
+                    Type dbgplygnd = Type.GetType("CADability.Forms.DebuggerPlayground", false);
+                    if (dbgplygnd != null)
+                    {
+                        MethodInfo connect = dbgplygnd.GetMethod("Connect");
+                        if (connect != null) mainMenu = connect.Invoke(null, new object[] { cadFrame, mainMenu }) as MenuWithHandler[];
+                    }
+                    #endregion DebuggerPlayground
+                    parentForm.Menu = MenuManager.MakeMainMenu(mainMenu);
+                    cadFrame.FormMenu = parentForm.Menu;
                 }
-                #endregion DebuggerPlayground
-                this.ParentForm.Menu = MenuManager.MakeMainMenu(mainMenu);
-                cadFrame.FormMenu = this.ParentForm.Menu;
+                parentForm.KeyPreview = true; // used to filter the escape key (and maybe some more?)
+                parentForm.FormClosing += ParentForm_FormClosing;
             }
-            this.ParentForm.KeyPreview = true; // used to filter the escape key (and maybe some more?)
-            this.ParentForm.FormClosing += ParentForm_FormClosing;
         }
 
         private void ParentForm_FormClosing(object sender, FormClosingEventArgs e)

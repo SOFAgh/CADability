@@ -23,7 +23,6 @@ namespace CADability.Forms
         #region PRIVATE FIELDS
 
         private ICommandHandler commandHandler;
-        private Action<bool, double, string> progressAction;
 
         #endregion PRIVATE FIELDS
 
@@ -34,21 +33,24 @@ namespace CADability.Forms
         /// </summary>
         public MainMenu FormMenu { set; private get; }
 
+        /// <summary>
+        /// Action that delegate the progress.
+        /// In this way we can use a custom progress ui.
+        /// </summary>
+        public Action<bool, double, string> ProgressAction { get; set; }
+
         #endregion PUBLIC PROPERTIES
 
         /// <summary>
         /// Constructor without form dependency.
-        /// The progressAction parameter, if not null, allow us to delegate the progress (in this way we can use a custom progress ui).
         /// </summary>
         /// <param name="propertiesExplorer"></param>
         /// <param name="cadCanvas"></param>
         /// <param name="commandHandler"></param>
-        /// <param name="progressAction"></param>
-        public CadFrame(PropertiesExplorer propertiesExplorer, CadCanvas cadCanvas, ICommandHandler commandHandler, Action<bool, double, string> progressAction = null) 
+        public CadFrame(PropertiesExplorer propertiesExplorer, CadCanvas cadCanvas, ICommandHandler commandHandler) 
             : base(propertiesExplorer, cadCanvas)
         {
             this.commandHandler = commandHandler;
-            this.progressAction = progressAction;
         }
 
         #region FrameImpl override
@@ -206,7 +208,7 @@ namespace CADability.Forms
         }
         void IUIService.ShowProgressBar(bool show, double percent, string title)
         {
-            progressAction?.Invoke(show, percent, title);
+            this.ProgressAction?.Invoke(show, percent, title);
         }
         /// <summary>
         /// Returns a bitmap from the specified embeded resource. the name is in the form filename:index
