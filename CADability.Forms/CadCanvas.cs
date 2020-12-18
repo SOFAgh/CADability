@@ -227,6 +227,7 @@ namespace CADability.Forms
         protected override void OnMouseClick(MouseEventArgs e)
         {   // click seems not to be processed
             base.OnMouseClick(e);
+            this.Focus();
         }
         protected override void OnMouseDown(MouseEventArgs e)
         {

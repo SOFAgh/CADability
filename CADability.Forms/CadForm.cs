@@ -18,8 +18,8 @@ namespace CADability.Forms
         {
             InitializeComponent(); // makes the cadCanvas and the propertiesExplorer
             KeyPreview = true; // used to filter the escape key (and maybe some more?)
-            Action<bool, double, string> progressAction = (show, percent, title) => { this.ProgressForm.ShowProgressBar(show, percent, title); };
-            cadFrame = new CadFrame(propertiesExplorer, cadCanvas, this, progressAction);
+            cadFrame = new CadFrame(propertiesExplorer, cadCanvas, this);
+            cadFrame.ProgressAction = (show, percent, title) => { this.ProgressForm.ShowProgressBar(show, percent, title); };
             cadCanvas.Frame = cadFrame;
             propertiesExplorer.Frame = cadFrame;
             // show this menu in the MainForm
