@@ -3562,6 +3562,11 @@ namespace CADability.GeoObject
         {
             return null;
         }
+        public virtual Polynom GetImlicitPolynomial()
+        {
+            return null;
+        }
+
         /// <summary>
         /// Implements <see cref="CADability.GeoObject.ISurface.SetBounds (BoundingRect)"/>
         /// </summary>

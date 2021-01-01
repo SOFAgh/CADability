@@ -105,7 +105,7 @@ namespace CADability.GeoObject
         {
             if (other is ConicalSurfaceNP cnp)
             {
-                if ((cnp.location| location) < precision && Precision.SameDirection(zAxis,cnp.zAxis, false)) // SameDirection is not with respect to precision!
+                if ((cnp.location | location) < precision && Precision.SameDirection(zAxis, cnp.zAxis, false)) // SameDirection is not with respect to precision!
                 {
                     firstToSecond = ModOp2D.Null;
                     return true;
@@ -122,6 +122,21 @@ namespace CADability.GeoObject
                 return 2 * Math.Atan2(xAxis.Length, zAxis.Length);
             }
         }
+        public override Polynom GetImlicitPolynomial()
+        {
+            double xz2 = (2.0 * xAxis.z);
+            double xy2 = 2.0 * xAxis.y;
+            double xx2 = 2.0 * xAxis.x;
+            double sc19 = 2.0 * sqr(zAxis.x);
+            double sc18 = xx2 * zAxis.x;
+            double sc17 = xy2 * zAxis.y;
+            double c = (quad(zAxis.z) + xz2 * cube(zAxis.z) + (2.0 * sqr(zAxis.y) + sc17 + sc19 + sc18 + sqr(xAxis.z)) * sqr(zAxis.z) + (xz2 * sqr(zAxis.y) + xy2 * xAxis.z * zAxis.y + xz2 * sqr(zAxis.x) + xx2 * xAxis.z * zAxis.x) * zAxis.z + quad(zAxis.y) + xy2 * cube(zAxis.y) + (sc19 + sc18 + sqr(xAxis.y)) * sqr(zAxis.y) + (xy2 * sqr(zAxis.x) + xx2 * xAxis.y * zAxis.x) * zAxis.y + quad(zAxis.x) + xx2 * cube(zAxis.x) + sqr(xAxis.x) * sqr(zAxis.x)) / (sqr(zAxis.z) + xz2 * zAxis.z + sqr(zAxis.y) + sc17 + sqr(zAxis.x) + sc18 + sqr(xAxis.z) + sqr(xAxis.y) + sqr(xAxis.x));
+            if ((xAxis ^ yAxis) * zAxis < 0) c = -c;
+            Polynom x = new Polynom(1, "x", 0, "y", 0, "z");
+            Polynom y = new Polynom(0, "x", 1, "y", 0, "z");
+            Polynom z = new Polynom(0, "x", 0, "y", 1, "z");
+            return (((z - location.z) * zAxis.z + (y - location.y) * zAxis.y + (x - location.x) * zAxis.x)^2) - c * (((z - location.z)^2) + ((y - location.y)^2) + ((x - location.x)^2));
+        }
         public double DebugImplicit(GeoPoint p)
         {
             double sc22 = (2.0 * xAxis.z);
@@ -134,7 +149,7 @@ namespace CADability.GeoObject
             if ((xAxis ^ yAxis) * zAxis < 0) c = -c;
 
             // z * (-2 * location_z * zAxis_z ^ 2 + (-2 * location_y * zAxis_y - 2 * location_x * zAxis_x) * zAxis_z + 2 * y * zAxis_y * zAxis_z + 2 * x * zAxis_x * zAxis_z + 2 * c * location_z) + z ^ 2 * (zAxis_z ^ 2 - c) + location_z ^ 2 * zAxis_z ^ 2 + y * (-2 * location_z * zAxis_y * zAxis_z - 2 * location_y * zAxis_y ^ 2 + 2 * x * zAxis_x * zAxis_y - 2 * location_x * zAxis_x * zAxis_y + 2 * c * location_y) + x * (-2 * location_z * zAxis_x * zAxis_z - 2 * location_y * zAxis_x * zAxis_y - 2 * location_x * zAxis_x ^ 2 + 2 * c * location_x) + (2 * location_y * location_z * zAxis_y + 2 * location_x * location_z * zAxis_x) * zAxis_z + y ^ 2 * (zAxis_y ^ 2 - c) + location_y ^ 2 * zAxis_y ^ 2 + 2 * location_x * location_y * zAxis_x * zAxis_y + x ^ 2 * (zAxis_x ^ 2 - c) + location_x ^ 2 * zAxis_x ^ 2 - c * location_z ^ 2 - c * location_y ^ 2 - c * location_x ^ 2
-            return sqr(zAxis.z * (p.z-location.z) + zAxis.y * (p.y - location.y) + zAxis.x * (p.x - location.x)) - c * (sqr(p.z - location.z) + sqr(p.y - location.y) + sqr(p.x - location.x));
+            return sqr(zAxis.z * (p.z - location.z) + zAxis.y * (p.y - location.y) + zAxis.x * (p.x - location.x)) - c * (sqr(p.z - location.z) + sqr(p.y - location.y) + sqr(p.x - location.x));
         }
         #region IJsonSerialize
         protected ConicalSurfaceNP() { }

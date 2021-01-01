@@ -435,6 +435,20 @@ namespace CADability
             res.reduce();
             return res;
         }
+        public static Polynom operator *(Polynom b, double a) => a * b;
+        public static Polynom operator ^(Polynom b, int n)
+        {
+            if (n == 2) return b * b;
+            else
+            {
+                Polynom res = b;
+                for (int i = 0; i < n; i++)
+                {
+                    res = res * b;
+                }
+                return res;
+            }
+        }
         /// <summary>
         /// Adds two Polynoms, which must have the same dimension
         /// </summary>
