@@ -121,7 +121,7 @@ namespace CADability.UserInterface
                 sizeHotSpot = new GeoPointHotSpot(polyline.RectangleLocation + polyline.ParallelogramSecondaryDirection + polyline.ParallelogramMainDirection);
                 sizeHotSpot.StartDragHotspotEvent += new GeoPointHotSpot.StartDragHotspotDelegate(OnSizeHotSpotStartDragHotspot);
 
-                rectangleProperty = new GroupProperty("Polyline.Rectangle", new IShowProperty[] { locationProperty, width, height, direction });
+                rectangleProperty = new GroupProperty("Polyline.Rectangle", new IPropertyEntry[] { locationProperty, width, height, direction });
                 subEntries[0] = rectangleProperty;
                 (rectangleProperty as IPropertyEntry).PropertyEntryChangedStateEvent += OnRectanglePropertyStateChanged;
 
@@ -173,7 +173,7 @@ namespace CADability.UserInterface
                 sizeHotSpot = new GeoPointHotSpot(polyline.ParallelogramLocation + polyline.ParallelogramSecondaryDirection + polyline.ParallelogramMainDirection);
                 sizeHotSpot.StartDragHotspotEvent += new GeoPointHotSpot.StartDragHotspotDelegate(OnSizeHotSpotStartDragHotspot);
 
-                parallelProperty = new GroupProperty("Polyline.Parallel", new IShowProperty[] { locationParallelProperty, directionXParallel, directionYParallel });
+                parallelProperty = new GroupProperty("Polyline.Parallel", new IPropertyEntry[] { locationParallelProperty, directionXParallel, directionYParallel });
                 subEntries[0] = parallelProperty;
                 (parallelProperty as IPropertyEntry).PropertyEntryChangedStateEvent += OnParallelPropertyStateChanged;
 

@@ -3232,7 +3232,6 @@ namespace CADability.GeoObject
         }
         public void DebugTest()
         {
-            BoxedSurface bs = this.BoxedSurface;
             BoxedSurfaceEx bse = this.BoxedSurfaceEx;
             double[] usteps, vsteps;
             double umin = uKnots[0];

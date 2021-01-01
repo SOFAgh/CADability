@@ -1082,6 +1082,15 @@ namespace CADability.GeoObject
             extremePositions = null;
             return -1; // means: no implementation for this combination
         }
+        /// <summary>
+        /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNonPeriodicSurface (Border)"/>
+        /// </summary>
+        /// <returns></returns>
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            SphericalSurfaceNP res = new SphericalSurfaceNP(Location, RadiusX, toUnit.Determinant > 0, orientedCurves);
+            return res;
+        }
         #endregion
         #region ISerializable Members
         protected SphericalSurface(SerializationInfo info, StreamingContext context)
@@ -1158,6 +1167,7 @@ namespace CADability.GeoObject
 
             }
         }
+        public bool OutwardOriented => toSphere.Determinant > 0;
 
         double GetRadius(DoubleProperty sender)
         {

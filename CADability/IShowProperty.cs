@@ -724,7 +724,7 @@ namespace CADability.UserInterface
         //public string ToolTip => StringTable.GetString(HelpLink, StringTable.Category.info);
         public string ResourceId => HelpLink;
         public object Parent { get; set; }
-        public IPropertyEntry[] SubItems
+        public virtual IPropertyEntry[] SubItems
         {
             get
             {

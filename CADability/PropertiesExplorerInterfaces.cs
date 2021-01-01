@@ -145,7 +145,7 @@ namespace CADability.UserInterface
         /// </summary>
         string Value { get; }
         /// <summary>
-        /// A tooltip, or null if no tooltip should be displayed
+        /// A tool-tip, or null if no tool-tip should be displayed
         /// </summary>
         string ResourceId { get; }
         /// <summary>
@@ -153,8 +153,6 @@ namespace CADability.UserInterface
         /// </summary>
         /// <returns></returns>
         int OpenOrCloseSubEntries();
-        //void MouseOnLabel();
-        //void MouseOnValue(MouseState ms);
         void ButtonClicked(PropertyEntryButton button);
         /// <summary>
         /// Has been added to the property page, can be used to do some initialization.
@@ -193,17 +191,17 @@ namespace CADability.UserInterface
         /// <returns></returns>
         string[] GetDropDownList();
         /// <summary>
-        /// Notification that the label or value part is beeing edited. Will only be called when <see cref="Flags> contains <see cref="PropertyEntryType.ValueEditable"/> or <see cref="PropertyEntryType.LabelEditable"> is set.
+        /// Notification that the label or value part is being edited. Will only be called when <see cref="Flags> contains <see cref="PropertyEntryType.ValueEditable"/> or <see cref="PropertyEntryType.LabelEditable"> is set.
         /// </summary>
         /// <param name="editValue">true: editing the value part, false: editing the label part</param>
         void StartEdit(bool editValue);
         /// <summary>
-        /// Notification when the editing process is beeing terminated. 
+        /// Notification when the editing process is being terminated. 
         /// </summary>
         /// <param name="aborted">true: the edit has been aborted, false: normal end of edit process</param>
         void EndEdit(bool aborted, bool modified, string newValue);
         /// <summary>
-        /// The text beeing edited has changed
+        /// The text being edited has changed
         /// </summary>
         /// <param name="newValue">The new text</param>
         /// <returns>true, when the property would accept this value</returns>
@@ -228,15 +226,9 @@ namespace CADability.UserInterface
         /// </summary>
         /// <param name="selectedIndex"></param>
         void ListBoxSelected(int selectedIndex);
-        // ReadOnly doesn't make sense, simply remove the flag PropertyEntryType.ValueEditable
-        ///// <summary>
-        ///// Only meaningful when <see cref="PropertyEntryType.ValueEditable"/> is set. 
-        ///// In this case the value is not editable
-        ///// </summary>
-        //bool ReadOnly { get; set; }
         /// <summary>
         /// Only meaningful when <see cref="PropertyEntryType.ValueEditable"/> is set. 
-        /// In this case the changes by typing do not notify the system until the textbox is closed (e.g. enter or tab was pressed)
+        /// In this case the changes by typing do not notify the system until the text-box is closed (i.e. the focus leaves the text box)
         /// </summary>
         bool DeferUpdate { get; set; }
         /// <summary>

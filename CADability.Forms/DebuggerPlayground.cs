@@ -38,13 +38,206 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                // TestPoleRemoval();
-                // TestBSpline();
-                TestTorusImplicit();
+                TestCylinderNP();
                 return true;
             }
             return false;
         }
+        private void TestCylinderNP()
+        {
+            Model model = frame.Project.GetActiveModel();
+            if (model[0] is Face fc1)
+            {
+                GeoObjectList dbgs = new GeoObjectList();
+                BoundingRect ext = fc1.Area.GetExtent();
+                GeoPoint2D dbgpos = fc1.Surface.PositionOf(fc1.Surface.PointAt(ext.GetCenter()));
+                for (int i = 0; i < 10; i++)
+                {
+                    double u = ext.Left + i * ext.Width / 9.0;
+                    double v = ext.Bottom + i * ext.Height / 9.0;
+                    Line2D l2d = new Line2D(new GeoPoint2D(u, ext.Bottom), new GeoPoint2D(u, ext.Top));
+                    double[] parts = fc1.Area.Clip(l2d, true);
+                    for (int j = 0; j < parts.Length; j += 2)
+                    {
+                        dbgs.Add(fc1.Surface.Make3dCurve(l2d.Trim(parts[j], parts[j + 1])) as IGeoObject);
+                    }
+                    l2d = new Line2D(new GeoPoint2D(ext.Left, v), new GeoPoint2D(ext.Right, v));
+                    parts = fc1.Area.Clip(l2d, true);
+                    for (int j = 0; j < parts.Length; j += 2)
+                    {
+                        dbgs.Add(fc1.Surface.Make3dCurve(l2d.Trim(parts[j], parts[j + 1])) as IGeoObject);
+                    }
+                    Line l = Line.Construct();
+                    GeoPoint2D uv = new GeoPoint2D(u, v);
+                    GeoVector diru = fc1.Surface.UDirection(uv);
+                    GeoVector dirv = fc1.Surface.VDirection(uv);
+                    diru.Length = 0.1;
+                    dirv.Length = 0.1;
+                    l.SetTwoPoints(fc1.Surface.PointAt(uv),fc1.Surface.PointAt(uv) + diru);
+                    dbgs.Add(l);
+                    l = Line.Construct();
+                    l.SetTwoPoints(fc1.Surface.PointAt(uv), fc1.Surface.PointAt(uv) + dirv);
+                    dbgs.Add(l);
+                }
+            }
+            GeoObjectList allSphericals = new GeoObjectList();
+            foreach (IGeoObject go in model)
+            {
+                Shell sh = null;
+                if (go is Solid sld) sh = sld.Shells[0];
+                else if (go is Shell shell) sh = shell;
+                else if (go is Face fc)
+                {
+                    sh = Shell.Construct();
+                    sh.SetFaces(new Face[] { fc });
+                }
+                if (sh != null)
+                {
+                    foreach (Face face in sh.Faces)
+                    {
+                        if (face.Surface is CylindricalSurface cs)
+                        {
+                            List<ICurve> crvs = new List<ICurve>();
+                            foreach (Edge edge in face.AllEdges)
+                            {
+                                if (edge.Curve3D != null)
+                                {
+                                    if (edge.Forward(face)) crvs.Add(edge.Curve3D.Clone());
+                                    else
+                                    {
+                                        ICurve r = edge.Curve3D.Clone();
+                                        r.Reverse();
+                                        crvs.Add(r);
+                                    }
+                                }
+                            }
+                            CylindricalSurfaceNP csnp = new CylindricalSurfaceNP(cs.Location, cs.RadiusX, cs.ZAxis, cs.OutwardOriented, crvs.ToArray());
+                            Face fc = Face.Construct();
+                            Edge[][] edges = new Edge[face.HoleCount + 1][];
+                            List<Edge> ledge = new List<Edge>();
+                            for (int i = 0; i < face.OutlineEdges.Length; i++)
+                            {
+                                if (face.OutlineEdges[i].Curve3D != null)
+                                {
+                                    ICurve crv = face.OutlineEdges[i].Curve3D.Clone();
+                                    if (!face.OutlineEdges[i].Forward(face)) crv.Reverse();
+                                    Edge ne = new Edge(fc, crv, fc, csnp.GetProjectedCurve(crv, 0.0), true);
+                                    ledge.Add(ne);
+                                }
+                                else { }
+                            }
+                            edges[0] = ledge.ToArray();
+                            for (int j = 0; j < face.HoleCount; j++)
+                            {
+                                ledge.Clear();
+                                for (int i = 0; i < face.HoleEdges(j).Length; i++)
+                                {
+                                    if (face.HoleEdges(j)[i].Curve3D != null)
+                                    {
+                                        ICurve crv = face.HoleEdges(j)[i].Curve3D.Clone();
+                                        if (!face.HoleEdges(j)[i].Forward(face)) crv.Reverse();
+                                        Edge ne = new Edge(fc, crv, fc, csnp.GetProjectedCurve(crv, 0.0), true);
+                                        ledge.Add(ne);
+                                    }
+                                }
+                                edges[j + 1] = ledge.ToArray();
+                            }
+                            fc.Set(csnp, edges);
+                            allSphericals.Add(fc);
+                            //for (int i = 0; i < 10; i++)
+                            //{
+                            //    double d = i / 10.0 - 0.5;
+                            //    ICurve cu = ssnp.FixedU(d, -0.5, 0.5);
+                            //    allSphericals.Add(cu as IGeoObject);
+                            //    ICurve cv = ssnp.FixedV(d, -0.5, 0.5);
+                            //    allSphericals.Add(cv as IGeoObject);
+                            //}
+                        }
+                    }
+                }
+            }
+        }
+        private void TestSphericalNP()
+        {
+            Model model = frame.Project.GetActiveModel();
+            GeoObjectList allSphericals = new GeoObjectList();
+            foreach (IGeoObject go in model)
+            {
+                Shell sh = null;
+                if (go is Solid sld) sh = sld.Shells[0];
+                else if (go is Shell shell) sh = shell;
+                else if (go is Face fc)
+                {
+                    sh = Shell.Construct();
+                    sh.SetFaces(new Face[] { fc });
+                }
+                if (sh != null)
+                {
+                    foreach (Face face in sh.Faces)
+                    {
+                        if (face.Surface is SphericalSurface ss)
+                        {
+                            List<ICurve> crvs = new List<ICurve>();
+                            foreach (Edge edge in face.AllEdges)
+                            {
+                                if (edge.Curve3D != null)
+                                {
+                                    if (edge.Forward(face)) crvs.Add(edge.Curve3D.Clone());
+                                    else
+                                    {
+                                        ICurve r = edge.Curve3D.Clone();
+                                        r.Reverse();
+                                        crvs.Add(r);
+                                    }
+                                }
+                            }
+                            SphericalSurfaceNP ssnp = new SphericalSurfaceNP(ss.Location, ss.RadiusX, ss.OutwardOriented, crvs.ToArray());
+                            Face fc = Face.Construct();
+                            Edge[][] edges = new Edge[face.HoleCount + 1][];
+                            List<Edge> ledge = new List<Edge>();
+                            for (int i = 0; i < face.OutlineEdges.Length; i++)
+                            {
+                                if (face.OutlineEdges[i].Curve3D != null)
+                                {
+                                    ICurve crv = face.OutlineEdges[i].Curve3D.Clone();
+                                    if (!face.OutlineEdges[i].Forward(face)) crv.Reverse();
+                                    Edge ne = new Edge(fc, crv, fc, ssnp.GetProjectedCurve(crv, 0.0), true);
+                                    ledge.Add(ne);
+                                }
+                                else { }
+                            }
+                            edges[0] = ledge.ToArray();
+                            for (int j = 0; j < face.HoleCount; j++)
+                            {
+                                ledge.Clear();
+                                for (int i = 0; i < face.HoleEdges(j).Length; i++)
+                                {
+                                    if (face.HoleEdges(j)[i].Curve3D != null)
+                                    {
+                                        ICurve crv = face.HoleEdges(j)[i].Curve3D.Clone();
+                                        if (!face.HoleEdges(j)[i].Forward(face)) crv.Reverse();
+                                        Edge ne = new Edge(fc, crv, fc, ssnp.GetProjectedCurve(crv, 0.0), true);
+                                        ledge.Add(ne);
+                                    }
+                                }
+                                edges[j + 1] = ledge.ToArray();
+                            }
+                            fc.Set(ssnp, edges);
+                            allSphericals.Add(fc);
+                            //for (int i = 0; i < 10; i++)
+                            //{
+                            //    double d = i / 10.0 - 0.5;
+                            //    ICurve cu = ssnp.FixedU(d, -0.5, 0.5);
+                            //    allSphericals.Add(cu as IGeoObject);
+                            //    ICurve cv = ssnp.FixedV(d, -0.5, 0.5);
+                            //    allSphericals.Add(cv as IGeoObject);
+                            //}
+                        }
+                    }
+                }
+            }
+        }
+
         private void TestBSpline()
         {
             GeoPoint[] pole = new GeoPoint[5];

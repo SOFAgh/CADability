@@ -840,9 +840,9 @@ namespace CADability.GeoObject
                 plane = new Plane(Center, MajorAxis, MinorAxis);
                 majorRadius = MajorAxis.Length;
                 minorRadius = MinorAxis.Length;
-                // was soll folgendes beim dwg import bewirken, wg. Ellipsenbogen, Radiusänderung darf das nicht sein
-                //startParameter = 0.0; // diese beiden Zeilen wurden notwendig wg. dwg Import
-                //sweepParameter = Math.PI * 2.0;
+                
+                startParameter = 0.0;
+                sweepParameter = Math.PI * 2.0; // sweep parameter was 0 previously, but it should be a full ellipse
             }
         }
         internal void SetElliStartEndPoint(GeoPoint p1, GeoPoint p2)

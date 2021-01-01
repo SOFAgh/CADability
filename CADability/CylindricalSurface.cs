@@ -2067,12 +2067,11 @@ namespace CADability.GeoObject
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNonPeriodicSurface (Border)"/>
         /// </summary>
-        /// <param name="maxOutline"></param>
         /// <returns></returns>
-        public override ISurface GetNonPeriodicSurface(Border maxOutline)
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
         {
-            BoundingRect ext = maxOutline.Extent;
-            return new NonPeriodicCylindricalSurface(this, ext.Bottom, ext.Top);
+            CylindricalSurfaceNP res = new CylindricalSurfaceNP(Location, RadiusX, ZAxis, toUnit.Determinant > 0, orientedCurves);
+            return res;
         }
         public override CADability.GeoObject.RuledSurfaceMode IsRuled
         {
@@ -2316,6 +2315,7 @@ namespace CADability.GeoObject
 
         bool ISurfaceOfExtrusion.ExtrusionDirectionIsV => true;
         #endregion
+        public bool OutwardOriented => toCylinder.Determinant > 0;
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             //CYLINDRICAL_SURFACE

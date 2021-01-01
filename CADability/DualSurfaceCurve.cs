@@ -608,11 +608,11 @@ namespace CADability
     [Serializable()]
     public class ProjectedCurve : TriangulatedCurve2D, ISerializable
     {
-        private double startParam; // auf der 3D Kurve, gibt auch die Richtung an
-        private double endParam; // auf der 3D Kurve
+        private double startParam; // start parameter on the 3d curve, together wit endParam also specifies the orientation
+        private double endParam; // on the 3d curve
         ICurve curve3D;
         ISurface surface;
-        BoundingRect periodicDomain; // damit bei periodischen PointAt den richtigen Bereich liefert
+        BoundingRect periodicDomain; // only for periodic domains: to which period the 3d points should be mapped
         GeoPoint2D startPoint2d, endPoint2d;
         bool startPointIsPole, endPointIsPole;
         bool spu, epu; // starting or ending pole in u
@@ -936,6 +936,14 @@ namespace CADability
         {   // a face has been modified, in 2d there are no changes, but the surface and the 3d curve must be adopted
             this.surface = surface;
             this.curve3D = curve3d;
+            // following was moved to Edge.ReflectModification()
+            //if (surface.UvChangesWithModification)
+            //{
+            //    startPoint2d = surface.PositionOf(curve3D.StartPoint);
+            //    endPoint2d = surface.PositionOf(curve3D.EndPoint);
+            //    ClearTriangulation();
+            //    if (surface is IRestrictedDomain rd) surface.GetNaturalBounds(out periodicDomain.Left, out periodicDomain.Right, out periodicDomain.Bottom, out periodicDomain.Top);
+            //}
         }
 
         public override GeoVector2D DirectionAt(double Position)

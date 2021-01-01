@@ -690,7 +690,7 @@ namespace CADability
             return new GeoVector(d * v.x, d * v.y, d * v.z);
         }
         /// <summary>
-        /// Divides the given gevcor by the given double value.
+        /// Divides the given GeoVector <paramref name="v"/> by the given scalar value <paramref name="v"/>.
         /// </summary>
         /// <param name="v">vector</param>
         /// <param name="d">divider</param>

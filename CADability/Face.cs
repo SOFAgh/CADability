@@ -49,32 +49,26 @@ namespace CADability.GeoObject
                 return menuWithHandlers.ToArray();
             }
         }
-        public override int SubEntriesCount
+        public override int SubEntriesCount => SubItems.Length;
+        private IPropertyEntry[] subItems;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
-                return SubEntries.Length; ;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
+                if (subItems == null)
                 {
-                    List<IShowProperty> se = new List<IShowProperty>();
+                    List<IPropertyEntry> se = new List<IPropertyEntry>();
 #if DEBUG
                     IntegerProperty dbghashcode = new IntegerProperty(face.GetHashCode(), "Debug.Hashcode");
                     se.Add(dbghashcode);
 #endif
                     se.Add(new NameProperty(this.face, "Name", "Face.Name"));
-                    if (face.Surface is IShowProperty)
+                    if (face.Surface.PropertyEntry!=null)
                     {
-                        IShowPropertyImpl sp = face.Surface as IShowPropertyImpl;
-                        if (sp != null) sp.Frame = base.Frame; // der Frame wird benötigt wg. ReadOnly
-                        (face.Surface as IShowProperty).ReadOnly = true;
-                        se.Add(face.Surface as IShowProperty);
+                        //IShowPropertyImpl sp = face.Surface as IShowPropertyImpl;
+                        //if (sp != null) sp.Frame = base.Frame; // der Frame wird benötigt wg. ReadOnly
+                        //(face.Surface as IShowProperty).ReadOnly = true;
+                        se.Add(face.Surface.PropertyEntry);
                     }
                     SimplePropertyGroup edgeprops = new SimplePropertyGroup("Face.Edge");
                     foreach (Edge edge in face.AllEdges)
@@ -87,10 +81,14 @@ namespace CADability.GeoObject
                         }
                     }
                     se.Add(edgeprops);
-                    se.AddRange(attributeProperties);
-                    subEntries = se.ToArray();
+                    for (int i = 0; i < attributeProperties.Length; i++)
+                    {
+                        se.Add(attributeProperties[i] as IPropertyEntry);
+                    }
+                    // se.AddRange(attributeProperties as IPropertyEntry[]); // not possible to cast
+                    subItems = se.ToArray();
                 }
-                return subEntries;
+                return subItems;
             }
         }
 
@@ -708,9 +706,30 @@ namespace CADability.GeoObject
                         move += diff;
                     }
                 }
+#if USENONPRIODICSURFACES
+                if (surface.IsUPeriodic || surface.IsVPeriodic || surface.GetUSingularities().Length > 0 || surface.GetVSingularities().Length > 0)
+                {
+                    List<ICurve> orientedCurves = new List<ICurve>();
+                    for (int i = 0; i < loops.Count; i++)
+                    {
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            if (loops[i][j].forward) orientedCurves.Add(loops[i][j].curve);
+                            else
+                            {
+                                ICurve clone = loops[i][j].curve.Clone();
+                                clone.Reverse();
+                                orientedCurves.Add(clone);
+                            }
+                        }
+                    }
+                    ISurface nonperiodic = surface.GetNonPeriodicSurface(orientedCurves.ToArray());
+                    if (nonperiodic != null) surface = nonperiodic;
+                }
+#endif
                 if (surface is SphericalSurface && (surface as SphericalSurface).IsRealSphere)
                 {
-                    // typically the sperical surfaces are oriented so that the spheres axis is the z-Axis (if it was not not created as a surface of revolution)
+                    // typically the spherical surfaces are oriented so that the spheres axis is the z-Axis (if it was not created as a surface of revolution)
                     // it is easier and faster if the loops don't include one of the poles. This is not always possible, but we try it here:
                     SphericalSurface sphericalSurface = surface as SphericalSurface;
                     GeoPoint loc = sphericalSurface.Location;
@@ -754,7 +773,7 @@ namespace CADability.GeoObject
                     Plane pln = Plane.FromPoints(vtxpoints.ToArray(), out double maxdist, out bool islinear);
                     if (!islinear)
                     {
-                        GeoVector axdir = (sphericalSurface.Axis^pln.Normal);
+                        GeoVector axdir = (sphericalSurface.Axis ^ pln.Normal);
                         axdir.NormIfNotNull();
                         if (axdir.IsNullVector()) axdir = GeoVector.XAxis;
                         // if all points are in one half of the sphere, this axis should be good
@@ -772,7 +791,7 @@ namespace CADability.GeoObject
                         }
                         ICurve2D[] pla = projectedLoop.ToArray();
 
-                        if (!Border.IsPointOnOutline(pla, GeoPoint2D.Origin, precision)&& Border.IsInside(pla, GeoPoint2D.Origin) != Border.CounterClockwise(pla))
+                        if (!Border.IsPointOnOutline(pla, GeoPoint2D.Origin, precision) && Border.IsInside(pla, GeoPoint2D.Origin) != Border.CounterClockwise(pla))
                         {
                             GeoVector dirx = axdir ^ GeoVector.ZAxis;
                             GeoVector diry = dirx ^ axdir;
@@ -1195,6 +1214,7 @@ namespace CADability.GeoObject
                 {   // rare case, only poles, e.g. a full sphere
                     surface.GetNaturalBounds(out ext.Left, out ext.Right, out ext.Bottom, out ext.Top);
                 }
+                bool removeEmptyLoops = false;
                 for (int i = 0; i < loops.Count; i++)
                 {
                     for (int j = 0; j < loops[i].Count; j++)
@@ -1238,7 +1258,22 @@ namespace CADability.GeoObject
                                     ext.MinMax(loops[i][j].curve2d.GetExtent());
                                 }
                             }
+                            if (loops[i][j].curve2d == null)
+                            {
+                                loops[i][j] = null;
+                                removeEmptyLoops = true;
+                            }
                         }
+                    }
+                }
+                if (removeEmptyLoops)
+                {   // Sometimes there are loops with only empty curves. Typically a pole
+                    for (int i = loops.Count - 1; i >= 0; --i)
+                    {
+                        if (loops[i].Count == 1 && loops[i][0] == null)
+                        {
+                            loops.RemoveAt(i);
+                        } // no other case encountered yet (one of more edges is null)
                     }
                 }
                 // *** check correct 2d projection and poles
@@ -3123,7 +3158,7 @@ namespace CADability.GeoObject
                 }
             }
         }
-        internal void Set(ISurface surface, Edge[][] edges, bool checkOutline = false)
+        public void Set(ISurface surface, Edge[][] edges, bool checkOutline = false)
         {
             this.surface = surface;
             double uperiod = 0.0, vperiod = 0.0;
@@ -5212,7 +5247,7 @@ namespace CADability.GeoObject
         }
         public void ModifySurface(ModOp m)
         {
-            // ususally called from Shell, which modifies the edges seperately
+            // usually called from Shell, which modifies the edges separately
 #if DEBUG
             int tc0 = System.Environment.TickCount;
 #endif
@@ -5254,6 +5289,7 @@ namespace CADability.GeoObject
                 foreach (Edge edge in AllEdges)
                 {
                     edge.Modify(m);
+                    edge.ReflectModification();
                 }
                 // clear all vertices, will be recalculated on request
                 //foreach (Vertex vtx in Vertices)
@@ -5917,31 +5953,40 @@ namespace CADability.GeoObject
                 }
 #if DEBUG
                 DebuggerContainer dc3d = new DebuggerContainer();
+                DebuggerContainer dc2d = new DebuggerContainer();
                 BoundingCube bc = BoundingCube.EmptyBoundingCube;
                 for (int i = 0; i < trianglePoint.Length; i++)
                 {
                     bc.MinMax(trianglePoint[i]);
                 }
-                if (bc.Zmax > 70)
-                {
-                }
+                if (bc.Zmax > 0)
+                { }
                 for (int i = 0; i < triangleIndex.Length; i += 3)
                 {
                     GeoPoint2D tr1 = new GeoPoint2D(triangleUVPoint[triangleIndex[i]].x / ext.Width, triangleUVPoint[triangleIndex[i]].y / ext.Height);
                     GeoPoint2D tr2 = new GeoPoint2D(triangleUVPoint[triangleIndex[i + 1]].x / ext.Width, triangleUVPoint[triangleIndex[i + 1]].y / ext.Height);
                     GeoPoint2D tr3 = new GeoPoint2D(triangleUVPoint[triangleIndex[i + 2]].x / ext.Width, triangleUVPoint[triangleIndex[i + 2]].y / ext.Height);
-                    //dc.Add(new Line2D(tr1, tr2));
-                    //dc.Add(new Line2D(tr2, tr3));
-                    //dc.Add(new Line2D(tr3, tr1));
+                    dc2d.Add(new Line2D(tr1, tr2), System.Drawing.Color.Blue, i);
+                    dc2d.Add(new Line2D(tr2, tr3), System.Drawing.Color.Blue, i);
+                    dc2d.Add(new Line2D(tr3, tr1), System.Drawing.Color.Blue, i);
+                    GeoPoint2D cnt = new GeoPoint2D(tr1, tr2, tr3);
+                    if ((new GeoVector(tr2 - tr1) ^ new GeoVector(tr3 - tr1)).z > 0) dc2d.Add(cnt, System.Drawing.Color.Red, i);
+                    else dc2d.Add(cnt, System.Drawing.Color.Green, i);
                     Line ln = Line.Construct();
                     ln.SetTwoPoints(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]]);
-                    dc3d.Add(ln, triangleIndex[i]);
+                    dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i]);
                     ln = Line.Construct();
                     ln.SetTwoPoints(trianglePoint[triangleIndex[i + 1]], trianglePoint[triangleIndex[i + 2]]);
-                    dc3d.Add(ln, triangleIndex[i + 1]);
+                    dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i + 1]);
                     ln = Line.Construct();
                     ln.SetTwoPoints(trianglePoint[triangleIndex[i + 2]], trianglePoint[triangleIndex[i]]);
-                    dc3d.Add(ln, triangleIndex[i + 2]);
+                    dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i + 2]);
+                    GeoPoint cnt3d = new GeoPoint(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]], trianglePoint[triangleIndex[i + 2]]);
+                    GeoVector n = (trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]]) ^ (trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
+                    n.Length = bc.Size * 0.1;
+                    ln = Line.Construct();
+                    ln.SetTwoPoints(cnt3d, cnt3d + n);
+                    dc3d.Add(ln, System.Drawing.Color.Red, triangleIndex[i]);
                 }
 #endif
             }
@@ -9859,87 +9904,6 @@ namespace CADability.GeoObject
             res.Add(hole);
             return res.ToArray();
         }
-#if DEBUG
-        public Face CloneNonPeriodic(Dictionary<Edge, Edge> clonedEdges, Dictionary<Vertex, Vertex> clonedVertices)
-        {
-            ISurface nps = surface.GetNonPeriodicSurface(area.Outline);
-            if (nps != null && nps is INonPeriodicSurfaceConversion)
-            {
-                Face res = Face.Construct();
-                res.surface = nps;
-                INonPeriodicSurfaceConversion npconvert = nps as INonPeriodicSurfaceConversion;
-                SimpleShape ss;
-                // die Topologie der Kanten bleibt nicht unbedingt erhalten, bei einem geschlossenen
-                // Zylinder (einfaches Rechteck) entsteht z.B. eine outline und ein Loch. Allerdings werden 
-                // wohl aus Löchern immer Löcher
-                // Man könnte auch berücksichtigen dass wenn es keine "Seam"s gibt, dann bleibt die Topologie erhalten.
-                bool hasSeam = false;
-                for (int i = 0; i < outline.Length; i++)
-                {
-                    if (outline[i].IsSeam())
-                    {
-                        hasSeam = true;
-                        break;
-                    }
-                }
-                if (hasSeam)
-                {   // hier müssen die neuen 2d Kurven zu passenden outlines 
-                    // zusammengesetzt werden und nach clonedEdges übertragen werden
-                    throw new NotImplementedException();
-                }
-                else
-                {
-                    List<Edge> outlineEdges = new List<Edge>();
-                    List<Edge[]> holesEdges = new List<Edge[]>();
-                    for (int i = 0; i < outline.Length; i++)
-                    {
-                        ICurve2D c2d = npconvert.FromPeriodic(outline[i].Curve2D(this));
-                        if (c2d != null)
-                        {
-                            if (clonedEdges.ContainsKey(outline[i]))
-                            {
-                                clonedEdges[outline[i]].SetSecondary(res, c2d, outline[i].Forward(this));
-                            }
-                            else
-                            {
-                                clonedEdges[outline[i]] = new Edge(res, outline[i].Curve3D.Clone());
-                                clonedEdges[outline[i]].SetPrimary(res, c2d, outline[i].Forward(this));
-                            }
-                            outlineEdges.Add(clonedEdges[outline[i]]);
-                        }
-                    }
-                    for (int i = 0; i < holes.Length; i++)
-                    {
-                        List<Edge> hedg = new List<Edge>();
-                        for (int j = 0; j < holes[i].Length; j++)
-                        {
-                            ICurve2D c2d = npconvert.FromPeriodic(holes[i][j].Curve2D(this));
-                            if (c2d != null)
-                            {
-                                if (clonedEdges.ContainsKey(holes[i][j]))
-                                {
-                                    clonedEdges[holes[i][j]].SetSecondary(res, c2d, holes[i][j].Forward(this));
-                                }
-                                else
-                                {
-                                    clonedEdges[holes[i][j]] = new Edge(res, holes[i][j].Curve3D.Clone());
-                                    clonedEdges[holes[i][j]].SetPrimary(res, c2d, holes[i][j].Forward(this));
-                                }
-                                hedg.Add(clonedEdges[holes[i][j]]);
-                            }
-                        }
-                        holesEdges.Add(hedg.ToArray());
-                    }
-                    res.Set(nps, outlineEdges.ToArray(), holesEdges.ToArray());
-                }
-                return res;
-            }
-            else
-            {
-                return this.Clone(clonedEdges, clonedVertices);
-            }
-        }
-#endif
         /// <summary>
         /// Creates a new face representing a tringle in space
         /// </summary>

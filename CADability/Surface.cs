@@ -355,16 +355,17 @@ namespace CADability.GeoObject
         /// Returns a list of perpendicular foot points of the surface. The list may be empty
         /// </summary>
         /// <param name="fromHere">Source point for the perpendicular foot</param>
-        /// <returns>Array of footpoints, may be empty</returns>
+        /// <returns>Array of foot-points, may be empty</returns>
         GeoPoint2D[] PerpendicularFoot(GeoPoint fromHere);
         bool HasDiscontinuousDerivative(out ICurve2D[] discontinuities);
         /// <summary>
-        /// If this surface is periodic in u or v or both return a nonperiodic surface
-        /// which describes the same geometric surface but with a differen parametric system.
+        /// If this surface is periodic in u or v or both return a non-periodic surface
+        /// which describes the same geometric surface but with a different parametric system.
+        /// It also removes poles and is useful for non-periodic surfaces with a single pole.
         /// </summary>
-        /// <param name="maxOutline">Maximum area in which the definition must be valid</param>
+        /// <param name="orientedCurves">3d curves, which describe the outline, that will be used. this is needed by some surfaces to determine the maximum definition area</param>
         /// <returns></returns>
-        ISurface GetNonPeriodicSurface(Border maxOutline);
+        ISurface GetNonPeriodicSurface(ICurve[] orientedCurves);
         /// <summary>
         /// Returns a parallelepiped (a prism with parallelograms) defined by the parameters <paramref name="loc"/>,
         /// <paramref name="dir1"/>, <paramref name="dir2"/>, <paramref name="dir3"/> which completeley covers or encloses
@@ -466,6 +467,11 @@ namespace CADability.GeoObject
         /// <param name="face"></param>
         /// <returns></returns>
         MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face);
+        bool UvChangesWithModification { get; }
+        /// <summary>
+        /// Gets the IPropertyEntry to display this surface in the property grid (may be null)
+        /// </summary>
+        IPropertyEntry PropertyEntry { get; }
     }
 
     /// <summary>
@@ -2182,32 +2188,17 @@ namespace CADability.GeoObject
 
     }
 
-
+    // TODO: implement IPropertyEntry with GetPropertyEntry and protected virtual methods, remove IShowPropertyImpl
     /// <summary>
     /// Internal helper class for <see cref="ISurface"/> implementation.
     /// </summary>
-
     public abstract class ISurfaceImpl : IShowPropertyImpl, ISurface, IOctTreeInsertable
         , IPropertyEntry
     {
         protected GeoPoint2D[] extrema; // Achtung, muss bei Modify auf null gesetzt werden
         internal BoxedSurface boxedSurface;
         internal BoundingRect usedArea = BoundingRect.EmptyBoundingRect;
-        internal BoxedSurface BoxedSurface
-        {   // BoxedSurface sollte abgeschafft werden zu gunsten von BoxedSurfaceEx
-            // z.B. beim ebenen Schnitt
-            get
-            {
-                if (boxedSurface == null)
-                {
-                    BoundingRect ext = new BoundingRect();
-                    GetNaturalBounds(out ext.Left, out ext.Right, out ext.Bottom, out ext.Top);
-                    boxedSurface = new BoxedSurface(this, ext);
-                }
-                return boxedSurface;
-            }
-        }
-        internal BoxedSurfaceEx boxedSurfaceEx; // ersetzt später boxedSurface
+        internal BoxedSurfaceEx boxedSurfaceEx;
         internal virtual BoxedSurfaceEx BoxedSurfaceEx
         {
             get
@@ -2468,12 +2459,6 @@ namespace CADability.GeoObject
             extrema = null;
             boxedSurface = null;
         }
-#if DEBUG
-#endif
-#if DEBUG
-#endif
-#if DEBUG
-#endif
         /// <summary>
         /// Implements <see cref="CADability.GeoObject.ISurface.FixedU (double, double, double)"/>
         /// </summary>
@@ -3620,11 +3605,11 @@ namespace CADability.GeoObject
             return false;
         }
         /// <summary>
-        /// Implements <see cref="CADability.GeoObject.ISurface.GetNonPeriodicSurface (Border)"/>
+        /// Implements <see cref="CADability.GeoObject.ISurface.GetNonPeriodicSurface (ICurve[])"/>
         /// </summary>
         /// <param name="maxOutline"></param>
         /// <returns></returns>
-        public virtual ISurface GetNonPeriodicSurface(Border maxOutline)
+        public virtual ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
         {
             return null;
         }
@@ -3718,7 +3703,9 @@ namespace CADability.GeoObject
         {
             return new MenuWithHandler[0];
         }
+        public virtual bool UvChangesWithModification => false;
 
+        public virtual IPropertyEntry PropertyEntry => this;
 #if DEBUG
         // Starte mit dem Mittelpunkt
         // Betrache die Kurve f(u) = u²*d2+u*d1+d0 (d2 ist die 2. Ableitung in der Richtung der beiden Punkte, d1 die 1., d0 der Punkt selbst),
@@ -3876,8 +3863,11 @@ namespace CADability.GeoObject
             }
         }
 #endif
-        static double sqr(double x) { return x * x; }
-
+        protected static double sqr(double x) { return x * x; }
+        protected static double cube(double x) { return x * x * x; }
+        protected static double quad(double x) { return x * x * x * x; }
+        protected static double exp32(double x) { return Math.Sqrt(x * x * x); }
+        protected static double exp52(double x) { return Math.Sqrt(x * x * x * x * x); }
         public virtual double MaxDist(GeoPoint2D sp, GeoPoint2D ep, out GeoPoint2D mp)
         {
             GeoPoint sp3d, ep3d; // start und enpunkt in 3d, der maximale Abstand zu dieser Linie wird gesucht
@@ -5610,13 +5600,13 @@ namespace CADability.GeoObject
                         {
                             GeoPoint tp0 = pln.ToGlobal(tp[i]);
                             GeoPoint tp1 = pln.ToGlobal(tp[i + 1]);
-                            double d = Geometry.DistPL(tp0,cyl.Location,cyl.Axis)+ Geometry.DistPL(tp1, cyl.Location, cyl.Axis);
+                            double d = Geometry.DistPL(tp0, cyl.Location, cyl.Axis) + Geometry.DistPL(tp1, cyl.Location, cyl.Axis);
                             if (d < mindist)
                             {
                                 mindist = d;
                                 GeoVector dirz = tp1 - tp0;
-                                GeoVector dirx =  dirz ^ pln.Normal;
-                                GeoVector diry =  pln.Normal;
+                                GeoVector dirx = dirz ^ pln.Normal;
+                                GeoVector diry = pln.Normal;
                                 dirx.Length = tor0.MinorRadius;
                                 diry.Length = tor0.MinorRadius;
                                 res = new CylindricalSurface(tp0, dirx, diry, dirz);
@@ -11378,49 +11368,71 @@ namespace CADability.GeoObject
                 double umax = uvbounds.Right;
                 double vmin = uvbounds.Bottom;
                 double vmax = uvbounds.Top;
-                int n = 50;
-                for (int i = 0; i <= n; i++)
-                {   // über die Diagonale
-                    GeoPoint[] pu = new GeoPoint[n + 1];
-                    GeoPoint[] pv = new GeoPoint[n + 1];
-                    for (int j = 0; j <= n; j++)
+                if (surface is IRestrictedDomain restrictedDomain)
+                {
+                    int n = 50;
+                    for (int i = 0; i <= n; i++)
                     {
-                        pu[j] = surface.PointAt(new GeoPoint2D(umin + j * (umax - umin) / n, vmin + i * (vmax - vmin) / n));
-                        pv[j] = surface.PointAt(new GeoPoint2D(umin + i * (umax - umin) / n, vmin + j * (vmax - vmin) / n));
+                        Line2D l2d = new Line2D(new GeoPoint2D(umin + i * (umax - umin) / n, vmin), new GeoPoint2D(umin + i * (umax - umin) / n, vmin));
+                        double[] ips = restrictedDomain.Clip(l2d);
+                        for (int j = 0; j < ips.Length; j += 2)
+                        {
+                            dc.Add(surface.Make3dCurve(l2d.Trim(ips[j], ips[j + 1])) as IGeoObject);
+                        }
+                        l2d = new Line2D(new GeoPoint2D(umin, vmin + i * (vmax - vmin) / n), new GeoPoint2D(umax, vmin + i * (vmax - vmin) / n));
+                        ips = restrictedDomain.Clip(l2d);
+                        for (int j = 0; j < ips.Length; j += 2)
+                        {
+                            dc.Add(surface.Make3dCurve(l2d.Trim(ips[j], ips[j + 1])) as IGeoObject);
+                        }
                     }
-                    try
-                    {
-                        Polyline plu = Polyline.Construct();
-                        plu.SetPoints(pu, false);
-                        plu.ColorDef = cdr;
-                        plu.Layer = solid;
-                        dc.Add(plu);
-                    }
-                    catch (PolylineException)
-                    {
-                        Point pntu = Point.Construct();
-                        pntu.Location = pu[0];
-                        pntu.Symbol = PointSymbol.Cross;
-                        pntu.ColorDef = cdr;
-                        pntu.Layer = solid;
-                        dc.Add(pntu);
-                    }
-                    try
-                    {
-                        Polyline plv = Polyline.Construct();
-                        plv.SetPoints(pv, false);
-                        plv.ColorDef = cdr;
-                        plv.Layer = solid;
-                        dc.Add(plv);
-                    }
-                    catch (PolylineException)
-                    {
-                        Point pntv = Point.Construct();
-                        pntv.Location = pv[0];
-                        pntv.Symbol = PointSymbol.Cross;
-                        pntv.ColorDef = cdr;
-                        pntv.Layer = solid;
-                        dc.Add(pntv);
+                }
+                else
+                {
+                    int n = 50;
+                    for (int i = 0; i <= n; i++)
+                    {   // über die Diagonale
+                        GeoPoint[] pu = new GeoPoint[n + 1];
+                        GeoPoint[] pv = new GeoPoint[n + 1];
+                        for (int j = 0; j <= n; j++)
+                        {
+                            pu[j] = surface.PointAt(new GeoPoint2D(umin + j * (umax - umin) / n, vmin + i * (vmax - vmin) / n));
+                            pv[j] = surface.PointAt(new GeoPoint2D(umin + i * (umax - umin) / n, vmin + j * (vmax - vmin) / n));
+                        }
+                        try
+                        {
+                            Polyline plu = Polyline.Construct();
+                            plu.SetPoints(pu, false);
+                            plu.ColorDef = cdr;
+                            plu.Layer = solid;
+                            dc.Add(plu);
+                        }
+                        catch (PolylineException)
+                        {
+                            Point pntu = Point.Construct();
+                            pntu.Location = pu[0];
+                            pntu.Symbol = PointSymbol.Cross;
+                            pntu.ColorDef = cdr;
+                            pntu.Layer = solid;
+                            dc.Add(pntu);
+                        }
+                        try
+                        {
+                            Polyline plv = Polyline.Construct();
+                            plv.SetPoints(pv, false);
+                            plv.ColorDef = cdr;
+                            plv.Layer = solid;
+                            dc.Add(plv);
+                        }
+                        catch (PolylineException)
+                        {
+                            Point pntv = Point.Construct();
+                            pntv.Location = pv[0];
+                            pntv.Symbol = PointSymbol.Cross;
+                            pntv.ColorDef = cdr;
+                            pntv.Layer = solid;
+                            dc.Add(pntv);
+                        }
                     }
                 }
                 return dc;
@@ -11535,7 +11547,7 @@ namespace CADability.GeoObject
                     if (fixedu) crv = surface2.FixedU(par, pmin, pmax);
                     else crv = surface2.FixedV(par, pmin, pmax);
                 }
-                if (crv==null)
+                if (crv == null)
                 {
                     return res;
                 }

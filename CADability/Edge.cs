@@ -673,6 +673,16 @@ namespace CADability
         }
         internal void ReflectModification()
         {
+            if (primaryFace.Surface.UvChangesWithModification)
+            {
+                PrimaryCurve2D = primaryFace.Surface.GetProjectedCurve(Curve3D, 0.0);
+                if (!forwardOnPrimaryFace) PrimaryCurve2D.Reverse();
+            }
+            if (secondaryFace!=null && secondaryFace.Surface.UvChangesWithModification)
+            {
+                SecondaryCurve2D = secondaryFace.Surface.GetProjectedCurve(Curve3D, 0.0);
+                if (!forwardOnSecondaryFace) SecondaryCurve2D.Reverse();
+            }
             if (curveOnPrimaryFace is ProjectedCurve pcp) pcp.ReflectModification(primaryFace.Surface, curve3d);
             if (curveOnSecondaryFace is ProjectedCurve pcs) pcs.ReflectModification(secondaryFace.Surface, curve3d);
         }
@@ -818,7 +828,7 @@ namespace CADability
             edgeKind = EdgeKind.unknown;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 3599)
+            if (hashCode == 6728)
             {
             }
 #endif

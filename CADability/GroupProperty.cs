@@ -7,13 +7,13 @@
     /// </summary>
     public class GroupProperty : IShowPropertyImpl
     {
-        private IShowProperty[] subEntries;
-        public GroupProperty(string resourceId, IShowProperty[] subEntries)
+        private IPropertyEntry[] subEntries;
+        public GroupProperty(string resourceId, IPropertyEntry[] subEntries)
         {
             this.resourceId = resourceId;
             this.subEntries = subEntries;
         }
-        public void SetSubEntries(IShowProperty[] subEntries)
+        public void SetSubEntries(IPropertyEntry[] subEntries)
         {
             this.subEntries = subEntries;
             propertyTreeView.Refresh(this);
@@ -54,14 +54,13 @@
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 return subEntries;
             }
         }
-
         #endregion
     }
 }

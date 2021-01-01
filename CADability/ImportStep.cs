@@ -1463,9 +1463,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                     foreach (Face face in shell.Faces)
                     {
-                        if (face.GetHashCode()==2472)
+                        if (face.GetHashCode()==725)
                         {
-                            face.AssureTriangles(0.005);
+                            face.AssureTriangles(0.38);
                         }
                     }
                 }

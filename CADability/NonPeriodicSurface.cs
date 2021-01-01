@@ -314,6 +314,17 @@ namespace CADability.GeoObject
             GeoVector2D np = toNonPeriodicBounds * uv;
             return new GeoVector2D(np.y * Math.Cos(np.x), np.y * Math.Sin(np.x));
         }
+        public override ISurface Clone()
+        {
+            NonPeriodicSurface res = new NonPeriodicSurface();
+            res.periodicSurface = periodicSurface;
+            res.periodicBounds = periodicBounds;
+            res.hasPole = hasPole;
+            res.fullPeriod = fullPeriod;
+            res.toNonPeriodicBounds = toNonPeriodicBounds;
+            res.toPeriodicBounds = toPeriodicBounds;
+            return res;
+        }
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("PeriodicSurface", periodicSurface);
