@@ -41,7 +41,7 @@ namespace CADability
                 return c[i];
             }
         }
-        public static implicit operator double[] (PolynomSingleVariable p)
+        public static implicit operator double[](PolynomSingleVariable p)
         {
             return p.c;
         }
@@ -166,6 +166,10 @@ namespace CADability
             res.c[0] = c0;
             res.c[1] = c1;
             return res;
+        }
+        static public Polynom SingleDim(params double[] c)
+        {   // to be implemented
+            throw new NotImplementedException();
         }
         /// <summary>
         /// Creates a polynom as specified by the parameters.

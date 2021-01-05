@@ -1,6 +1,7 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
 using CADability.GeoObject;
+using CADability.Shapes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
@@ -46,6 +47,11 @@ namespace CADability.Forms
         private void TestCylinderNP()
         {
             Model model = frame.Project.GetActiveModel();
+            if (model[0] is Face fccone && model[1] is Line line)
+            {
+                fccone.Surface.GetLineIntersection(line.StartPoint, line.EndPoint - line.StartPoint);
+            }
+            return;
             if (model[0] is Face fc1)
             {
                 GeoObjectList dbgs = new GeoObjectList();

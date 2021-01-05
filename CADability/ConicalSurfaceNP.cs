@@ -7,7 +7,7 @@ using CADability.Curve2D;
 namespace CADability.GeoObject
 {
     [Serializable()]
-    class ConicalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable
+    public class ConicalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable
     {
         GeoPoint location; // the location of the tip of the cone
         GeoVector xAxis, yAxis, zAxis; // the axis build a perpendicular coordinate system, the zAxis is the axis of the cone. Right handed: the axis is inside the cone
@@ -122,7 +122,7 @@ namespace CADability.GeoObject
                 return 2 * Math.Atan2(xAxis.Length, zAxis.Length);
             }
         }
-        public override Polynom GetImlicitPolynomial()
+        public override Polynom GetImplicitPolynomial()
         {
             double xz2 = (2.0 * xAxis.z);
             double xy2 = 2.0 * xAxis.y;

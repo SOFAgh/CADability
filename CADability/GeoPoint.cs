@@ -267,6 +267,7 @@ namespace CADability
             System.Diagnostics.Debug.Assert(m.ColumnCount == 3 && m.RowCount == 3);
             return new GeoPoint(m[0, 0] * p.x + m[0, 1] * p.y + m[0, 2] * p.z, m[1, 0] * p.x + m[1, 1] * p.y + m[1, 2] * p.z, m[2, 0] * p.x + m[2, 1] * p.y + m[2, 2] * p.z);
         }
+        public static implicit operator double[](GeoPoint p) => new double[] {p.x,p.y,p.z};
 
         /// <summary>
         /// returns the origin, same as new GeoPoint(0.0,0.0,0.0);
@@ -363,8 +364,6 @@ namespace CADability
             return res;
         }
 
-        #region CndOCas Conversion
-        #endregion
         #region ISerializable Members
         /// <summary>
         /// Constructor for ISerializable

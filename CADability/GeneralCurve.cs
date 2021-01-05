@@ -780,19 +780,19 @@ namespace CADability.GeoObject
         public virtual double DistanceTo(GeoPoint p)
         {
             double pos = PositionOf(p);
-            if (pos > 1e-6 && pos <= 1.0-1e-6)
+            if (pos > 1e-6 && pos <= 1.0 - 1e-6)
             {   // at the start and enpoint, especially when the curve is an intersection curve with tangential surfaces, we also should consider start- end endpoint
                 GeoPoint pCurve = PointAt(pos);
                 return pCurve | p;
             }
             else
             {
-                if (pos>=0.0)
+                if (pos >= 0.0)
                 {
                     GeoPoint pCurve = PointAt(pos);
                     return Math.Min(p | StartPoint, pCurve | p);
                 }
-                else if (pos<1.0)
+                else if (pos < 1.0)
                 {
                     GeoPoint pCurve = PointAt(pos);
                     return Math.Min(p | EndPoint, pCurve | p);
@@ -2348,7 +2348,7 @@ namespace CADability.GeoObject
                 dir = theCurve.DirectionAt(u);
                 pfound = theCurve.PointAt(u);
                 d = p | pfound;
-                if (d >= dist && cnt>2) return d; // doesn't converge, allow two bad steps at the beginning
+                if (d >= dist && cnt > 2) return d; // doesn't converge, allow two bad steps at the beginning
                 dist = d;
             }
             return dist;
@@ -2600,6 +2600,62 @@ namespace CADability.GeoObject
                 // jetzt könnte man noch die Richtungen überprüfen, aber es gibt kein gutes Kriterium für die erlaubte Abweichung
             }
             return true;
+        }
+
+        internal double[] Intersect(Polynom implicitSurface)
+        {
+            List<double> res = new List<double>();
+            double d0 = implicitSurface.Eval(tetraederBase[0]);
+            for (int i = 0; i < tetraederBase.Length - 1; ++i)
+            {
+                double d1 = implicitSurface.Eval(tetraederBase[i + 1]);
+                if (Math.Sign(d0) != Math.Sign(d1)) AddSingleIntersection(implicitSurface, TetraederParams[i], TetraederParams[i + 1], res);
+                else
+                {   // the surface does not intersect the linear connection of tetraederBase[i] and tetraederBase[i+1] or
+                    // it intersects an even number of times (a torus might intersect a circle 4 times)
+                    // here we look, whether the surface has a minimum distaance to the line in this segment, and if so
+                    // we try to find multiple intersection points 
+                    GeoPoint startPoint = tetraederBase[i];
+                    GeoVector direction = tetraederBase[i + 1] - tetraederBase[i];
+                    Polynom toSolve = implicitSurface.Substitute(new Polynom(direction.x, "u", startPoint.x, ""), new Polynom(direction.y, "u", startPoint.y, ""), new Polynom(direction.z, "u", startPoint.z, "")).Derivate(1);
+                    double[] roots = toSolve.Roots();
+                    // roots are the positions on the line from tetraederBase[i] to tetraederBase[i+1] where the distance to the surface has a minimum
+                    // or maximum
+                    for (int j = 0; j < roots.Length; j++)
+                    {
+                        if (roots[j] >= 0 && roots[j] <= 1)
+                        {
+                            double u = TetraederParams[i] + roots[j] * (TetraederParams[i + 1] - TetraederParams[i]);
+                            double du = implicitSurface.Eval(theCurve.PointAt(u));
+                            if (Math.Sign(du) != Math.Sign(d0))
+                            {
+                                AddSingleIntersection(implicitSurface, TetraederParams[i], u, res);
+                                AddSingleIntersection(implicitSurface, u, TetraederParams[i + 1], res);
+                            }
+                        }
+                    }
+                }
+                d0 = d1;
+                //tetraederVertex[2 * i]
+                //  tetraederVertex[2 * i + 1]
+            }
+            return res.ToArray();
+        }
+
+        private void AddSingleIntersection(Polynom implicitSurface, double startParam, double endParam, List<double> list)
+        {
+            double u = (startParam + endParam) / 2.0;
+            if (theCurve.TryPointDeriv2At(u, out GeoPoint location, out GeoVector deriv1, out GeoVector deriv2))
+            {
+                // find a*u² + b*u + c, which approximates the curve at u and a, b, c are points/vectors.
+                GeoVector a = deriv2 / 2.0;
+                GeoVector b = deriv1;
+                GeoPoint c = location;
+                Polynom toSolve = implicitSurface.Substitute(new Polynom(a.x, "u2", b.x, "u", c.x, ""), new Polynom(a.y, "u2", b.y, "u", c.y, ""), new Polynom(a.z, "u2", b.z, "u", c.z, ""));
+                double[] roots = toSolve.Roots();
+                // here should be roots, since startParam and endParam are on different sides of the surface (which is not open)
+                // if not, we would have to use bisection
+            }
         }
     }
 }

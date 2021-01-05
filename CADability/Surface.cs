@@ -2780,6 +2780,17 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public virtual GeoPoint2D[] GetLineIntersection(GeoPoint startPoint, GeoVector direction)
         {
+            Polynom impl = GetImplicitPolynomial();
+            if (impl!=null)
+            {
+                Polynom toSolve = impl.Substitute(new Polynom(direction.x, "u", startPoint.x, ""), new Polynom(direction.y, "u", startPoint.y, ""), new Polynom(direction.z, "u", startPoint.z, ""));
+                double[] roots = toSolve.Roots();
+                for (int i = 0; i < roots.Length; i++)
+                {
+                    GeoPoint p1 = startPoint + roots[i] * direction;
+                    double dbg = impl.Eval(p1.x, p1.y, p1.z);
+                }
+            }
             return BoxedSurfaceEx.GetLineIntersection(startPoint, direction);
             //CndHlp3D.Surface sf = Helper;
             //CndHlp2D.GeoPoint2D[] hres = sf.GetLinearIntersection(startPoint.ToCndHlp(), direction.ToCndHlp());
@@ -3267,6 +3278,8 @@ namespace CADability.GeoObject
             //    uvOnFaces[i] = this.PositionOf(ips[i]);
             //    uOnCurve3Ds[i] = curve.PositionOf(ips[i]);
             //}
+            Polynom implpol = GetImplicitPolynomial();
+            if (implpol!=null) 
             if (curve is IDualSurfaceCurve)
             {
                 IDualSurfaceCurve dsc = (curve as IDualSurfaceCurve);
@@ -3562,7 +3575,7 @@ namespace CADability.GeoObject
         {
             return null;
         }
-        public virtual Polynom GetImlicitPolynomial()
+        public virtual Polynom GetImplicitPolynomial()
         {
             return null;
         }
@@ -4083,6 +4096,13 @@ namespace CADability.GeoObject
 
         }
 
+        private bool NewtonIntersect(Polynom implicitSurface, BoundingRect uvExtent, ICurve curve, out double[] uOnCurve3Ds)
+        {
+            TetraederHull th = new TetraederHull(curve);
+            double[] ips = th.Intersect(implicitSurface);
+            uOnCurve3Ds = null;
+            return false;
+        }
         private bool FindExtreme(GeoVector dir, GeoPoint2D par1, GeoPoint2D par2, GeoPoint2D par3, GeoVector v1, GeoVector v2, GeoVector v3, double epsu, double epsv, out GeoPoint2D p)
         {   // die Vektoren sind nicht normiert, es kann vorkommen, dass es null-Vektoren gibt
             // An 3 Stellen der Oberfläche sind die Normalenvektoeren gegeben. Wenn sie die gewünschte Richtung einschließen
