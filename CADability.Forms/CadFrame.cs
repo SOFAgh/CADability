@@ -52,6 +52,16 @@ namespace CADability.Forms
         {
             this.commandHandler = commandHandler;
         }
+        /// <summary>
+        /// Constructor without form dependency.
+        /// </summary>        
+        /// <param name="cadCanvas"></param>
+        /// <param name="commandHandler"></param>
+        public CadFrame(CadCanvas cadCanvas, ICommandHandler commandHandler)
+            : base(cadCanvas)
+        {
+            this.commandHandler = commandHandler;
+        }
 
         #region FrameImpl override
 
