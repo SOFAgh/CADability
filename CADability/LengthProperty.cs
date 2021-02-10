@@ -52,6 +52,10 @@ namespace CADability.UserInterface
         {
             return lengthProperty.Label;
         }
+        public string ResourceId
+        {
+            get { return lengthProperty.ResourceId; }
+        }
         MenuWithHandler[] IHotSpot.ContextMenu
         {
             get

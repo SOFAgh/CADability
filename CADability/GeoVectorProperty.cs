@@ -45,6 +45,10 @@ namespace CADability.UserInterface
         {
             return geoVectorProperty.LabelText;
         }
+        public string ResourceId
+        {
+            get { return geoVectorProperty.ResourceId; }
+        }
         MenuWithHandler[] IHotSpot.ContextMenu
         {
             get

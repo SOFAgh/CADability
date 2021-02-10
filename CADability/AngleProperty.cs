@@ -48,6 +48,10 @@ namespace CADability.UserInterface
         {
             return angleProperty.LabelText;
         }
+        public string ResourceId
+        {
+            get { return angleProperty.ResourceId; }
+        }
         MenuWithHandler[] IHotSpot.ContextMenu
         {
             get
