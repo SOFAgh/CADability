@@ -43,7 +43,7 @@ namespace CADability.UserInterface
         }
         public string GetInfoText(CADability.UserInterface.InfoLevelMode Level)
         {
-            return geoVectorProperty.LabelText;
+            return geoVectorProperty.Label;
         }
         public string ResourceId
         {
