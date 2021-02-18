@@ -327,6 +327,60 @@ namespace CADability.GeoObject
             }
             return res;
         }
+
+        internal static Ellipse FromFivePoints(GeoPoint[] fp3d, bool isFull)
+        {
+            if (fp3d.Length != 5) return null;
+            Plane pln = Plane.FromPoints(fp3d, out double maxDist, out bool isLinear);
+            if (maxDist < Precision.eps && !isLinear)
+            {
+                GeoPoint2D[] fp2d = new GeoPoint2D[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    fp2d[i] = pln.Project(fp3d[i]);
+                }
+                Ellipse2D e2d = Ellipse2D.FromFivePoints(fp2d);
+                if (e2d != null)
+                {
+                    Ellipse elli = e2d.MakeGeoObject(pln) as Ellipse;
+                    if (elli != null)
+                    {
+                        // get the correct orientation
+                        double mindist = double.MaxValue;
+                        double p0 = elli.PositionOf(fp3d[0]);
+                        for (int i = 1; i < 5; i++)
+                        {
+                            double p1 = elli.PositionOf(fp3d[i]);
+                            if (Math.Abs(p1 - p0) < Math.Abs(mindist))
+                            {
+                                mindist = p1 - p0;
+                            }
+                            p0 = p1;
+                        }
+                        if (mindist < 0) (elli as ICurve).Reverse();
+                        if (!isFull)
+                        {
+                            double sp = elli.PositionOf(fp3d[0]);
+                            double ep = elli.PositionOf(fp3d[4]);
+                            double mp = elli.PositionOf(fp3d[2]);
+                            if (sp < ep)
+                            {
+                                if (sp < mp && mp < ep) elli.Trim(sp, ep);
+                                else elli.Trim(ep, sp);
+                            }
+                            else
+                            {   // to be tested!
+                                if (sp < mp && mp < ep) elli.Trim(ep, sp);
+                                else elli.Trim(sp, ep);
+                            }
+                        }
+                        return elli;
+                    }
+                }
+            }
+            return null;
+        }
+
         internal BSpline ToBSpline()
         {
             BSpline bsp = BSpline.Construct();

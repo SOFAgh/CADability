@@ -132,6 +132,42 @@ namespace CADability.Curve2D
             majaxsin = Math.Sin(majorAxis.Angle);
             majaxcos = Math.Cos(majorAxis.Angle);
         }
+        public static Ellipse2D FromFivePoints(GeoPoint2D[] p, bool isFull)
+        {
+            Ellipse2D res = FromFivePoints(p);
+            if (res!=null)
+            {
+                double mindist = double.MaxValue;
+                double p0 = res.PositionOf(p[0]);
+                for (int i = 1; i < 5; i++)
+                {
+                    double p1 = res.PositionOf(p[i]);
+                    if (Math.Abs(p1 - p0) < Math.Abs(mindist))
+                    {
+                        mindist = p1 - p0;
+                    }
+                    p0 = p1;
+                }
+                if (mindist < 0) res.Reverse();
+                if (!isFull)
+                {
+                    double sp = res.PositionOf(p[0]);
+                    double ep = res.PositionOf(p[4]);
+                    double mp = res.PositionOf(p[2]);
+                    if (sp < ep)
+                    {
+                        if (sp < mp && mp < ep) res = res.Trim(sp, ep) as Ellipse2D;
+                        else res = res.Trim(ep, sp) as Ellipse2D;
+                    }
+                    else
+                    {   // to be tested!
+                        if (sp < mp && mp < ep) res = res.Trim(ep, sp) as Ellipse2D;
+                        else res = res.Trim(sp, ep) as Ellipse2D;
+                    }
+                }
+            }
+            return res;
+        }
         public static Ellipse2D FromFivePoints(GeoPoint2D[] p)
         {
             Matrix m = new Matrix(5, 5);
@@ -148,7 +184,10 @@ namespace CADability.Curve2D
             Matrix x = m.SaveSolve(b);
             if (x == null) return null;
             double l1, l2;
-            if (Geometry.quadgl(1, -(1 + x[4, 0]), x[4, 0] - x[3, 0] * x[3, 0], out l1, out l2) == 0) return null;
+            if (Geometry.quadgl(1, -(1 + x[4, 0]), x[4, 0] - x[3, 0] * x[3, 0], out l1, out l2) == 0)
+            {
+                l1 = l2 = (1 + x[4, 0]) / 2.0;
+            }
             if (l1 == 0.0 || l2 == 0.0) return null;
 
             Angle MajorAngle;
@@ -169,27 +208,27 @@ namespace CADability.Curve2D
             if (mp == null) return null;
 
 
-            {	// ein Test, ob die Lösung auch stimmt. Es gibt Lösungen
-                // die wohl eher Hyperbeln oder so was liefern und trotzdem alle
-                // durch die Gleichungen gegebenen Bedingungen erfüllen
-                if (MajorRadius < 1e-13) return null;
-                if (MinorRadius < 1e-13) return null;
-                double s = Math.Sin(MajorAngle);
-                double cos = Math.Cos(MajorAngle);
-                ModOp2D tuc = new ModOp2D(cos / MajorRadius, s / MajorRadius, (-cos * mp[0, 0] - s * mp[1, 0]) / MajorRadius,
-                             -s / MinorRadius, cos / MinorRadius, (s * mp[0, 0] - cos * mp[1, 0]) / MinorRadius);
-                // bildet auf den Einheitskreis ab
-                for (int i = 0; i < 5; ++i)
-                {
-                    GeoPoint2D pp = tuc * p[i];
-                    double e = Math.Abs(pp.x * pp.x + pp.y * pp.y - 1.0);
-                    if (e > 1e-5) return null;
-                }
-            }
+            //{	// ein Test, ob die Lösung auch stimmt. Es gibt Lösungen
+            //    // die wohl eher Hyperbeln oder so was liefern und trotzdem alle
+            //    // durch die Gleichungen gegebenen Bedingungen erfüllen
+            //    if (MajorRadius < 1e-13) return null;
+            //    if (MinorRadius < 1e-13) return null;
+            //    double s = Math.Sin(MajorAngle);
+            //    double cos = Math.Cos(MajorAngle);
+            //    ModOp2D tuc = new ModOp2D(cos / MajorRadius, s / MajorRadius, (-cos * mp[0, 0] - s * mp[1, 0]) / MajorRadius,
+            //                 -s / MinorRadius, cos / MinorRadius, (s * mp[0, 0] - cos * mp[1, 0]) / MinorRadius);
+            //    // bildet auf den Einheitskreis ab
+            //    for (int i = 0; i < 5; ++i)
+            //    {
+            //        GeoPoint2D pp = tuc * p[i];
+            //        double e = Math.Abs(pp.x * pp.x + pp.y * pp.y - 1.0);
+            //        if (e > 1e-5) return null;
+            //    }
+            //}
 
             // hier ist nun alles bestimmt:
             Angle MinorAngle = MajorAngle + SweepAngle.ToLeft;
-            Ellipse2D res = new Ellipse2D(new GeoPoint2D(mp[0, 0], mp[1, 0]), MajorRadius * new GeoVector2D(MajorAngle), MajorRadius * new GeoVector2D(MinorAngle));
+            Ellipse2D res = new Ellipse2D(new GeoPoint2D(mp[0, 0], mp[1, 0]), MajorRadius * new GeoVector2D(MajorAngle), MinorRadius * new GeoVector2D(MinorAngle));
             return res;
         }
 

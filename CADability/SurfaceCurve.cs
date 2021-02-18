@@ -38,7 +38,8 @@ namespace CADability.GeoObject
         {
             GeoPoint2D p = curve2D.PointAt(pos);
             GeoVector2D dir = curve2D.DirectionAt(pos);
-            return dir.x * surface.UDirection(p) + dir.y * surface.VDirection(p);
+            surface.DerivationAt(p, out GeoPoint location, out GeoVector diru, out GeoVector dirv);
+            return dir.x * diru + dir.y * dirv;
         }
 
         public override void Modify(ModOp m)

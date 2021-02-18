@@ -75,8 +75,9 @@ namespace CADability.UserInterface
         /// edit box. ResourceId+".ShortInfo": a short tooltip text ResourceId+"DetailedInfo":
         /// a longer tooltip text.
         /// </param>
-        public MultiGeoPointProperty(IIndexedGeoPoint controlledObject, string resourceId)
+        public MultiGeoPointProperty(IIndexedGeoPoint controlledObject, string resourceId, IFrame frame)
         {
+            this.Frame = frame;
             this.resourceId = resourceId;
             this.controlledObject = controlledObject;
             prependContextMenue = null;
@@ -161,6 +162,7 @@ namespace CADability.UserInterface
         /// <param name="initialValue">initial value of the new point</param>
         public void Append(GeoPoint initialValue)
         {
+            if (propertyTreeView.Selected != null && propertyTreeView.Selected is GeoPointProperty gpp) propertyTreeView.SelectEntry(this);
             subEntries = null; // damit werden diese ungültig
             controlledObject.InsertGeoPoint(-1, initialValue);
             if (propertyTreeView != null)

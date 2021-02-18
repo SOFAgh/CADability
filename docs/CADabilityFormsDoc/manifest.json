@@ -57,10 +57,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.BitmapTable.html",
-          "hash": "pQuRVU8YYgi4943kJGJqMQ=="
+          "hash": "ubqwdaCtFFQpxvKmLt4JLg=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -69,10 +69,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.ButtonImages.html",
-          "hash": "rHgpeL9puOyId/OSnG0T5Q=="
+          "hash": "NwC/8wQGH6G9Urm2fA5jZQ=="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -81,7 +81,19 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadCanvas.html",
-          "hash": "9bdZi6UJHdiUDHijcDHVaQ=="
+          "hash": "r/8EDRfxJFHEnkm0ZSIlTQ=="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.CadControl.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.CadControl.html",
+          "hash": "QPvBD3AbWqR6k23O2mRaMw=="
         }
       },
       "is_incremental": false,
@@ -93,7 +105,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadForm.html",
-          "hash": "2VaarRmEfbm0BoVPxrT8+A=="
+          "hash": "14oTNvEWxVWhqeN0zfr+5A=="
         }
       },
       "is_incremental": false,
@@ -105,7 +117,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadFrame.html",
-          "hash": "abczRMrk6LEgHfMLmymajQ=="
+          "hash": "u6HuH191RVQTmKk9Q4H6Cw=="
         }
       },
       "is_incremental": false,
@@ -117,7 +129,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToBitmap.html",
-          "hash": "Vx/C14nxgdkgHNB02F9BPg=="
+          "hash": "xk5m3q/8nCN1HcojNyfR/Q=="
         }
       },
       "is_incremental": false,
@@ -129,7 +141,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToGDI.html",
-          "hash": "fmt0PpOleO712Sl/YPjsfA=="
+          "hash": "Inj0LcFH4dce5bacjx7Wog=="
         }
       },
       "is_incremental": false,
@@ -141,7 +153,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGL.html",
-          "hash": "IbCd3cv/t8MLDtgKFIeD3Q=="
+          "hash": "gDXHn3wz6BM21qIczQz0iA=="
         }
       },
       "is_incremental": false,
@@ -153,7 +165,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGLException.html",
-          "hash": "sTRolyDAYzEmHzr//H0C+g=="
+          "hash": "pA/8x9KFRzbo2wRYhRNKAw=="
         }
       },
       "is_incremental": false,
@@ -165,7 +177,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.ProgressForm.html",
-          "hash": "lKPD+6FrnGxWTBPMTui1zg=="
+          "hash": "r7WmRTyhcOoy5QcDSYegIg=="
         }
       },
       "is_incremental": false,
@@ -177,7 +189,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PropertiesExplorer.html",
-          "hash": "YFZdwb0bHwoqkxRWG2rbYQ=="
+          "hash": "jRfxFsu6tHNBXCZvn9oadA=="
         }
       },
       "is_incremental": false,
@@ -189,7 +201,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.html",
-          "hash": "8X5Oe+J8OnSBQ+q6KdYfqw=="
+          "hash": "MpdRlQL1OSRJX7NS+MWD3A=="
         }
       },
       "is_incremental": false,
@@ -201,7 +213,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "zeOshwYEuRechHJFeeHwOw=="
+          "hash": "lCYjDYDQUrBGd7OI/Tm6AQ=="
         }
       },
       "is_incremental": false,
@@ -238,8 +250,8 @@
         "ManagedReferenceDocumentProcessor": {
           "can_incremental": true,
           "incrementalPhase": "build",
-          "total_file_count": 12,
-          "skipped_file_count": 1
+          "total_file_count": 13,
+          "skipped_file_count": 3
         },
         "TocDocumentProcessor": {
           "can_incremental": false,

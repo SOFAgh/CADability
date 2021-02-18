@@ -1017,13 +1017,13 @@ namespace CADability.GeoObject
                     for (int j = 0; j < loops[i].Count; j++)
                     {
                         if (loops[i][j].createdEdges.Count > 1)
-                        {   // this edge has been splitted
+                        {   // this edge has been split
                             Vertex sv = null;
                             if (loops[i][j].forward) sv = loops[i][j].vertex1;
                             else sv = loops[i][j].vertex2;
                             if (loops[i][j].createdEdges[0].EndVertex(loops[i][j].createdEdges[0].PrimaryFace) == sv)
                             {
-                                // nothig to do, createdEdges is in correct order
+                                // nothing to do, createdEdges is in correct order
                             }
                             else
                             {
@@ -1436,13 +1436,13 @@ namespace CADability.GeoObject
                 if (openLoops.Count > 0)
                 {   // open loops limit parts of closed surfaces. E.g. two circles bound a segment of a cylinder
                     // the orientation of these curves is sometimes wrong, so we have to test
-                    // there must be exactely two loops
+                    // there must be exactly two loops
                     if (openLoops.Count == 2)
                     {
                         int ii = openLoops[0];
-                        int oppii = openLoops[1]; // oppii is the other open loop one
+                        int oppii = openLoops[1]; // "oppii" is the other open loop one
                                                   // calculating the area is a bad idea
-                                                  // file 0816.5.001.stp with step index 160309 is a example, where the area dosn't work
+                                                  // file 0816.5.001.stp with step index 160309 is a example, where the area doesn't work
                         if (Geometry.InnerIntersection(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint, loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint))
                         {
                             for (int i = 0; i < loops.Count; i++)
@@ -3687,6 +3687,10 @@ namespace CADability.GeoObject
                                         ICurve make3d = surface.Make3dCurve(cc2d);
                                         res.Add(make3d);
                                     }
+                                    else
+                                    {
+
+                                    }
                                 }
                             }
                         }
@@ -5425,20 +5429,21 @@ namespace CADability.GeoObject
         {
             if (extent.IsEmpty && surface != null)
             {
-                // wir betrachten die äußeren Randkurven und ggf. noch Extrempunkte
+                // we need to check both the outline and the holes: a (non periodic) cylinder may have two cricles as edges
+                // we must consider both edges (one of which is a hole)
                 extent = BoundingCube.EmptyBoundingCube;
-                for (int i = 0; i < outline.Length; ++i)
+                foreach (Edge edge in AllEdgesIterated())
                 {
-                    if (outline[i].Curve3D != null)
+                    if (edge.Curve3D != null)
                     {
-                        extent.MinMax(outline[i].Curve3D.GetExtent());
+                        extent.MinMax(edge.Curve3D.GetExtent());
                     }
                 }
-                // warum war folgendes auskommentiert???
+                // a surface extreme point in axis direction is also necessary to check
                 GeoPoint2D[] extrema = surface.GetExtrema();
                 for (int i = 0; i < extrema.Length; ++i)
                 {
-                    if (Contains(ref extrema[i], true)) // überprüft auch periodisch!
+                    if (Contains(ref extrema[i], true)) // respects periodicity
                     {
                         extent.MinMax(surface.PointAt(extrema[i]));
                     }
@@ -6025,7 +6030,7 @@ namespace CADability.GeoObject
                 {
                     bc.MinMax(trianglePoint[i]);
                 }
-                if (bc.Zmax > 0)
+                if (bc.Zmax > 20)
                 { }
                 for (int i = 0; i < triangleIndex.Length; i += 3)
                 {
@@ -7143,10 +7148,10 @@ namespace CADability.GeoObject
             //}
             //return false;
         }
-        // Hittest for the interior of the face. the edges have already been tested
+        // Hit-test for the interior of the face. the edges have already been tested
         internal bool HitTestWithoutEdges(ref BoundingCube cube, double precision)
         {
-            // since the edges and vertices have already been testet we only have to test whether the cube interferes with the surface at all
+            // since the edges and vertices have already been tested we only have to test whether the cube interferes with the surface at all
             // and if so, whether an arbitrary uv point inside the cube is inside the bounds of the face.
             GeoPoint2D uv;
             return (Surface.HitTest(cube, out uv) && Contains(ref uv, false));
@@ -7160,7 +7165,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override bool HitTest(Projection projection, BoundingRect rect, bool onlyInside)
         {
-            if (trianglePoint == null) return false; // egal welche triangulierung, ist nur zum Picken
+            if (trianglePoint == null) return false; // this is only for selecting with the mouse
             ClipRect clr = new ClipRect(ref rect);
             if (onlyInside)
             {
@@ -7198,8 +7203,17 @@ namespace CADability.GeoObject
         /// <param name="onlyInside"></param>
         /// <returns></returns>
         public override bool HitTest(Projection.PickArea area, bool onlyInside)
-        {
-
+        {   // this is the hit test when selecting
+            // there are two different approaches: let the "beam" of the pick area intersect the surface of this face and test
+            // whether the intersection belongs to the face or use the triangulation.
+            // Maybe we should decide by the kind of surface, which is faster
+            GeoPoint2D[] lip = Surface.GetLineIntersection(area.FrontCenter, area.Direction);
+            for (int i = 0; i < lip.Length; i++)
+            {
+                if (Contains(ref lip[i], true)) return true;
+            }
+            return false;
+            // use the triangles (currently not executed)
             if (trianglePoint == null) AssureTriangles(area.Projection.Precision); // eingefügt, da in GDI Ansichten Hatch Objekte als Faces nicht trianguliert und somit nicht pickbar sind
             if (onlyInside)
             {

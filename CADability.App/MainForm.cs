@@ -40,6 +40,11 @@ namespace CADability.App
         {
             if (MenuId == "MenuId.App.Exit")
             {   // this command cannot be handled by CADability.dll
+#if DEBUG
+                System.GC.Collect();
+                System.GC.WaitForFullGCComplete();
+                System.GC.Collect();
+#endif
                 Application.Exit();
                 return true;
             }

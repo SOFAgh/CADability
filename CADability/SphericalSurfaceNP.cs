@@ -17,6 +17,7 @@ namespace CADability.GeoObject
     {
         GeoPoint center;
         GeoVector xAxis, yAxis, zAxis;
+        Polynom implicitPolynomial; // will be calculated when needed
         public SphericalSurfaceNP(GeoPoint center, GeoVector xAxis, GeoVector yAxis, GeoVector zAxis)
         {
             this.center = center;
@@ -269,6 +270,17 @@ namespace CADability.GeoObject
         {
             return new SphericalSurfaceNP(center, xAxis, yAxis, zAxis);
         }
+        public override void CopyData(ISurface CopyFrom)
+        {
+            SphericalSurfaceNP snp = CopyFrom as SphericalSurfaceNP;
+            if (snp!=null)
+            {
+                center = snp.center;
+                xAxis = snp.xAxis;
+                yAxis = snp.yAxis;
+                zAxis = snp.zAxis;
+            }
+        }
         public override bool SameGeometry(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, double precision, out ModOp2D firstToSecond)
         {
             if (other is SphericalSurfaceNP snp)
@@ -282,6 +294,20 @@ namespace CADability.GeoObject
                 return false;
             }
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
+        }
+        public override Polynom GetImplicitPolynomial()
+        {
+            if (implicitPolynomial == null)
+            {
+                PolynomVector x = (new GeoVector(center.x, center.y, center.z) - PolynomVector.xyz);
+                implicitPolynomial = (x * x) - xAxis * xAxis;
+                // we need to scale the implicit polynomial so that it yields the true distance to the surface
+                GeoPoint p = center + xAxis + xAxis.Normalized; // a point outside the sphere with distance 1
+                double d = implicitPolynomial.Eval(p); // this should be 1 when the polynomial is normalized
+                if ((xAxis ^ yAxis) * zAxis < 0) d = -d; // inverse oriented sphere
+                implicitPolynomial = (1 / d) * implicitPolynomial; // normalize the polynomial
+            }
+            return implicitPolynomial;
         }
         public override bool UvChangesWithModification => true;
         void IJsonSerialize.GetObjectData(IJsonWriteData data)

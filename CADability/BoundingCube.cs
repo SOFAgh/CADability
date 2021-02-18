@@ -33,8 +33,8 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Gets an array[12,2] of pairs of point indizes defining the 12 edges
-        /// of this cube. Indizes are to the <see cref="Points"/>
+        /// Gets an array[12,2] of pairs of point indices defining the 12 edges
+        /// of this cube. Indices are to the <see cref="Points"/>
         /// </summary>
         public int[,] LineNumbers
         {

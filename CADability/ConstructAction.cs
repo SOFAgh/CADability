@@ -3899,7 +3899,7 @@ namespace CADability.Actions
             }
             IPropertyEntry IInputObject.BuildShowProperty()
             {
-                multiGeoPointProperty = new MultiGeoPointProperty(this, ResourceId);
+                multiGeoPointProperty = new MultiGeoPointProperty(this, ResourceId, constructAction.Frame);
                 multiGeoPointProperty.ModifyWithMouseEvent += new CADability.UserInterface.MultiGeoPointProperty.ModifyWithMouseIndexDelegate(OnModifyWithMouse);
                 return multiGeoPointProperty;
             }
@@ -6108,32 +6108,27 @@ namespace CADability.Actions
                                 menuitem.ID = menuid;
                                 menuitem.Text = menutext;
                                 menuitem.Target = this;
+                                menuitem.OnSelected = OnMenuItemSelected;
                                 ConstructRightButton.Add(menuitem);
                             }
                             ConstructRightButton.AddRange(cm);
-                            // how to implement the following old code???
-                            //foreach (MenuItem menuitem in concat.MenuItems)
-                            //{   // das kann man vorher nicht machen, dann die menuitems werden gecloned und verlieren dabei den EventHandler
-                            //    menuitem.Select += new EventHandler(OnMenuItemSelected);
-                            //}
-                            //if (useContextMenue) concat.Show(vw.CondorCtrl, e.Location);
+                            if (useContextMenue) vw.Canvas.ShowContextMenu(ConstructRightButton.ToArray(), e.Location);
                         }
                         else
                         {
                             // need to implement?
-                            //MenuWithHandler[] ConstructRightButton = MenuResource.LoadMenuDefinition("MenuId.ConstructRightButton", false, this);
-                            //for (int i = 0; i < MultiSolutionCount; ++i)
-                            //{   // für jede Lösung einen Eintrag
-                            //    string menutext = StringTable.GetFormattedString("Construct.Solution", i + 1);
-                            //    string menuid = "Construct.Solution." + i.ToString();
-                            //    MenuItem menuitem = MenuResource.AppendMenuItem((ConstructRightButton, this, menuid, menutext);
-                            //}
-                            // how to implement the following old code???
-                            //foreach (MenuItem menuitem in ConstructRightButton.MenuItems)
-                            //{   // das kann man vorher nicht machen, dann die menuitems werden gecloned und verlieren dabei den EventHandler
-                            //    menuitem.Select += new EventHandler(OnMenuItemSelected);
-                            //}
-                            //if (useContextMenue) ConstructRightButton.Show(vw.CondorCtrl, e.Location);
+                            List<MenuWithHandler> ConstructRightButton = new List<MenuWithHandler>(MenuResource.LoadMenuDefinition("MenuId.ConstructRightButton", false, this));
+                            for (int i = 0; i < MultiSolutionCount; ++i)
+                            {   // für jede Lösung einen Eintrag
+                                string menutext = StringTable.GetFormattedString("Construct.Solution", i + 1);
+                                string menuid = "Construct.Solution." + i.ToString();
+                                MenuWithHandler mh = new MenuWithHandler(menuid);
+                                mh.Text = menutext;
+                                mh.Target = this;
+                                mh.OnSelected = OnMenuItemSelected; // also sets the target to this
+                                ConstructRightButton.Add(mh);
+                            }
+                            if (useContextMenue) vw.Canvas.ShowContextMenu(ConstructRightButton.ToArray(), e.Location);
                         }
                     }
                 }
@@ -6143,6 +6138,17 @@ namespace CADability.Actions
                 OnMouse(e, MouseState.ClickUp, vw);
             }
         }
+
+        private void OnMenuItemSelected(MenuWithHandler mh, bool selected)
+        {
+            if (selected && mh.ID.StartsWith("Construct.Solution."))
+            {
+                string sub = mh.ID.Substring("Construct.Solution.".Length);
+                int ind = int.Parse(sub);
+                OnSolution(ind);
+            }
+        }
+
         // need to implement:
         //void OnMenuItemSelected(object sender, EventArgs e)
         //{
