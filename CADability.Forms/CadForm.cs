@@ -71,6 +71,27 @@ namespace CADability.Forms
             // ToolStripManager.SaveSettings(this); // save the positions of the toolbars (doesn't work correctly)
             base.OnClosing(e);
         }
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            cadFrame.Dispose();
+            Menu.Dispose();
+            this.Dispose();
+            cadCanvas.Dispose();
+            propertiesExplorer.Dispose();
+            topToolStripContainer.Dispose();
+            splitContainer.Dispose();
+            if (progressForm != null) progressForm.Dispose();
+
+            Menu = null;
+            cadFrame = null;
+            cadCanvas = null;
+            propertiesExplorer = null;
+            topToolStripContainer = null;
+            splitContainer = null;
+            progressForm = null;
+
+            base.OnFormClosed(e);
+        }
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             Keys nmKeyData = (Keys)((int)keyData & 0x0FFFF);
@@ -104,5 +125,6 @@ namespace CADability.Forms
         {
 
         }
+
     }
 }

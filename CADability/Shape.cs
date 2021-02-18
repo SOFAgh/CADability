@@ -46,6 +46,7 @@ namespace CADability.Shapes
         public SimpleShape(Border outline)
         {
             this.outline = outline;
+            if (!this.outline.IsClosed) this.outline.forceConnect(true);
             this.outline.SplitSingleCurve();
             this.holes = new Border[0];
         }

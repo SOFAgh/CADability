@@ -487,6 +487,203 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.CadCanvas.OnSizeChanged
   nameWithType: CadCanvas.OnSizeChanged
+- uid: CADability.Forms.CadControl
+  name: CadControl
+  href: api/CADability.Forms.CadControl.html
+  commentId: T:CADability.Forms.CadControl
+  fullName: CADability.Forms.CadControl
+  nameWithType: CadControl
+- uid: CADability.Forms.CadControl.#ctor
+  name: CadControl()
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl__ctor
+  commentId: M:CADability.Forms.CadControl.#ctor
+  fullName: CADability.Forms.CadControl.CadControl()
+  nameWithType: CadControl.CadControl()
+- uid: CADability.Forms.CadControl.#ctor*
+  name: CadControl
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl__ctor_
+  commentId: Overload:CADability.Forms.CadControl.#ctor
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.CadControl
+  nameWithType: CadControl.CadControl
+- uid: CADability.Forms.CadControl.CadCanvas
+  name: CadCanvas
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_CadCanvas
+  commentId: P:CADability.Forms.CadControl.CadCanvas
+  fullName: CADability.Forms.CadControl.CadCanvas
+  nameWithType: CadControl.CadCanvas
+- uid: CADability.Forms.CadControl.CadCanvas*
+  name: CadCanvas
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_CadCanvas_
+  commentId: Overload:CADability.Forms.CadControl.CadCanvas
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.CadCanvas
+  nameWithType: CadControl.CadCanvas
+- uid: CADability.Forms.CadControl.CadFrame
+  name: CadFrame
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_CadFrame
+  commentId: P:CADability.Forms.CadControl.CadFrame
+  fullName: CADability.Forms.CadControl.CadFrame
+  nameWithType: CadControl.CadFrame
+- uid: CADability.Forms.CadControl.CadFrame*
+  name: CadFrame
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_CadFrame_
+  commentId: Overload:CADability.Forms.CadControl.CadFrame
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.CadFrame
+  nameWithType: CadControl.CadFrame
+- uid: CADability.Forms.CadControl.CommandRequest
+  name: CommandRequest
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_CommandRequest
+  commentId: F:CADability.Forms.CadControl.CommandRequest
+  fullName: CADability.Forms.CadControl.CommandRequest
+  nameWithType: CadControl.CommandRequest
+- uid: CADability.Forms.CadControl.CreateMainMenu
+  name: CreateMainMenu
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_CreateMainMenu
+  commentId: P:CADability.Forms.CadControl.CreateMainMenu
+  fullName: CADability.Forms.CadControl.CreateMainMenu
+  nameWithType: CadControl.CreateMainMenu
+- uid: CADability.Forms.CadControl.CreateMainMenu*
+  name: CreateMainMenu
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_CreateMainMenu_
+  commentId: Overload:CADability.Forms.CadControl.CreateMainMenu
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.CreateMainMenu
+  nameWithType: CadControl.CreateMainMenu
+- uid: CADability.Forms.CadControl.Dispose(System.Boolean)
+  name: Dispose(Boolean)
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_Dispose_System_Boolean_
+  commentId: M:CADability.Forms.CadControl.Dispose(System.Boolean)
+  fullName: CADability.Forms.CadControl.Dispose(System.Boolean)
+  nameWithType: CadControl.Dispose(Boolean)
+- uid: CADability.Forms.CadControl.Dispose*
+  name: Dispose
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_Dispose_
+  commentId: Overload:CADability.Forms.CadControl.Dispose
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.Dispose
+  nameWithType: CadControl.Dispose
+- uid: CADability.Forms.CadControl.OnCommand(System.String)
+  name: OnCommand(String)
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_OnCommand_System_String_
+  commentId: M:CADability.Forms.CadControl.OnCommand(System.String)
+  fullName: CADability.Forms.CadControl.OnCommand(System.String)
+  nameWithType: CadControl.OnCommand(String)
+- uid: CADability.Forms.CadControl.OnCommand*
+  name: OnCommand
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_OnCommand_
+  commentId: Overload:CADability.Forms.CadControl.OnCommand
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.OnCommand
+  nameWithType: CadControl.OnCommand
+- uid: CADability.Forms.CadControl.OnHandleCreated(System.EventArgs)
+  name: OnHandleCreated(EventArgs)
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_OnHandleCreated_System_EventArgs_
+  commentId: M:CADability.Forms.CadControl.OnHandleCreated(System.EventArgs)
+  fullName: CADability.Forms.CadControl.OnHandleCreated(System.EventArgs)
+  nameWithType: CadControl.OnHandleCreated(EventArgs)
+- uid: CADability.Forms.CadControl.OnHandleCreated*
+  name: OnHandleCreated
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_OnHandleCreated_
+  commentId: Overload:CADability.Forms.CadControl.OnHandleCreated
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.OnHandleCreated
+  nameWithType: CadControl.OnHandleCreated
+- uid: CADability.Forms.CadControl.OnSelected(CADability.UserInterface.MenuWithHandler,System.Boolean)
+  name: OnSelected(MenuWithHandler, Boolean)
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_OnSelected_CADability_UserInterface_MenuWithHandler_System_Boolean_
+  commentId: M:CADability.Forms.CadControl.OnSelected(CADability.UserInterface.MenuWithHandler,System.Boolean)
+  fullName: CADability.Forms.CadControl.OnSelected(CADability.UserInterface.MenuWithHandler, System.Boolean)
+  nameWithType: CadControl.OnSelected(MenuWithHandler, Boolean)
+- uid: CADability.Forms.CadControl.OnSelected*
+  name: OnSelected
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_OnSelected_
+  commentId: Overload:CADability.Forms.CadControl.OnSelected
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.OnSelected
+  nameWithType: CadControl.OnSelected
+- uid: CADability.Forms.CadControl.OnUpdateCommand(System.String,CADability.UserInterface.CommandState)
+  name: OnUpdateCommand(String, CommandState)
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_OnUpdateCommand_System_String_CADability_UserInterface_CommandState_
+  commentId: M:CADability.Forms.CadControl.OnUpdateCommand(System.String,CADability.UserInterface.CommandState)
+  fullName: CADability.Forms.CadControl.OnUpdateCommand(System.String, CADability.UserInterface.CommandState)
+  nameWithType: CadControl.OnUpdateCommand(String, CommandState)
+- uid: CADability.Forms.CadControl.OnUpdateCommand*
+  name: OnUpdateCommand
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_OnUpdateCommand_
+  commentId: Overload:CADability.Forms.CadControl.OnUpdateCommand
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.OnUpdateCommand
+  nameWithType: CadControl.OnUpdateCommand
+- uid: CADability.Forms.CadControl.ProcessCmdKey(System.Windows.Forms.Message@,System.Windows.Forms.Keys)
+  name: ProcessCmdKey(ref Message, Keys)
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_ProcessCmdKey_System_Windows_Forms_Message__System_Windows_Forms_Keys_
+  commentId: M:CADability.Forms.CadControl.ProcessCmdKey(System.Windows.Forms.Message@,System.Windows.Forms.Keys)
+  name.vb: ProcessCmdKey(ByRef Message, Keys)
+  fullName: CADability.Forms.CadControl.ProcessCmdKey(ref System.Windows.Forms.Message, System.Windows.Forms.Keys)
+  fullName.vb: CADability.Forms.CadControl.ProcessCmdKey(ByRef System.Windows.Forms.Message, System.Windows.Forms.Keys)
+  nameWithType: CadControl.ProcessCmdKey(ref Message, Keys)
+  nameWithType.vb: CadControl.ProcessCmdKey(ByRef Message, Keys)
+- uid: CADability.Forms.CadControl.ProcessCmdKey*
+  name: ProcessCmdKey
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_ProcessCmdKey_
+  commentId: Overload:CADability.Forms.CadControl.ProcessCmdKey
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.ProcessCmdKey
+  nameWithType: CadControl.ProcessCmdKey
+- uid: CADability.Forms.CadControl.ProgressAction
+  name: ProgressAction
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_ProgressAction
+  commentId: P:CADability.Forms.CadControl.ProgressAction
+  fullName: CADability.Forms.CadControl.ProgressAction
+  nameWithType: CadControl.ProgressAction
+- uid: CADability.Forms.CadControl.ProgressAction*
+  name: ProgressAction
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_ProgressAction_
+  commentId: Overload:CADability.Forms.CadControl.ProgressAction
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.ProgressAction
+  nameWithType: CadControl.ProgressAction
+- uid: CADability.Forms.CadControl.PropertiesExplorer
+  name: PropertiesExplorer
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_PropertiesExplorer
+  commentId: P:CADability.Forms.CadControl.PropertiesExplorer
+  fullName: CADability.Forms.CadControl.PropertiesExplorer
+  nameWithType: CadControl.PropertiesExplorer
+- uid: CADability.Forms.CadControl.PropertiesExplorer*
+  name: PropertiesExplorer
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_PropertiesExplorer_
+  commentId: Overload:CADability.Forms.CadControl.PropertiesExplorer
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.PropertiesExplorer
+  nameWithType: CadControl.PropertiesExplorer
+- uid: CADability.Forms.CadControl.PropertiesExplorerVisible
+  name: PropertiesExplorerVisible
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_PropertiesExplorerVisible
+  commentId: P:CADability.Forms.CadControl.PropertiesExplorerVisible
+  fullName: CADability.Forms.CadControl.PropertiesExplorerVisible
+  nameWithType: CadControl.PropertiesExplorerVisible
+- uid: CADability.Forms.CadControl.PropertiesExplorerVisible*
+  name: PropertiesExplorerVisible
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_PropertiesExplorerVisible_
+  commentId: Overload:CADability.Forms.CadControl.PropertiesExplorerVisible
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.PropertiesExplorerVisible
+  nameWithType: CadControl.PropertiesExplorerVisible
+- uid: CADability.Forms.CadControl.ToolbarsVisible
+  name: ToolbarsVisible
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_ToolbarsVisible
+  commentId: P:CADability.Forms.CadControl.ToolbarsVisible
+  fullName: CADability.Forms.CadControl.ToolbarsVisible
+  nameWithType: CadControl.ToolbarsVisible
+- uid: CADability.Forms.CadControl.ToolbarsVisible*
+  name: ToolbarsVisible
+  href: api/CADability.Forms.CadControl.html#CADability_Forms_CadControl_ToolbarsVisible_
+  commentId: Overload:CADability.Forms.CadControl.ToolbarsVisible
+  isSpec: "True"
+  fullName: CADability.Forms.CadControl.ToolbarsVisible
+  nameWithType: CadControl.ToolbarsVisible
 - uid: CADability.Forms.CadForm
   name: CadForm
   href: api/CADability.Forms.CadForm.html
@@ -574,6 +771,19 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.CadForm.OnCommand
   nameWithType: CadForm.OnCommand
+- uid: CADability.Forms.CadForm.OnFormClosed(System.Windows.Forms.FormClosedEventArgs)
+  name: OnFormClosed(FormClosedEventArgs)
+  href: api/CADability.Forms.CadForm.html#CADability_Forms_CadForm_OnFormClosed_System_Windows_Forms_FormClosedEventArgs_
+  commentId: M:CADability.Forms.CadForm.OnFormClosed(System.Windows.Forms.FormClosedEventArgs)
+  fullName: CADability.Forms.CadForm.OnFormClosed(System.Windows.Forms.FormClosedEventArgs)
+  nameWithType: CadForm.OnFormClosed(FormClosedEventArgs)
+- uid: CADability.Forms.CadForm.OnFormClosed*
+  name: OnFormClosed
+  href: api/CADability.Forms.CadForm.html#CADability_Forms_CadForm_OnFormClosed_
+  commentId: Overload:CADability.Forms.CadForm.OnFormClosed
+  isSpec: "True"
+  fullName: CADability.Forms.CadForm.OnFormClosed
+  nameWithType: CadForm.OnFormClosed
 - uid: CADability.Forms.CadForm.OnSelected(CADability.UserInterface.MenuWithHandler,System.Boolean)
   name: OnSelected(MenuWithHandler, Boolean)
   href: api/CADability.Forms.CadForm.html#CADability_Forms_CadForm_OnSelected_CADability_UserInterface_MenuWithHandler_System_Boolean_
@@ -648,12 +858,12 @@ references:
   commentId: T:CADability.Forms.CadFrame
   fullName: CADability.Forms.CadFrame
   nameWithType: CadFrame
-- uid: CADability.Forms.CadFrame.#ctor(CADability.Forms.CadForm)
-  name: CadFrame(CadForm)
-  href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame__ctor_CADability_Forms_CadForm_
-  commentId: M:CADability.Forms.CadFrame.#ctor(CADability.Forms.CadForm)
-  fullName: CADability.Forms.CadFrame.CadFrame(CADability.Forms.CadForm)
-  nameWithType: CadFrame.CadFrame(CadForm)
+- uid: CADability.Forms.CadFrame.#ctor(CADability.Forms.PropertiesExplorer,CADability.Forms.CadCanvas,CADability.UserInterface.ICommandHandler)
+  name: CadFrame(PropertiesExplorer, CadCanvas, ICommandHandler)
+  href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame__ctor_CADability_Forms_PropertiesExplorer_CADability_Forms_CadCanvas_CADability_UserInterface_ICommandHandler_
+  commentId: M:CADability.Forms.CadFrame.#ctor(CADability.Forms.PropertiesExplorer,CADability.Forms.CadCanvas,CADability.UserInterface.ICommandHandler)
+  fullName: CADability.Forms.CadFrame.CadFrame(CADability.Forms.PropertiesExplorer, CADability.Forms.CadCanvas, CADability.UserInterface.ICommandHandler)
+  nameWithType: CadFrame.CadFrame(PropertiesExplorer, CadCanvas, ICommandHandler)
 - uid: CADability.Forms.CadFrame.#ctor*
   name: CadFrame
   href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame__ctor_
@@ -929,6 +1139,19 @@ references:
   fullName: CADability.Forms.CadFrame.CADability.UserInterface.IUIService.ShowSaveFileDlg
   nameWithType: CadFrame.IUIService.ShowSaveFileDlg
   nameWithType.vb: CadFrame.CADability.UserInterface.IUIService.ShowSaveFileDlg
+- uid: CADability.Forms.CadFrame.FormMenu
+  name: FormMenu
+  href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame_FormMenu
+  commentId: P:CADability.Forms.CadFrame.FormMenu
+  fullName: CADability.Forms.CadFrame.FormMenu
+  nameWithType: CadFrame.FormMenu
+- uid: CADability.Forms.CadFrame.FormMenu*
+  name: FormMenu
+  href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame_FormMenu_
+  commentId: Overload:CADability.Forms.CadFrame.FormMenu
+  isSpec: "True"
+  fullName: CADability.Forms.CadFrame.FormMenu
+  nameWithType: CadFrame.FormMenu
 - uid: CADability.Forms.CadFrame.OnCommand(System.String)
   name: OnCommand(String)
   href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame_OnCommand_System_String_
@@ -955,6 +1178,19 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.CadFrame.OnUpdateCommand
   nameWithType: CadFrame.OnUpdateCommand
+- uid: CADability.Forms.CadFrame.ProgressAction
+  name: ProgressAction
+  href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame_ProgressAction
+  commentId: P:CADability.Forms.CadFrame.ProgressAction
+  fullName: CADability.Forms.CadFrame.ProgressAction
+  nameWithType: CadFrame.ProgressAction
+- uid: CADability.Forms.CadFrame.ProgressAction*
+  name: ProgressAction
+  href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame_ProgressAction_
+  commentId: Overload:CADability.Forms.CadFrame.ProgressAction
+  isSpec: "True"
+  fullName: CADability.Forms.CadFrame.ProgressAction
+  nameWithType: CadFrame.ProgressAction
 - uid: CADability.Forms.CadFrame.UIService
   name: UIService
   href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame_UIService

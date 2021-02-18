@@ -767,6 +767,22 @@ namespace CADability
         {
         }
 
+        public void Dispose()
+        {
+            while (ActiveAction != null)
+            {
+                RemoveActiveAction();
+            }
+            Settings.GlobalSettings.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
+            Settings.SaveGlobalSettings();
+            Settings.GlobalSettings.Dispose(); // it will be reloaded when access is needed
+            if (project != null)
+            {
+                project.ViewChangedEvent -= new CADability.Project.ViewChangedDelegate(OnProjectViewChanged);
+                project.RefreshEvent -= new CADability.Project.RefreshDelegate(project_RefreshEvent);
+            }
+            if (MainFrame == this) MainFrame = null;
+        }
         public ActionStack ActionStack => actionStack;
         /// <summary>
         /// Implements <see cref="IFrame.SetAction"/>.

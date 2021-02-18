@@ -569,7 +569,7 @@ namespace CADability
         {
             return new ModOp(Matrix00, Matrix01, 0.0, Matrix02, Matrix10, Matrix11, 0.0, Matrix12, 0.0, 0.0, 1.0, 0.0);
         }
-        internal double Item(int i, int j)
+        internal double At(int i, int j)
         {
             switch (i * 3 + j)
             {
@@ -589,6 +589,56 @@ namespace CADability
                     throw (new ModOpException(ModOpException.tExceptionType.InvalidParameter));
             }
         }
+        public double this[int i, int j]
+        {
+            get
+            {
+                switch (i * 3 + j)
+                {
+                    case 0:
+                        return Matrix00;
+                    case 1:
+                        return Matrix01;
+                    case 2:
+                        return Matrix02;
+                    case 3:
+                        return Matrix10;
+                    case 4:
+                        return Matrix11;
+                    case 5:
+                        return Matrix12;
+                    default:
+                        throw (new ModOpException(ModOpException.tExceptionType.InvalidParameter));
+                }
+            }
+            set
+            {
+                switch (i * 3 + j)
+                {
+                    case 0:
+                        Matrix00 = value;
+                        break;
+                    case 1:
+                        Matrix01 = value;
+                        break;
+                    case 2:
+                        Matrix02 = value;
+                        break;
+                    case 3:
+                        Matrix10 = value;
+                        break;
+                    case 4:
+                        Matrix11 = value;
+                        break;
+                    case 5:
+                        Matrix12 = value;
+                        break;
+                    default:
+                        throw (new ModOpException(ModOpException.tExceptionType.InvalidParameter));
+                }
+            }
+        }
+
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization

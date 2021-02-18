@@ -174,12 +174,24 @@ namespace CADability
         private bool modified;
         private bool deserialized; // leider notwendig um das deserialisieren und den callback in eine vernünftige ordnung zu bringen
         protected string myName; // Name dieses Settings, wenn in einem anderen Setting anthalten
+        private static Settings globalSettings;
         /// <summary>
         /// The global settings contain many different settings or configurations for the program execution.
         /// The settings are displayed in the "global" tab of the controlcenter. User code may add or remove settings.
         /// <see cref="Settings.AddSetting"/>.
         /// </summary>
-        public static Settings GlobalSettings;
+        public static Settings GlobalSettings
+        {
+            get
+            {
+                if (globalSettings == null) Reload();
+                return globalSettings;
+            }
+            set
+            {
+                globalSettings = value;
+            }
+        }
         public static void SaveGlobalSettings(string FileName)
         {
             Stream stream = File.Open(FileName, FileMode.Create);
@@ -1185,15 +1197,17 @@ namespace CADability
         }
         public void Dispose()
         {
-#if DEBUG
-            //MessageBox.Show("Dispose in GlobalSettings");
-#endif
-            // entries.Clear();
-            // sortedEntries.Clear();
-            // ShowProperties = null;
-            if (Settings.GlobalSettings == this)
+            if (GlobalSettings == this)
             {
-                //StringTable.RemoveSettingsChanged();
+                // remove all event-references to this GlobalSettings
+                string[] allKeys = GlobalSettings.GetAllKeys();
+                for (int i = 0; i < allKeys.Length; i++)
+                {
+                    object s = GlobalSettings.GetValue(allKeys[i]);
+                    if (s is ISettingChanged sc) sc.SettingChangedEvent -= OnSettingChanged;
+                    if (s is INotifyModification nm) nm.DidModifyEvent -= OnDidModify;
+                }
+                // StringTable.RemoveSettingsChanged();
                 GlobalSettings = null;
             }
         }

@@ -17,6 +17,7 @@ namespace CADability.GeoObject
         private ModOp toTorus; // diese ModOp modifiziert den Einheitstorus in den konkreten Torus
         private ModOp toUnit; // die inverse ModOp zum schnelleren Rechnen
         private double minorRadius; // im Unit-System. majorRadius ist dort immer 1
+        Polynom imlicitPolynomial; // cached but not serialized implicit polynomial (degree 4)
         public ToroidalSurface(GeoPoint loc, GeoVector dirx, GeoVector diry, GeoVector dirz, double majorRadius, double minorRadius)
         {
             ModOp m1 = ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis },
@@ -1738,6 +1739,31 @@ namespace CADability.GeoObject
             #endregion
         }
 
+        public override Polynom GetImplicitPolynomial()
+        {
+            if (imlicitPolynomial == null)
+            {
+                // ∆: point - location, r: major radius, s: minor radius, from: https://www.geometrictools.com/Documentation/DistanceToCircle3.pdf
+                // s² = (N · ∆)² + (sqrt(|∆|² − (N · ∆)²) − r)² // line 3 of part (3), where |P - K|² == s²
+                // s² = (N · ∆)² + (|∆|² − (N · ∆)²) + r² -2*r*sqrt(|∆|² − (N · ∆)²)
+                // (s² - (N · ∆)² - (|∆|² − (N · ∆)²) - r²)²/(-2*r)² = |∆|² − (N · ∆)²
+                // (s² - (N · ∆)² - (|∆|² − (N · ∆)²) - r²)²/(-2*r)² - |∆|² + (N · ∆)² = 0
+                // (s²  - |∆|²  - r²)²/(-2*r)² - |∆|² + (N · ∆)² = 0
+
+                PolynomVector d = PolynomVector.xyz - new PolynomVector(Location - GeoPoint.Origin); // ∆ = point-location, point is the variable for the polynom in x, y and z
+                PolynomVector n = new PolynomVector(ZAxis.Normalized);
+                double r = XAxis.Length;
+                double s = MinorRadius;
+                imlicitPolynomial = ((s * s - d * d - r * r) ^ 2) / (4 * r * r) - d * d + (n * d) * (n * d); // this is a polynomial in x, y and z of degree 4
+                GeoPoint dist1 = PointAt(GeoPoint2D.Origin) + GetNormal(GeoPoint2D.Origin).Normalized; // point outside the torus with distance 1
+                double d1 = imlicitPolynomial.Eval(dist1); // this should yield 1, if the scaling of the polynomial would be correct
+                imlicitPolynomial = imlicitPolynomial / d1; // correct the scaling, unfortunately the evaluation of the polynomial doesn't yield the correct distance
+                // but it seems with this scaling it yields the correct distance or less
+                //dist1 = PointAt(new GeoPoint2D(0,Math.PI/2)) + GetNormal(new GeoPoint2D(0, Math.PI / 2)).Normalized; // point outside the torus with distance 1
+                //d1 = imlicitPolynomial.Eval(dist1); // this should yield 1, if the scaling of the polynomial would be correct
+            }
+            return imlicitPolynomial;
+        }
         public Ellipse GetAxisEllipse()
         {
             Ellipse e = Ellipse.Construct();
@@ -2259,7 +2285,7 @@ namespace CADability.GeoObject
                 return true;
             }
 
-            //  now the cube is complete inside or outside of the torus
+            //  now the cube is completely inside or outside of the torus
             return false;
         }
 
@@ -2477,6 +2503,23 @@ namespace CADability.GeoObject
             return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
 
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            BoundingRect ext = BoundingRect.EmptyBoundingRect;
+            GeoPoint2D startPoint = GeoPoint2D.Origin;
+            for (int i = 0; i < orientedCurves.Length; i++)
+            {
+                ICurve2D pc = GetProjectedCurve(orientedCurves[i], 0.0);
+                if (!ext.IsEmpty())
+                {
+                    SurfaceHelper.AdjustPeriodicStartPoint(this, startPoint, pc);
+                }
+                ext.MinMax(pc.GetExtent());
+                startPoint = pc.EndPoint;
+            }
+            if (ext.Width < Math.PI * 2.0 - 0.1 || ext.Height < Math.PI * 2.0 - 0.1) return new NonPeriodicSurface(this, ext);
+            return null;
+        }
         #endregion
         #region ISerializable Members
         protected ToroidalSurface(SerializationInfo info, StreamingContext context)

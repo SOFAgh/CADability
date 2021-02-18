@@ -111,14 +111,14 @@ namespace CADability.GeoObject
         /// is defined by location and mainDirection. The shape is a 2D object. The 2d origin is moved along
         /// the axis defined by location and main direction. The topDirection vector corresponds to the
         /// 2d y-axis of the shape. The beginning and ending of the extrusion is a miter cut that allows
-        /// the same profile be conected to the starting or ending point where mainDirection and startMiter
+        /// the same profile be connected to the starting or ending point where mainDirection and startMiter
         /// are exchanged and topDirection is kept.
         /// </summary>
         /// <param name="shape">2d shape to be extruded, the 2d origin is moved along mainDirection</param>
         /// <param name="location">Starting point of the resulting profile, corresponds to the 2d origin</param>
-        /// <param name="topDirection">The "up" direction fo the resulting profile, corresponds to the y-axis of the 2d shape</param>
+        /// <param name="topDirection">The "up" direction for the resulting profile, corresponds to the y-axis of the 2d shape</param>
         /// <param name="mainDirection">Direction of the prism, the length of this vector defines the length of the prism</param>
-        /// <param name="startMiter">Direction of the connectiong profile at the starting point</param>
+        /// <param name="startMiter">Direction of the connecting profile at the starting point</param>
         /// <param name="endMiter">Direction of the connecting profile at the ending point</param>
         /// <returns>The resulting solid</returns>
         public static Solid MakePrismMiter(SimpleShape shape, GeoPoint location, GeoVector topDirection, GeoVector mainDirection, GeoVector startMiter, GeoVector endMiter)
