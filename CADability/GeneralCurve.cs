@@ -182,6 +182,7 @@ namespace CADability.GeoObject
         private double[] tetraederParams; // Parameter zu tetraederBase
         private GeoPoint[] tetraederVertex; // zu jedem tetraederBase (bis auf den letzten) gibt es zwei Punkte, so dass ein Tetraeder aufgespannt wird
         private TetraederHull tetraederHull;
+        private BoundingCube extent = BoundingCube.EmptyBoundingCube;
         internal TetraederHull TetraederHull
         {
             get
@@ -288,6 +289,7 @@ namespace CADability.GeoObject
         protected virtual void InvalidateSecondaryData()
         {
             tetraederHull = null;
+            extent = BoundingCube.EmptyBoundingCube;
         }
         // public abstract void Modify(ModOp m); ist schon abstract
         /// <summary>
@@ -353,23 +355,27 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override BoundingCube GetBoundingCube()
         {
-            BoundingCube res = new BoundingCube(this.StartPoint, this.EndPoint);
-            double[] extr = TetraederHull.GetExtrema(GeoVector.XAxis);
-            for (int i = 0; i < extr.Length; ++i)
+            if (extent.IsEmpty)
             {
-                res.MinMax(PointAt(extr[i]));
+                extent.MinMax(StartPoint);
+                extent.MinMax(EndPoint);
+                double[] extr = TetraederHull.GetExtrema(GeoVector.XAxis);
+                for (int i = 0; i < extr.Length; ++i)
+                {
+                    extent.MinMax(PointAt(extr[i]));
+                }
+                extr = TetraederHull.GetExtrema(GeoVector.YAxis);
+                for (int i = 0; i < extr.Length; ++i)
+                {
+                    extent.MinMax(PointAt(extr[i]));
+                }
+                extr = TetraederHull.GetExtrema(GeoVector.ZAxis);
+                for (int i = 0; i < extr.Length; ++i)
+                {
+                    extent.MinMax(PointAt(extr[i]));
+                }
             }
-            extr = TetraederHull.GetExtrema(GeoVector.YAxis);
-            for (int i = 0; i < extr.Length; ++i)
-            {
-                res.MinMax(PointAt(extr[i]));
-            }
-            extr = TetraederHull.GetExtrema(GeoVector.ZAxis);
-            for (int i = 0; i < extr.Length; ++i)
-            {
-                res.MinMax(PointAt(extr[i]));
-            }
-            return res;
+            return extent;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetShowProperties (IFrame)"/>
@@ -1941,7 +1947,7 @@ namespace CADability.GeoObject
                         uOnCurve.Add(id.umax);
                         isOnVertex.Add(true);
                     }
-                    else if (id.umax - id.umin > 1e-8)
+                    else if (id.umax - id.umin > 1e-6)
                     {
                         GeoPoint pm, tv1, tv2, tv3, tv4;
                         double parm;

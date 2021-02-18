@@ -443,6 +443,7 @@ namespace CADability.GeoObject
 #endif
             BoundingRect ext = BoundingRect.EmptyBoundingRect;
             List<SimpleShape> sortedShapes = new List<SimpleShape>();
+            double prec = 0.0;
             for (int i = 0; i < faces.Length; i++)
             {
                 SimpleShape sh = faces[i].GetShadow(onThisPlane);
@@ -457,9 +458,10 @@ namespace CADability.GeoObject
 #endif
                     sortedShapes.Add(sh); // einfachste Art das größte zuesrt zu haben
                     ext.MinMax(sh.GetExtent());
+                    prec = Math.Max(prec, ext.Size);
                 }
             }
-            double prec = ext.Size * 1e-4;
+            prec *= 1e-6; // to remove extremely small shapes
             for (int i = sortedShapes.Count - 1; i >= 0; --i)
             {
                 SimpleShape sh = sortedShapes[i];
@@ -2546,45 +2548,46 @@ namespace CADability.GeoObject
                     bestPrecision = error;
                 }
             }
-            if (surfaceOfEdges != null)
-            {   // there is a single surface which contains all the edges
-                sortedEdges.Reverse();
-                Face newFace = Face.Construct();
-                newFace.Surface = surfaceOfEdges;
-                BoundingRect domain = BoundingRect.EmptyBoundingRect;
-                for (int i = 0; i < sortedEdges.Count; i++)
-                {
-                    if (addToShell)
-                    {
-                        sortedEdges[i].SetSecondary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
-                    }
-                    else
-                    {
-                        Edge newEdge = new Edge(newFace, sortedEdges[i].Curve3D); // do we need a clone of Curve3D?
-                        newEdge.SetPrimary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
-                        sortedEdges[i] = newEdge;
-                    }
-                    if (!domain.IsEmpty()) SurfaceHelper.AdjustPeriodic(surfaceOfEdges, domain, sortedEdges[i].Curve2D(newFace));
-                    domain.MinMax(sortedEdges[i].Curve2D(newFace).GetExtent());
-                }
-                ICurve2D[] testOrientation = new ICurve2D[sortedEdges.Count];
-                for (int i = 0; i < sortedEdges.Count; i++)
-                {
-                    testOrientation[i] = sortedEdges[i].Curve2D(newFace);
-                }
-                if (!Border.CounterClockwise(testOrientation))
-                {
-                    ModOp2D reverse = newFace.Surface.ReverseOrientation();
-                    for (int i = 0; i < testOrientation.Length; i++)
-                    {
-                        ICurve2D reversed = testOrientation[i].GetModified(reverse);
-                        if (sortedEdges[i].PrimaryFace == newFace) sortedEdges[i].PrimaryCurve2D = reversed;
-                        else sortedEdges[i].SecondaryCurve2D = reversed;
-                    }
-                }
-                newFace.Set(newFace.Surface, sortedEdges, new List<List<Edge>>());
-                return new HashSet<Face>(new Face[] { newFace });
-            }
+            // following crashes with 04_PN_1013_S_1205_2_I06_A06_AS_P806_E1_E10.stp
+            //if (surfaceOfEdges != null)
+            //{   // there is a single surface which contains all the edges
+            //    sortedEdges.Reverse();
+            //    Face newFace = Face.Construct();
+            //    newFace.Surface = surfaceOfEdges;
+            //    BoundingRect domain = BoundingRect.EmptyBoundingRect;
+            //    for (int i = 0; i < sortedEdges.Count; i++)
+            //    {
+            //        if (addToShell)
+            //        {
+            //            sortedEdges[i].SetSecondary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
+            //        }
+            //        else
+            //        {
+            //            Edge newEdge = new Edge(newFace, sortedEdges[i].Curve3D); // do we need a clone of Curve3D?
+            //            newEdge.SetPrimary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
+            //            sortedEdges[i] = newEdge;
+            //        }
+            //        if (!domain.IsEmpty()) SurfaceHelper.AdjustPeriodic(surfaceOfEdges, domain, sortedEdges[i].Curve2D(newFace));
+            //        domain.MinMax(sortedEdges[i].Curve2D(newFace).GetExtent());
+            //    }
+            //    ICurve2D[] testOrientation = new ICurve2D[sortedEdges.Count];
+            //    for (int i = 0; i < sortedEdges.Count; i++)
+            //    {
+            //        testOrientation[i] = sortedEdges[i].Curve2D(newFace);
+            //    }
+            //    if (!Border.CounterClockwise(testOrientation))
+            //    {
+            //        ModOp2D reverse = newFace.Surface.ReverseOrientation();
+            //        for (int i = 0; i < testOrientation.Length; i++)
+            //        {
+            //            ICurve2D reversed = testOrientation[i].GetModified(reverse);
+            //            if (sortedEdges[i].PrimaryFace == newFace) sortedEdges[i].PrimaryCurve2D = reversed;
+            //            else sortedEdges[i].SecondaryCurve2D = reversed;
+            //        }
+            //    }
+            //    newFace.Set(newFace.Surface, sortedEdges, new List<List<Edge>>());
+            //    return new HashSet<Face>(new Face[] { newFace });
+            //}
             // now we have to check whether there are only two or three adjacent surfaces and we can extend them to fill the open edges loop
 
             // if nothing works: "ear clipping" and adding ruled surfaces

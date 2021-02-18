@@ -379,6 +379,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         public Stack<int> definitionStack;
         static int faceCount = 0;
 #endif
+        long elapsedMs = 0;
+        int defIndex = 0;
+
         Tokenizer tk;
         List<Item> definitions;
         private int numFaces, createdFaces;
@@ -2301,8 +2304,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
 #if DEBUG
                             //if (7890 == item.definingIndex || 9868 == item.definingIndex || 11534 == item.definingIndex)
-                            if (12496 == item.definingIndex)
-                            
+                            //if (7858 == item.definingIndex || 12742 == item.definingIndex)
+                            if (4102 == item.definingIndex || 3669 == item.definingIndex)
                             {
                             }
 #endif
@@ -2319,7 +2322,22 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (context != null && context.uncertainty > 0.0) precision = context.uncertainty;
                                 if (surface != null && bounds.Count > 0)
                                 {
+                                    System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
+                                    stopWatch.Start();
                                     item.val = Face.MakeFacesFromStepAdvancedFace(surface, bounds, item.parameter["same_sense"].bval, precision);
+                                    stopWatch.Stop();
+                                    if (stopWatch.ElapsedMilliseconds > elapsedMs)
+                                    {
+                                        elapsedMs = stopWatch.ElapsedMilliseconds;
+                                        defIndex = item.definingIndex;
+                                    }
+#if DEBUG
+                                    if (12496 == item.definingIndex)
+                                    {
+                                        Face dbgfc = (item.val as Face[])[0];
+                                        dbgfc.AssureTriangles(0.0001);
+                                    }
+#endif
 
                                 }
                                 else item.val = null;

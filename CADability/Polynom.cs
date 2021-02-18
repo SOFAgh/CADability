@@ -105,9 +105,9 @@ namespace CADability
         /// the exponent for each variable, e.g. {0,2,1} means "y²*z"
         /// </summary>
         public int[] exp; // die Exponenten der Variablen
-                          /// <summary>
-                          /// index into the coefficient array c of the polynom
-                          /// </summary>
+        /// <summary>
+        /// index into the coefficient array c of the polynom
+        /// </summary>
         public int index; // der Index in das Koeffizientenarray c
         private Polynom owner;
         public double Coefficient
@@ -439,6 +439,7 @@ namespace CADability
             res.reduce();
             return res;
         }
+        public static Polynom operator /(Polynom b, double a) => (1 / a) * b;
         public static Polynom operator *(Polynom b, double a) => a * b;
         public static Polynom operator ^(Polynom b, int n)
         {
@@ -501,6 +502,13 @@ namespace CADability
         {
             return a - new Polynom(b, a.dim);
         }
+        public static Polynom operator +(Polynom a, double b)
+        {
+            return a + new Polynom(b, a.dim);
+        }
+        public static Polynom operator -(double b, Polynom a) => -(a - b);
+        public static Polynom operator +(double b, Polynom a) => a + b;
+
         // Subtracts polynom b from this and returns the difference. When two coefficients are close to each other, the coefficient is set to 0
         public Polynom Subtract(Polynom b)
         {
@@ -1359,8 +1367,99 @@ namespace CADability
             }
             return true;
         }
+
+        internal static Polynom[] Line3d(GeoPoint startPoint, GeoVector direction)
+        {
+            return new Polynom[] { new Polynom(direction.x, "u", startPoint.x, ""), new Polynom(direction.y, "u", startPoint.y, ""), new Polynom(direction.z, "u", startPoint.z, "") };
+        }
     }
 
+    internal class PolynomVector
+    {
+        Polynom x;
+        Polynom y;
+        Polynom z;
+
+        public PolynomVector(double x, double y, double z)
+        {
+            this.x = new Polynom(0, "x", 0, "y", 0, "z", x, "");
+            this.y = new Polynom(0, "x", 0, "y", 0, "z", y, "");
+            this.z = new Polynom(0, "x", 0, "y", 0, "z", z, "");
+        }
+        public PolynomVector(GeoVector c)
+        {
+            this.x = new Polynom(0, "x", 0, "y", 0, "z", c.x, "");
+            this.y = new Polynom(0, "x", 0, "y", 0, "z", c.y, "");
+            this.z = new Polynom(0, "x", 0, "y", 0, "z", c.z, "");
+        }
+        public static PolynomVector xyz => new PolynomVector(new Polynom(1, "x", 0, "y", 0, "z"), new Polynom(0, "x", 1, "y", 0, "z"), new Polynom(0, "x", 0, "y", 1, "z"));
+        public PolynomVector()
+        {
+            this.x = new Polynom(1, "x", 0, "y", 0, "z");
+            this.y = new Polynom(0, "x", 1, "y", 0, "z");
+            this.z = new Polynom(0, "x", 0, "y", 1, "z");
+        }
+        public PolynomVector(Polynom x, Polynom y, Polynom z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        public GeoVector Eval(double[] pos)
+        {
+            return new GeoVector(x.Eval(pos), y.Eval(pos), z.Eval(pos));
+        }
+        public static PolynomVector operator ^(PolynomVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.y * right.z - left.z * right.y,
+                                    left.z * right.x - left.x * right.z,
+                                    left.x * right.y - left.y * right.x);
+        }
+        public static PolynomVector operator ^(PolynomVector left, GeoVector right)
+        {
+            return new PolynomVector(left.y * right.z - left.z * right.y,
+                                    left.z * right.x - left.x * right.z,
+                                    left.x * right.y - left.y * right.x);
+        }
+        public static Polynom operator *(PolynomVector left, PolynomVector right)
+        {
+            return left.x * right.x + left.y * right.y + left.z * right.z;
+        }
+        public static Polynom operator *(GeoVector left, PolynomVector right)
+        {
+            return left.x * right.x + left.y * right.y + left.z * right.z;
+        }
+        public static Polynom operator *(PolynomVector left, GeoVector right)
+        {
+            return left.x * right.x + left.y * right.y + left.z * right.z;
+        }
+        public static PolynomVector operator ^(GeoVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.y * right.z - left.z * right.y,
+                                    left.z * right.x - left.x * right.z,
+                                    left.x * right.y - left.y * right.x);
+        }
+        public static PolynomVector operator *(Polynom left, PolynomVector right)
+        {
+            return new PolynomVector(left * right.x, left * right.y, left * right.z);
+        }
+        public static PolynomVector operator +(PolynomVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.x + right.x, left.y + right.y, left.z + right.z);
+        }
+        public static PolynomVector operator -(PolynomVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.x - right.x, left.y - right.y, left.z - right.z);
+        }
+        public static PolynomVector operator -(PolynomVector left, GeoVector right)
+        {
+            return new PolynomVector(left.x - right.x, left.y - right.y, left.z - right.z);
+        }
+        public static PolynomVector operator -(GeoVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.x - right.x, left.y - right.y, left.z - right.z);
+        }
+    }
     internal class RationalPolynom
     {
         Polynom nominator, denominator; // Zähler, Nenner
@@ -2474,14 +2573,14 @@ namespace CADability
             {
                 if (ppw != null)
                 {
-                    ppx[i] = m.Item(0, 0) * px[i] + m.Item(0, 1) * py[i] + m.Item(0, 2) * pw[i];
-                    ppy[i] = m.Item(1, 0) * px[i] + m.Item(1, 1) * py[i] + m.Item(1, 2) * pw[i];
+                    ppx[i] = m.At(0, 0) * px[i] + m.At(0, 1) * py[i] + m.At(0, 2) * pw[i];
+                    ppy[i] = m.At(1, 0) * px[i] + m.At(1, 1) * py[i] + m.At(1, 2) * pw[i];
                     ppw[i] = pw[i];
                 }
                 else
                 {
-                    ppx[i] = m.Item(0, 0) * px[i] + m.Item(0, 1) * py[i] + new Polynom(m.Item(0, 2), 1);
-                    ppy[i] = m.Item(1, 0) * px[i] + m.Item(1, 1) * py[i] + new Polynom(m.Item(1, 2), 1);
+                    ppx[i] = m.At(0, 0) * px[i] + m.At(0, 1) * py[i] + new Polynom(m.At(0, 2), 1);
+                    ppy[i] = m.At(1, 0) * px[i] + m.At(1, 1) * py[i] + new Polynom(m.At(1, 2), 1);
                 }
             }
             double[] pknots = null;
@@ -3020,6 +3119,66 @@ namespace CADability
         public ImplicitPSurface(Polynom polynom, ModOp m)
         {
             this.polynom = polynom.Modified(m);
+        }
+        /// <summary>
+        /// Creates a quadric through these points (needs at least 10 points)
+        /// </summary>
+        /// <param name="samples"></param>
+        public ImplicitPSurface(GeoPoint[] samples)
+        {
+            int degree = 2;
+            List<int[]> exp = new List<int[]>();
+            for (int i = 0; i <= degree; i++)
+            {
+                for (int j = 0; j <= degree - i; j++)
+                {
+                    for (int k = 0; k <= degree - i - j; k++)
+                    {
+                        exp.Add(new int[] { i, j, k });
+                    }
+                }
+            }
+            int nUnknown = 10; // exp.Count; // number of unknown coefficients (10 for degree 2, 20 for degree 3)
+            int nPoints = samples.Length;
+            // the linear equations reflect the point: polynom(point)==0
+            // and the derivation: (polynom*d/dx)(point) == normal.x (same with y and z)
+            // which leads to 4 equations (rows in the matrix) per point (and normal)
+
+            int rows = Math.Max((int)Math.Sqrt(nPoints), 2);
+            {
+                Matrix m = new Matrix(nPoints + 1, nUnknown);
+                Matrix b = new Matrix(nPoints + 1, 1);
+                for (int i = 0; i < nPoints; i++)
+                {
+                    // the polynom is zero at a point on the surface
+                    for (int j = 0; j < nUnknown; j++)
+                    {
+                        double d = 1;
+                        for (int k = 0; k < exp[j][0]; k++) d *= samples[i].x;
+                        for (int k = 0; k < exp[j][1]; k++) d *= samples[i].y;
+                        for (int k = 0; k < exp[j][2]; k++) d *= samples[i].z;
+                        m[i, j] = d;
+                    }
+                    b[i, 0] = 0.0;
+                }
+                for (int i = 0; i < nUnknown; i++) m[nPoints, i] = 1.0;
+                b[nPoints, 0] = 1.0; // alle anderen sind 0.0
+                QRDecomposition qrd = m.QRD();
+                // SingularValueDecomposition svd = m.SVD();
+                if (qrd.FullRank)
+                {
+                    Matrix x = qrd.Solve(b);
+                    if (x != null)
+                    {
+                        polynom = new Polynom(degree, 3);
+                        for (int i = 0; i < nUnknown; i++)
+                        {
+                            polynom.Set(x[i, 0], exp[i]);
+                        }
+                    }
+                }
+            }
+            if (polynom == null) throw new ApplicationException("could not create implicit surface");
         }
         /// <summary>
         /// Approximate the provided surface with a imlicit polynomial surface. Uses points an normals of the surface. Yields good

@@ -39,14 +39,37 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                TestCylinderNP();
-                return true;
+                //TestCylinderNP();
+                if (frame.Project.GetActiveModel()[0] is Solid sld)
+                {
+                    SimpleShape ss = sld.Shells[0].GetShadow(Plane.XZPlane);
+                }
+
+                    return true;
             }
             return false;
         }
         private void TestCylinderNP()
         {
             Model model = frame.Project.GetActiveModel();
+            if (model[0] is Face fctor && fctor.Surface is ToroidalSurface ts)
+            {
+                Polynom plm = ts.GetImplicitPolynomial();
+                double d = plm.Eval(ts.PointAt(new GeoPoint2D(1, 1)));
+                GeoPoint p = ts.PointAt(new GeoPoint2D(1.5, 3.5));
+                NonPeriodicSurface tsnp = new NonPeriodicSurface(ts, fctor.Domain);
+                GeoPoint2D uv = tsnp.PositionOf(p);
+                tsnp.Derivation2At(uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv);
+                ICurve fu = tsnp.FixedU(uv.x, -1, 1);
+                ICurve fv = tsnp.FixedV(uv.y, -1, 1);
+                Ellipse elliu = Ellipse.Construct();
+                elliu.SetCirclePlaneCenterRadius(new Plane(location, du, duu), location + duu, duu.Length);
+                Ellipse elliv = Ellipse.Construct();
+                elliv.SetCirclePlaneCenterRadius(new Plane(location, dv, dvv), location + dvv, dvv.Length);
+                Line lu = Line.MakeLine(location, location + du);
+                Line lv = Line.MakeLine(location, location + dv);
+                GeoObjectList dbg = new GeoObjectList(fctor, elliu, elliv, lu, lv, fu as IGeoObject, fv as IGeoObject);
+            }
             if (model[0] is Face fccone && model[1] is Line line)
             {
                 fccone.Surface.GetLineIntersection(line.StartPoint, line.EndPoint - line.StartPoint);
@@ -79,7 +102,7 @@ namespace CADability.Forms
                     GeoVector dirv = fc1.Surface.VDirection(uv);
                     diru.Length = 0.1;
                     dirv.Length = 0.1;
-                    l.SetTwoPoints(fc1.Surface.PointAt(uv),fc1.Surface.PointAt(uv) + diru);
+                    l.SetTwoPoints(fc1.Surface.PointAt(uv), fc1.Surface.PointAt(uv) + diru);
                     dbgs.Add(l);
                     l = Line.Construct();
                     l.SetTwoPoints(fc1.Surface.PointAt(uv), fc1.Surface.PointAt(uv) + dirv);

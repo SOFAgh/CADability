@@ -2,12 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <BuildDocFx Condition=" '$(Configuration)'=='Debug' ">false</BuildDocFx>
+    <BuildDocFx Condition=" '$(Configuration)'!='RelWithDoc' ">false</BuildDocFx>
+    <Configurations>Debug;Release;RelWithDoc</Configurations>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;xPARALLEL, TESTNEWCONTEXTMENU, USENONPRIODICSURFACES</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -17,6 +18,15 @@
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <DocumentationFile></DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>xPARALLEL, xTESTNEWCONTEXTMENU</DefineConstants>
+    <Optimize>false</Optimize>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DocumentationFile />
   </PropertyGroup>
 
   <ItemGroup>

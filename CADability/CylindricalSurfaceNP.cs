@@ -24,7 +24,7 @@ namespace CADability.GeoObject
         GeoPoint location; // the location at the lowest (in the direction of zAxis) usable position of the cylinder
         GeoVector xAxis, yAxis, zAxis; // the system at the "bottom" of the cylinder. Should all have the same length
                                        // The projection goes from the point (location-zAxis) to the plane (location, xAxis, yAxis). the u/v system is the plane
-
+        Polynom implicitPolynomial; // will be calculated when needed
         public CylindricalSurfaceNP(GeoPoint location, GeoVector xAxis, GeoVector yAxis, GeoVector zAxis)
         {
             this.location = location;
@@ -64,30 +64,129 @@ namespace CADability.GeoObject
 
         public override ICurve FixedU(double u, double vmin, double vmax)
         {
-            GeoPoint majax = PointAt(new GeoPoint2D(u, 0));
-            Ellipse e = Ellipse.Construct();
-            GeoPoint center = location - zAxis;
-            e.SetEllipseCenterAxis(center, majax - center, yAxis);
-            GeoPoint sp = PointAt(new GeoPoint2D(u, vmin));
-            GeoPoint ep = PointAt(new GeoPoint2D(u, vmax));
-            double spos = e.PositionOf(sp);
-            double epos = e.PositionOf(ep);
-            e.Trim(spos, epos);
-            return e;
+            if (Math.Abs(u) < xAxis.Length * 1e-6)
+            {
+                GeoPoint sp = PointAt(new GeoPoint2D(u, vmin));
+                GeoPoint ep = PointAt(new GeoPoint2D(u, vmax));
+                return Line.TwoPoints(sp, ep);
+            }
+            else
+            {
+                GeoPoint majax = PointAt(new GeoPoint2D(u, 0));
+                Ellipse e = Ellipse.Construct();
+                GeoPoint center = location - zAxis;
+                e.SetEllipseCenterAxis(center, majax - center, yAxis);
+                GeoPoint sp = PointAt(new GeoPoint2D(u, vmin));
+                GeoPoint ep = PointAt(new GeoPoint2D(u, vmax));
+                double spos = e.PositionOf(sp);
+                double epos = e.PositionOf(ep);
+                e.Trim(spos, epos);
+                return e;
+            }
         }
 
         public override ICurve FixedV(double v, double umin, double umax)
         {
-            GeoPoint majax = PointAt(new GeoPoint2D(0, v));
-            Ellipse e = Ellipse.Construct();
-            GeoPoint center = location - zAxis;
-            e.SetEllipseCenterAxis(center, majax - center, xAxis);
-            GeoPoint sp = PointAt(new GeoPoint2D(umin, v));
-            GeoPoint ep = PointAt(new GeoPoint2D(umax, v));
-            double spos = e.PositionOf(sp);
-            double epos = e.PositionOf(ep);
-            e.Trim(spos, epos);
-            return e;
+            if (Math.Abs(v) < xAxis.Length * 1e-8)
+            {
+                GeoPoint sp = PointAt(new GeoPoint2D(umin, v));
+                GeoPoint ep = PointAt(new GeoPoint2D(umax, v));
+                return Line.TwoPoints(sp, ep);
+            }
+            else
+            {
+                GeoPoint majax = PointAt(new GeoPoint2D(0, v));
+                Ellipse e = Ellipse.Construct();
+                GeoPoint center = location - zAxis;
+                e.SetEllipseCenterAxis(center, majax - center, xAxis);
+                GeoPoint sp = PointAt(new GeoPoint2D(umin, v));
+                GeoPoint ep = PointAt(new GeoPoint2D(umax, v));
+                double spos = e.PositionOf(sp);
+                double epos = e.PositionOf(ep);
+                e.Trim(spos, epos);
+                return e;
+            }
+        }
+        public override ICurve Make3dCurve(ICurve2D curve2d)
+        {
+            if (curve2d is Line2D l2d)
+            {
+                if (Math.Abs(Geometry.DistPL(GeoPoint2D.Origin, l2d.StartPoint, l2d.EndPoint)) < Precision.eps)
+                {
+                    // a line through the center: this is a line on the surface
+                    return Line.TwoPoints(PointAt(l2d.StartPoint), PointAt(l2d.EndPoint));
+                }
+                else
+                {
+                    // an ellipse (this is a very rare case)
+                    // this can certainly be optimized: take 5 points of the line, find the 3d positions, find a plane through the points
+                    // and calculate the ellipse from the points
+                    GeoPoint[] fp3d = new GeoPoint[5];
+                    for (int i = 0; i < 5; i++)
+                    {
+                        fp3d[i] = PointAt(l2d.PointAt(i / 4.0));
+                    }
+                    Ellipse elli = Ellipse.FromFivePoints(fp3d, false);
+                    if (elli != null) return elli;
+                }
+            }
+            else if (curve2d is Ellipse2D elli2d)
+            {   // includes EllipseArc2D
+                if (Precision.IsEqual(elli2d.center, GeoPoint2D.Origin))
+                {
+                    // this is an ellipse in 3d
+                    GeoPoint[] fp3d = new GeoPoint[5];
+                    double n = 5.0;
+                    if (elli2d is EllipseArc2D) n = 4.0;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        fp3d[i] = PointAt(elli2d.PointAt(i / n));
+                    }
+                    Ellipse elli = Ellipse.FromFivePoints(fp3d, !(elli2d is EllipseArc2D));
+                    if (elli != null) return elli;
+                }
+            }
+            else if (curve2d is Circle2D circle2d)
+            {   // includes Arc2D
+                if (Precision.IsEqual(circle2d.Center, GeoPoint2D.Origin))
+                {
+                    // this is an ellipse in 3d
+                    GeoPoint[] fp3d = new GeoPoint[5];
+                    double n = 5.0;
+                    if (circle2d is Arc2D) n = 4.0;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        fp3d[i] = PointAt(circle2d.PointAt(i / n));
+                    }
+                    Ellipse elli = Ellipse.FromFivePoints(fp3d, !(circle2d is Arc2D));
+                    if (elli != null) return elli;
+                }
+            }
+            return base.Make3dCurve(curve2d);
+        }
+        public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
+        {
+            if (curve is Line line)
+            {
+                // this must be a line parallel to the axis, otherwise there are no lines on the cylinder
+                // if it is an extremely small line not parallel to the axis, the result will also be a line, which
+                // in reverse projection will give a very short ellipse
+                return new Line2D(PositionOf(line.StartPoint), PositionOf(line.EndPoint));
+            } else if (curve is Ellipse elli)
+            {
+                // this is a intersection with a plane. The resulting ellipse (or circle) will have its center in the origin. We should provide a specialized
+                // FromFivePoints for this case
+                GeoPoint2D[] fp2d = new GeoPoint2D[5];
+                double n = 5.0;
+                if (elli.IsArc) n = 4.0;
+                for (int i = 0; i < 5; i++)
+                {
+                    fp2d[i] = PositionOf(elli.PointAt(i / n));
+                }
+                Ellipse2D elli2d = Ellipse2D.FromFivePoints(fp2d, !elli.IsArc); // returns both full ellipse and ellipse arc
+                if (elli2d != null) return elli2d;
+            }
+            return base.GetProjectedCurve(curve, precision);
         }
 
         public override ISurface GetModified(ModOp m)
@@ -100,6 +199,10 @@ namespace CADability.GeoObject
             double l = Math.Sqrt(uv.x * uv.x + uv.y * uv.y);
             if (l == 0.0) return location + zAxis; // this is invalid and should never be used. 
             double r = xAxis.Length;
+            // l must be between r/2 and r
+            // trying to clip here:
+            if (l < r / 2) l = r / 2;
+            if (l > r) l = r;
             double z = (r - l) / l;
             double a = Math.Atan2(uv.y, uv.x);
             return location + Math.Cos(a) * xAxis + Math.Sin(a) * yAxis + z * zAxis;
@@ -134,7 +237,7 @@ namespace CADability.GeoObject
             GeoVector zl = 1 / (sqr(v) + sqr(u)) * zAxis;
             double uvl = r - Math.Sqrt(sqr(v) + sqr(u));
             GeoVector sc1 = (-(uvl * zAxis)) / uv32;
-            p = location + uvl / Math.Sqrt(sqr(v) + sqr(u)) * zAxis  + u / Math.Sqrt(sqr(v) + sqr(u)) * yAxis  + v / Math.Sqrt(sqr(v) + sqr(u)) * xAxis;
+            p = location + uvl / Math.Sqrt(sqr(v) + sqr(u)) * zAxis + u / Math.Sqrt(sqr(v) + sqr(u)) * yAxis + v / Math.Sqrt(sqr(v) + sqr(u)) * xAxis;
             du = (-(u * uvl * zAxis)) / uv32 - u * zAxis / (sqr(v) + sqr(u)) + yAxis / Math.Sqrt(sqr(v) + sqr(u)) - sqr(u) * yAxis / uv32 - u * v * xAxis / uv32;
             dv = (-(v * uvl * zAxis)) / uv32 - v * zAxis / (sqr(v) + sqr(u)) - u * v * yAxis / uv32 + xAxis / Math.Sqrt(sqr(v) + sqr(u)) - sqr(v) * xAxis / uv32;
             duu = sc1 + 3.0 * sqr(u) * uvl * zAxis / uv52 - zl + 3.0 * sqr(u) * zAxis / sqr(sqr(v) + sqr(u)) - 3.0 * u * yAxis / uv32 + 3.0 * cube(u) * yAxis / uv52 - v * xAxis / uv32 + 3.0 * sqr(u) * v * xAxis / uv52;
@@ -172,6 +275,21 @@ namespace CADability.GeoObject
                 return false;
             }
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
+        }
+        public override Polynom GetImplicitPolynomial()
+        {
+            if (implicitPolynomial == null)
+            {
+                GeoVector zNormed = zAxis.Normalized;
+                PolynomVector x = zNormed ^ (new GeoVector(location.x, location.y, location.z) - PolynomVector.xyz);
+                implicitPolynomial = (x * x) - xAxis * xAxis;
+                // we need to scale the implicit polynomial so that it yields the true distance to the surface
+                GeoPoint p = location + xAxis + xAxis.Normalized; // a point outside the cylinder with distance 1
+                double d = implicitPolynomial.Eval(p); // this should be 1 when the polynomial is normalized
+                if ((xAxis ^ yAxis) * zAxis < 0) d = -d; // inverse oriented cylinder
+                implicitPolynomial = (1 / d) * implicitPolynomial; // normalize the polynomial
+            }
+            return implicitPolynomial;
         }
 
         void IJsonSerialize.GetObjectData(IJsonWriteData data)
@@ -225,6 +343,79 @@ namespace CADability.GeoObject
             intu = usteps.ToArray();
             intv = vsteps.ToArray();
         }
+        public override IDualSurfaceCurve[] GetPlaneIntersection(PlaneSurface pl, double umin, double umax, double vmin, double vmax, double precision)
+        {
+            if (Precision.IsPerpendicular(pl.Normal, zAxis, false))
+            {
+                // two lines along the cylinder axis
+                Plane lower = new Plane(location, zAxis);
+                GeoPoint2D sp2d = lower.Project(pl.Location);
+                GeoVector2D dir2d = lower.Project(pl.Normal).ToLeft();
+                GeoPoint2D[] ips = Geometry.IntersectLC(sp2d, dir2d, GeoPoint2D.Origin, xAxis.Length);
+                IDualSurfaceCurve[] res = new IDualSurfaceCurve[ips.Length];
+                for (int i = 0; i < ips.Length; i++)
+                {
+                    GeoPoint p = lower.ToGlobal(ips[i]);
+                    Line l3d = Line.TwoPoints(p, p + zAxis);
+                    res[i] = new DualSurfaceCurve(l3d, this, new Line2D(this.PositionOf(l3d.StartPoint), this.PositionOf(l3d.EndPoint)), pl, new Line2D(pl.PositionOf(l3d.StartPoint), pl.PositionOf(l3d.EndPoint)));
+                }
+                return res;
+            }
+            else
+            {
+                // an ellipse
+                GeoPoint2D[] cnts = pl.GetLineIntersection(location, zAxis);
+                if (cnts.Length == 1)
+                {   // there must be exactly one intersection
+                    GeoPoint cnt = pl.PointAt(cnts[0]);
+                    GeoVector minorAxis = pl.Normal ^ zAxis;
+                    minorAxis.Length = xAxis.Length;
+                    GeoVector majorAxis = minorAxis ^ pl.Normal;
+                    Polynom impl = GetImplicitPolynomial();
+                    Polynom toSolve = impl.Substitute(new Polynom(majorAxis.x, "u", cnt.x, ""), new Polynom(majorAxis.y, "u", cnt.y, ""), new Polynom(majorAxis.z, "u", cnt.z, ""));
+                    double[] roots = toSolve.Roots();
+                    // there must be two roots 
+                    majorAxis = roots[0] * majorAxis;
+
+                    Ellipse elli = Ellipse.Construct();
+                    elli.SetEllipseCenterAxis(cnt, majorAxis, minorAxis);
+
+                    GeoPoint2D[] fpnts = new GeoPoint2D[5];
+                    for (int i = 0; i < 5; i++)
+                    {
+                        fpnts[i] = PositionOf(elli.PointAt(i / 6.0));
+                    }
+                    Ellipse2D e2d = Ellipse2D.FromFivePoints(fpnts); // there should be a better way to calculate the 2d ellipse, but the following is wrong:
+                    // Ellipse2D e2d = new Ellipse2D(GeoPoint2D.Origin, PositionOf(cnt + majorAxis).ToVector(), PositionOf(cnt + minorAxis).ToVector());
+                    // and principal axis doesn't yield the correct result either
+                    // Geometry.PrincipalAxis(PositionOf(cnt + majorAxis).ToVector(), PositionOf(cnt + minorAxis).ToVector(), out GeoVector2D maj, out GeoVector2D min);
+                    return new IDualSurfaceCurve[] { new DualSurfaceCurve(elli, this, e2d, pl, pl.GetProjectedCurve(elli, 0.0)) };
+                }
+            }
+            return new IDualSurfaceCurve[0];
+        }
+        public override bool IsVanishingProjection(Projection p, double umin, double umax, double vmin, double vmax)
+        {
+            return Precision.SameDirection(p.Direction, zAxis, false);
+        }
+        public override ICurve2D[] GetTangentCurves(GeoVector direction, double umin, double umax, double vmin, double vmax)
+        {
+            if (Precision.SameDirection(direction, zAxis, false))
+            {
+                return new ICurve2D[] { };
+            }
+            GeoPoint2D uv = PositionOf(location + (direction ^ zAxis));
+            GeoVector2D dir2d = uv.ToVector();
+            dir2d.Length = xAxis.Length * 1.1;
+            Line2D l2d = new Line2D(GeoPoint2D.Origin - dir2d, GeoPoint2D.Origin + dir2d);
+            double[] parts = Clip(l2d);
+            List<ICurve2D> res = new List<ICurve2D>(2);
+            for (int i = 0; i < parts.Length; i += 2)
+            {
+                res.Add(l2d.Trim(parts[i], parts[i + 1]));
+            }
+            return res.ToArray();
+        }
 
         public bool IsInside(GeoPoint2D uv)
         {
@@ -247,6 +438,17 @@ namespace CADability.GeoObject
         public override ISurface Clone()
         {
             return new CylindricalSurfaceNP(location, xAxis, yAxis, zAxis);
+        }
+        public override void CopyData(ISurface CopyFrom)
+        {
+            CylindricalSurfaceNP cnp = CopyFrom as CylindricalSurfaceNP;
+            if (cnp != null)
+            {
+                location = cnp.location;
+                xAxis = cnp.xAxis;
+                yAxis = cnp.yAxis;
+                zAxis = cnp.zAxis;
+            }
         }
         public override bool UvChangesWithModification => true;
         public override IPropertyEntry PropertyEntry

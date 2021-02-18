@@ -185,7 +185,7 @@ namespace CADability.GeoObject
                 GeoPoint2D fromHere2d = pln.Project(fromHere);
                 GeoPoint2D fp1 = Geometry.DropPL(fromHere2d, GeoPoint2D.Origin, new GeoVector2D(dira));
                 GeoPoint2D fp2 = Geometry.DropPL(fromHere2d, GeoPoint2D.Origin, new GeoVector2D(-dira));
-                return new GeoPoint2D[] { PositionOf(pln.ToGlobal(fp1)), PositionOf(pln.ToGlobal(fp1)) };
+                return new GeoPoint2D[] { PositionOf(pln.ToGlobal(fp1)), PositionOf(pln.ToGlobal(fp2)) };
             }
             catch
             {   // fromHere is on the axis
@@ -1524,7 +1524,12 @@ namespace CADability.GeoObject
         }
         public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
         {
-            return new ConicalSurfaceNP(Location, XAxis, YAxis, ZAxis);
+            ConicalSurfaceNP res = new ConicalSurfaceNP(Location, XAxis, YAxis, ZAxis);
+            GeoPoint testPoint = orientedCurves[0].PointAt(0.5); // any point except the apex
+            GeoVector normalOriginal = GetNormal(PositionOf(testPoint));
+            GeoVector normalNp = res.GetNormal(res.PositionOf(testPoint));
+            if (normalOriginal * normalNp < 0) res.ReverseOrientation();
+            return res;
         }
         public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {

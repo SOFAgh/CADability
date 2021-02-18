@@ -3368,7 +3368,8 @@ namespace CADability.Shapes
             else
             {
                 ArrayList res = new ArrayList();
-                ICurve2D c2d = segment[inds].Trim(pars, 1.0);
+                ICurve2D c2d = null;
+                if (pars < 1) c2d = segment[inds].Trim(pars, 1.0);
                 if (c2d != null && c2d.Length > Precision.eps)
                 {
                     c2d.UserData.CloneFrom(segment[inds].UserData);
@@ -3392,7 +3393,7 @@ namespace CADability.Shapes
                         res.Add(segment[i].Clone());
                     }
                 }
-                if (inde < segment.Length)
+                if (inde < segment.Length && pare > 0)
                 {
                     c2d = segment[inde].Trim(0.0, pare);
                     if (c2d != null && c2d.Length > Precision.eps)

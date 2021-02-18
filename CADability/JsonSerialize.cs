@@ -732,15 +732,22 @@ namespace CADability
                         {
                             string[] names = Enum.GetNames(tpe);
                             bool isEmpty = true;
-                            for (int i = 0; i < names.Length; i++)
+                            try
                             {
-                                if (names[i] == (val as string))
-                                {
-                                    si.AddValue(key, Enum.ToObject(tpe, i));
-                                    isEmpty = false;
-                                    break;
-                                }
+                                si.AddValue(key, Enum.Parse(tpe, val as string));
+                                isEmpty = false;
                             }
+                            catch { }
+                            // was this before, doesn't work when Enum types have non standard numbers
+                            //for (int i = 0; i < names.Length; i++)
+                            //{
+                            //    if (names[i] == (val as string))
+                            //    {
+                            //        //si.AddValue(key, Enum.ToObject(tpe, i));
+                            //        isEmpty = false;
+                            //        break;
+                            //    }
+                            //}
                             if (isEmpty) si.AddValue(key, Enum.ToObject(tpe, int.Parse(val as string)));
                         }
                         else if (tpe.IsArray)
