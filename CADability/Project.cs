@@ -1669,18 +1669,30 @@ namespace CADability
                     if (String.IsNullOrEmpty(converter))
                     {
                         isInSetting = false;
-                        //converter = @"C:\Program Files\ODA\ODAFileConverter_title 21.3.0\ODAFileConverter.exe";
-                        var pf86 = Environment.GetEnvironmentVariable("ProgramW6432") + System.IO.Path.DirectorySeparatorChar + "ODA";
-                        // string programfiles = System.Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + System.IO.Path.DirectorySeparatorChar + "ODA";
-                        string programfiles = System.Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + System.IO.Path.DirectorySeparatorChar + "ODA";
-                        string[] oda = Directory.GetFiles(programfiles, "odafileconverter.exe", SearchOption.AllDirectories);
+
+                        string programFilesPath = string.Empty;
+
+                        if (Environment.Is64BitOperatingSystem && !Environment.Is64BitProcess)
+                        {
+                            programFilesPath = Environment.GetEnvironmentVariable("ProgramW6432");
+                        }
+                        else
+                        {
+                            programFilesPath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                        }
+
+                        //converter = @"C:\Program Files\ODA\ODAFileConverter_title 21.3.0\ODAFileConverter.exe";                        
+                        string odaFolder = System.IO.Path.Combine(programFilesPath, "ODA");
+
+                        string[] oda = Directory.GetFiles(odaFolder, "odafileconverter.exe", SearchOption.AllDirectories);
+
                         for (int i = 0; i < oda.Length; i++)
                         {
                             string fn = System.IO.Path.GetDirectoryName(oda[i]);
                             if (!string.IsNullOrEmpty(converter))
                             {
                                 string fnc = System.IO.Path.GetDirectoryName(converter);
-                                if (string.Compare(fnc, fn, true) > 0) converter = oda[i];
+                                if (string.Compare(fnc, fn, true) < 0) converter = oda[i];
                             }
                             else
                             {
