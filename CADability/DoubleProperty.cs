@@ -54,6 +54,10 @@ namespace CADability.UserInterface
         {
             return doubleProperty.LabelText;
         }
+        public string ResourceId
+        {
+            get { return doubleProperty.ResourceId; }
+        }
         public MenuWithHandler[] ContextMenu
         {
             get

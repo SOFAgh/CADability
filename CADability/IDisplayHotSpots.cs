@@ -53,6 +53,10 @@ namespace CADability
         /// <param name="Level">Requested info level (simple info or detailed info)</param>
         /// <returns>The info string</returns>
         string GetInfoText(CADability.UserInterface.InfoLevelMode Level);
+        /// <summary>
+        /// Get the ResourceId of the Hotspot
+        /// </summary>
+        string ResourceId { get; }
         MenuWithHandler[] ContextMenu { get; }
         // hier könnte man noch ein Paint dazunehmen, um den Hotspots die
         // Möglichkeit zu geben, sich selbst gemäß ihrer Bedeutung darzustellen
