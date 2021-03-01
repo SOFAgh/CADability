@@ -53,6 +53,7 @@ namespace CADability.GeoObject
         public override GeoPoint2D PositionOf(GeoPoint p)
         {
             GeoVector rb = Geometry.ReBase(p - location, xAxis, yAxis, zAxis);
+            GeoPoint dbg = location + rb.x * xAxis + rb.y * yAxis + rb.z * zAxis;
             return new GeoPoint2D(rb.x, rb.y);
         }
         public override GeoVector UDirection(GeoPoint2D uv)
@@ -135,7 +136,45 @@ namespace CADability.GeoObject
             Polynom x = new Polynom(1, "x", 0, "y", 0, "z");
             Polynom y = new Polynom(0, "x", 1, "y", 0, "z");
             Polynom z = new Polynom(0, "x", 0, "y", 1, "z");
-            return (((z - location.z) * zAxis.z + (y - location.y) * zAxis.y + (x - location.x) * zAxis.x)^2) - c * (((z - location.z)^2) + ((y - location.y)^2) + ((x - location.x)^2));
+            return (((z - location.z) * zAxis.z + (y - location.y) * zAxis.y + (x - location.x) * zAxis.x) ^ 2) - c * (((z - location.z) ^ 2) + ((y - location.y) ^ 2) + ((x - location.x) ^ 2));
+        }
+        public override bool HitTest(BoundingCube cube, out GeoPoint2D uv)
+        {
+            Polynom plnm = GetImplicitPolynomial();
+            GeoPoint[] cubeVertices = cube.Points;
+            int sgn = Math.Sign(plnm.Eval(cubeVertices[0]));
+            bool sameSide = true;
+            for (int i = 1; i < cubeVertices.Length; i++)
+            {
+                if (Math.Sign(plnm.Eval(cubeVertices[i])) != sgn)
+                {   // there is a cube vertex with a different sign in the implicit form
+                    // there must be an intersection between the two points
+                    GeoPoint sp = cubeVertices[0];
+                    GeoVector dir = cubeVertices[i] - cubeVertices[0];
+                    Polynom toSolve = plnm.Substitute(new Polynom(dir.x, "u", sp.x, ""), new Polynom(dir.y, "u", sp.y, ""), new Polynom(dir.z, "u", sp.z, ""));
+                    double[] roots = toSolve.Roots();
+                    for (int j = 0; j < roots.Length; j++)
+                    {
+                        if (roots[j] >= 0.0 && roots[j] <= 1.0)
+                        {
+                            uv = PositionOf(sp + roots[j] * dir);
+                            return true;
+                        }
+                    }
+                    sameSide = false;
+                    break;
+                }
+            }
+            if (sameSide)
+            {   // all vertices of the cube are inside or outside the cone. Now the cube still could hit the cone if it surrounds the cone
+                // but then the axis of the cone would have to pass through the cube
+                if (!cube.Interferes(location, zAxis, double.MaxValue, false))
+                {
+                    uv = GeoPoint2D.Origin;
+                    return false;
+                }
+            }
+            return base.HitTest(cube, out uv);
         }
         public double DebugImplicit(GeoPoint p)
         {

@@ -319,6 +319,13 @@ namespace CADability.Curve2D
                 // if ((sweep < 0.0 && res > 0.0) || (sweep > 0.0 && res < 0.0)) res = -res; // 2.2.17 entfernt: 
             }
         }
+        internal void MakeFullEllipse()
+        {
+            if (sweepPar < 0) sweepPar = -Math.PI * 2.0;
+            else sweepPar = Math.PI * 2.0;
+            endPoint = startPoint;
+            RecalcQuadrant();
+        }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Clone ()"/>
         /// </summary>
@@ -479,7 +486,7 @@ namespace CADability.Curve2D
             }
         }
         internal void Close()
-        {
+        {   // maybe this is wrong, see MakeFullEllipse
             if (sweep > 0) sweep = Math.PI * 2.0;
             else sweep = -Math.PI * 2.0;
             RecalcQuadrant();

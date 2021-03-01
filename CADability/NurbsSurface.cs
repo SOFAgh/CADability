@@ -3251,6 +3251,19 @@ namespace CADability.GeoObject
         }
 #endif
         #region ISurfaceImpl Overrides
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            BoundingRect ext = BoundingRect.EmptyBoundingRect;
+            for (int i = 0; i < orientedCurves.Length; i++)
+            {
+                ext.MinMax(this.GetProjectedCurve(orientedCurves[i], 0.0).GetExtent());
+            }
+            if ((IsUPeriodic && ext.Width > UPeriod * 0.9) || (IsVPeriodic && ext.Height > VPeriod * 0.9) || GetUSingularities().Length > 0 || GetVSingularities().Length > 0)
+            {
+                return new NonPeriodicSurface(this, ext);
+            }
+            return null;
+        }
         /// <summary>
         /// Implements <see cref="ISurface.GetModified"/>.
         /// </summary>

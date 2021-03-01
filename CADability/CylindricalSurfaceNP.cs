@@ -225,7 +225,37 @@ namespace CADability.GeoObject
             intu = usteps.ToArray();
             intv = vsteps.ToArray();
         }
-
+        public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
+        {
+            if (curve is Ellipse elli)
+            {   // this must be a ellipse in 2d with the center at 0,0
+                GeoVector2D majax = PositionOf(elli.Center + elli.MajorAxis).ToVector();
+                GeoVector2D minax = PositionOf(elli.Center + elli.MinorAxis).ToVector();
+                if (GeoVector2D.Orientation(majax, minax) < 0) minax = -minax;
+                if (elli.IsArc)
+                {
+                    EllipseArc2D ea1 = EllipseArc2D.Create(GeoPoint2D.Origin, majax, minax, PositionOf(elli.StartPoint), PositionOf(elli.EndPoint), true);
+                    EllipseArc2D ea2 = EllipseArc2D.Create(GeoPoint2D.Origin, majax, minax, PositionOf(elli.StartPoint), PositionOf(elli.EndPoint), false);
+                    GeoPoint2D mp = PositionOf(elli.PointAt(0.5));
+                    double pos1 = ea1.PositionOf(mp);
+                    double pos2 = ea2.PositionOf(mp);
+                    if (Math.Abs(pos1 - 0.5) < Math.Abs(pos2 - 0.5)) return ea1;
+                    else return ea2;
+                }
+                else
+                {   // the ellipse may start at any point, a 2d ellipse doesn't have a start angle, it is always assumed to be 0
+                    // so we make an ellipse 2d arc, which has startpoint
+                    EllipseArc2D e = EllipseArc2D.Create(GeoPoint2D.Origin, majax, minax, PositionOf(elli.StartPoint), PositionOf(elli.EndPoint), true);
+                    e.MakeFullEllipse(); // it might have been an extremely small arc before
+                    if (elli.PositionOf(PointAt(e.PointAt(0.1))) > 0.5) e.Reverse();
+                    return e;
+                }
+            } else if (curve is Line line)
+            {   // this must be a line parallel to the axis, i.e. in 2d a line through the origin
+                return new Line2D(PositionOf(line.StartPoint), PositionOf(line.EndPoint));
+            }
+            return base.GetProjectedCurve(curve, precision);
+        }
         public bool IsInside(GeoPoint2D uv)
         {
             double r = xAxis.Length;

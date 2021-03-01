@@ -1524,6 +1524,7 @@ namespace CADability.GeoObject
         }
         public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
         {
+            if ((orientedCurves[0].PointAt(0.5) - Location) * ZAxis<0) return new ConicalSurfaceNP(Location, YAxis, XAxis, -ZAxis);
             return new ConicalSurfaceNP(Location, XAxis, YAxis, ZAxis);
         }
         public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)

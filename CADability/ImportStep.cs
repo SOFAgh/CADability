@@ -384,6 +384,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         private int numFaces, createdFaces;
 
         //StepEdgeCollection edgeCollection; // collects the edges during face and shell construction to reuse already created edges
+        private bool tranformationMode; // two modes of transformation, in some cases true is better in some cases false
+
         private context context; // convert angle to radian, usually angles are provided as radian, so this factor is 1.0
         HashSet<Item> products = new HashSet<Item>();
         HashSet<Item> mappedItems = new HashSet<Item>();
@@ -1194,6 +1196,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             // edgeCollection = new StepEdgeCollection();
             Item.Init();
+            tranformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.TranfromationMode", false);
         }
 
         private void MakeRelations(List<int> cdsr)
@@ -1206,7 +1209,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             // andererseits legt shapeDefinitionRepresentation die BREP Form von product_definition fest
             // product_definition
             // - children(product_definition) + transforms
-            // - eigenes brep
             for (int i = 0; i < cdsr.Count; i++)
             {
                 Item item = definitions[cdsr[i]];
@@ -1455,7 +1457,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 Shell shell = null;
                 if (res[i] is Shell sh) shell = sh;
                 if (res[i] is Solid sld) shell = sld.Shells[0];
-                if (shell!=null)
+                if (shell != null)
                 {
                     if (!shell.CheckConsistency())
                     {
@@ -1463,7 +1465,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                     foreach (Face face in shell.Faces)
                     {
-                        if (face.GetHashCode()==725)
+                        if (face.GetHashCode() == 725)
                         {
                             face.AssureTriangles(0.38);
                         }
@@ -1859,7 +1861,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
 #if DEBUG
-            if (194125 == item.definingIndex)
+            if (14355 == item.definingIndex || 13583 == item.definingIndex)
             {
 
             }
@@ -2182,8 +2184,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 }
                                 shell.CloseOpenEdges(edgesToRepair);
                             }
-                            
-                            if (shell.OpenEdgesExceptPoles.Length==0)
+
+                            if (shell.OpenEdgesExceptPoles.Length == 0)
                             {
                                 Solid sld = Solid.Construct();
                                 sld.SetShell(shell);
@@ -2301,8 +2303,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
 #if DEBUG
                             //if (7890 == item.definingIndex || 9868 == item.definingIndex || 11534 == item.definingIndex)
-                            if (12496 == item.definingIndex)
-                            
+                            if (2499 == item.definingIndex || 2552 == item.definingIndex)
                             {
                             }
 #endif
@@ -2320,7 +2321,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (surface != null && bounds.Count > 0)
                                 {
                                     item.val = Face.MakeFacesFromStepAdvancedFace(surface, bounds, item.parameter["same_sense"].bval, precision);
-
                                 }
                                 else item.val = null;
                                 if (item.val is Face[] && (item.val as Face[]).Length > 0)
@@ -2366,7 +2366,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 }
                             }
                             catch (Exception ex)
-                            
+
                             {
                                 item.val = null;
                                 item.val = bounds; // save the bounds, maybe we can reconstruct the face later
@@ -2849,7 +2849,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                             {   // when the ellipse is trimmed there might be a big error, especially when the two radii differ very much
                                                 // so here we need to correct the ellipse (as in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp)
                                                 double error = (crv.StartPoint | v1.Position) + (crv.EndPoint | v2.Position);
-                                                if (error>elli.Length*1e-2)
+                                                if (error > elli.Length * 1e-2)
                                                 {
                                                     elli.SetElliStartEndPoint(v1.Position, v2.Position);
                                                 }
@@ -2911,6 +2911,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         {
                                             crv.StartPoint = v1.Position; // we will need ICurve.SetStartEnd(GeoPoint sp, GeoPoint ep) because of arcs
                                             crv.EndPoint = v2.Position;
+                                            // the following occurs in "Assieme 40360-180-9.stp" I cannot think of a rule to express this case:
+                                            // there is an arc, where the end-vertex is at 0 and the start vertex is outside the arc. It is correct, when reversed, but why?
+                                            //if (Math.Abs(ep) < 1e-6) crv.Reverse();
                                         }
                                     }
                                 }
@@ -2927,10 +2930,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.orientedEdge: // name, edge_start, edge_end, edge_element, orientation
                         {
-                            Item edge_start = item.SubItem(1);
-                            Item edge_end = item.SubItem(2);
-                            StepEdgeDescriptor ec = CreateEntity(item.SubItem(3)) as StepEdgeDescriptor;
-                            bool fwd = item.SubBool(4);
+                            Item edge_start = item.parameter["edge_start"];
+                            Item edge_end = item.parameter["edge_end"];
+                            StepEdgeDescriptor ec = CreateEntity(item.parameter["edge_element"]) as StepEdgeDescriptor;
+                            bool fwd = item.parameter["orientation"].bval;
                             item.val = null;
                             if (ec != null)
                             {
@@ -2994,15 +2997,23 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         }
                         break;
                     case Item.ItemType.faceBound:
-                    case Item.ItemType.faceOuterBound: // name, bound, orientation?
+                    case Item.ItemType.faceOuterBound: // name, bound, orientation
                         {
                             item.val = CreateEntity(item.parameter["bound"]);
-                            // orientation not interpreted
+                            if (!item.parameter["orientation"].bval && item.val is List<StepEdgeDescriptor> lse)
+                            {   // now using the orientation here, didn't use it before, but with <Assieme 40360-180-9.stp> it is necessary
+                                // I am not sure whether to invert the forward flag or set it to false
+                                for (int i = 0; i < lse.Count; i++)
+                                {
+                                    lse[i].forward = !lse[i].forward;
+                                }
+                                lse.Reverse();
+                            }
                         }
                         break;
                     case Item.ItemType.list: // not in use any more?
                         {   // this is some strange concept of step data:
-                            // types and subtypes are specified together in a list (not even comma seperated)
+                            // types and subtypes are specified together in a list (not even comma separated)
                             // We try to construct a complete type out of it and call CreateEntity with the newly constructed item.
                             // Unfortunately several derived types are parallel to a supertype like in:
                             //#6380=(
@@ -3573,7 +3584,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.seamCurve:
                     case Item.ItemType.surfaceCurve: // name, curve_3d, associated_geometry, master_representation
-                    case Item.ItemType.boundedCurve: // this is only a supertype with no additional properties
+                    case Item.ItemType.boundedCurve: // this is only a super-type with no additional properties
                     case Item.ItemType.geometricRepresentationItem:
                     case Item.ItemType.curve: // name, curve_3d, associated_geometry, master_representation
                         {
@@ -3587,6 +3598,19 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     {
                                         object o = CreateEntity(item.parameter["associated_geometry"].lval[0]);
                                         if (o is ICurve) item.val = o;
+                                        object o3d = CreateEntity(item.parameter["curve_3d"]);
+                                        if (o3d is ICurve c3d && o is ICurve co)
+                                        {
+                                            if (c3d.IsClosed) // it looks like when the .pcurve is an arc the curve3d is a full circle
+                                            {
+                                                double pos = c3d.PositionOf(co.PointAt(0.5));
+                                                if (co.DirectionAt(0.5) * c3d.DirectionAt(pos) < 0) co.Reverse();
+                                            }
+                                            else if ((c3d.StartPoint | co.StartPoint)+ (c3d.EndPoint | co.EndPoint)> (c3d.StartPoint | co.EndPoint) + (c3d.EndPoint | co.StartPoint))
+                                            {
+                                                co.Reverse();
+                                            }
+                                        }
                                     }
                                     break;
                                 case "PCURVE_S2":
@@ -3594,6 +3618,19 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     {
                                         object o = CreateEntity(item.parameter["associated_geometry"].lval[1]);
                                         if (o is ICurve) item.val = o;
+                                        object o3d = CreateEntity(item.parameter["curve_3d"]);
+                                        if (o3d is ICurve c3d && o is ICurve co)
+                                        {
+                                            if (co.IsClosed || c3d.IsClosed)
+                                            {
+                                                double pos = c3d.PositionOf(co.PointAt(0.5));
+                                                if (co.DirectionAt(0.5) * c3d.DirectionAt(pos) < 0) co.Reverse();
+                                            }
+                                            else if ((c3d.StartPoint | co.StartPoint) + (c3d.EndPoint | co.EndPoint) > (c3d.StartPoint | co.EndPoint) + (c3d.EndPoint | co.StartPoint))
+                                            {
+                                                co.Reverse();
+                                            }
+                                        }
                                     }
                                     break;
                             }
@@ -3938,7 +3975,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         }
 
         private ModOp GetTransformation(Item origin, Item target, Item origContext, Item targContext)
-        {   // implemented analoguous to OpenCascade: STEPControl_ActorRead::ComputeTransformation 
+        {   // implemented analogous to OpenCascade: STEPControl_ActorRead::ComputeTransformation 
             FreeCoordSys org = (FreeCoordSys)CreateEntity(origin);
             FreeCoordSys trg = (FreeCoordSys)CreateEntity(target);
             int code1 = 0, code2 = 0;
@@ -4002,7 +4039,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             //System.Diagnostics.Trace.WriteLine("ax3Orig (" + org.Location.x.ToString("F3", c) + ", " + org.Location.y.ToString("F3", c) + ", " + org.Location.z.ToString("F3", c) + ") (" + org.DirectionZ.x.ToString("F3", c) + ", " + org.DirectionZ.y.ToString("F3", c) + ", " + org.DirectionZ.z.ToString("F3", c) + ") (" + org.DirectionX.x.ToString("F3", c) + ", " + org.DirectionX.y.ToString("F3", c) + ", " + org.DirectionX.z.ToString("F3", c) + ") (" + org.DirectionY.x.ToString("F3", c) + ", " + org.DirectionY.y.ToString("F3", c) + ", " + org.DirectionY.z.ToString("F3", c) + ")");
             //System.Diagnostics.Trace.WriteLine("ax3Targ (" + trg.Location.x.ToString("F3", c) + ", " + trg.Location.y.ToString("F3", c) + ", " + trg.Location.z.ToString("F3", c) + ") (" + trg.DirectionZ.x.ToString("F3", c) + ", " + trg.DirectionZ.y.ToString("F3", c) + ", " + trg.DirectionZ.z.ToString("F3", c) + ") (" + trg.DirectionX.x.ToString("F3", c) + ", " + trg.DirectionX.y.ToString("F3", c) + ", " + trg.DirectionX.z.ToString("F3", c) + ") (" + trg.DirectionY.x.ToString("F3", c) + ", " + trg.DirectionY.y.ToString("F3", c) + ", " + trg.DirectionY.z.ToString("F3", c) + ")");
             ModOp res;
-            {   // gp_Trsf::SetTransformation 
+            if (tranformationMode)
+            {   // from gp_Trsf::SetTransformation 
                 FreeCoordSys FromA1 = trg;
                 FreeCoordSys ToA2 = org;
                 Matrix matrix = new Matrix(ToA2.DirectionX, ToA2.DirectionY, ToA2.DirectionZ);
@@ -4019,22 +4057,26 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 matrix = MA1 * matrix;
                 res = new ModOp(matrix, new GeoVector(loc[0, 0], loc[1, 0], loc[2, 0]));
             }
-            if (true) //trg.Location == GeoPoint.Origin)
+            else
+            {   // this is good for e.g. 05.02.00.0270.STEP
+                res = ModOp.Translate(org.Location - trg.Location) * ModOp.Fit(new GeoVector[] { trg.DirectionX, trg.DirectionY, trg.DirectionZ }, new GeoVector[] { org.DirectionX, org.DirectionY, org.DirectionZ });
+            }
+            return res;
+            // old code
+            if (trg.Location == GeoPoint.Origin)
             {
-                ModOp step1 = ModOp.Rotate(GeoPoint.Origin, trg.DirectionZ, org.DirectionZ);
-                ModOp step2 = ModOp.Rotate(GeoPoint.Origin, step1 * trg.DirectionX, org.DirectionX);
-                ModOp step3 = ModOp.Translate(org.Location - trg.Location);
-
-                // res = step3 * step2 * step1;
+                //ModOp step1 = ModOp.Rotate(GeoPoint.Origin, trg.DirectionZ, org.DirectionZ);
+                //ModOp step2 = ModOp.Rotate(GeoPoint.Origin, step1 * trg.DirectionX, org.DirectionX);
+                //ModOp step3 = ModOp.Translate(org.Location - trg.Location);
+                //res = step3 * step2 * step1;
             }
             else
             {
                 //res = ModOp.Fit(org, trg);
             }
-            //System.Diagnostics.Trace.WriteLine("Trsf (" + res.Item(0, 0).ToString("F3", c) + ", " + res.Item(0, 1).ToString("F3", c) + ", " + res.Item(0, 2).ToString("F3", c) + ", " + res.Item(0, 3).ToString("F3", c) + ")");
-            //System.Diagnostics.Trace.WriteLine("     (" + res.Item(1, 0).ToString("F3", c) + ", " + res.Item(1, 1).ToString("F3", c) + ", " + res.Item(1, 2).ToString("F3", c) + ", " + res.Item(1, 3).ToString("F3", c) + ")");
-            //System.Diagnostics.Trace.WriteLine("     (" + res.Item(2, 0).ToString("F3", c) + ", " + res.Item(2, 1).ToString("F3", c) + ", " + res.Item(2, 2).ToString("F3", c) + ", " + res.Item(2, 3).ToString("F3", c) + ")");
-            return res;
+            //System.Diagnostics.Trace.WriteLine("Trsf (" + res[0, 0].ToString("F3") + ", " + res[0, 1].ToString("F3") + ", " + res[0, 2].ToString("F3") + ", " + res[0, 3].ToString("F3") + ")");
+            //System.Diagnostics.Trace.WriteLine("     (" + res[1, 0].ToString("F3") + ", " + res[1, 1].ToString("F3") + ", " + res[1, 2].ToString("F3") + ", " + res[1, 3].ToString("F3") + ")");
+            //System.Diagnostics.Trace.WriteLine("     (" + res[2, 0].ToString("F3") + ", " + res[2, 1].ToString("F3") + ", " + res[2, 2].ToString("F3") + ", " + res[2, 3].ToString("F3") + ")");
             // according to pdmug_release4_3.pdf, page 52
             GeoVector zo = (GeoVector)origin.parameter["axis"].val;
             GeoVector ao = (GeoVector)origin.parameter["ref_direction"].val;
@@ -4214,9 +4256,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         }
                     }
                 default:
-                    if (bsp.degree == 1 && bsp.PoleCount == 2)
+                    if (bsp.degree == 1)
                     {
-                        return Line.MakeLine(bsp.Poles[0], bsp.Poles[1]);
+                        if (bsp.PoleCount == 2) return Line.MakeLine(bsp.Poles[0], bsp.Poles[1]);
+                        else return Polyline.FromPoints(bsp.Poles, closed);
                     }
                     if (closed && bsp.Multiplicities[0] <= bsp.degree)
                     {   // maybe this is a kind of nurbs which can safely be trimmed at the second and second last knots. this makes the bspline closed
@@ -4228,7 +4271,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             BSpline bsp1 = bsp.TrimParam(bsp.Knots[1], bsp.Knots[bsp.Knots.Length - 2]);
                             return bsp1;
                         }
-                        else if (bsp.Knots.Length>6)
+                        else if (bsp.Knots.Length > 6)
                         {
                             k1 = bsp.PointAtParam(bsp.Knots[2]);
                             k2 = bsp.PointAtParam(bsp.Knots[bsp.Knots.Length - 3]);
@@ -4247,14 +4290,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         }
                     }
                     double poleLength = 0.0;
-                    for (int i = 0; i < bsp.PoleCount-1; i++)
+                    for (int i = 0; i < bsp.PoleCount - 1; i++)
                     {
                         poleLength += bsp.Poles[i] | bsp.Poles[i + 1];
                     }
                     int knotCount = bsp.Knots.Length;
                     double knotLength = bsp.Knots[knotCount - 1] - bsp.Knots[0];
-                    if ((bsp.Poles[0] | bsp.Poles[1])<poleLength*1e-6 || (bsp.Poles[bsp.PoleCount-1] | bsp.Poles[bsp.PoleCount - 1]) < poleLength * 1e-6 ||
-                        (bsp.Knots[1]-bsp.Knots[0])<knotLength*1e-6 || (bsp.Knots[knotCount-1] - bsp.Knots[knotCount - 2]) < knotLength * 1e-6)
+                    if ((bsp.Poles[0] | bsp.Poles[1]) < poleLength * 1e-6 || (bsp.Poles[bsp.PoleCount - 1] | bsp.Poles[bsp.PoleCount - 1]) < poleLength * 1e-6 ||
+                        (bsp.Knots[1] - bsp.Knots[0]) < knotLength * 1e-6 || (bsp.Knots[knotCount - 1] - bsp.Knots[knotCount - 2]) < knotLength * 1e-6)
                     {
                         int n = bsp.PoleCount + bsp.degree;
                         GeoPoint[] throughPoints = new GeoPoint[n];

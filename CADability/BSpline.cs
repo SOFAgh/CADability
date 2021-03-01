@@ -226,7 +226,9 @@ namespace CADability.GeoObject
                 {   // in Wirklichkeit ein 2d spline, nur im Raum gelegen
                     if ((this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
                     {
-                        Plane tmp = new Plane(poles[0], poles[poles.Length - 1] - poles[0]);
+                        GeoVector nrm = poles[poles.Length - 1] - poles[0];
+                        if (nrm.IsNullVector()) nrm = poles[poles.Length - 2] - poles[0];
+                        Plane tmp = new Plane(poles[0], nrm);
                         this.plane = new Plane(tmp.Location, tmp.DirectionX, tmp.Normal);
                     }
                     if (weights == null)
