@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace CADability.Forms
 {
     /// <summary>
-    /// This class is not part of CADability OpenSource. I use it to write testcode for debugging
+    /// This class is not part of CADability OpenSource. I use it to write test-code for debugging
     /// </summary>
     internal class DebuggerPlayground : ICommandHandler
     {

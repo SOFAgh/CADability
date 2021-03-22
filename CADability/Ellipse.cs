@@ -2006,6 +2006,16 @@ namespace CADability.GeoObject
             return plane.Location + Math.Cos(ea) * majorRadius * plane.DirectionX + Math.Sin(ea) * minorRadius * plane.DirectionY;
         }
         /// <summary>
+        /// Returns the point at the provided parameter. 2*pi is the full circle, it starts at the startParameter
+        /// </summary>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public GeoPoint PointAtParam(double param)
+        {
+            double ea = startParameter + param;
+            return plane.Location + Math.Cos(ea) * majorRadius * plane.DirectionX + Math.Sin(ea) * minorRadius * plane.DirectionY;
+        }
+        /// <summary>
         /// Implements <see cref="CADability.GeoObject.ICurve.PositionOf (GeoPoint)"/>
         /// </summary>
         /// <param name="p"></param>

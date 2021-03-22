@@ -334,9 +334,11 @@ namespace CADability.GeoObject
                             newLoops[ind].Add(loops[i][j]);
                         }
                         loops.RemoveAt(i);
-                        loops.AddRange(newLoops);
+                        if (newLoops[0].Count > 0) loops.Add(newLoops[0]);
+                        if (newLoops[1].Count > 0) loops.Add(newLoops[1]);
                     }
                 }
+                if (loops.Count == 0) return null; // there is only a seam (in some cases a very narrow face, which is smaller than precision)
                 // simply remove loop edges which are too short
                 for (int i = 0; i < loops.Count; i++)
                 {
@@ -721,8 +723,7 @@ namespace CADability.GeoObject
                 ISurface canonical = surface.GetCanonicalForm(surfacePrecision);
                 if (canonical is ToroidalSurface ts)
                 {
-                    canonical = null;
-                    //if (ts.MinorRadius > ts.XAxis.Length * 10) canonical = null; // torus with poles are not very stable, especially when they almost resemble a sphere
+                    if (ts.MinorRadius > ts.XAxis.Length * 10) canonical = null; // torus with poles are not very stable, especially when they almost resemble a sphere
                 }
                 if (canonical != null)
                 {
@@ -3760,12 +3761,12 @@ namespace CADability.GeoObject
         internal SimpleShape area; // outline und holes als SimpleShape, wird nur bei Bedarf erzeugt
         private void MakeArea()
         {
-            // in public SimpleShape Area there is an old, weird algorithm, probably due to some bugs when importing step files with the old Opencascade step import
+            // in public SimpleShape Area there is an old, weird algorithm, probably due to some bugs when importing step files with the old OpenCascade step import
             // When the edges are correct (end there are no seam edges), there should be no adjustments necessary to create the SimpeShape
             ICurve2D[] soutline = new ICurve2D[outline.Length];
             for (int i = 0; i < outline.Length; i++)
             {
-                soutline[i] = outline[i].Curve2D(this);
+                soutline[i] = outline[i].Curve2D(this).Clone();
             }
             Border boutline = new Border(soutline);
             Border[] bholes = new Border[holes.Length];
@@ -3776,8 +3777,7 @@ namespace CADability.GeoObject
                 ICurve2D[] holecurves = new ICurve2D[n];
                 for (int j = 0; j < n; j++)
                 {   // order in the array will be reverse
-                    holecurves[n - 1 - j] = holes[i][j].Curve2D(this).Clone(); // for the Border we have to clone this curve, because it will be reversed
-                    holecurves[n - 1 - j].Reverse();
+                    holecurves[n - 1 - j] = holes[i][j].Curve2D(this).CloneReverse(true); // for the Border we have to clone this curve, because it will be reversed
                 }
                 bholes[i] = new Border(holecurves);
             }
@@ -4748,7 +4748,7 @@ namespace CADability.GeoObject
                     Line2D l3 = new Line2D(triangleUVPoint[triangleIndex[i + 2]], triangleUVPoint[triangleIndex[i]]);
                     res.Add(l1, System.Drawing.Color.Red, i);
                     res.Add(l2, System.Drawing.Color.Red, i);
-                    res.Add(l2, System.Drawing.Color.Red, i);
+                    res.Add(l3, System.Drawing.Color.Red, i);
                 }
                 return res;
             }
@@ -4765,7 +4765,7 @@ namespace CADability.GeoObject
                     Line l3 = Line.TwoPoints(trianglePoint[triangleIndex[i + 2]], trianglePoint[triangleIndex[i]]);
                     res.Add(l1, i);
                     res.Add(l2, i);
-                    res.Add(l2, i);
+                    res.Add(l3, i);
                 }
                 return res;
             }
@@ -5325,6 +5325,7 @@ namespace CADability.GeoObject
             {   // not sure, why changing is needed here
                 BoundingRect ext = (surface as ISurfaceImpl).usedArea;
                 surface = surface.GetModified(m);
+                area = null; // ProjectedCurves might be wrong after surface modification
                 (surface as ISurfaceImpl).usedArea = ext; // needed for BoxedSurface
                                                           // we don't modify the surface directly but get a new copy of the modified surface
                                                           // Edges with InterpolatedDualSurfaceCurves (hopefully) can deal with this
@@ -5439,6 +5440,9 @@ namespace CADability.GeoObject
                         extent.MinMax(edge.Curve3D.GetExtent());
                     }
                 }
+#if DEBUG
+                if (hashCode == 3061) { }
+#endif
                 // a surface extreme point in axis direction is also necessary to check
                 GeoPoint2D[] extrema = surface.GetExtrema();
                 for (int i = 0; i < extrema.Length; ++i)
@@ -5830,12 +5834,6 @@ namespace CADability.GeoObject
                 {
                     for (int i = polyoutline.Count - 1; i >= 0; --i)
                     {
-                        //if (polyoutline[i].x > umax || polyoutline[i].x < umin)
-                        //{
-                        //    polyoutline.RemoveAt(i);
-                        //    removed = true;
-                        //}
-                        // nicht verwerfen sondern reinschieben
                         if (polyoutline[i].x > umax)
                         {
                             polyoutline[i] = new GeoPoint2D(umax, polyoutline[i].y);
@@ -5852,12 +5850,6 @@ namespace CADability.GeoObject
                 {
                     for (int i = polyoutline.Count - 1; i >= 0; --i)
                     {
-                        //if (polyoutline[i].y > vmax || polyoutline[i].y < vmin)
-                        //{
-                        //    polyoutline.RemoveAt(i);
-                        //    removed = true;
-                        //}
-                        // nicht verwerfen sondern reinschieben
                         if (polyoutline[i].y > vmax)
                         {
                             polyoutline[i] = new GeoPoint2D(polyoutline[i].x, vmax);
@@ -7115,6 +7107,9 @@ namespace CADability.GeoObject
             //                              (otherwise false)
             // outside of the face          (otherwise true)
             //  =>  cube doesn't hit the face
+#if DEBUG
+            if (hashCode == 3061) { }
+#endif
             GeoPoint2D uv;
             return (Surface.HitTest(bc, out uv) && Contains(ref uv, true));
         }

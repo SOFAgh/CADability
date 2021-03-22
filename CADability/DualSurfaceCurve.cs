@@ -923,8 +923,8 @@ namespace CADability
             Matrix b = new Matrix(dir3d);
             Matrix s = m.SaveSolveTranspose(b);
             if (s != null)
-            {
-                dir = (endParam - startParam) * new GeoVector2D(s[0, 0], s[1, 0]);
+            {   // what about the length? Added the .Normalized, because in "HyperCube Evolution - Double Z motor 1.stp" the direction length is definitely wrong
+                dir = (endParam - startParam) * new GeoVector2D(s[0, 0], s[1, 0]).Normalized;
             }
             else
             {

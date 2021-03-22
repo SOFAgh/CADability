@@ -893,6 +893,13 @@ namespace CADability.Curve2D
                 return (triangle + segment - segtriangle) / 2.0; // all values are double size, hence /2.0
             }
         }
+        public EllipseArc2D GetComplement()
+        {
+            double sp;
+            if (sweepPar > 0) sp = Math.PI * 2.0 - sweepPar;
+            else sp = -(Math.PI * 2.0 + sweepPar);
+            return new EllipseArc2D(center, majorAxis, minorAxis, startPar + sweepPar, sp, left, right, bottom, top);
+        }
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization

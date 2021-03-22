@@ -230,18 +230,18 @@
     <EmbeddedResource Include="Bitmaps\Buttons5.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CADability\CADability.csproj">
-      <Project>{b234840a-1f1c-4c53-9789-4eeb82349f98}</Project>
-      <Name>CADability</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Bitmaps\Icons.bmp" />
     <EmbeddedResource Include="Bitmaps\PointSymbols.bmp" />
     <EmbeddedResource Include="Bitmaps\PointSymbolsB.bmp" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Bitmaps\Hotspots.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CADability\CADability.csproj">
+      <Project>{b234840a-1f1c-4c53-9789-4eeb82349f98}</Project>
+      <Name>CADability</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

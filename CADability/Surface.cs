@@ -3001,10 +3001,10 @@ namespace CADability.GeoObject
             {
                 Polyline pl = curve as Polyline;
                 List<ICurve2D> res = new List<ICurve2D>();
-                Line ln = Line.Construct();
                 GeoPoint2D lastEndPoint = GeoPoint2D.Invalid;
                 for (int i = 0; i < pl.Vertices.Length - 1; i++)
                 {
+                    Line ln = Line.Construct();
                     ln.SetTwoPoints(pl.Vertices[i], pl.Vertices[i + 1]);
                     ICurve2D c2d = GetProjectedCurve(ln, precision);
                     if (c2d != null)
@@ -11426,21 +11426,22 @@ namespace CADability.GeoObject
                 if (mres == null) return false;
                 res.x += mres[0, 0];
                 res.y += mres[1, 0];
-                if (!found.uvPatch.ContainsEps(res, -0.01))
+                if (!found.uvPatch.ContainsEps(res, -0.05))
                 {
                     ++missed;
                     // versuchsweise auch nach außen laufen lassen
                     //if (missed > 2) return false;
-                    if (!natbound2.Contains(res) && missed > 1) return false;
-                    if (!natbound.Contains(res)) // wieder eingeführt, da bei manchen NURBS Endlosschleife
-                    {   // wenn ganz außerhalb, dann auf die Grenze setzen
-                        // gut, solange es konvergiert
-                        SurfaceHelper.AdjustPeriodic(surface, natbound, ref res);
-                        if (res.x < natbound.Left) res.x = natbound.Left;
-                        if (res.x > natbound.Right) res.x = natbound.Right;
-                        if (res.y < natbound.Bottom) res.y = natbound.Bottom;
-                        if (res.y > natbound.Top) res.y = natbound.Top;
-                    }
+                    if (!natbound2.Contains(res) && missed > 1) return false; // too far outside
+                    // if the 2d point is outside the natural bounds we stopped the whole process, but I don't see a reason why, as long as it converges
+                    //if (!natbound.Contains(res)) // wieder eingeführt, da bei manchen NURBS Endlosschleife
+                    //{   // wenn ganz außerhalb, dann auf die Grenze setzen
+                    //    // gut, solange es konvergiert
+                    //    SurfaceHelper.AdjustPeriodic(surface, natbound, ref res);
+                    //    if (res.x < natbound.Left) res.x = natbound.Left;
+                    //    if (res.x > natbound.Right) res.x = natbound.Right;
+                    //    if (res.y < natbound.Bottom) res.y = natbound.Bottom;
+                    //    if (res.y > natbound.Top) res.y = natbound.Top;
+                    //}
                 }
                 else
                 {
@@ -11456,6 +11457,7 @@ namespace CADability.GeoObject
                     if (!acceptDiverge)
                     {
                         if (mindist < Precision.eps) break;
+                        if (Math.Abs(mindist - d) < Precision.eps*0.1) break; // doesn't change any more
                         return false; // konvergiert nicht oder schlecht "*0.9" hinzugefügt (18.7.14)
                     }
                     else
@@ -11466,13 +11468,14 @@ namespace CADability.GeoObject
                 mindist = d;
             }
             if (double.IsNaN(mindist)) return false;
-            if (missed > 2)
-            {
-                BoundingRect brcopy = found.uvPatch;
-                brcopy.Inflate(brcopy.Width / 100, brcopy.Height / 100);
-                bool ok = brcopy.Contains(res);
-                return ok;
-            }
+            // don't know why we should dismiss this case
+            //if (missed > 2)
+            //{
+            //    BoundingRect brcopy = found.uvPatch;
+            //    brcopy.Inflate(brcopy.Width / 100, brcopy.Height / 100);
+            //    bool ok = brcopy.Contains(res);
+            //    return ok;
+            //}
             return true;
         }
         private void SplitCubes(ParEpi[] cubes)

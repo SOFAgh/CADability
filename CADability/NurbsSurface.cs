@@ -1311,6 +1311,11 @@ namespace CADability.GeoObject
                                 double openingAngle = Math.Atan2(Math.Abs(radii[0] - radii[4]), centers[0] | centers[4]);
                                 double minerror = GaussNewtonMinimizer.ConeFit(samples.Linear(), a1, axis, openingAngle, precision, out ConicalSurface cs);
                                 if (minerror < precision) found = cs;
+                                if (Math.Abs(radii[0] - radii[4]) < 10 * precision )
+                                {   // could still be a cylinder
+                                    double minerrorcyl = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cyls);
+                                    if (minerrorcyl < precision && minerrorcyl < minerror) found = cyls;
+                                }
                             }
                         }
                     }
@@ -3258,7 +3263,48 @@ namespace CADability.GeoObject
             {
                 ext.MinMax(this.GetProjectedCurve(orientedCurves[i], 0.0).GetExtent());
             }
-            if ((IsUPeriodic && ext.Width > UPeriod * 0.9) || (IsVPeriodic && ext.Height > VPeriod * 0.9) || GetUSingularities().Length > 0 || GetVSingularities().Length > 0)
+            BoundingRect ext1 = ext;
+            ext1.InflateRelative(1.001);
+            bool ok = false; // when there are poles, we only need to make it non-periodic, when the pole is inside the extent
+            double[] us = GetUSingularities();
+            double[] vs = GetVSingularities();
+            if (us.Length>0)
+            {
+                for (int i = 0; i < us.Length; i++)
+                {
+                    if (us[i]>=ext1.Left && us[i]<=ext1.Right)
+                    {
+                        ok = true;
+                        if (us[i] < ext.Left) ext.Left = us[i];
+                        if (us[i] > ext.Right) ext.Right = us[i];
+                        if (us[i]>ext.Left&&us[i]<ext.Right)
+                        {   // the pole must be on the border, maybe we have to correct the extent here
+                            if (ext.Right - us[i] < us[i] - ext.Left) ext.Right = us[i];
+                            else ext.Left = us[i];
+                        }
+                        break;
+                    }
+                }
+            }
+            if (!ok && vs.Length>0)
+            {
+                for (int i = 0; i < vs.Length; i++)
+                {
+                    if (vs[i] >= ext1.Bottom && vs[i] <= ext1.Top)
+                    {
+                        ok = true;
+                        if (vs[i] < ext.Bottom) ext.Bottom = vs[i];
+                        if (vs[i] > ext.Top) ext.Top = vs[i];
+                        if (vs[i] > ext.Bottom && vs[i] < ext.Top)
+                        {   // the pole must be on the border, maybe we have to correct the extent here
+                            if (ext.Top - vs[i] < vs[i] - ext.Bottom) ext.Top = vs[i];
+                            else ext.Bottom = vs[i];
+                        }
+                        break;
+                    }
+                }
+            }
+            if (ok || (IsUPeriodic && ext.Width > UPeriod * 0.9) || (IsVPeriodic && ext.Height > VPeriod * 0.9) )
             {
                 return new NonPeriodicSurface(this, ext);
             }
@@ -5094,20 +5140,6 @@ namespace CADability.GeoObject
             NurbsSurface res = new NurbsSurface(newPoles, newWeights, uKnots.Clone() as double[], vKnots.Clone() as double[], uMults.Clone() as int[], vMults.Clone() as int[], uDegree, vDegree, IsUPeriodic, IsVPeriodic);
             return res;
             // return base.GetOffsetSurface(offset);
-        }
-        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
-        {
-            if (IsUPeriodic || IsVPeriodic || GetUSingularities().Length > 0 || GetVSingularities().Length > 0)
-            {
-                BoundingRect bounds = BoundingRect.EmptyBoundingRect;
-                for (int i = 0; i < orientedCurves.Length; i++)
-                {
-                    bounds.MinMax(this.GetProjectedCurve(orientedCurves[i], 0).GetExtent());
-                }
-                this.GetNaturalBounds(out bounds.Left, out bounds.Right, out bounds.Bottom, out bounds.Top);
-                return new NonPeriodicSurface(this, bounds);
-            }
-            return null;
         }
         #endregion
         #region ISerializable Members

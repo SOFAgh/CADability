@@ -174,7 +174,8 @@ namespace CADability.GeoObject
                 return new Line2D(PositionOf(line.StartPoint), PositionOf(line.EndPoint));
             } else if (curve is Ellipse elli)
             {
-                // this is a intersection with a plane. The resulting ellipse (or circle) will have its center in the origin. We should provide a specialized
+                double d = Geometry.DistPL(elli.Center, location, zAxis);
+                double prec = (elli.MajorRadius + elli.MinorRadius) * 1e-6;
                 // FromFivePoints for this case
                 GeoPoint2D[] fp2d = new GeoPoint2D[5];
                 double n = 5.0;
@@ -184,7 +185,36 @@ namespace CADability.GeoObject
                     fp2d[i] = PositionOf(elli.PointAt(i / n));
                 }
                 Ellipse2D elli2d = Ellipse2D.FromFivePoints(fp2d, !elli.IsArc); // returns both full ellipse and ellipse arc
-                if (elli2d != null) return elli2d;
+                if (elli2d == null)
+                {
+                    BoundingRect ext = new BoundingRect(fp2d);
+                    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(fp2d), ext.GetCenter(), ext.Size / 2.0, ext.Size / 3.0, 0.0, prec, out elli2d);
+                }
+                else
+                {
+                    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(fp2d), elli2d.center, elli2d.majrad, elli2d.minrad, elli2d.majorAxis.Angle, prec, out elli2d);
+                }
+                if (elli2d != null)
+                {
+                    if (elli.IsArc)
+                    {
+                        double spar = elli2d.PositionOf(PositionOf(elli.StartPoint));
+                        double epar = elli2d.PositionOf(PositionOf(elli.EndPoint));
+                        EllipseArc2D elliarc2d = elli2d.Trim(spar, epar) as EllipseArc2D;
+                        // there must be a more sophisticated way to calculate the orientation and which part to use, but the following works:
+                        double pm = elliarc2d.PositionOf(PositionOf(elli.PointAt(0.5)));
+                        if (pm < 0 || pm > 1) elliarc2d = elliarc2d.GetComplement();
+                        pm = elliarc2d.PositionOf(PositionOf(elli.PointAt(0.1)));
+                        if (pm > 0.5) elliarc2d.Reverse();
+                        return elliarc2d;
+                    }
+                    else
+                    {   // get the correct orientation
+                        double pos = elli2d.PositionOf(PositionOf(elli.PointAt(0.1)));
+                        if (pos > 0.5) elli2d.Reverse();
+                        return elli2d;
+                    }
+                }
             }
             return base.GetProjectedCurve(curve, precision);
         }

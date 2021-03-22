@@ -200,10 +200,6 @@ namespace CADability.GeoObject
                 if (!done) throw new ApplicationException("there must be a single pole on the border of the bounds");
             }
             toPeriodicBounds = toNonPeriodicBounds.GetInverse();
-#if DEBUG
-            GeoObjectList dbg = this.DebugGrid;
-            GeoObjectList dbgp = (this.periodicSurface as ISurfaceImpl).DebugGrid;
-#endif
         }
         public override GeoVector UDirection(GeoPoint2D uv)
         {
