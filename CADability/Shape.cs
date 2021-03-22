@@ -1992,6 +1992,20 @@ namespace CADability.Shapes
         /// </summary>
         /// <param name="curves2d">The curves</param>
         /// <param name="maxGap">Maximum gap between curves</param>
+        /// <param name="deadObjectList">List of objects that could not be used to build a CompoundShape</param>
+        /// <returns>The shape</returns>
+        public static CompoundShape CreateFromList(ICurve2D[] curves2d, double maxGap, out GeoObjectList deadObjectList)
+        {
+            CurveGraph pg = new CurveGraph(curves2d, maxGap);
+            CompoundShape res = pg.CreateCompoundShape(false, new GeoPoint2D(0.0, 0.0), ConstrHatchInside.HatchMode.hull);
+            deadObjectList = new GeoObjectList(pg.DeadObjects);
+            return res;
+        }
+        /// <summary>
+        /// Creates a CompundShape from the curves in this list. Assumes the curves are connected. The outer hull is returned.
+        /// </summary>
+        /// <param name="curves2d">The curves</param>
+        /// <param name="maxGap">Maximum gap between curves</param>
         /// <returns>The shape</returns>
         public static CompoundShape CreateFromList(ICurve2D[] curves2d, double maxGap)
         {

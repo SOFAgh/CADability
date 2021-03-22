@@ -61,6 +61,10 @@ namespace CADability.UserInterface
         {
             return null;
         }
+        public string ResourceId
+        {
+            get { return null; }
+        }
 
         MenuWithHandler[] IHotSpot.ContextMenu
         {

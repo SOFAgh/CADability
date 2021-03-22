@@ -987,6 +987,16 @@ namespace CADability.Shapes
             }
             return new Border(cloned);
         }
+        public ICurve2D[] GetClonedSegments()
+        {
+            ICurve2D[] cloned = new ICurve2D[segment.Length];
+            for (int i = 0; i < segment.Length; ++i)
+            {
+                cloned[i] = segment[i].Clone();
+            }
+            return cloned;
+        }
+
         internal void Reduce()
         {
             double prec = (Extent.Width + Extent.Height) * 1e-8;

@@ -8,7 +8,7 @@
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;xPARALLEL, TESTNEWCONTEXTMENU, USENONPRIODICSURFACES</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -66,7 +66,7 @@
 
   <ItemGroup>
     <Reference Include="Microsoft.VisualStudio.DebuggerVisualizers">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\PublicAssemblies\Microsoft.VisualStudio.DebuggerVisualizers.dll</HintPath>
+      <HintPath>$(VsInstallRoot)\Common7\IDE\PublicAssemblies\Microsoft.VisualStudio.DebuggerVisualizers.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -5141,6 +5141,20 @@ namespace CADability.GeoObject
             return res;
             // return base.GetOffsetSurface(offset);
         }
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            if (IsUPeriodic || IsVPeriodic || GetUSingularities().Length > 0 || GetVSingularities().Length > 0)
+            {
+                BoundingRect bounds = BoundingRect.EmptyBoundingRect;
+                for (int i = 0; i < orientedCurves.Length; i++)
+                {
+                    bounds.MinMax(this.GetProjectedCurve(orientedCurves[i], 0).GetExtent());
+                }
+                this.GetNaturalBounds(out bounds.Left, out bounds.Right, out bounds.Bottom, out bounds.Top);
+                return new NonPeriodicSurface(this, bounds);
+            }
+            return null;
+        }
         #endregion
         #region ISerializable Members
         // constructor for serialization
