@@ -898,7 +898,10 @@ namespace CADability.Curve2D
             double sp;
             if (sweepPar > 0) sp = Math.PI * 2.0 - sweepPar;
             else sp = -(Math.PI * 2.0 + sweepPar);
-            return new EllipseArc2D(center, majorAxis, minorAxis, startPar + sweepPar, sp, left, right, bottom, top);
+            double st = startPar + sweepPar;
+            if (st > Math.PI * 2.0) st -= Math.PI * 2.0;
+            if (st < 0.0) st += Math.PI * 2.0;
+            return new EllipseArc2D(center, majorAxis, minorAxis, st, sp, left, right, bottom, top);
         }
         #region ISerializable Members
         /// <summary>

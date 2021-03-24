@@ -27,9 +27,10 @@ namespace CADability.GeoObject
         public ConicalSurfaceNP(GeoPoint location, GeoVector xAxis, GeoVector yAxis, GeoVector zAxis)
         {
             this.location = location;
-            this.xAxis = xAxis;
-            this.yAxis = yAxis;
-            this.zAxis = zAxis;
+            double f = 1.0 / xAxis.Length;
+            this.xAxis = f * xAxis;
+            this.yAxis = f * yAxis;
+            this.zAxis = f * zAxis;
         }
         public override ISurface Clone()
         {
@@ -47,7 +48,7 @@ namespace CADability.GeoObject
             }
         }
         public override ICurve FixedU(double u, double vmin, double vmax)
-        {   
+        {
             return Make3dCurve(new Line2D(new GeoPoint2D(u, vmin), new GeoPoint2D(u, vmax)));
         }
         public override ICurve FixedV(double v, double umin, double umax)
@@ -144,9 +145,9 @@ namespace CADability.GeoObject
             {
                 return new ICurve2D[0];
             }
-            GeoPoint2D uv = PositionOf(location +zAxis+ (direction ^ zAxis));
+            GeoPoint2D uv = PositionOf(location + zAxis + (direction ^ zAxis));
             GeoVector2D dir2d = uv.ToVector();
-            dir2d.Length = Math.Max(Math.Max(Math.Abs(umax), Math.Abs(umin)), Math.Max(Math.Abs(vmax), Math.Abs(vmin)))*1.1;
+            dir2d.Length = Math.Max(Math.Max(Math.Abs(umax), Math.Abs(umin)), Math.Max(Math.Abs(vmax), Math.Abs(vmin))) * 1.1;
             ClipRect clr = new ClipRect(umin, umax, vmin, vmax);
             GeoPoint2D sp = GeoPoint2D.Origin - dir2d;
             GeoPoint2D ep = GeoPoint2D.Origin + dir2d;

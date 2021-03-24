@@ -5311,6 +5311,10 @@ namespace CADability.GeoObject
         /// <param name="m"></param>
         internal void ModifySurfaceOnly(ModOp m)
         {
+#if DEBUG
+            if (hashCode==1371)
+            { }
+#endif
             BoundingRect ext = (surface as ISurfaceImpl).usedArea;
             surface = surface.GetModified(m);
             (surface as ISurfaceImpl).usedArea = ext; // needed for BoxedSurface
@@ -5319,6 +5323,8 @@ namespace CADability.GeoObject
         {
             // usually called from Shell, which modifies the edges separately
 #if DEBUG
+            if (hashCode == 1371)
+            { }
             int tc0 = System.Environment.TickCount;
 #endif
             using (new Changing(this, false)) // no undo necessary
@@ -5354,6 +5360,10 @@ namespace CADability.GeoObject
         /// <param name="m"></param>
         public override void Modify(ModOp m)
         {
+#if DEBUG
+            if (hashCode == 1371)
+            { }
+#endif
             using (new Changing(this, "ModifyInverse", m))
             {
                 ModifySurface(m);
@@ -5785,6 +5795,10 @@ namespace CADability.GeoObject
             //        outline[i].RepairAdjust();
             //    }
             //}
+#endif
+#if DEBUG
+            if (hashCode == 1371)
+            { }
 #endif
             for (int i = 0; i < outline.Length; ++i)
             {

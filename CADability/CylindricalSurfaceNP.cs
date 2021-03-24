@@ -25,8 +25,15 @@ namespace CADability.GeoObject
         GeoVector xAxis, yAxis, zAxis; // the system at the "bottom" of the cylinder. Should all have the same length
                                        // The projection goes from the point (location-zAxis) to the plane (location, xAxis, yAxis). the u/v system is the plane
         Polynom implicitPolynomial; // will be calculated when needed
+#if DEBUG
+        int id;
+        static int idcnt = 0;
+#endif
         public CylindricalSurfaceNP(GeoPoint location, GeoVector xAxis, GeoVector yAxis, GeoVector zAxis)
         {
+#if DEBUG
+            id = ++idcnt;
+#endif
             this.location = location;
             this.xAxis = xAxis;
             this.yAxis = yAxis;
@@ -34,6 +41,9 @@ namespace CADability.GeoObject
         }
         public CylindricalSurfaceNP(GeoPoint center, double radius, GeoVector axis, bool outwardOriented, ICurve[] orientedCurves)
         {
+#if DEBUG
+            id = ++idcnt;
+#endif
             double minpos = double.MaxValue;
             double maxpos = double.MinValue;
             for (int i = 0; i < orientedCurves.Length; i++)
@@ -166,6 +176,10 @@ namespace CADability.GeoObject
         }
         public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
         {
+#if DEBUG
+            if (id == 135 || id==414)
+            { }
+#endif
             if (curve is Line line)
             {
                 // this must be a line parallel to the axis, otherwise there are no lines on the cylinder

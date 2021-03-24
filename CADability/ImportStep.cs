@@ -1197,7 +1197,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             entityPattern = new Dictionary<string, HashSet<string>>();
 #endif
             transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", true);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
-
+            // for most files, transformationMode is not important.
+            // files, for which transformationMode must be false:
+            // ATTREZZATURA + GIRANTE.stp
             // edgeCollection = new StepEdgeCollection();
             Item.Init();
         }
@@ -2313,7 +2315,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #if DEBUG
                             //if (7890 == item.definingIndex || 9868 == item.definingIndex || 11534 == item.definingIndex)
                             //if (7858 == item.definingIndex || 12742 == item.definingIndex)
-                            if (4068 == item.definingIndex)
+                            if (27171 == item.definingIndex)
                             {
                             }
 #endif

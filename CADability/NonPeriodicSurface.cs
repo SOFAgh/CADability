@@ -201,8 +201,8 @@ namespace CADability.GeoObject
             }
             toPeriodicBounds = toNonPeriodicBounds.GetInverse();
 #if DEBUG
-            GeoObjectList dbg = this.DebugGrid;
-            GeoObjectList dbgp = (this.periodicSurface as ISurfaceImpl).DebugGrid;
+            //GeoObjectList dbg = this.DebugGrid;
+            //GeoObjectList dbgp = (this.periodicSurface as ISurfaceImpl).DebugGrid;
 #endif
         }
         public override GeoVector UDirection(GeoPoint2D uv)
