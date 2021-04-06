@@ -1,4 +1,5 @@
-﻿using CADability.Actions;
+﻿#if !WEBASSEMBLY
+using CADability.Actions;
 using CADability.Attribute;
 using CADability.GeoObject;
 using CADability.Shapes;
@@ -9,12 +10,12 @@ using System.Runtime.Serialization;
 
 namespace CADability
 {
-    #region Konzept
+#region Konzept
     /*
 	 * Wir betrachten für einen Patch hier nur rechteckige Ausschnitte auf dem Papier
 	 * obwohl das Layout Objekt beliebige Borders zulässt
 	 */
-    #endregion
+#endregion
     /// <summary>
     /// Darstellung eines Patches als ShowProperty
     /// </summary>
@@ -149,7 +150,7 @@ namespace CADability
         {
             if (visibleLayersSp != null) visibleLayersSp.Refresh();
         }
-        #region IShowPropertyImpl
+#region IShowPropertyImpl
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
@@ -653,7 +654,7 @@ namespace CADability
             return false;
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
-        #endregion
+#endregion
         private void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
         {
             if (sender.FocusEntered(this, OldFocus, NewFocus))
@@ -772,3 +773,4 @@ namespace CADability
 #endregion
     }
 }
+#endif

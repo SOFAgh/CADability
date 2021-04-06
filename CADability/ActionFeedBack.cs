@@ -1,7 +1,13 @@
 ﻿using CADability.Attribute;
 using CADability.GeoObject;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.Actions
 {
@@ -44,7 +50,7 @@ namespace CADability.Actions
                 }
             }
         }
-        internal void Repaint(System.Drawing.Rectangle IsInvalid, IView View, IPaintTo3D paintTo3D)
+        internal void Repaint(Rectangle IsInvalid, IView View, IPaintTo3D paintTo3D)
         {
             if (Settings.GlobalSettings.GetBoolValue("ActionFeedBack.UseZBuffer", true)) paintTo3D.UseZBuffer(true);
 

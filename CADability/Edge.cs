@@ -9,6 +9,13 @@ using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Threading;
 using Wintellect.PowerCollections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability
 {
@@ -2003,8 +2010,8 @@ namespace CADability
             if (edgeKind == EdgeKind.sameSurface || Curve3D == null) return;
             if (go != null)
             {
-                if (edgeKind == EdgeKind.tangential) paintTo3D.SetColor(System.Drawing.Color.FromArgb(128, 192, 192, 192));
-                if (edgeKind == EdgeKind.sharp) paintTo3D.SetColor(System.Drawing.Color.Black);
+                if (edgeKind == EdgeKind.tangential) paintTo3D.SetColor(Color.FromArgb(128, 192, 192, 192));
+                if (edgeKind == EdgeKind.sharp) paintTo3D.SetColor(Color.Black);
                 go.PaintTo3D(paintTo3D);
             }
         }

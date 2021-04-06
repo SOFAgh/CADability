@@ -1,6 +1,10 @@
 ﻿using System;
-using System.Drawing;
 using System.Runtime.Serialization;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
+using System.Drawing;
+#endif
 
 
 namespace CADability

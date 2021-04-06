@@ -3,7 +3,13 @@ using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
 using System.Collections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
 using DragEventArgs = CADability.Substitutes.DragEventArgs;
 using MouseButtons = CADability.Substitutes.MouseButtons;
@@ -392,7 +398,7 @@ namespace CADability.Actions
                     default:
                     case StartValue.CenterView:
                         Rectangle r = CondorView.DisplayRectangle;
-                        System.Drawing.Point p = new System.Drawing.Point(r.Left + r.Width / 2, r.Top + r.Height / 2);
+                        Point p = new Point(r.Left + r.Width / 2, r.Top + r.Height / 2);
                         if (CondorView.Projection.Height > 0 && CondorView.Projection.Width > 0) return CondorView.Projection.DrawingPlanePoint(p);
                         else return GeoPoint.Origin;
                     case StartValue.CenterModel:
@@ -4364,7 +4370,7 @@ namespace CADability.Actions
                         }
                     }
                 }
-                System.Drawing.Point MousePoint = new System.Drawing.Point(e.X, e.Y);
+                Point MousePoint = new Point(e.X, e.Y);
                 GeoObjectList l = vw.PickObjects(MousePoint, PickMode.blockchildren);
                 ArrayList c = new ArrayList();
                 for (int i = 0; i < l.Count; ++i)
@@ -4567,7 +4573,7 @@ namespace CADability.Actions
             public bool EdgesOnly;
             public bool FacesOnly;
             public bool MultipleInput;
-            public System.Drawing.Point currentMousePoint;
+            public Point currentMousePoint;
             private IGeoObject[] geoObjects;
             private IGeoObject selectedGeoObject;
             /// <summary>
@@ -4685,7 +4691,7 @@ namespace CADability.Actions
                         }
                     }
                 }
-                System.Drawing.Point MousePoint = new System.Drawing.Point(e.X, e.Y);
+                Point MousePoint = new Point(e.X, e.Y);
                 currentMousePoint = MousePoint;
                 GeoObjectList l = new GeoObjectList();
                 if (EdgesOnly) l.AddRange (constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleEdge));
@@ -5573,7 +5579,7 @@ namespace CADability.Actions
         /// <summary>
         /// The current mouse position for this action
         /// </summary>
-        public System.Drawing.Point CurrentMousePoint; // dort ist die Maus gerade
+        public Point CurrentMousePoint; // dort ist die Maus gerade
         /// <summary>
         /// Display the attributes of the active object. 
         /// </summary>
@@ -6055,7 +6061,7 @@ namespace CADability.Actions
         /// <param name="vw"><paramref name="Action.OnMouseMove.vw"/></param>
         public override void OnMouseMove(MouseEventArgs e, IView vw)
         {
-            CurrentMousePoint = new System.Drawing.Point(e.X, e.Y);
+            CurrentMousePoint = new Point(e.X, e.Y);
             if ((e.Button == MouseButtons.None) && (CheckHotSpots(e, vw) != null))
             {
                 string hspcur = "HandArrow";
@@ -6077,7 +6083,7 @@ namespace CADability.Actions
         /// <param name="vw"><paramref name="Action.OnMouseUp.vw"/></param>
         public override void OnMouseUp(MouseEventArgs e, IView vw)
         {
-            CurrentMousePoint = new System.Drawing.Point(e.X, e.Y);
+            CurrentMousePoint = new Point(e.X, e.Y);
             if (e.Button == MouseButtons.Right)
             {
                 bool useContextMenue = true;
@@ -6180,7 +6186,7 @@ namespace CADability.Actions
         /// <param name="vw"><paramref name="Action.OnMouseDown.vw"/></param>
         public override void OnMouseDown(MouseEventArgs e, IView vw)
         {
-            CurrentMousePoint = new System.Drawing.Point(e.X, e.Y);
+            CurrentMousePoint = new Point(e.X, e.Y);
             if ((e.Button == MouseButtons.Left))
             {
                 IInputObject io = CheckHotSpots(e, vw);
@@ -6706,8 +6712,8 @@ namespace CADability.Actions
         {
             Color bckgnd = Frame.GetColorSetting("Colors.Background", Color.AliceBlue);
             Color infocolor;
-            if (bckgnd.GetBrightness() > 0.5) infocolor = System.Drawing.Color.Black;
-            else infocolor = System.Drawing.Color.White;
+            if (bckgnd.GetBrightness() > 0.5) infocolor = Color.Black;
+            else infocolor = Color.White;
             for (int i = 0; i < InputDefinitions.Length; ++i)
             {
                 if (InputDefinitions[i].HasHotspot)
@@ -6718,8 +6724,8 @@ namespace CADability.Actions
                     if (hsi != null)
                     {
                         paintTo3D.SetColor(infocolor);
-                        paintTo3D.PrepareIcon(hsi as System.Drawing.Bitmap); // das ist ja nicht in einer Displayliste
-                        paintTo3D.DisplayIcon(p, hsi as System.Drawing.Bitmap);
+                        paintTo3D.PrepareIcon(hsi as Bitmap); // das ist ja nicht in einer Displayliste
+                        paintTo3D.DisplayIcon(p, hsi as Bitmap);
                     }
                     else
                     {

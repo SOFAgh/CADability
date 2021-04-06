@@ -10,6 +10,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Wintellect.PowerCollections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability
 {
@@ -2043,33 +2050,33 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.draughtingPreDefinedColour:
                         {
                             string nm = item.SubString(0).ToLower();
-                            System.Drawing.Color clr;
+                            Color clr;
                             switch (nm)
                             {
                                 case "red":
-                                    clr = System.Drawing.Color.Red;
+                                    clr = Color.Red;
                                     break;
                                 default:
                                 case "green":
-                                    clr = System.Drawing.Color.Green;
+                                    clr = Color.Green;
                                     break;
                                 case "blue":
-                                    clr = System.Drawing.Color.Blue;
+                                    clr = Color.Blue;
                                     break;
                                 case "yellow":
-                                    clr = System.Drawing.Color.Yellow;
+                                    clr = Color.Yellow;
                                     break;
                                 case "magenta":
-                                    clr = System.Drawing.Color.Magenta;
+                                    clr = Color.Magenta;
                                     break;
                                 case "cyan":
-                                    clr = System.Drawing.Color.Cyan;
+                                    clr = Color.Cyan;
                                     break;
                                 case "black":
-                                    clr = System.Drawing.Color.Black;
+                                    clr = Color.Black;
                                     break;
                                 case "white":
-                                    clr = System.Drawing.Color.White;
+                                    clr = Color.White;
                                     break;
                             }
                             ColorDef cd = new ColorDef(nm, clr);
@@ -3733,7 +3740,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             int green = (int)(item.parameter["green"].fval * 255);
                             int blue = (int)(item.parameter["blue"].fval * 255);
                             if (string.IsNullOrEmpty(name)) name = "rgb:" + red.ToString() + "_" + green.ToString() + "_" + blue.ToString();
-                            item.val = new ColorDef(name, System.Drawing.Color.FromArgb(red, green, blue));
+                            item.val = new ColorDef(name, Color.FromArgb(red, green, blue));
                         }
                         break;
                     case Item.ItemType.pointStyle:
@@ -3970,8 +3977,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
 #if DEBUG
             //DebuggerContainer dc = new DebuggerContainer();
-            //ColorDef cdr = new ColorDef("from", System.Drawing.Color.Red);
-            //ColorDef cdb = new ColorDef("to", System.Drawing.Color.Blue);
+            //ColorDef cdr = new ColorDef("from", Color.Red);
+            //ColorDef cdb = new ColorDef("to", Color.Blue);
             //{
             //    Polyline pl = Polyline.Construct();
             //    pl.SetPoints(new GeoPoint[] { org.Location, org.Location + 5 * org.DirectionX, org.Location + 5 * org.DirectionY }, true);

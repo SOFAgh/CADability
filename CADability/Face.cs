@@ -11,6 +11,13 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using Wintellect.PowerCollections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.GeoObject
 {
@@ -6633,7 +6640,7 @@ namespace CADability.GeoObject
                         if (colorDef != null)
                         {
                             if (Layer != null && Layer.Transparency > 0)
-                                paintTo3D.SetColor(System.Drawing.Color.FromArgb(255 - Layer.Transparency, colorDef.Color));
+                                paintTo3D.SetColor(Color.FromArgb(255 - Layer.Transparency, colorDef.Color));
                             else
                                 paintTo3D.SetColor(colorDef.Color);
                         }
@@ -7313,7 +7320,7 @@ namespace CADability.GeoObject
         internal static Style EdgeStyle;
         static Face()
         {
-            EdgeColor = new ColorDef("", System.Drawing.Color.Black);
+            EdgeColor = new ColorDef("", Color.Black);
             EdgeLineWidth = new LineWidth(); // dünne ohne Name
             EdgeLinePattern = new LinePattern();
             EdgeStyle = new Style("CADability.EdgeStyle");

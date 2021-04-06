@@ -1,4 +1,11 @@
 ﻿using CADability.UserInterface;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using System;
 
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
@@ -11,7 +18,7 @@ namespace CADability.Actions
 {
     class ViewPointAction : Action, IIntermediateConstruction
     {
-        private System.Drawing.Point lastPanPosition;
+        private Point lastPanPosition;
         ModelView modelView; // dort wo das MouseDown stattgefunden hat
         public override string GetID()
         {
@@ -19,7 +26,7 @@ namespace CADability.Actions
         }
         public override void OnMouseDown(MouseEventArgs e, IView vw)
         {
-            lastPanPosition = new System.Drawing.Point(e.X, e.Y);
+            lastPanPosition = new Point(e.X, e.Y);
             modelView = vw as ModelView; // nur da soll gedreht werden
         }
         public override void OnMouseMove(MouseEventArgs e, IView vw)
@@ -31,7 +38,7 @@ namespace CADability.Actions
             if (VOffset != 0 || HOffset != 0)
             {
                 Projection Projection = vw.Projection;
-                lastPanPosition = new System.Drawing.Point(e.X, e.Y);
+                lastPanPosition = new Point(e.X, e.Y);
                 GeoVector haxis = Projection.InverseProjection * GeoVector.XAxis;
                 GeoVector vaxis = Projection.InverseProjection * GeoVector.YAxis;
                 ModOp mh = ModOp.Rotate(vaxis, SweepAngle.Deg(HOffset / 5.0));
@@ -77,7 +84,7 @@ namespace CADability.Actions
                     }
                 }
                 // Fixpunkt bestimmen
-                System.Drawing.Point clcenter = vw.Canvas.ClientRectangle.Location;
+                Point clcenter = vw.Canvas.ClientRectangle.Location;
                 clcenter.X += vw.Canvas.ClientRectangle.Width / 2;
                 clcenter.Y += vw.Canvas.ClientRectangle.Height / 2;
                 // ium Folgenden ist Temporary auf true zu setzen und ein Mechanismus zu finden

@@ -1,7 +1,13 @@
 ﻿using CADability.GeoObject;
 using CADability.Substitutes;
 using System;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using System.Drawing.Printing;
 
 /* Connection to the new user-interface provided by CADability.Forms
@@ -266,7 +272,7 @@ namespace CADability.UserInterface
     {
         GeoObjectList GetDataPresent(object data);
         Substitutes.Keys ModifierKeys { get; }
-        System.Drawing.Point CurrentMousePosition { get; }
+        Point CurrentMousePosition { get; }
         /// <summary>
         /// Shows an open file dialog. The <paramref name="id"/> is used to cache the last directory, so with different ids you get different
         /// start directories. The <paramref name="filter"/> is a windows OpenFileDialog filter, <paramref name="filterIndex"/> specifies, 
@@ -281,13 +287,13 @@ namespace CADability.UserInterface
         Substitutes.DialogResult ShowOpenFileDlg(string id, string title, string filter, ref int filterIndex, out string fileName);
         Substitutes.DialogResult ShowSaveFileDlg(string id, string title, string filter, ref int filterIndex, ref string fileName);
         Substitutes.DialogResult ShowMessageBox(string text, string caption, Substitutes.MessageBoxButtons buttons);
-        Substitutes.DialogResult ShowColorDialog(ref System.Drawing.Color color);
+        Substitutes.DialogResult ShowColorDialog(ref Color color);
         /// <summary>
         /// Returns a bitmap from a bitmap strip, name has the format filename:index(, where filename should be part of the resources?)
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        System.Drawing.Bitmap GetBitmap(string name);
+        Bitmap GetBitmap(string name);
         event EventHandler ApplicationIdle;
         IPaintTo3D CreatePaintInterface(Bitmap paintToBitmap, double precision);
         DialogResult ShowPageSetupDlg(ref PrintDocument printDocument1, PageSettings pageSettings, out int width, out int height, out bool landscape);

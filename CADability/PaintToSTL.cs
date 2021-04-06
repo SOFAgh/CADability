@@ -4,6 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability
 {
@@ -81,7 +88,7 @@ namespace CADability
             }
         }
 
-        System.Drawing.Color IPaintTo3D.SelectColor
+        Color IPaintTo3D.SelectColor
         {
             get
             {
@@ -151,12 +158,12 @@ namespace CADability
 
         }
 
-        void IPaintTo3D.SetColor(System.Drawing.Color color)
+        void IPaintTo3D.SetColor(Color color)
         {
             // hier könnte für binärausgabe die Farbe gesetzt werden
         }
 
-        void IPaintTo3D.AvoidColor(System.Drawing.Color color)
+        void IPaintTo3D.AvoidColor(Color color)
         {
 
         }
@@ -209,32 +216,32 @@ namespace CADability
             }
         }
 
-        void IPaintTo3D.PrepareText(string fontName, string textString, System.Drawing.FontStyle fontStyle)
+        void IPaintTo3D.PrepareText(string fontName, string textString, FontStyle fontStyle)
         {
 
         }
 
-        void IPaintTo3D.PrepareIcon(System.Drawing.Bitmap icon)
+        void IPaintTo3D.PrepareIcon(Bitmap icon)
         {
 
         }
 
-        void IPaintTo3D.PrepareBitmap(System.Drawing.Bitmap bitmap, int xoffset, int yoffset)
+        void IPaintTo3D.PrepareBitmap(Bitmap bitmap, int xoffset, int yoffset)
         {
 
         }
 
-        void IPaintTo3D.PrepareBitmap(System.Drawing.Bitmap bitmap)
+        void IPaintTo3D.PrepareBitmap(Bitmap bitmap)
         {
 
         }
 
-        void IPaintTo3D.RectangularBitmap(System.Drawing.Bitmap bitmap, GeoPoint location, GeoVector directionWidth, GeoVector directionHeight)
+        void IPaintTo3D.RectangularBitmap(Bitmap bitmap, GeoPoint location, GeoVector directionWidth, GeoVector directionHeight)
         {
 
         }
 
-        void IPaintTo3D.Text(GeoVector lineDirection, GeoVector glyphDirection, GeoPoint location, string fontName, string textString, System.Drawing.FontStyle fontStyle, Text.AlignMode alignment, Text.LineAlignMode lineAlignment)
+        void IPaintTo3D.Text(GeoVector lineDirection, GeoVector glyphDirection, GeoPoint location, string fontName, string textString, FontStyle fontStyle, Text.AlignMode alignment, Text.LineAlignMode lineAlignment)
         {
 
         }
@@ -259,12 +266,12 @@ namespace CADability
 
         }
 
-        void IPaintTo3D.Line2D(System.Drawing.PointF p1, System.Drawing.PointF p2)
+        void IPaintTo3D.Line2D(PointF p1, PointF p2)
         {
 
         }
 
-        void IPaintTo3D.FillRect2D(System.Drawing.PointF p1, System.Drawing.PointF p2)
+        void IPaintTo3D.FillRect2D(PointF p1, PointF p2)
         {
 
         }
@@ -274,12 +281,12 @@ namespace CADability
 
         }
 
-        void IPaintTo3D.DisplayIcon(GeoPoint p, System.Drawing.Bitmap icon)
+        void IPaintTo3D.DisplayIcon(GeoPoint p, Bitmap icon)
         {
 
         }
 
-        void IPaintTo3D.DisplayBitmap(GeoPoint p, System.Drawing.Bitmap bitmap)
+        void IPaintTo3D.DisplayBitmap(GeoPoint p, Bitmap bitmap)
         {
 
         }
@@ -289,7 +296,7 @@ namespace CADability
 
         }
 
-        void IPaintTo3D.Clear(System.Drawing.Color background)
+        void IPaintTo3D.Clear(Color background)
         {
 
         }
@@ -319,7 +326,7 @@ namespace CADability
 
         }
 
-        void IPaintTo3D.ClosePath(System.Drawing.Color color)
+        void IPaintTo3D.ClosePath(Color color)
         {
 
         }
@@ -392,7 +399,7 @@ namespace CADability
 
         }
 
-        void IPaintTo3D.SetClip(System.Drawing.Rectangle clipRectangle)
+        void IPaintTo3D.SetClip(Rectangle clipRectangle)
         {
 
         }

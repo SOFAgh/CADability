@@ -1,5 +1,9 @@
 ﻿using CADability.UserInterface;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
 using System.Drawing;
+#endif
 
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
 using DragEventArgs = CADability.Substitutes.DragEventArgs;
@@ -28,8 +32,8 @@ namespace CADability.Actions
             if (View != activeView) return; // nur ein Fadenkreuz bzw. Rechteck
             Color bckgnd = Frame.GetColorSetting("Colors.Background", Color.AliceBlue);
             Color infocolor;
-            if (bckgnd.GetBrightness() > 0.5) infocolor = System.Drawing.Color.Black;
-            else infocolor = System.Drawing.Color.White;
+            if (bckgnd.GetBrightness() > 0.5) infocolor = Color.Black;
+            else infocolor = Color.White;
             Rectangle ClipRect = View.Canvas.ClientRectangle;
             switch (Mode)
             {

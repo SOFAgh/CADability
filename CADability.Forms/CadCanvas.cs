@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
+using Graphics = System.Drawing.Graphics;
 
 namespace CADability.Forms
 {

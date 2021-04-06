@@ -2,6 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.GeoObject
 {
@@ -13,7 +20,7 @@ namespace CADability.GeoObject
     [Serializable()]
     public class Icon : IGeoObjectImpl, ISerializable
     {
-        private System.Drawing.Bitmap bitmap;
+        private Bitmap bitmap;
         private GeoPoint location;
         private int offsetx, offsety;
         #region polymorph construction
@@ -57,7 +64,7 @@ namespace CADability.GeoObject
         /// <param name="location">Position where the icon will be displayed</param>
         /// <param name="offsetx">X-Position in the icon where location is applied</param>
         /// <param name="offsety">Y-Position in the icon where location is applied. (0,0) is lower left of the icon</param>
-        public void Set(System.Drawing.Bitmap bitmap, GeoPoint location, int offsetx, int offsety)
+        public void Set(Bitmap bitmap, GeoPoint location, int offsetx, int offsety)
         {
             using (new Changing(this))
             {
@@ -246,7 +253,7 @@ namespace CADability.GeoObject
         #region ISerializable Members
         protected Icon(SerializationInfo info, StreamingContext context)
         {
-            bitmap = info.GetValue("Bitmap", typeof(System.Drawing.Bitmap)) as System.Drawing.Bitmap;
+            bitmap = info.GetValue("Bitmap", typeof(Bitmap)) as Bitmap;
             location = (GeoPoint)info.GetValue("Location", typeof(GeoPoint));
             offsetx = info.GetInt32("Offsetx");
             offsety = info.GetInt32("Offsety");

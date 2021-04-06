@@ -9,7 +9,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Wintellect.PowerCollections;
-#if DEBUG
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
+using Color = System.Drawing.Color;
 #endif
 
 /* SO GEHTS WEITER:
@@ -428,8 +431,8 @@ namespace CADability
                 Point pnt = Point.Construct();
                 pnt.Symbol = PointSymbol.Circle;
                 pnt.Location = vertex.Position;
-                if (isIntersection) pnt.ColorDef = new ColorDef("DebugI", System.Drawing.Color.Red);
-                else pnt.ColorDef = new ColorDef("DebugN", System.Drawing.Color.Blue);
+                if (isIntersection) pnt.ColorDef = new ColorDef("DebugI", Color.Red);
+                else pnt.ColorDef = new ColorDef("DebugN", Color.Blue);
             }
             return res;
         }
@@ -796,14 +799,14 @@ namespace CADability
 #if DEBUG
                                 DebuggerContainer dc1 = new DebuggerContainer();
                                 Solid s = node.cube.AsBox;
-                                s.ColorDef = new ColorDef("node", System.Drawing.Color.Red);
+                                s.ColorDef = new ColorDef("node", Color.Red);
                                 dc1.Add(s);
                                 for (int i = 0; i < neighbours.Length; ++i)
                                 {
                                     for (int j = 0; j < neighbours[i].Length; ++j)
                                     {
                                         s = neighbours[i][j].cube.AsBox;
-                                        s.ColorDef = new ColorDef("neighbour", System.Drawing.Color.Blue);
+                                        s.ColorDef = new ColorDef("neighbour", Color.Blue);
                                         dc1.Add(s, i * 100 + j);
                                     }
                                 }
@@ -1913,7 +1916,7 @@ namespace CADability
                     if (node.list[i].edge.Curve3D != null) dc.Add(node.list[i].edge.Curve3D as IGeoObject);
                 }
                 if (node.list[i].face != null) dc.Add(node.list[i].face);
-                if (node.list[i].vertex != null) dc.Add(node.list[i].vertex.Position, System.Drawing.Color.Red, i);
+                if (node.list[i].vertex != null) dc.Add(node.list[i].vertex.Position, Color.Red, i);
             }
 #endif
             if (node.deepth < 3 && node.list.Count > 3) return true; // noch einjustieren
@@ -2004,8 +2007,8 @@ namespace CADability
                 //Dictionary<Face, Set<Edge>> faceToIntersectionEdges;
                 //Dictionary<Edge, List<Vertex>> edgesToSplit;
                 //Dictionary<Face, Set<Edge>> facesToSplit; // Faces, dies gesplitted werden sollen und deren originale oder gesplittete
-                ColorDef cdp = new ColorDef("point", System.Drawing.Color.Red);
-                ColorDef cde = new ColorDef("edge", System.Drawing.Color.Blue);
+                ColorDef cdp = new ColorDef("point", Color.Red);
+                ColorDef cde = new ColorDef("edge", Color.Blue);
                 foreach (KeyValuePair<Edge, List<Vertex>> item in edgesToSplit)
                 {
                     if (item.Key.Curve3D != null)
@@ -2015,7 +2018,7 @@ namespace CADability
                     }
                     foreach (Vertex v in item.Value)
                     {
-                        Point p = Point.Construct();
+                        CADability.GeoObject.Point p = CADability.GeoObject.Point.Construct();
                         p.Location = v.Position;
                         p.Symbol = PointSymbol.Cross;
                         p.ColorDef = cdp;
@@ -2960,7 +2963,7 @@ namespace CADability
                 DebuggerContainer res = new DebuggerContainer();
                 for (int i = 0; i < Count; i++)
                 {
-                    res.Add(this[i], System.Drawing.Color.Red, (this[i].UserData.GetData("edge") as Edge).GetHashCode());
+                    res.Add(this[i], Color.Red, (this[i].UserData.GetData("edge") as Edge).GetHashCode());
                 }
                 if (holes != null)
                 {
@@ -2968,7 +2971,7 @@ namespace CADability
                     {
                         for (int i = 0; i < holes[j].Count; i++)
                         {
-                            res.Add(holes[j][i], System.Drawing.Color.Blue, (holes[j][i].UserData.GetData("edge") as Edge).GetHashCode());
+                            res.Add(holes[j][i], Color.Blue, (holes[j][i].UserData.GetData("edge") as Edge).GetHashCode());
                         }
                     }
                 }
@@ -3477,7 +3480,7 @@ namespace CADability
             {
                 dcfcs.Add(fce.Clone(), fce.GetHashCode()); // die Faces werden kaputt gemacht, deshalb hier clones merken
                 double ll = fce.GetExtent(0.0).Size * 0.01;
-                ColorDef cd = new ColorDef("debug", System.Drawing.Color.Blue);
+                ColorDef cd = new ColorDef("debug", Color.Blue);
                 SimpleShape ss = fce.Area;
                 GeoPoint2D c = ss.GetExtent().GetCenter();
                 GeoPoint pc = fce.Surface.PointAt(c);
@@ -3490,7 +3493,7 @@ namespace CADability
             {
                 dcfcs.Add(fce.Clone(), fce.GetHashCode()); // die Faces werden kaputt gemacht, deshalb hier clones merken
                 double ll = fce.GetExtent(0.0).Size * 0.01;
-                ColorDef cd = new ColorDef("debug", System.Drawing.Color.Brown);
+                ColorDef cd = new ColorDef("debug", Color.Brown);
                 SimpleShape ss = fce.Area;
                 GeoPoint2D c = ss.GetExtent().GetCenter();
                 GeoPoint pc = fce.Surface.PointAt(c);
@@ -4753,7 +4756,7 @@ namespace CADability
             {
                 dcFaces.Add(fce.Clone(), fce.GetHashCode()); // die Faces werden kaputt gemacht, deshalb hier clones merken
                 double ll = fce.GetExtent(0.0).Size * 0.01;
-                ColorDef cd = new ColorDef("debug", System.Drawing.Color.Blue);
+                ColorDef cd = new ColorDef("debug", Color.Blue);
                 SimpleShape ss = fce.Area;
                 GeoPoint2D c = ss.GetExtent().GetCenter();
                 GeoPoint pc = fce.Surface.PointAt(c);
@@ -4766,7 +4769,7 @@ namespace CADability
             {
                 dcFaces.Add(fce.Clone(), fce.GetHashCode()); // use clones, because the faces might be destroyed in course of this routine
                 double ll = fce.GetExtent(0.0).Size * 0.01;
-                ColorDef cd = new ColorDef("debug", System.Drawing.Color.Brown);
+                ColorDef cd = new ColorDef("debug", Color.Brown);
                 SimpleShape ss = fce.Area;
                 GeoPoint2D c = ss.GetExtent().GetCenter();
                 GeoPoint pc = fce.Surface.PointAt(c);
@@ -4799,7 +4802,7 @@ namespace CADability
             foreach (KeyValuePair<Face, Set<Edge>> kv in faceToIntersectionEdges)
             {
                 debugTrimmedFaces[kv.Key] = new DebuggerContainer();
-                debugTrimmedFaces[kv.Key].Add(kv.Key.Clone(), System.Drawing.Color.Black, kv.Key.GetHashCode());
+                debugTrimmedFaces[kv.Key].Add(kv.Key.Clone(), Color.Black, kv.Key.GetHashCode());
                 int dbgclr = 1;
                 foreach (Edge edg in kv.Value)
                 {
@@ -4836,8 +4839,8 @@ namespace CADability
                 dbgFaceTointersectionEdges[kv.Key] = dc;
                 int dbgc = 0;
                 double arrowSize = kv.Key.Area.GetExtent().Size * 0.02;
-                dc.Add(kv.Value, kv.Key, arrowSize, System.Drawing.Color.Red, 0);
-                dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, System.Drawing.Color.Blue, 0);
+                dc.Add(kv.Value, kv.Key, arrowSize, Color.Red, 0);
+                dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, Color.Blue, 0);
             }
 #endif
 #if DEBUG
@@ -4857,8 +4860,8 @@ namespace CADability
                 dbgEdgePositions[kv.Key] = dc;
                 int dbgc = 0;
                 double arrowSize = kv.Key.Area.GetExtent().Size * 0.02;
-                dc.Add(kv.Value, kv.Key, arrowSize, System.Drawing.Color.Red, 0);
-                dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, System.Drawing.Color.Blue, 0);
+                dc.Add(kv.Value, kv.Key, arrowSize, Color.Red, 0);
+                dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, Color.Blue, 0);
             }
 #endif
             Set<Face> discardedFaces = new Set<Face>(faceToIntersectionEdges.Keys); // these faces may not appear in the final result, because they will be trimmed
@@ -5031,12 +5034,12 @@ namespace CADability
                 // in this 2d display it should be easy to see, which loops should be generated
                 double arrowSize = kv.Key.Area.GetExtent().Size * 0.01;
                 DebuggerContainer dcedges = new DebuggerContainer();
-                dcedges.Add(originalEdges, faceToSplit, arrowSize, System.Drawing.Color.Blue, -1);
-                dcedges.Add(intersectionEdges, faceToSplit, arrowSize, System.Drawing.Color.Red, -1);
+                dcedges.Add(originalEdges, faceToSplit, arrowSize, Color.Blue, -1);
+                dcedges.Add(intersectionEdges, faceToSplit, arrowSize, Color.Red, -1);
                 foreach (Edge edg in intersectionEdges)
                 {
-                    dcedges.Add(edg.Vertex1.Position, System.Drawing.Color.Blue, edg.Vertex1.GetHashCode());
-                    dcedges.Add(edg.Vertex2.Position, System.Drawing.Color.Blue, edg.Vertex2.GetHashCode());
+                    dcedges.Add(edg.Vertex1.Position, Color.Blue, edg.Vertex1.GetHashCode());
+                    dcedges.Add(edg.Vertex2.Position, Color.Blue, edg.Vertex2.GetHashCode());
                 }
 #endif
                 if (intersectionEdges.Count == 0)
@@ -5065,7 +5068,7 @@ namespace CADability
                 int dbgc = 0;
                 foreach (Pair<List<Edge>, ICurve2D[]> item in loops.Values)
                 {
-                    dcloops.Add(item.First, faceToSplit, arrowSize, System.Drawing.Color.Blue, ++dbgc);
+                    dcloops.Add(item.First, faceToSplit, arrowSize, Color.Blue, ++dbgc);
                 }
 #endif
 
@@ -5656,7 +5659,7 @@ namespace CADability
         //            {
         //                dcFaces.Add(fce.Clone(), fce.GetHashCode()); // die Faces werden kaputt gemacht, deshalb hier clones merken
         //                double ll = fce.GetExtent(0.0).Size * 0.01;
-        //                ColorDef cd = new ColorDef("debug", System.Drawing.Color.Blue);
+        //                ColorDef cd = new ColorDef("debug", Color.Blue);
         //                SimpleShape ss = fce.Area;
         //                GeoPoint2D c = ss.GetExtent().GetCenter();
         //                GeoPoint pc = fce.Surface.PointAt(c);
@@ -5669,7 +5672,7 @@ namespace CADability
         //            {
         //                dcFaces.Add(fce.Clone(), fce.GetHashCode()); // die Faces werden kaputt gemacht, deshalb hier clones merken
         //                double ll = fce.GetExtent(0.0).Size * 0.01;
-        //                ColorDef cd = new ColorDef("debug", System.Drawing.Color.Brown);
+        //                ColorDef cd = new ColorDef("debug", Color.Brown);
         //                SimpleShape ss = fce.Area;
         //                GeoPoint2D c = ss.GetExtent().GetCenter();
         //                GeoPoint pc = fce.Surface.PointAt(c);
@@ -5702,7 +5705,7 @@ namespace CADability
         //            foreach (KeyValuePair<Face, Set<Edge>> kv in faceToIntersectionEdges)
         //            {
         //                debugTrimmedFaces[kv.Key] = new DebuggerContainer();
-        //                debugTrimmedFaces[kv.Key].Add(kv.Key.Clone(), System.Drawing.Color.Black, kv.Key.GetHashCode());
+        //                debugTrimmedFaces[kv.Key].Add(kv.Key.Clone(), Color.Black, kv.Key.GetHashCode());
         //                int dbgclr = 1;
         //                foreach (Edge edg in kv.Value)
         //                {
@@ -5739,8 +5742,8 @@ namespace CADability
         //                dbgFaceTointersectionEdges[kv.Key] = dc;
         //                int dbgc = 0;
         //                double arrowSize = kv.Key.Area.GetExtent().Size * 0.02;
-        //                dc.Add(kv.Value, kv.Key, arrowSize, System.Drawing.Color.Red, 0);
-        //                dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, System.Drawing.Color.Blue, 0);
+        //                dc.Add(kv.Value, kv.Key, arrowSize, Color.Red, 0);
+        //                dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, Color.Blue, 0);
         //            }
         //#endif
         //            Set<Face> discardedFaces = new Set<Face>(faceToIntersectionEdges.Keys); // these faces may not apper in the final result, because they will be trimmed
@@ -5768,8 +5771,8 @@ namespace CADability
         //                dbgEdgePositions[kv.Key] = dc;
         //                int dbgc = 0;
         //                double arrowSize = kv.Key.Area.GetExtent().Size * 0.02;
-        //                dc.Add(kv.Value, kv.Key, arrowSize, System.Drawing.Color.Red, 0);
-        //                dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, System.Drawing.Color.Blue, 0);
+        //                dc.Add(kv.Value, kv.Key, arrowSize, Color.Red, 0);
+        //                dc.Add(kv.Key.AllEdgesIterated(), kv.Key, arrowSize, Color.Blue, 0);
         //            }
         //#endif
         //            foreach (KeyValuePair<Face, Set<Edge>> kv in faceToIntersectionEdges)
@@ -5865,12 +5868,12 @@ namespace CADability
         //                foreach (Edge edg in intersectionEdges)
         //                {
         //                    ICurve2D c2d = edg.Curve2D(faceToSplit);
-        //                    dcie.Add(c2d, System.Drawing.Color.Red, edg.GetHashCode());
+        //                    dcie.Add(c2d, Color.Red, edg.GetHashCode());
         //                }
         //                foreach (Edge edg in faceToSplit.AllEdgesIterated())
         //                {
         //                    ICurve2D c2d = edg.Curve2D(faceToSplit);
-        //                    dcie.Add(c2d, System.Drawing.Color.Blue, edg.GetHashCode());
+        //                    dcie.Add(c2d, Color.Blue, edg.GetHashCode());
         //                }
         //#endif
         //                Dictionary<Vertex, List<Edge>> orgConnections = new Dictionary<Vertex, List<Edge>>();
@@ -5907,12 +5910,12 @@ namespace CADability
         //                int dbgn = 0;
         //                foreach (KeyValuePair<Vertex, List<Edge>> item in intsConnections)
         //                {
-        //                    dcConnections.Add(item.Value, faceToSplit, arrowSize, System.Drawing.Color.Red, dbgn++);
+        //                    dcConnections.Add(item.Value, faceToSplit, arrowSize, Color.Red, dbgn++);
         //                }
         //                dbgn = 0;
         //                foreach (KeyValuePair<Vertex, List<Edge>> item in orgConnections)
         //                {
-        //                    dcConnections.Add(item.Value, faceToSplit, arrowSize, System.Drawing.Color.Blue, dbgn++);
+        //                    dcConnections.Add(item.Value, faceToSplit, arrowSize, Color.Blue, dbgn++);
         //                }
         //#endif
         //                // Now we have connections (list of cosecutive connected edges) of the faces outline and of intersection edges
@@ -5969,14 +5972,14 @@ namespace CADability
         //                arrowSize = faceToSplit.Area.GetExtent().Size * 0.02;
         //                foreach (KeyValuePair<Vertex, List<Edge>> item in intsConnections)
         //                {
-        //                    dcRemaining.Add(item.Value, faceToSplit, arrowSize, System.Drawing.Color.Red, dbgc++);
+        //                    dcRemaining.Add(item.Value, faceToSplit, arrowSize, Color.Red, dbgc++);
         //                }
         //                foreach (KeyValuePair<Vertex, List<Edge>> item in orgConnections)
         //                {
-        //                    dcRemaining.Add(item.Value, faceToSplit, arrowSize, System.Drawing.Color.Blue, dbgc++);
+        //                    dcRemaining.Add(item.Value, faceToSplit, arrowSize, Color.Blue, dbgc++);
         //                }
-        //                //dcRemaining.Add(faceEdges, faceToSplit, arrowSize, System.Drawing.Color.Cyan, -2);
-        //                dcRemaining.Add(intersectionEdges, faceToSplit, arrowSize, System.Drawing.Color.DarkTurquoise, -1);
+        //                //dcRemaining.Add(faceEdges, faceToSplit, arrowSize, Color.Cyan, -2);
+        //                dcRemaining.Add(intersectionEdges, faceToSplit, arrowSize, Color.DarkTurquoise, -1);
 
         //#endif
         //                UniqueDoubleReverseDictionary<Pair<List<Edge>, ICurve2D[]>> loops = new UniqueDoubleReverseDictionary<Pair<List<Edge>, ICurve2D[]>>();
@@ -6649,7 +6652,7 @@ namespace CADability
                     commonFaces.Add(item.Key);
 #if DEBUG
                     Face dbf = item.Key.Clone() as Face;
-                    dbf.ColorDef = new ColorDef("violet", System.Drawing.Color.Violet);
+                    dbf.ColorDef = new ColorDef("violet", Color.Violet);
                     dc.Add(dbf);
 #endif
                 }
@@ -7191,7 +7194,7 @@ namespace CADability
             DebuggerContainer dc = new DebuggerContainer();
             foreach (Edge edg in workingSet)
             {
-                dc.Add(edg.Curve2D(face), System.Drawing.Color.Red, edg.GetHashCode());
+                dc.Add(edg.Curve2D(face), Color.Red, edg.GetHashCode());
             }
 #endif
             List<List<Edge>> res = new List<List<Edge>>();
@@ -7461,7 +7464,7 @@ namespace CADability
         //            {
         //                dcfcs.Add(fce.Clone(), fce.GetHashCode()); // die Faces werden kaputt gemacht, deshalb hier clones merken
         //                double ll = fce.GetExtent(0.0).Size * 0.01;
-        //                ColorDef cd = new ColorDef("debug", System.Drawing.Color.Blue);
+        //                ColorDef cd = new ColorDef("debug", Color.Blue);
         //                SimpleShape ss = fce.Area;
         //                GeoPoint2D c = ss.GetExtent().GetCenter();
         //                GeoPoint pc = fce.Surface.PointAt(c);
@@ -7474,7 +7477,7 @@ namespace CADability
         //            {
         //                dcfcs.Add(fce.Clone(), fce.GetHashCode()); // die Faces werden kaputt gemacht, deshalb hier clones merken
         //                double ll = fce.GetExtent(0.0).Size * 0.01;
-        //                ColorDef cd = new ColorDef("debug", System.Drawing.Color.Brown);
+        //                ColorDef cd = new ColorDef("debug", Color.Brown);
         //                SimpleShape ss = fce.Area;
         //                GeoPoint2D c = ss.GetExtent().GetCenter();
         //                GeoPoint pc = fce.Surface.PointAt(c);
@@ -7618,7 +7621,7 @@ namespace CADability
         //                double arrowsize = dfk.face1.Area.GetExtent().Size / 100.0;
         //                foreach (Edge edg in availableEdges)
         //                {
-        //                    dc0.Add(edg.Curve2D(dfk.face1), System.Drawing.Color.Red, edg.GetHashCode());
+        //                    dc0.Add(edg.Curve2D(dfk.face1), Color.Red, edg.GetHashCode());
         //                    // noch einen Richtungspfeil zufügen
         //                    GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
         //                    GeoVector2D dir = edg.Curve2D(dfk.face1).DirectionAt(0.5).Normalized;
@@ -7626,7 +7629,7 @@ namespace CADability
         //                    arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
         //                    arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
         //                    Polyline2D pl2d = new Polyline2D(arrowpnts);
-        //                    dc0.Add(pl2d, System.Drawing.Color.Red, edg.GetHashCode());
+        //                    dc0.Add(pl2d, Color.Red, edg.GetHashCode());
         //                }
         //                Set<Edge> dbgset = availableEdges.Clone();
         //                availableEdges = dbgset.Clone(); // if generateCycles failed, go back here to debug
@@ -7744,11 +7747,11 @@ namespace CADability
         //                //dc.Add(fc.DebugEdges2D.toShow);
         //                foreach (Edge edg in faceToSplit.AllEdgesIterated())
         //                {
-        //                    dc0.Add(edg.Curve2D(faceToSplit), System.Drawing.Color.Blue, edg.GetHashCode());
+        //                    dc0.Add(edg.Curve2D(faceToSplit), Color.Blue, edg.GetHashCode());
         //                }
         //                foreach (Edge edg in kv.Value)
         //                {
-        //                    dc0.Add(edg.Curve2D(faceToSplit), System.Drawing.Color.Red, edg.GetHashCode());
+        //                    dc0.Add(edg.Curve2D(faceToSplit), Color.Red, edg.GetHashCode());
         //                    // noch einen Richtungspfeil zufügen
         //                    GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
         //                    GeoVector2D dir = edg.Curve2D(faceToSplit).DirectionAt(0.5).Normalized;
@@ -7758,7 +7761,7 @@ namespace CADability
         //                    try
         //                    {
         //                        Polyline2D pl2d = new Polyline2D(arrowpnts);
-        //                        dc0.Add(pl2d, System.Drawing.Color.Red, edg.GetHashCode());
+        //                        dc0.Add(pl2d, Color.Red, edg.GetHashCode());
         //                    }
         //                    catch { }
         //                }
@@ -8543,8 +8546,8 @@ namespace CADability
             foreach (Edge edg in edgesToUseClone)
             {
                 ICurve2D c2d = edg.Curve2D(onThisFace);
-                if (edg.edgeInfo.next != null) dc.Add(c2d, System.Drawing.Color.Red, edg.GetHashCode() + 10000 * edg.edgeInfo.next.GetHashCode());
-                else dc.Add(c2d, System.Drawing.Color.Red, edg.GetHashCode());
+                if (edg.edgeInfo.next != null) dc.Add(c2d, Color.Red, edg.GetHashCode() + 10000 * edg.edgeInfo.next.GetHashCode());
+                else dc.Add(c2d, Color.Red, edg.GetHashCode());
             }
 #endif
             while (edgesToUse.Count > 0)
@@ -8842,7 +8845,7 @@ namespace CADability
             {
                 foreach (Edge edg in cycles[i])
                 {
-                    dc0.Add(edg.Curve2D(onThisFace), System.Drawing.Color.Red, i);
+                    dc0.Add(edg.Curve2D(onThisFace), Color.Red, i);
                     // noch einen Richtungspfeil zufügen
                     GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
                     GeoVector2D dir = edg.Curve2D(onThisFace).DirectionAt(0.5).Normalized;
@@ -8850,7 +8853,7 @@ namespace CADability
                     arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
                     arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
                     Polyline2D pl2d = new Polyline2D(arrowpnts);
-                    dc0.Add(pl2d, System.Drawing.Color.Red, edg.GetHashCode());
+                    dc0.Add(pl2d, Color.Red, edg.GetHashCode());
                 }
             }
 #endif
@@ -8881,8 +8884,8 @@ namespace CADability
                 for (int j = 0; j < cycles2d[i].Count; j++)
                 {
                     ICurve2D c2d = cycles2d[i][j];
-                    // dc.Add(c2d, System.Drawing.Color.Red, cycles[i][j].GetHashCode());
-                    dc.Add(c2d, System.Drawing.Color.Red, i);
+                    // dc.Add(c2d, Color.Red, cycles[i][j].GetHashCode());
+                    dc.Add(c2d, Color.Red, i);
                 }
             }
 #endif
@@ -8969,7 +8972,7 @@ namespace CADability
             {
                 foreach (Edge edg in cycles[item.Key])
                 {
-                    dc0.Add(edg.Curve2D(onThisFace), System.Drawing.Color.Red, item.Key);
+                    dc0.Add(edg.Curve2D(onThisFace), Color.Red, item.Key);
                     // noch einen Richtungspfeil zufügen
                     GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
                     GeoVector2D dir = edg.Curve2D(onThisFace).DirectionAt(0.5).Normalized;
@@ -8977,13 +8980,13 @@ namespace CADability
                     arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
                     arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
                     Polyline2D pl2d = new Polyline2D(arrowpnts);
-                    dc0.Add(pl2d, System.Drawing.Color.Red, edg.GetHashCode());
+                    dc0.Add(pl2d, Color.Red, edg.GetHashCode());
                 }
                 for (int i = 0; i < item.Value.Count; i++)
                 {
                     foreach (Edge edg in cycles[item.Value[i]])
                     {
-                        dc0.Add(edg.Curve2D(onThisFace), System.Drawing.Color.Blue, item.Value[i]);
+                        dc0.Add(edg.Curve2D(onThisFace), Color.Blue, item.Value[i]);
                         // noch einen Richtungspfeil zufügen
                         GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
                         GeoVector2D dir = edg.Curve2D(onThisFace).DirectionAt(0.5).Normalized;
@@ -8991,7 +8994,7 @@ namespace CADability
                         arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
                         arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
                         Polyline2D pl2d = new Polyline2D(arrowpnts);
-                        dc0.Add(pl2d, System.Drawing.Color.Red, edg.GetHashCode());
+                        dc0.Add(pl2d, Color.Red, edg.GetHashCode());
                     }
                 }
             }
@@ -9104,11 +9107,11 @@ namespace CADability
         //                DebuggerContainer dc = new DebuggerContainer();
         //                foreach (ICurve2D c2d in intsCurves)
         //                {
-        //                    dc.Add(c2d, System.Drawing.Color.Red, 0);
+        //                    dc.Add(c2d, Color.Red, 0);
         //                }
         //                foreach (ICurve2D c2d in originalCurves)
         //                {
-        //                    dc.Add(c2d, System.Drawing.Color.Green, 1);
+        //                    dc.Add(c2d, Color.Green, 1);
         //                }
         //#endif
         //                // 4. Ausgehend von einer Schnittkurve wird ein Zyklus gesucht. Es muss immer einen geben.
@@ -9183,7 +9186,7 @@ namespace CADability
         //#if DEBUG
         //                    for (int i = 0; i < cycle.Count; i++)
         //                    {
-        //                        dc.Add(cycle[i], System.Drawing.Color.Blue, i);
+        //                        dc.Add(cycle[i], Color.Blue, i);
         //                    }
         //#endif
         //                    bool addCycle = true;
@@ -9387,13 +9390,13 @@ namespace CADability
         //                DebuggerContainer dc = new DebuggerContainer();
         //                for (int i = 0; i < cycles.Count; i++)
         //                {
-        //                    System.Drawing.Color clr;
-        //                    clr = System.Drawing.Color.Red;
+        //                    Color clr;
+        //                    clr = Color.Red;
         //                    for (int j = 0; j < cycles[i].Count; j++)
         //                    {
         //                        dc.Add(cycles[i][j], clr, i * 1000 + j);
         //                    }
-        //                    clr = System.Drawing.Color.Blue;
+        //                    clr = Color.Blue;
         //                    if (cycles[i].holes != null)
         //                    {
         //                        for (int j = 0; j < cycles[i].holes.Count; j++)
@@ -10358,7 +10361,7 @@ namespace CADability
                     if (node.list[i].edge.Curve3D != null) dc.Add(node.list[i].edge.Curve3D as IGeoObject);
                 }
                 if (node.list[i].face != null) dc.Add(node.list[i].face);
-                if (node.list[i].vertex != null) dc.Add(node.list[i].vertex.Position, System.Drawing.Color.Red, i);
+                if (node.list[i].vertex != null) dc.Add(node.list[i].vertex.Position, Color.Red, i);
             }
 #endif
             if (node.deepth < 3 && node.list.Count > 3) return true; // noch einjustieren
@@ -10449,8 +10452,8 @@ namespace CADability
                 //Dictionary<Face, Set<Edge>> faceToIntersectionEdges;
                 //Dictionary<Edge, List<Vertex>> edgesToSplit;
                 //Dictionary<Face, Set<Edge>> facesToSplit; // Faces, dies gesplitted werden sollen und deren originale oder gesplittete
-                ColorDef cdp = new ColorDef("point", System.Drawing.Color.Red);
-                ColorDef cde = new ColorDef("edge", System.Drawing.Color.Blue);
+                ColorDef cdp = new ColorDef("point", Color.Red);
+                ColorDef cde = new ColorDef("edge", Color.Blue);
                 foreach (KeyValuePair<Edge, List<Vertex>> item in edgesToSplit)
                 {
                     if (item.Key.Curve3D != null)
@@ -10460,7 +10463,7 @@ namespace CADability
                     }
                     foreach (Vertex v in item.Value)
                     {
-                        Point p = Point.Construct();
+                        CADability.GeoObject.Point p = CADability.GeoObject.Point.Construct();
                         p.Location = v.Position;
                         p.Symbol = PointSymbol.Cross;
                         p.ColorDef = cdp;
@@ -10869,11 +10872,11 @@ namespace CADability
                 //dc.Add(fc.DebugEdges2D.toShow);
                 foreach (Edge edg in fc.AllEdgesIterated())
                 {
-                    dc.Add(edg.Curve2D(fc), System.Drawing.Color.Blue, edg.GetHashCode());
+                    dc.Add(edg.Curve2D(fc), Color.Blue, edg.GetHashCode());
                 }
                 foreach (Edge edg in kv.Value)
                 {
-                    dc.Add(edg.Curve2D(fc), System.Drawing.Color.Red, edg.GetHashCode());
+                    dc.Add(edg.Curve2D(fc), Color.Red, edg.GetHashCode());
                     // noch einen Richtungspfeil zufügen
                     GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
                     GeoVector2D dir = edg.Curve2D(fc).DirectionAt(0.5).Normalized;
@@ -10881,7 +10884,7 @@ namespace CADability
                     arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
                     arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
                     Polyline2D pl2d = new Polyline2D(arrowpnts);
-                    dc.Add(pl2d, System.Drawing.Color.Red, edg.GetHashCode());
+                    dc.Add(pl2d, Color.Red, edg.GetHashCode());
                 }
                 DebuggerContainer dcf = new CADability.DebuggerContainer();
                 dcf.Add(fc, 0);
@@ -10894,12 +10897,12 @@ namespace CADability
                 foreach (Edge edg in fc.AllEdgesIterated())
                 {
                     if (distOk(edg.Vertex1.Position) && distOk(edg.Vertex2.Position))
-                        dcok.Add(edg.Curve2D(fc), System.Drawing.Color.Blue, edg.GetHashCode());
+                        dcok.Add(edg.Curve2D(fc), Color.Blue, edg.GetHashCode());
                 }
                 foreach (Edge edg in kv.Value)
                 {
                     if (distOk(edg.Vertex1.Position) && distOk(edg.Vertex2.Position))
-                        dcok.Add(edg.Curve2D(fc), System.Drawing.Color.Red, edg.GetHashCode());
+                        dcok.Add(edg.Curve2D(fc), Color.Red, edg.GetHashCode());
                 }
 
             }
@@ -10963,11 +10966,11 @@ namespace CADability
                 //dc.Add(fc.DebugEdges2D.toShow);
                 foreach (Edge edg in kv.Key.AllEdgesIterated())
                 {
-                    dc0.Add(edg.Curve2D(kv.Key), System.Drawing.Color.Blue, edg.GetHashCode());
+                    dc0.Add(edg.Curve2D(kv.Key), Color.Blue, edg.GetHashCode());
                 }
                 foreach (Edge edg in kv.Value)
                 {
-                    dc0.Add(edg.Curve2D(kv.Key), System.Drawing.Color.Red, edg.GetHashCode());
+                    dc0.Add(edg.Curve2D(kv.Key), Color.Red, edg.GetHashCode());
                     // noch einen Richtungspfeil zufügen
                     GeoPoint2D[] arrowpnts = new GeoPoint2D[3];
                     GeoVector2D dir = edg.Curve2D(kv.Key).DirectionAt(0.5).Normalized;
@@ -10975,7 +10978,7 @@ namespace CADability
                     arrowpnts[0] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToLeft();
                     arrowpnts[2] = arrowpnts[1] - arrowsize * dir + arrowsize * dir.ToRight();
                     Polyline2D pl2d = new Polyline2D(arrowpnts);
-                    dc0.Add(pl2d, System.Drawing.Color.Red, edg.GetHashCode());
+                    dc0.Add(pl2d, Color.Red, edg.GetHashCode());
                 }
                 foreach (Vertex vtx in allVtx)
                 {
@@ -10998,8 +11001,8 @@ namespace CADability
                     for (int j = 0; j < cycles[i].Count; j++)
                     {
                         ICurve2D c2d = cycles[i][j].Curve2D(kv.Key);
-                        // dc.Add(c2d, System.Drawing.Color.Red, cycles[i][j].GetHashCode());
-                        dc.Add(c2d, System.Drawing.Color.Red, i);
+                        // dc.Add(c2d, Color.Red, cycles[i][j].GetHashCode());
+                        dc.Add(c2d, Color.Red, i);
                     }
                 }
 #endif
@@ -11295,12 +11298,12 @@ namespace CADability
                     edg.Vertex2.RemoveEdge(edg);
 #if DEBUG
                     DebuggerContainer dc = new CADability.DebuggerContainer();
-                    dc.Add(edg.Curve2D(edg.PrimaryFace), System.Drawing.Color.Red, -1);
-                    dc.Add(edg.Curve2D(edg.SecondaryFace), System.Drawing.Color.Blue, -1);
+                    dc.Add(edg.Curve2D(edg.PrimaryFace), Color.Red, -1);
+                    dc.Add(edg.Curve2D(edg.SecondaryFace), Color.Blue, -1);
                     for (int i = 0; i < splEdges.Count; i++)
                     {
-                        dc.Add(splEdges[i].Curve2D(edg.PrimaryFace), System.Drawing.Color.Red, i);
-                        dc.Add(splEdges[i].Curve2D(edg.SecondaryFace), System.Drawing.Color.Blue, i);
+                        dc.Add(splEdges[i].Curve2D(edg.PrimaryFace), Color.Red, i);
+                        dc.Add(splEdges[i].Curve2D(edg.SecondaryFace), Color.Blue, i);
                     }
 #endif
                 }
@@ -11611,7 +11614,7 @@ namespace CADability
                 }
                 for (int i = 0; i < points.Count; i++)
                 {
-                    dc.Add(points[i], System.Drawing.Color.Blue, i);
+                    dc.Add(points[i], Color.Blue, i);
                 }
 #endif
                 ICurve[] c3ds;
@@ -11772,7 +11775,7 @@ namespace CADability
                 fc1.IntersectAndPosition(edg, out ip, out uvOnFace, out uOnCurve3D, out position);
                 for (int i = 0; i < ip.Length; i++)
                 {
-                    dc.Add(ip[i], System.Drawing.Color.Blue, i);
+                    dc.Add(ip[i], Color.Blue, i);
                     points.Add(ip[i]);
                 }
             }
@@ -11785,7 +11788,7 @@ namespace CADability
                 fc2.IntersectAndPosition(edg, out ip, out uvOnFace, out uOnCurve3D, out position);
                 for (int i = 0; i < ip.Length; i++)
                 {
-                    dc.Add(ip[i], System.Drawing.Color.Red, i);
+                    dc.Add(ip[i], Color.Red, i);
                     points.Add(ip[i]);
                 }
             }

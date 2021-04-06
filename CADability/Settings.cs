@@ -6,6 +6,11 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
+using System.Drawing;
+#endif
 
 
 namespace CADability
@@ -31,9 +36,9 @@ namespace CADability
                     typeName = typeName.Insert(ind + 20, "*");
                 }
                 Type t = Type.GetType(typeName);
-                if (t == null && typeName == "System.Drawing.Color") // das macht Probleme wg. verschiedenem Framework
+                if (t == null && typeName == "Color") // das macht Probleme wg. verschiedenem Framework
                 {
-                    System.Drawing.Color clr = System.Drawing.Color.Black;
+                    Color clr = Color.Black;
                     t = clr.GetType();
                 }
                 if (t == null && typeName.StartsWith("System.Collections.Generic.Dictionary") && typeName.Contains("System.String")
@@ -456,37 +461,37 @@ namespace CADability
             if (!colorSettings.ContainsSetting("Background"))
             {
                 ColorSetting cs = new ColorSetting("Background", "Setting.Colors.Background");
-                cs.Color = System.Drawing.Color.AliceBlue;
+                cs.Color = Color.AliceBlue;
                 colorSettings.AddSetting("Background", cs);
             }
             if (!colorSettings.ContainsSetting("Grid"))
             {
                 ColorSetting cs = new ColorSetting("Grid", "Setting.Colors.Grid");
-                cs.Color = System.Drawing.Color.LightGoldenrodYellow;
+                cs.Color = Color.LightGoldenrodYellow;
                 colorSettings.AddSetting("Grid", cs);
             }
             if (!colorSettings.ContainsSetting("Feedback"))
             {
                 ColorSetting cs = new ColorSetting("Feedback", "Setting.Colors.Feedback");
-                cs.Color = System.Drawing.Color.DarkGray;
+                cs.Color = Color.DarkGray;
                 colorSettings.AddSetting("Feedback", cs);
             }
             if (!colorSettings.ContainsSetting("Layout"))
             {
                 ColorSetting cs = new ColorSetting("Layout", "Setting.Colors.Layout");
-                cs.Color = System.Drawing.Color.LightYellow;
+                cs.Color = Color.LightYellow;
                 colorSettings.AddSetting("Layout", cs);
             }
             if (!colorSettings.ContainsSetting("Drawingplane"))
             {
                 ColorSetting cs = new ColorSetting("Drawingplane", "Setting.Colors.Drawingplane");
-                cs.Color = System.Drawing.Color.LightSkyBlue;
+                cs.Color = Color.LightSkyBlue;
                 colorSettings.AddSetting("Drawingplane", cs);
             }
             if (!colorSettings.ContainsSetting("ActiveFrame"))
             {
                 ColorSetting cs = new ColorSetting("ActiveFrame", "Setting.Colors.ActiveFrame");
-                cs.Color = System.Drawing.SystemColors.ActiveCaption;
+                cs.Color = Color.LightBlue;
                 colorSettings.AddSetting("ActiveFrame", cs);
             }
             if (!GlobalSettings.ContainsSetting("Snap"))
@@ -993,7 +998,7 @@ namespace CADability
                         }
                         else if (entries[Name].GetType() == typeof(ColorSetting))
                         {
-                            ((ColorSetting)(entries[Name])).Color = (System.Drawing.Color)NewValue;
+                            ((ColorSetting)(entries[Name])).Color = (Color)NewValue;
                         }
                         else if (entries[Name].GetType() == typeof(MultipleChoiceSetting))
                         {

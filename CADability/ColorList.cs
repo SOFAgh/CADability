@@ -2,7 +2,13 @@
 using CADability.UserInterface;
 using System;
 using System.Collections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using System.Runtime.Serialization;
 
 namespace CADability.Attribute
@@ -255,7 +261,7 @@ namespace CADability.Attribute
         public Color GetColor(int Index)
         {
             if (Index < 0 || Index >= namedColors.Count)
-                return SystemColors.Window;
+                return Color.Blue;
             return ((ColorDef)namedColors[Index]).Color;
         }
         /// <summary>
