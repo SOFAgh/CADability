@@ -9,7 +9,13 @@ using CADability.Shapes;
 using CADability.Curve2D;
 using System.Net.Http.Headers;
 using CADability.Attribute;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using netDxf.Tables;
 using System.Text;
 
@@ -213,7 +219,7 @@ namespace CADability.DXF
             Color rgb = color.ToColor();
             if (color.ToColor().ToArgb() == Color.White.ToArgb())
             {
-                rgb = System.Drawing.Color.Black;
+                rgb = Color.Black;
             }
             string colorname = rgb.ToString();
             return project.ColorList.CreateOrFind(colorname, rgb);

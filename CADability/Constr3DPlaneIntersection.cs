@@ -1,7 +1,12 @@
 ﻿using CADability.GeoObject;
 using System.Collections.Generic;
-
-
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.Actions
 {
@@ -40,7 +45,7 @@ namespace CADability.Actions
             base.TitleId = "Constr.PlaneIntersection";
             plane = base.ActiveDrawingPlane;
             feedBackPolyLine = Polyline.Construct();
-            System.Drawing.Rectangle rect = Frame.ActiveView.DisplayRectangle; // sinnvolles Standardrechteck
+            Rectangle rect = Frame.ActiveView.DisplayRectangle; // sinnvolles Standardrechteck
             width = Frame.ActiveView.Projection.DeviceToWorldFactor * rect.Width / 2.0;
             height = Frame.ActiveView.Projection.DeviceToWorldFactor * rect.Height / 2.0;
             base.ActiveObject = feedBackPolyLine;

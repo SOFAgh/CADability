@@ -1,4 +1,11 @@
 ﻿using System;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 
 // MouseEventArgs, MouseButtons, Keys, 
@@ -27,7 +34,7 @@ namespace CADability.Substitutes
         public int X { get; set; }
         public int Y { get; set; }
         public int Delta { get; set; }
-        public System.Drawing.Point Location { get; set; }
+        public Point Location { get; set; }
     }
 
     public class KeyEventArgs
@@ -49,8 +56,8 @@ namespace CADability.Substitutes
 
     public class PaintEventArgs 
     {
-        public System.Drawing.Rectangle ClipRectangle { get; set; }
-        public System.Drawing.Graphics Graphics { get; set; }
+        public Rectangle ClipRectangle { get; set; }
+        public Graphics Graphics { get; set; }
     }
 
     public enum CheckState

@@ -5,6 +5,14 @@ using CADability.Shapes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+// some work to do to implement text for webassembly
+//#if WEBASSEMBLY
+//using CADability.WebDrawing;
+//using Point = CADability.WebDrawing.Point;
+//#else
+//using System.Drawing;
+//using Point = System.Drawing.Point;
+//#endif
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.Serialization;
@@ -2853,7 +2861,11 @@ namespace CADability.GeoObject
             }
             else
             {
+#if WEBASSEMBLY
+                paintTo3D.PrepareText(fontName, textString, CADability.WebDrawing.FontStyle.Regular);
+#else
                 paintTo3D.PrepareText(fontName, textString, fontStyle);
+#endif
             }
         }
         public delegate bool PaintTo3DDelegate(Text toPaint, IPaintTo3D paintTo3D);
@@ -3030,7 +3042,11 @@ namespace CADability.GeoObject
             }
             else
             {
+#if WEBASSEMBLY
+                paintTo3D.Text(lineDirection, glyphDirection, location, fontName, textString, CADability.WebDrawing.FontStyle.Regular, alignment, lineAlignment);
+#else
                 paintTo3D.Text(lineDirection, glyphDirection, location, fontName, textString, fontStyle, alignment, lineAlignment);
+#endif
             }
         }
         /// <summary>
@@ -3060,8 +3076,8 @@ namespace CADability.GeoObject
             //return new QuadTreeText(this, t2d, projection);
             return null;
         }
-        #endregion
-        #region IOctTreeInsertable members
+#endregion
+#region IOctTreeInsertable members
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetExtent (double)"/>
         /// </summary>
@@ -3155,8 +3171,8 @@ namespace CADability.GeoObject
             GeoPoint p = plane.Intersect(fromHere, direction);
             return Geometry.LinePar(fromHere, direction, p); // nicht getestet ob innerhalb des Textes
         }
-        #endregion
-        #region IColorDef Members
+#endregion
+#region IColorDef Members
         public ColorDef ColorDef
         {
             get
@@ -3177,8 +3193,8 @@ namespace CADability.GeoObject
         {
             (this as IColorDef).SetTopLevel(newValue);
         }
-        #endregion
-        #region ISerializable Members
+#endregion
+#region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -3263,7 +3279,7 @@ namespace CADability.GeoObject
             lineAlignment = data.GetProperty<LineAlignMode>("LineAlignment");
             isReflected = data.GetProperty<bool>("IsReflected");
         }
-        #endregion
+#endregion
         internal void InvalidateSecondaryData()
         {
             isValidExtent = false;

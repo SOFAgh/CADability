@@ -4,7 +4,13 @@ using CADability.Substitutes;
 using CADability.UserInterface;
 using System;
 using System.Collections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.Actions
 {

@@ -2,7 +2,13 @@
 using CADability.Shapes;
 using System;
 using System.Collections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using System.Runtime.Serialization;
 
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
@@ -232,9 +238,9 @@ namespace CADability.Actions
         public enum CursorPosition { EmptySpace, OverObject, OverSelectedObject, OverHandleLB, OverHandleLM, OverHandleLT, OverHandleMB, OverHandleMM, OverHandleMT, OverHandleRB, OverHandleRM, OverHandleRT, OverFixPoint, OverHotSpot }
         private Mode mode; // der Zustand, in dem sich die Aktion gerade befindet
         private CursorPosition lastCursorPosition; // die letzte gemessene Cursorposition, wird in den DragXxx Modi nicht berechnet
-        private System.Drawing.Point downPoint; // Position des letzten MouseDown
-        private System.Drawing.Point FirstPoint; // erster Punkt des Aufziehrechteck
-        private System.Drawing.Point SecondPoint; // zweiter Punkt des Aufziehrechteck
+        private Point downPoint; // Position des letzten MouseDown
+        private Point FirstPoint; // erster Punkt des Aufziehrechteck
+        private Point SecondPoint; // zweiter Punkt des Aufziehrechteck
         private bool canStartDrag;
         // private IView lastView; // der CondorView, in dem die letzte Mausbewegung registriert wurde: wird nicht verwendet
         private bool useFrame; // Markierrahmen verwenden
@@ -457,8 +463,8 @@ namespace CADability.Actions
             {
                 Color bckgnd = Frame.GetColorSetting("Colors.Background", Color.AliceBlue);
                 Color infocolor;
-                if (bckgnd.GetBrightness() > 0.5) infocolor = System.Drawing.Color.Black;
-                else infocolor = System.Drawing.Color.White;
+                if (bckgnd.GetBrightness() > 0.5) infocolor = Color.Black;
+                else infocolor = Color.White;
 
                 PaintToSelect.SetColor(infocolor);
                 PaintToSelect.Line2D(FirstPoint.X, FirstPoint.Y, SecondPoint.X, FirstPoint.Y);
@@ -1245,7 +1251,7 @@ namespace CADability.Actions
                     {
                         mode = Mode.DragRect;
                         FirstPoint = downPoint;
-                        SecondPoint = new System.Drawing.Point(e.X, e.Y);
+                        SecondPoint = new Point(e.X, e.Y);
                     }
                     else if (canStartDrag)
                     {
@@ -1317,10 +1323,10 @@ namespace CADability.Actions
                 {
                     case Mode.DragRect:
                         {
-                            Rectangle Clip = PaintBuffer.RectangleFromPoints(FirstPoint, SecondPoint, new System.Drawing.Point(e.X, e.Y));
+                            Rectangle Clip = PaintBuffer.RectangleFromPoints(FirstPoint, SecondPoint, new Point(e.X, e.Y));
                             Clip.Width += 1;
                             Clip.Height += 1;
-                            SecondPoint = new System.Drawing.Point(e.X, e.Y);
+                            SecondPoint = new Point(e.X, e.Y);
                             vw.Invalidate(PaintBuffer.DrawingAspect.Select, Clip);
                         }
                         break;
@@ -1504,7 +1510,7 @@ namespace CADability.Actions
                     MenuWithHandler[] cm = lastCursorHotspot.ContextMenu;
                     if (cm != null)
                     {
-                        vw.Canvas.ShowContextMenu(cm, new System.Drawing.Point(e.X, e.Y));
+                        vw.Canvas.ShowContextMenu(cm, new Point(e.X, e.Y));
                     }
                 }
                 else
@@ -1527,7 +1533,7 @@ namespace CADability.Actions
                         }
                     }
                     //if (BeforeShowContextMenuEvent != null) BeforeShowContextMenuEvent(selectedObjects, cm);
-                    vw.Canvas.ShowContextMenu(cm.ToArray(), new System.Drawing.Point(e.X, e.Y));
+                    vw.Canvas.ShowContextMenu(cm.ToArray(), new Point(e.X, e.Y));
                 }
             }
         }
@@ -1634,7 +1640,7 @@ namespace CADability.Actions
                 if (!done)
                 {
                     if (mode == Mode.NoAction) mode = Mode.TestDragRect;
-                    downPoint = new System.Drawing.Point(e.X, e.Y);
+                    downPoint = new Point(e.X, e.Y);
                     lastPoint = base.WorldPoint(e, vw);
                 }
                 else
@@ -1683,7 +1689,7 @@ namespace CADability.Actions
             }
             return false;
         }
-        internal override int GetInfoProviderIndex(System.Drawing.Point ScreenCursorPosition, IView View)
+        internal override int GetInfoProviderIndex(Point ScreenCursorPosition, IView View)
         {	// hier könnte man verschiedene Situationen regeln. z.Z. ist nur "Cursor Über Hotspot"
             // implementiert und wir liefern hier 1.
             if (lastCursorHotspot != null) return 1;

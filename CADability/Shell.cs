@@ -10,6 +10,13 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Wintellect.PowerCollections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.GeoObject
 {
@@ -437,8 +444,8 @@ namespace CADability.GeoObject
         {
 #if DEBUG
             GeoObjectList dbg = new GeoObjectList();
-            ColorDef cd1 = new Attribute.ColorDef("cd1", System.Drawing.Color.Red);
-            ColorDef cd2 = new Attribute.ColorDef("cd2", System.Drawing.Color.Blue);
+            ColorDef cd1 = new Attribute.ColorDef("cd1", Color.Red);
+            ColorDef cd2 = new Attribute.ColorDef("cd2", Color.Blue);
             Dictionary<SimpleShape, Face> dict = new Dictionary<SimpleShape, Face>();
 #endif
             BoundingRect ext = BoundingRect.EmptyBoundingRect;
@@ -598,8 +605,8 @@ namespace CADability.GeoObject
         {
 #if DEBUG
             GeoObjectList dbg = new GeoObjectList();
-            ColorDef cd1 = new Attribute.ColorDef("cd1", System.Drawing.Color.Red);
-            ColorDef cd2 = new Attribute.ColorDef("cd2", System.Drawing.Color.Blue);
+            ColorDef cd1 = new Attribute.ColorDef("cd1", Color.Red);
+            ColorDef cd2 = new Attribute.ColorDef("cd2", Color.Blue);
             Dictionary<SimpleShape, Face> dict = new Dictionary<SimpleShape, Face>();
 #endif
             BoundingRect ext = BoundingRect.EmptyBoundingRect;
@@ -958,7 +965,7 @@ namespace CADability.GeoObject
                 Set<Face> c = CollectFaces(fc, allFaces, maxbend);
                 connected.Add(c);
 
-                System.Drawing.Color clr = System.Drawing.Color.FromArgb((int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255));
+                Color clr = Color.FromArgb((int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255));
                 clrdbg += 1;
                 ColorDef cd = new ColorDef(clr.ToString(), clr);
                 foreach (Face fcc in c)
@@ -1440,7 +1447,7 @@ namespace CADability.GeoObject
                 Random rnd = new Random();
                 foreach (List<int> item in circleCluster)
                 {
-                    System.Drawing.Color clr = System.Drawing.Color.FromArgb((int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255));
+                    Color clr = Color.FromArgb((int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255));
                     ColorDef cd = new ColorDef(clr.ToString(), clr);
                     for (int i = 0; i < item.Count; i++)
                     {
@@ -2605,7 +2612,7 @@ namespace CADability.GeoObject
 #if DEBUG
             double ll = this.GetExtent(0.0).Size * 0.01;
             DebuggerContainer dc = new DebuggerContainer();
-            ColorDef cd = new ColorDef("debug", System.Drawing.Color.Red);
+            ColorDef cd = new ColorDef("debug", Color.Red);
             foreach (Face fc in faces)
             {
                 SimpleShape ss = fc.Area;
@@ -3088,8 +3095,8 @@ namespace CADability.GeoObject
                     double sor = pToRight * sfn;
 #if DEBUG
                     DebuggerContainer dccond = new CADability.DebuggerContainer();
-                    ColorDef cd1 = new ColorDef("red", System.Drawing.Color.Red);
-                    ColorDef cd2 = new ColorDef("blue", System.Drawing.Color.Blue);
+                    ColorDef cd1 = new ColorDef("red", Color.Red);
+                    ColorDef cd2 = new ColorDef("blue", Color.Blue);
                     Line l1 = Line.TwoPoints(edg.Curve3D.StartPoint, edg.Curve3D.StartPoint + pfn);
                     l1.ColorDef = cd1;
                     dccond.Add(l1);
@@ -3290,10 +3297,10 @@ namespace CADability.GeoObject
                         e4.SetPrimary(connectingFace, new Line2D(c2de1.EndPoint, c2de3.StartPoint), false);
 #if DEBUG
                         DebuggerContainer dco = new DebuggerContainer();
-                        dco.Add(e1.SecondaryCurve2D, System.Drawing.Color.Red, 1);
-                        dco.Add(e3.SecondaryCurve2D, System.Drawing.Color.Red, 3);
-                        dco.Add(e2.PrimaryCurve2D, System.Drawing.Color.Red, 2);
-                        dco.Add(e4.PrimaryCurve2D, System.Drawing.Color.Red, 4);
+                        dco.Add(e1.SecondaryCurve2D, Color.Red, 1);
+                        dco.Add(e3.SecondaryCurve2D, Color.Red, 3);
+                        dco.Add(e2.PrimaryCurve2D, Color.Red, 2);
+                        dco.Add(e4.PrimaryCurve2D, Color.Red, 4);
                         dce.Add(e2.Curve3D as IGeoObject, 22);
                         dce.Add(e4.Curve3D as IGeoObject, 44);
                         DebuggerContainer dcp = new DebuggerContainer();
@@ -3917,7 +3924,7 @@ namespace CADability.GeoObject
             get
             {
                 DebuggerContainer res = new DebuggerContainer();
-                ColorDef cd = new ColorDef("normal", System.Drawing.Color.BlueViolet);
+                ColorDef cd = new ColorDef("normal", Color.BlueViolet);
                 BoundingCube bc = this.GetExtent(0.1);
                 foreach (Face fc in Faces)
                 {
@@ -5694,7 +5701,7 @@ namespace CADability.GeoObject
             }
             if (Owner == null || (Owner is IColorDef && (Owner as IColorDef).ColorDef != colorDef))
             {
-                if (colorDef == null) colorDef = new ColorDef("Black", System.Drawing.Color.Black);
+                if (colorDef == null) colorDef = new ColorDef("Black", Color.Black);
                 colorDef.MakeStepStyle(cs, export);
             }
             if (topLevel)

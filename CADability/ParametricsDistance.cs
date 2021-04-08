@@ -4,6 +4,13 @@ using CADability.GeoObject;
 using CADability.Attribute;
 using System.Collections.Generic;
 using System;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability
 {
@@ -402,7 +409,7 @@ namespace CADability
         private bool OtherObject_MouseOverGeoObjectsEvent(GeoObjectInput sender, IGeoObject[] geoObjects, bool up)
         {   // we need to implement more cases here, resulting in faceToMove, faceToKeep (maybe null) and a reference point from where to calculate foot-points for the offset vector
 
-            Projection.PickArea pa = CurrentMouseView.Projection.GetPickSpace(new System.Drawing.Rectangle(sender.currentMousePoint.X - 5, sender.currentMousePoint.Y - 5, 10, 10));
+            Projection.PickArea pa = CurrentMouseView.Projection.GetPickSpace(new Rectangle(sender.currentMousePoint.X - 5, sender.currentMousePoint.Y - 5, 10, 10));
             for (int i = 0; i < geoObjects.Length; i++)
             {
                 double z = geoObjects[i].Position(pa.FrontCenter, pa.Direction, CurrentMouseView.Projection.Precision);

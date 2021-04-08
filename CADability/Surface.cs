@@ -6,6 +6,11 @@ using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using Wintellect.PowerCollections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
+using System.Drawing;
+#endif
 
 namespace CADability.GeoObject
 {
@@ -2394,8 +2399,8 @@ namespace CADability.GeoObject
                 }
                 length /= 50.0; // durchschnittliche Länge einer linie
                 length /= 25.0; // durchschnittliche Maschengröße
-                Attribute.ColorDef cdu = new Attribute.ColorDef("diru", System.Drawing.Color.Red);
-                Attribute.ColorDef cdv = new Attribute.ColorDef("dirv", System.Drawing.Color.Green);
+                Attribute.ColorDef cdu = new Attribute.ColorDef("diru", Color.Red);
+                Attribute.ColorDef cdv = new Attribute.ColorDef("dirv", Color.Green);
                 for (int i = 0; i <= n; i++)
                 {
                     for (int j = 0; j <= n; j++)
@@ -7113,7 +7118,7 @@ namespace CADability.GeoObject
                         Point pnt = Point.Construct();
                         pnt.Location = inPatch[i].p;
                         pnt.Symbol = PointSymbol.Cross;
-                        pnt.ColorDef = new CADability.Attribute.ColorDef("xxx", System.Drawing.Color.Black);
+                        pnt.ColorDef = new CADability.Attribute.ColorDef("xxx", Color.Black);
                         dc.Add(pnt);
                     }
                     uvplane.Inflate(1.0, 1.0);
@@ -7299,13 +7304,13 @@ namespace CADability.GeoObject
                     DebuggerContainer dc = new DebuggerContainer();
                     foreach (UVPatch uvp in allPatches)
                     {
-                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Left, uvp.extent.Bottom), new GeoPoint2D(uvp.extent.Right, uvp.extent.Bottom)), System.Drawing.Color.Blue, 0);
-                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Right, uvp.extent.Bottom), new GeoPoint2D(uvp.extent.Right, uvp.extent.Top)), System.Drawing.Color.Blue, 0);
-                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Right, uvp.extent.Top), new GeoPoint2D(uvp.extent.Left, uvp.extent.Top)), System.Drawing.Color.Blue, 0);
-                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Left, uvp.extent.Top), new GeoPoint2D(uvp.extent.Left, uvp.extent.Bottom)), System.Drawing.Color.Blue, 0);
+                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Left, uvp.extent.Bottom), new GeoPoint2D(uvp.extent.Right, uvp.extent.Bottom)), Color.Blue, 0);
+                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Right, uvp.extent.Bottom), new GeoPoint2D(uvp.extent.Right, uvp.extent.Top)), Color.Blue, 0);
+                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Right, uvp.extent.Top), new GeoPoint2D(uvp.extent.Left, uvp.extent.Top)), Color.Blue, 0);
+                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Left, uvp.extent.Top), new GeoPoint2D(uvp.extent.Left, uvp.extent.Bottom)), Color.Blue, 0);
                         if (uvp.point1 != null && uvp.point2 != null)
                         {
-                            dc.Add(new Line2D(uvp.point1.pSurface1, uvp.point2.pSurface1), System.Drawing.Color.Red, 0);
+                            dc.Add(new Line2D(uvp.point1.pSurface1, uvp.point2.pSurface1), Color.Red, 0);
                         }
                     }
                     return dc;
@@ -8332,8 +8337,8 @@ namespace CADability.GeoObject
             //double maxVloume = 0;
             //double avgVolume = 0;
             //DebuggerContainer[] dcs = new DebuggerContainer[allParEpis.Length];
-            //ColorDef cdGreen = new ColorDef("green", System.Drawing.Color.Green);
-            //ColorDef cdRed = new ColorDef("red", System.Drawing.Color.Red);
+            //ColorDef cdGreen = new ColorDef("green", Color.Green);
+            //ColorDef cdRed = new ColorDef("red", Color.Red);
             //Layer trnsp = new Layer("transparent");
             //trnsp.Transparency = 128;
             //Layer opq = new Layer("opaque");
@@ -10110,7 +10115,7 @@ namespace CADability.GeoObject
                         Point pnt = Point.Construct();
                         pnt.Location = inPatch[i].p;
                         pnt.Symbol = PointSymbol.Cross;
-                        pnt.ColorDef = new CADability.Attribute.ColorDef("xxx", System.Drawing.Color.Black);
+                        pnt.ColorDef = new CADability.Attribute.ColorDef("xxx", Color.Black);
                         dc.Add(pnt);
                     }
                     uvplane.Inflate(1.0, 1.0);
@@ -10300,13 +10305,13 @@ namespace CADability.GeoObject
                     DebuggerContainer dc = new DebuggerContainer();
                     foreach (UVPatch uvp in allPatches)
                     {
-                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Left, uvp.extent.Bottom), new GeoPoint2D(uvp.extent.Right, uvp.extent.Bottom)), System.Drawing.Color.Blue, 0);
-                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Right, uvp.extent.Bottom), new GeoPoint2D(uvp.extent.Right, uvp.extent.Top)), System.Drawing.Color.Blue, 0);
-                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Right, uvp.extent.Top), new GeoPoint2D(uvp.extent.Left, uvp.extent.Top)), System.Drawing.Color.Blue, 0);
-                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Left, uvp.extent.Top), new GeoPoint2D(uvp.extent.Left, uvp.extent.Bottom)), System.Drawing.Color.Blue, 0);
+                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Left, uvp.extent.Bottom), new GeoPoint2D(uvp.extent.Right, uvp.extent.Bottom)), Color.Blue, 0);
+                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Right, uvp.extent.Bottom), new GeoPoint2D(uvp.extent.Right, uvp.extent.Top)), Color.Blue, 0);
+                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Right, uvp.extent.Top), new GeoPoint2D(uvp.extent.Left, uvp.extent.Top)), Color.Blue, 0);
+                        dc.Add(new Line2D(new GeoPoint2D(uvp.extent.Left, uvp.extent.Top), new GeoPoint2D(uvp.extent.Left, uvp.extent.Bottom)), Color.Blue, 0);
                         if (uvp.point1 != null && uvp.point2 != null)
                         {
-                            dc.Add(new Line2D(uvp.point1.pSurface1, uvp.point2.pSurface1), System.Drawing.Color.Red, 0);
+                            dc.Add(new Line2D(uvp.point1.pSurface1, uvp.point2.pSurface1), Color.Red, 0);
                         }
                     }
                     return dc;
@@ -10821,8 +10826,8 @@ namespace CADability.GeoObject
             ICurve trcurve = curve.Clone();
             trcurve.Trim(spar, epar);
             dc.Add(trcurve as IGeoObject);
-            dc.Add(curvepoint, System.Drawing.Color.Red, 0);
-            dc.Add(loc, System.Drawing.Color.Green, 1);
+            dc.Add(curvepoint, Color.Red, 0);
+            dc.Add(loc, Color.Green, 1);
 #endif
             ip = new GeoPoint(loc, curvepoint);
             while (error > 0) // Math.Max(Precision.eps, loc.Size * 1e-6))
@@ -11573,8 +11578,8 @@ namespace CADability.GeoObject
                 Layer transparent = new Layer("Transparent");
                 transparent.Transparency = 100;
                 Layer solid = new Layer("Solid");
-                ColorDef cd = new ColorDef("Green", System.Drawing.Color.Green);
-                ColorDef cdr = new ColorDef("Red", System.Drawing.Color.Red);
+                ColorDef cd = new ColorDef("Green", Color.Green);
+                ColorDef cdr = new ColorDef("Red", Color.Red);
                 for (int i = 0; i < all.Length; ++i)
                 {
                     try
@@ -12087,23 +12092,23 @@ namespace CADability.GeoObject
                 DebuggerContainer dc3d2 = new DebuggerContainer();
                 foreach (double u in uVal1)
                 {
-                    dcuv1.Add(new Line2D(new GeoPoint2D(u, vVal1.Min), new GeoPoint2D(u, vVal1.Max)), System.Drawing.Color.Black, 1);
-                    dc3d1.Add(surface.FixedU(u, vVal1.Min, vVal1.Max) as IGeoObject, System.Drawing.Color.Black);
+                    dcuv1.Add(new Line2D(new GeoPoint2D(u, vVal1.Min), new GeoPoint2D(u, vVal1.Max)), Color.Black, 1);
+                    dc3d1.Add(surface.FixedU(u, vVal1.Min, vVal1.Max) as IGeoObject, Color.Black);
                 }
                 foreach (double v in vVal1)
                 {
-                    dcuv1.Add(new Line2D(new GeoPoint2D(uVal1.Min, v), new GeoPoint2D(uVal1.Max, v)), System.Drawing.Color.Black, 1);
-                    dc3d1.Add(surface.FixedV(v, uVal1.Min, uVal1.Max) as IGeoObject, System.Drawing.Color.Black);
+                    dcuv1.Add(new Line2D(new GeoPoint2D(uVal1.Min, v), new GeoPoint2D(uVal1.Max, v)), Color.Black, 1);
+                    dc3d1.Add(surface.FixedV(v, uVal1.Min, uVal1.Max) as IGeoObject, Color.Black);
                 }
                 foreach (double u in uVal2)
                 {
-                    dcuv2.Add(new Line2D(new GeoPoint2D(u, vVal2.Min), new GeoPoint2D(u, vVal2.Max)), System.Drawing.Color.Black, 1);
-                    dc3d2.Add(other.FixedU(u, vVal2.Min, vVal2.Max) as IGeoObject, System.Drawing.Color.Black);
+                    dcuv2.Add(new Line2D(new GeoPoint2D(u, vVal2.Min), new GeoPoint2D(u, vVal2.Max)), Color.Black, 1);
+                    dc3d2.Add(other.FixedU(u, vVal2.Min, vVal2.Max) as IGeoObject, Color.Black);
                 }
                 foreach (double v in vVal2)
                 {
-                    dcuv2.Add(new Line2D(new GeoPoint2D(uVal2.Min, v), new GeoPoint2D(uVal2.Max, v)), System.Drawing.Color.Black, 1);
-                    dc3d2.Add(other.FixedV(v, uVal2.Min, uVal2.Max) as IGeoObject, System.Drawing.Color.Black);
+                    dcuv2.Add(new Line2D(new GeoPoint2D(uVal2.Min, v), new GeoPoint2D(uVal2.Max, v)), Color.Black, 1);
+                    dc3d2.Add(other.FixedV(v, uVal2.Min, uVal2.Max) as IGeoObject, Color.Black);
                 }
 #endif
                 Set<LinkedIntersectionPoint> allIps = new Set<LinkedIntersectionPoint>();
@@ -12198,16 +12203,16 @@ namespace CADability.GeoObject
                         if (lip.dir1.IsNullVector())
                         {
                             Circle2D c2d = new Circle2D(lip.uv1, d1);
-                            dcuv1.Add(c2d, System.Drawing.Color.Red, lip.id);
+                            dcuv1.Add(c2d, Color.Red, lip.id);
                             c2d = new Circle2D(lip.uv2, d2);
-                            dcuv2.Add(c2d, System.Drawing.Color.Blue, lip.id);
+                            dcuv2.Add(c2d, Color.Blue, lip.id);
                         }
                         else
                         {
                             Line2D l2d = new Line2D(lip.uv1, lip.uv1 + d1 * lip.dir1.Normalized);
-                            dcuv1.Add(l2d, System.Drawing.Color.Red, lip.id);
+                            dcuv1.Add(l2d, Color.Red, lip.id);
                             l2d = new Line2D(lip.uv2, lip.uv2 + d2 * lip.dir2.Normalized);
-                            dcuv2.Add(l2d, System.Drawing.Color.Blue, lip.id);
+                            dcuv2.Add(l2d, Color.Blue, lip.id);
                         }
                     }
                     if ((lip.mode & LinkedIntersectionPoint.emode.in2) != 0)
@@ -12215,16 +12220,16 @@ namespace CADability.GeoObject
                         if (lip.dir2.IsNullVector())
                         {
                             Circle2D c2d = new Circle2D(lip.uv2, d2);
-                            dcuv2.Add(c2d, System.Drawing.Color.Red, lip.id);
+                            dcuv2.Add(c2d, Color.Red, lip.id);
                             c2d = new Circle2D(lip.uv1, d1);
-                            dcuv1.Add(c2d, System.Drawing.Color.Blue, lip.id);
+                            dcuv1.Add(c2d, Color.Blue, lip.id);
                         }
                         else
                         {
                             Line2D l2d = new Line2D(lip.uv2, lip.uv2 + d2 * lip.dir2.Normalized);
-                            dcuv2.Add(l2d, System.Drawing.Color.Red, lip.id);
+                            dcuv2.Add(l2d, Color.Red, lip.id);
                             l2d = new Line2D(lip.uv1, lip.uv1 + d1 * lip.dir1.Normalized);
-                            dcuv1.Add(l2d, System.Drawing.Color.Blue, lip.id);
+                            dcuv1.Add(l2d, Color.Blue, lip.id);
                         }
                     }
                     if ((lip.mode & LinkedIntersectionPoint.emode.seed) != 0)
@@ -12232,16 +12237,16 @@ namespace CADability.GeoObject
                         if (lip.dir2.IsNullVector())
                         {
                             Circle2D c2d = new Circle2D(lip.uv2, d2);
-                            dcuv2.Add(c2d, System.Drawing.Color.Green, lip.id);
+                            dcuv2.Add(c2d, Color.Green, lip.id);
                             c2d = new Circle2D(lip.uv1, d1);
-                            dcuv1.Add(c2d, System.Drawing.Color.Green, lip.id);
+                            dcuv1.Add(c2d, Color.Green, lip.id);
                         }
                         else
                         {
                             Line2D l2d = new Line2D(lip.uv2, lip.uv2 + d2 * lip.dir2.Normalized);
-                            dcuv2.Add(l2d, System.Drawing.Color.Green, lip.id);
+                            dcuv2.Add(l2d, Color.Green, lip.id);
                             l2d = new Line2D(lip.uv1, lip.uv1 + d1 * lip.dir1.Normalized);
-                            dcuv1.Add(l2d, System.Drawing.Color.Green, lip.id);
+                            dcuv1.Add(l2d, Color.Green, lip.id);
                         }
 
                     }
@@ -12904,7 +12909,7 @@ namespace CADability.GeoObject
                     //    if (lip.next1 != null)
                     //    {
                     //        Line2D l2d = new Line2D(lip.uv1, lip.next1.uv1);
-                    //        dcuv1.Add(l2d, System.Drawing.Color.Black, lip.id);
+                    //        dcuv1.Add(l2d, Color.Black, lip.id);
                     //    }
                     //}
                     //if ((lip.mode & LinkedIntersectionPoint.emode.in2) != 0)
@@ -12912,7 +12917,7 @@ namespace CADability.GeoObject
                     //    if (lip.next2 != null)
                     //    {
                     //        Line2D l2d = new Line2D(lip.uv2, lip.next2.uv2);
-                    //        dcuv2.Add(l2d, System.Drawing.Color.Black, lip.id);
+                    //        dcuv2.Add(l2d, Color.Black, lip.id);
                     //    }
                     //}
                 }
@@ -12936,8 +12941,8 @@ namespace CADability.GeoObject
                     {
                         Polyline pl = Polyline.Construct();
                         pl.SetPoints(points.ToArray(), isClosed);
-                        dc3d1.Add(pl, System.Drawing.Color.Red);
-                        dc3d2.Add(pl, System.Drawing.Color.Red);
+                        dc3d1.Add(pl, Color.Red);
+                        dc3d2.Add(pl, Color.Red);
                     }
                 }
                 //List<LinkedIntersectionPoint> spon1 = new List<GeoObject.BoxedSurfaceEx.LinkedIntersectionPoint>();
@@ -12947,12 +12952,12 @@ namespace CADability.GeoObject
                 //    if (lip.next1 != null)
                 //    {
                 //        Line2D l2d = new Line2D(lip.uv1, lip.next1.uv1);
-                //        dcuv1.Add(l2d.Trim(0.0, 0.9), System.Drawing.Color.Orange, 1);
+                //        dcuv1.Add(l2d.Trim(0.0, 0.9), Color.Orange, 1);
                 //    }
                 //    if (lip.next2 != null)
                 //    {
                 //        Line2D l2d = new Line2D(lip.uv2, lip.next2.uv2);
-                //        dcuv2.Add(l2d.Trim(0.0, 0.9), System.Drawing.Color.Orange, 1);
+                //        dcuv2.Add(l2d.Trim(0.0, 0.9), Color.Orange, 1);
                 //    }
                 //}
 #endif
@@ -13284,8 +13289,8 @@ namespace CADability.GeoObject
             }
 #if DEBUG
             DebuggerContainer dccrv = new DebuggerContainer();
-            ColorDef cdt = new ColorDef("this", System.Drawing.Color.Red);
-            ColorDef cdo = new ColorDef("other", System.Drawing.Color.Blue);
+            ColorDef cdt = new ColorDef("this", Color.Red);
+            ColorDef cdo = new ColorDef("other", Color.Blue);
             foreach (double u in uVal)
             {
                 ICurve crv = this.surface.FixedU(u, thisBounds.Bottom, thisBounds.Top);
@@ -13316,10 +13321,10 @@ namespace CADability.GeoObject
             // man kann in beiden uv-Systemen sortieren, hier erstmal quick and dirty
 #if DEBUG
             DebuggerContainer dc0 = new DebuggerContainer();
-            ColorDef green = new ColorDef("green", System.Drawing.Color.Green);
-            ColorDef red = new ColorDef("red", System.Drawing.Color.Red);
-            ColorDef blue = new ColorDef("blue", System.Drawing.Color.Blue);
-            ColorDef black = new ColorDef("black", System.Drawing.Color.Black);
+            ColorDef green = new ColorDef("green", Color.Green);
+            ColorDef red = new ColorDef("red", Color.Red);
+            ColorDef blue = new ColorDef("blue", Color.Blue);
+            ColorDef black = new ColorDef("black", Color.Black);
             GeoObjectList lst = Debug.toShow;
             for (int i = 0; i < lst.Count; i++)
             {
@@ -13743,7 +13748,7 @@ namespace CADability.GeoObject
             dc.Add(fc2);
             for (int i = 0; i < res.Count; i++)
             {
-                dc.Add(res[i].p3d, System.Drawing.Color.Blue, i);
+                dc.Add(res[i].p3d, Color.Blue, i);
             }
 #endif
             // in res müsste man identische entfernen, solche, die ge nau auf Ecken der Patches fallen

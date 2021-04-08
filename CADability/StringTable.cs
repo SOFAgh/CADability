@@ -60,20 +60,23 @@ namespace CADability.UserInterface
 
 
             int pos = ThisAssembly.Location.LastIndexOf('\\');
-            string cd = ThisAssembly.Location.Substring(0, pos);
-            string[] xmlfiles = System.IO.Directory.GetFiles(cd, "CADability.StringTable.*.xml");
-            foreach (string filename in xmlfiles)
-            {
-                try
+            if (pos > 0)
+            {   // in WebAssemby there is no Location
+                string cd = ThisAssembly.Location.Substring(0, pos);
+                string[] xmlfiles = System.IO.Directory.GetFiles(cd, "CADability.StringTable.*.xml");
+                foreach (string filename in xmlfiles)
                 {
-                    FileStream stream = File.Open(filename, FileMode.Open);
-                    XmlDocument doc = new XmlDocument();
-                    doc.Load(stream);
-                    AddStrings(doc);
-                }
-                catch (Exception e)
-                {
-                    if (e is ThreadAbortException) throw (e);
+                    try
+                    {
+                        FileStream stream = File.Open(filename, FileMode.Open);
+                        XmlDocument doc = new XmlDocument();
+                        doc.Load(stream);
+                        AddStrings(doc);
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is ThreadAbortException) throw (e);
+                    }
                 }
             }
             AddString("deutsch", "MenuId.ToggleDebugFlag", Category.label, "Debug Flag");

@@ -9,6 +9,13 @@ using System.Linq;
 using System.Text;
 using Wintellect.PowerCollections;
 using static CADability.Actions.SelectObjectsAction;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability
 {
@@ -37,13 +44,13 @@ namespace CADability
                     ShowContextMenu(e.Location, vw);
             }
         }
-        private void ShowContextMenu(System.Drawing.Point mousePoint, IView vw)
+        private void ShowContextMenu(Point mousePoint, IView vw)
         {
             currentView = vw;
             GeoObjectList result = new GeoObjectList();
 
             int pickRadius = soa.Frame.GetIntSetting("Select.PickRadius", 5);
-            Projection.PickArea pa = vw.Projection.GetPickSpace(new System.Drawing.Rectangle(mousePoint.X - pickRadius, mousePoint.Y - pickRadius, pickRadius * 2, pickRadius * 2));
+            Projection.PickArea pa = vw.Projection.GetPickSpace(new Rectangle(mousePoint.X - pickRadius, mousePoint.Y - pickRadius, pickRadius * 2, pickRadius * 2));
             IActionInputView pm = vw as IActionInputView;
             GeoObjectList fl = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.onlyFaces, null); // returns all the face under the cursor
             // in most cases there is only a single face, which is of interest, only when we have two solids with same or overlapping faces
@@ -443,10 +450,10 @@ namespace CADability
             }
         }
 
-        private void OnRepaintSelect(System.Drawing.Rectangle IsInvalid, IView View, IPaintTo3D PaintToSelect)
+        private void OnRepaintSelect(Rectangle IsInvalid, IView View, IPaintTo3D PaintToSelect)
         {
             PaintToSelect.SelectMode = true;
-            PaintToSelect.SelectColor = System.Drawing.Color.Yellow;
+            PaintToSelect.SelectColor = Color.Yellow;
             int wobbleWidth = 3;
             if ((PaintToSelect.Capabilities & PaintCapabilities.ZoomIndependentDisplayList) != 0)
             {
@@ -513,7 +520,7 @@ namespace CADability
             return true;
         }
 
-        private void ShowContextMenu(System.Drawing.Point pos)
+        private void ShowContextMenu(Point pos)
         {
         }
     }

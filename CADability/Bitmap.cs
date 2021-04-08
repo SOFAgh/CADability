@@ -4,7 +4,13 @@ using CADability.Shapes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Runtime.Serialization;
@@ -200,6 +206,7 @@ namespace CADability.GeoObject
         /// <param name="shape">The shape for the clip operation</param>
         public void Clip(Plane plane, CompoundShape shape)
         {
+#if !WEBASSEMBLY
             Plane pln = new Plane(location, directionWidth, directionHeight);
             CompoundShape prsh = shape.Project(plane, pln);
             ModOp2D m = ModOp2D.Scale(bitmap.Width / directionWidth.Length, -bitmap.Height / directionHeight.Length);
@@ -217,13 +224,14 @@ namespace CADability.GeoObject
                 graphics.DrawImage(clone, new System.Drawing.Point(0, 0));
                 graphics.Dispose();
             }
+#endif
         }
 
         public void SetBitmapNoUndo(Bitmap bmp)
         {
             bitmap = bmp;
         }
-        #region IGeoObject override
+#region IGeoObject override
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.Modify (ModOp)"/>
         /// </summary>
@@ -443,9 +451,9 @@ namespace CADability.GeoObject
             }
         }
         public override Style.EDefaultFor PreferredStyle => Style.EDefaultFor.Text;
-        #endregion
+#endregion
 
-        #region ISerializable Members
+#region ISerializable Members
         protected Picture(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
@@ -464,7 +472,7 @@ namespace CADability.GeoObject
             info.AddValue("DirectionHeight", directionHeight);
             info.AddValue("Path", path);
         }
-        #endregion
+#endregion
         internal static Bitmap CopyFrom(string filePath)
         {
             //open file from the disk (file path is the path to the file to be opened)
@@ -573,7 +581,7 @@ namespace CADability.GeoObject
             frame.SetAction(gpa);
         }
 
-        #region IShowProperty overrides
+#region IShowProperty overrides
         private void OnGeoObjectDidChange(IGeoObject Sender, GeoObjectChange Change)
         {	// wird bei Änderungen der Geometrie aufgerufen, Abgleich der Anzeigen
             location.Refresh();
@@ -759,8 +767,8 @@ namespace CADability.GeoObject
                 return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
             }
         }
-        #endregion
-        #region ICommandHandler Members
+#endregion
+#region ICommandHandler Members
         bool ICommandHandler.OnCommand(string MenuId)
         {
             switch (MenuId)
@@ -768,7 +776,7 @@ namespace CADability.GeoObject
                 case "MenuId.Picture.Path.Reload":
                     try
                     {
-                        System.Drawing.Bitmap pix = new System.Drawing.Bitmap(picture.Path);
+                        Bitmap pix = new Bitmap(picture.Path);
                         picture.Bitmap = pix;
                     }
                     catch (Exception e)
@@ -784,7 +792,7 @@ namespace CADability.GeoObject
                         {
                             try
                             {
-                                System.Drawing.Bitmap pix = new System.Drawing.Bitmap(fileName);
+                                Bitmap pix = new Bitmap(fileName);
                                 picture.Bitmap = pix;
                                 picture.Path = fileName;
                             }
@@ -812,8 +820,8 @@ namespace CADability.GeoObject
             return false;
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
-        #endregion
-        #region IGeoObjectShowProperty Members
+#endregion
+#region IGeoObjectShowProperty Members
 
         event CreateContextMenueDelegate IGeoObjectShowProperty.CreateContextMenueEvent
         {
@@ -832,8 +840,8 @@ namespace CADability.GeoObject
             throw new Exception("The method or operation is not implemented.");
         }
 
-        #endregion
-        #region IDisplayHotSpots Members
+#endregion
+#region IDisplayHotSpots Members
         public event CADability.HotspotChangedDelegate HotspotChangedEvent;
         /// <summary>
         /// Implements <see cref="CADability.IDisplayHotSpots.ReloadProperties ()"/>
@@ -846,7 +854,7 @@ namespace CADability.GeoObject
             base.propertyTreeView.Refresh(this);
         }
 
-        #endregion
+#endregion
 
     }
 }

@@ -4,7 +4,11 @@ using CADability.GeoObject;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
 using System.Drawing;
+#endif
 using System.Runtime.Serialization;
 using Wintellect.PowerCollections;
 

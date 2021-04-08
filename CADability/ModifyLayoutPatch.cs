@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !WEBASSEMBLY
+using System;
 using System.Drawing;
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
 using DragEventArgs = CADability.Substitutes.DragEventArgs;
@@ -25,7 +26,7 @@ namespace CADability.Actions
             this.layoutPatch = layoutPatch;
             base.OnlyThisView = layoutView; // nur für diesen view wird gearbeitet
         }
-        #region Action members
+#region Action members
         public override string GetID()
         {
             return "ModifyLayoutPatch";
@@ -190,3 +191,4 @@ namespace CADability.Actions
         }
     }
 }
+#endif

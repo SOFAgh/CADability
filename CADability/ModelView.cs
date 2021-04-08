@@ -5,7 +5,6 @@ using CADability.Substitutes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using Wintellect.PowerCollections;
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
@@ -15,6 +14,13 @@ using DragDropEffects = CADability.Substitutes.DragDropEffects;
 using Keys = CADability.Substitutes.Keys;
 using PaintEventArgs = CADability.Substitutes.PaintEventArgs;
 using CheckState = CADability.Substitutes.CheckState;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability
 {
@@ -35,7 +41,7 @@ namespace CADability
     public interface ICanvas
     {
         void Invalidate();
-        Rectangle ClientRectangle { get; } // yes, System.drawing.rectangle is part of .NET Core 1.0
+        Rectangle ClientRectangle { get; } // yes, rectangle is part of .NET Core 1.0
         IFrame Frame { get; }
         /// <summary>
         /// Sets the cursor defined by the provided id
@@ -62,13 +68,13 @@ namespace CADability
         /// </summary>
         /// <param name="mousePosition"></param>
         /// <returns></returns>
-        System.Drawing.Point PointToClient(System.Drawing.Point mousePosition);
+        Point PointToClient(Point mousePosition);
         /// <summary>
         /// Shows the provided <paramref name="contextMenu"/> at the provided <paramref name="viewPosition"/> on this canvas
         /// </summary>
         /// <param name="contextMenu"></param>
         /// <param name="viewPosition"></param>
-        void ShowContextMenu(MenuWithHandler[] contextMenu, System.Drawing.Point viewPosition, System.Action<int> collapsed = null);
+        void ShowContextMenu(MenuWithHandler[] contextMenu, Point viewPosition, System.Action<int> collapsed = null);
         DragDropEffects DoDragDrop(GeoObjectList dragList, DragDropEffects all);
         /// <summary>
         /// Show a tooltip with the provided text.
@@ -92,9 +98,9 @@ namespace CADability
         void RemovePaintHandler(PaintBuffer.DrawingAspect aspect, PaintView PaintHandler);
         Rectangle DisplayRectangle { get; }
         void ZoomToRect(BoundingRect World2D);
-        SnapPointFinder.DidSnapModes AdjustPoint(System.Drawing.Point MousePoint, out GeoPoint WorldPoint, GeoObjectList ToIgnore);
-        SnapPointFinder.DidSnapModes AdjustPoint(GeoPoint BasePoint, System.Drawing.Point MousePoint, out GeoPoint WorldPoint, GeoObjectList ToIgnore);
-        GeoObjectList PickObjects(System.Drawing.Point MousePoint, PickMode pickMode);
+        SnapPointFinder.DidSnapModes AdjustPoint(Point MousePoint, out GeoPoint WorldPoint, GeoObjectList ToIgnore);
+        SnapPointFinder.DidSnapModes AdjustPoint(GeoPoint BasePoint, Point MousePoint, out GeoPoint WorldPoint, GeoObjectList ToIgnore);
+        GeoObjectList PickObjects(Point MousePoint, PickMode pickMode);
         IGeoObject LastSnapObject { get; }
         SnapPointFinder.DidSnapModes LastSnapMode { get; }
 
@@ -402,7 +408,7 @@ namespace CADability
         private BlockRef dragBlock; // ein Symbol wird aus der Bibliothek per DragDrop plaziert
         public delegate void DisplayChangedDelegate(object sender, DisplayChangeArg displayChangeArg);
         public event DisplayChangedDelegate DisplayChangedEvent;
-        private System.Drawing.Point lastPanPosition;
+        private Point lastPanPosition;
         static int dbg = 0; // nur debug!
         private int dbgcnt;
         public ModelView(Project project)
@@ -578,7 +584,7 @@ namespace CADability
                     }
                     // Fixpunkt bestimmen
                     Rectangle clientRect = canvas.ClientRectangle;
-                    System.Drawing.Point clcenter = clientRect.Location;
+                    Point clcenter = clientRect.Location;
                     clcenter.X += clientRect.Width / 2;
                     clcenter.Y += clientRect.Height / 2;
                     SetViewDirection(pr, Projection.UnProject(clcenter), false);
@@ -832,15 +838,15 @@ namespace CADability
             if (Frame != null)
                 bckgnd = Frame.GetColorSetting("Colors.Background", Color.AliceBlue);
             Color infocolor;
-            if (bckgnd.GetBrightness() > 0.5) infocolor = System.Drawing.Color.Black;
-            else infocolor = System.Drawing.Color.White;
+            if (bckgnd.GetBrightness() > 0.5) infocolor = Color.Black;
+            else infocolor = Color.White;
             if (displayCoordCross)
             {
                 PaintCoordCross(PaintToBackground, pr, infocolor, Plane.XYPlane, false);
                 if (!Precision.IsEqual(pr.DrawingPlane.Location, GeoPoint.Origin))
                 {
-                    if (bckgnd.GetBrightness() > 0.5) infocolor = System.Drawing.Color.DarkGray;
-                    else infocolor = System.Drawing.Color.LightGray;
+                    if (bckgnd.GetBrightness() > 0.5) infocolor = Color.DarkGray;
+                    else infocolor = Color.LightGray;
                     PaintCoordCross(PaintToBackground, pr, infocolor, pr.DrawingPlane, true);
                 }
             }
@@ -922,7 +928,7 @@ namespace CADability
             if (doScroll)
             {
                 canvas.Cursor = "SizeAll";
-                lastPanPosition = new System.Drawing.Point(e.X, e.Y);
+                lastPanPosition = new Point(e.X, e.Y);
             }
             canvas.Frame.ActiveView = this;
             canvas.Frame.ActionStack.OnMouseDown(e, this);
@@ -975,7 +981,7 @@ namespace CADability
                 {
                     if (DisplayChangedEvent != null) DisplayChangedEvent(this, new DisplayChangeArg(DisplayChangeArg.Reasons.ScrollDown));
                 }
-                lastPanPosition = new System.Drawing.Point(e.X, e.Y);
+                lastPanPosition = new Point(e.X, e.Y);
             }
             if (doDirection) // && paintToOpenGl != null)
             {
@@ -986,7 +992,7 @@ namespace CADability
                     //if (Math.Abs(VOffset) > Math.Abs(HOffset)) HOffset = 0;
                     //else VOffset = 0;
                     // bringt keine Vorteile
-                    lastPanPosition = new System.Drawing.Point(e.X, e.Y);
+                    lastPanPosition = new Point(e.X, e.Y);
                     if (distance == 0.0)
                     {
                         GeoVector haxis = Projection.InverseProjection * GeoVector.XAxis;
@@ -1034,7 +1040,7 @@ namespace CADability
                             }
                         }
                         // Fixpunkt bestimmen
-                        System.Drawing.Point clcenter = canvas.ClientRectangle.Location;
+                        Point clcenter = canvas.ClientRectangle.Location;
                         clcenter.X += canvas.ClientRectangle.Width / 2;
                         clcenter.Y += canvas.ClientRectangle.Height / 2;
                         // ium Folgenden ist Temporary auf true zu setzen und ein Mechanismus zu finden
@@ -1157,7 +1163,7 @@ namespace CADability
             else if (e.Delta < 0) Factor = mouseWheelZoomFactor;
             else return;
             BoundingRect rct = GetVisibleBoundingRect();
-            System.Drawing.Point p = new System.Drawing.Point(e.X, e.Y);
+            Point p = new Point(e.X, e.Y);
             p = canvas.PointToClient(Frame.UIService.CurrentMousePosition);
             GeoPoint2D p2 = this.Projection.PointWorld2D(p);
             rct.Right = p2.x + (rct.Right - p2.x) * Factor;
@@ -1176,8 +1182,8 @@ namespace CADability
         {
             double Factor = f;
             BoundingRect rct = GetVisibleBoundingRect();
-            System.Drawing.Rectangle clr = canvas.ClientRectangle;
-            System.Drawing.Point p = new System.Drawing.Point((clr.Left + clr.Right) / 2, (clr.Bottom + clr.Top) / 2);
+            Rectangle clr = canvas.ClientRectangle;
+            Point p = new Point((clr.Left + clr.Right) / 2, (clr.Bottom + clr.Top) / 2);
             GeoPoint2D p2 = this.Projection.PointWorld2D(p);
             rct.Right = p2.x + (rct.Right - p2.x) * Factor;
             rct.Left = p2.x + (rct.Left - p2.x) * Factor;
@@ -1196,7 +1202,7 @@ namespace CADability
                     drgevent.Effect = DragDropEffects.Move;
                 else
                     drgevent.Effect = DragDropEffects.Copy;
-                System.Drawing.Point p = canvas.PointToClient(new System.Drawing.Point(drgevent.X, drgevent.Y));
+                Point p = canvas.PointToClient(new Point(drgevent.X, drgevent.Y));
                 GeoPoint newRefGP = projectedModel.Projection.DrawingPlanePoint(p);
                 Block toDrop = dragBlock.ReferencedBlock;
                 ModOp mop = ModOp.Translate(newRefGP - toDrop.RefPoint);
@@ -1277,7 +1283,7 @@ namespace CADability
                 }
                 dragBlock = BlockRef.Construct(bl);
                 // neue Position ausrechnen
-                System.Drawing.Point p = canvas.PointToClient(new System.Drawing.Point(drgevent.X, drgevent.Y));
+                Point p = canvas.PointToClient(new Point(drgevent.X, drgevent.Y));
                 GeoPoint newRefGP = projectedModel.Projection.DrawingPlanePoint(p);
 
                 ModOp mop = ModOp.Translate(newRefGP - dragBlock.RefPoint);
@@ -1296,7 +1302,7 @@ namespace CADability
             //if (FrameInternal.FilterDragOver(drgevent)) return;
             if (dragBlock != null)
             {
-                System.Drawing.Point p = canvas.PointToClient(new System.Drawing.Point(drgevent.X, drgevent.Y));
+                Point p = canvas.PointToClient(new Point(drgevent.X, drgevent.Y));
                 GeoPoint newRefGP = projectedModel.Projection.DrawingPlanePoint(p);
                 ModOp mop = ModOp.Translate(newRefGP - dragBlock.RefPoint);
                 dragBlock.Modify(mop);
@@ -1422,7 +1428,7 @@ namespace CADability
             (this as IView).Invalidate(PaintBuffer.DrawingAspect.All, DisplayRectangle);
             RecalcScrollPosition();
         }
-        SnapPointFinder.DidSnapModes IView.AdjustPoint(System.Drawing.Point MousePoint, out GeoPoint WorldPoint, GeoObjectList ToIgnore)
+        SnapPointFinder.DidSnapModes IView.AdjustPoint(Point MousePoint, out GeoPoint WorldPoint, GeoObjectList ToIgnore)
         {
             SnapPointFinder spf = new SnapPointFinder();
             spf.FilterList = this.Frame.Project.FilterList;
@@ -1440,7 +1446,7 @@ namespace CADability
             lastSnapMode = spf.DidSnap;
             return spf.DidSnap;
         }
-        SnapPointFinder.DidSnapModes IView.AdjustPoint(GeoPoint BasePoint, System.Drawing.Point MousePoint, out GeoPoint WorldPoint, GeoObjectList ToIgnore)
+        SnapPointFinder.DidSnapModes IView.AdjustPoint(GeoPoint BasePoint, Point MousePoint, out GeoPoint WorldPoint, GeoObjectList ToIgnore)
         {
             SnapPointFinder spf = new SnapPointFinder();
             spf.FilterList = this.Frame.Project.FilterList;
@@ -1458,7 +1464,7 @@ namespace CADability
             lastSnapMode = spf.DidSnap;
             return spf.DidSnap;
         }
-        GeoObjectList IView.PickObjects(System.Drawing.Point MousePoint, PickMode pickMode)
+        GeoObjectList IView.PickObjects(Point MousePoint, PickMode pickMode)
         {
             Projection.PickArea pa = Projection.GetPickSpace(new Rectangle(MousePoint.X - 5, MousePoint.Y - 5, 10, 10));
             return Model.GetObjectsFromRect(pa, new Set<Layer>(projectedModel.GetVisibleLayers()), pickMode, null);
@@ -1895,14 +1901,14 @@ namespace CADability
             }
         }
 
-        public void SetViewPosition(System.Drawing.Point lastMousePosition, System.Drawing.Point currentMousePosition)
+        public void SetViewPosition(Point lastMousePosition, Point currentMousePosition)
         {
             int HOffset = currentMousePosition.X - lastMousePosition.X;
             int VOffset = currentMousePosition.Y - lastMousePosition.Y;
             if (VOffset != 0 || HOffset != 0)
             {
 
-                lastMousePosition = new System.Drawing.Point(currentMousePosition.X, currentMousePosition.Y);
+                lastMousePosition = new Point(currentMousePosition.X, currentMousePosition.Y);
                 GeoVector haxis = Projection.InverseProjection * GeoVector.XAxis;
                 GeoVector vaxis = Projection.InverseProjection * GeoVector.YAxis;
                 ModOp mh = ModOp.Rotate(vaxis, SweepAngle.Deg(HOffset / 5.0));
@@ -1948,7 +1954,7 @@ namespace CADability
                     }
                 }
                 // Fixpunkt bestimmen
-                System.Drawing.Point clcenter = canvas.ClientRectangle.Location;
+                Point clcenter = canvas.ClientRectangle.Location;
                 clcenter.X += canvas.ClientRectangle.Width / 2;
                 clcenter.Y += canvas.ClientRectangle.Height / 2;
                 // ium Folgenden ist Temporary auf true zu setzen und ein Mechanismus zu finden

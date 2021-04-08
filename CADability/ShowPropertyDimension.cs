@@ -3,6 +3,13 @@ using CADability.GeoObject;
 using System;
 using System.Collections.Generic;
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.UserInterface
 {
@@ -773,7 +780,7 @@ namespace CADability.UserInterface
         {
             if (!handled && propertyTreeView != null)
             {
-                GeoPoint dp = vw.Projection.DrawingPlanePoint(new System.Drawing.Point(e.X, e.Y));
+                GeoPoint dp = vw.Projection.DrawingPlanePoint(new Point(e.X, e.Y));
                 int index;
                 Dimension.HitPosition hp = dimension.GetHitPosition(vw.Projection, vw.Projection.ProjectUnscaled(dp), out index);
                 if ((hp & Dimension.HitPosition.Text) != 0)

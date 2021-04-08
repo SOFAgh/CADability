@@ -3,13 +3,19 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <BuildDocFx Condition=" '$(Configuration)'!='RelWithDoc' ">false</BuildDocFx>
-    <Configurations>Debug;Release;RelWithDoc</Configurations>
+    <Configurations>Debug;Release;RelWithDoc;WebDebug</Configurations>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, USENONPRIODICSURFACES</DefineConstants>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WebDebug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>TRACE;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES, WEBASSEMBLY</DefineConstants>
+  </PropertyGroup>
+
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -20,7 +26,19 @@
     <DocumentationFile></DocumentationFile>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
+<ItemGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>xPARALLEL, xTESTNEWCONTEXTMENU</DefineConstants>
     <Optimize>false</Optimize>

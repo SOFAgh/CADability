@@ -1,4 +1,5 @@
-﻿using CADability.Attribute;
+﻿#if !WEBASSEMBLY
+using CADability.Attribute;
 using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
@@ -147,7 +148,7 @@ namespace CADability
             }
         }
 
-        #region IShowProperty
+#region IShowProperty
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
@@ -274,8 +275,8 @@ namespace CADability
                 return subEntries;
             }
         }
-        #endregion
-        #region ICondorViewInternal Members
+#endregion
+#region ICondorViewInternal Members
         private ICanvas canvas;
         void IView.Connect(ICanvas canvas)
         {
@@ -495,8 +496,8 @@ namespace CADability
             // TODO:  Add LayoutView.GetInfoProviderVerticalPosition implementation
             return 0;
         }
-        #endregion
-        #region IView Members
+#endregion
+#region IView Members
         ProjectedModel IView.ProjectedModel
         {
             get
@@ -759,8 +760,8 @@ namespace CADability
         bool IView.AllowDrag => throw new NotImplementedException();
 
         bool IView.AllowContextMenu => throw new NotImplementedException();
-        #endregion
-        #region ICommandHandler Members
+#endregion
+#region ICommandHandler Members
         bool ICommandHandler.OnCommand(string MenuId)
         {
             switch (MenuId)
@@ -822,7 +823,7 @@ namespace CADability
             return false;
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
-        #endregion
+#endregion
         // Get real page bounds based on printable area of the page (http://www.ddj.com/dept/windows/184416821)
         static Rectangle GetRealPageBounds(PrintPageEventArgs e, bool preview)
         {
@@ -1084,3 +1085,4 @@ namespace CADability
 
     }
 }
+#endif

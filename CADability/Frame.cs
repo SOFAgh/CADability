@@ -3,7 +3,11 @@ using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
 using System.Drawing;
+#endif
 using System.IO;
 using System.Reflection;
 
@@ -264,10 +268,12 @@ namespace CADability
         private ActionStack actionStack; // the action stack
         private Project project; // the project in this frame
         // the different kind of views
-        private Dictionary<string, LayoutView> layoutViews;
         private Dictionary<string, ModelView> modelViews;
         private List<AnimatedView> animatedViews;
+#if !WEBASSEMBLY
+        private Dictionary<string, LayoutView> layoutViews;
         private List<GDI2DView> gdiViews;
+#endif
         private IPropertyPage globalProperties; // the property page for the display of the global settings
         private IPropertyPage projectProperties; // the property page for the display of the project properties
         private IPropertyPage actionProperties; // the property page for the display of the action properties
@@ -290,9 +296,11 @@ namespace CADability
             MainFrame = this;
             actionStack = new ActionStack(this);
             modelViews = new Dictionary<string, ModelView>();
+#if !WEBASSEMBLY
             layoutViews = new Dictionary<string, LayoutView>();
-            animatedViews = new List<AnimatedView>();
             gdiViews = new List<GDI2DView>();
+#endif
+            animatedViews = new List<AnimatedView>();
             mruFiles = MRUFiles.GetMRUFiles();
             Settings settings = Settings.GlobalSettings; // to initiate load
             Settings.GlobalSettings.SetValue("UseNewStepImport", true);
@@ -353,10 +361,11 @@ namespace CADability
                 }
                 project = value;
                 modelViews.Clear();
+#if !WEBASSEMBLY
                 layoutViews.Clear();
-                animatedViews.Clear();
                 gdiViews.Clear();
-
+#endif
+                animatedViews.Clear();
                 ProjectOpenedEvent?.Invoke(project, this);
                 ConstructAction.ClearLastStyles(); // müsste eigentlich über einen statischen event laufen
 
@@ -395,12 +404,14 @@ namespace CADability
                 {
                     res.Add(item.Value);
                 }
+#if !WEBASSEMBLY
                 foreach (KeyValuePair<string, LayoutView> item in layoutViews)
                 {
                     res.Add(item.Value);
                 }
-                res.AddRange(animatedViews);
                 res.AddRange(gdiViews);
+#endif
+                res.AddRange(animatedViews);
                 return res.ToArray();
             }
         }
@@ -433,6 +444,8 @@ namespace CADability
                 animatedViews.Add(toAdd as AnimatedView);
                 SetViewProperties();
             }
+#if !WEBASSEMBLY
+
             if (toAdd is GDI2DView)
             {
                 project.GdiViews.Add(toAdd as GDI2DView);
@@ -446,6 +459,7 @@ namespace CADability
                 layoutViews.Add(lv.Layout.Name, lv);
                 SetViewProperties();
             }
+#endif
         }
         public void RemoveView(IView toRemove)
         {
@@ -461,6 +475,7 @@ namespace CADability
                 modelViews.Remove((toRemove as ModelView).Name);
                 SetViewProperties();
             }
+#if !WEBASSEMBLY
             else if (toRemove is GDI2DView)
             {
                 project.GdiViews.Remove(toRemove as GDI2DView);
@@ -474,6 +489,7 @@ namespace CADability
                 layoutViews.Remove(lv.Layout.Name);
                 SetViewProperties();
             }
+#endif
         }
 
 
@@ -876,7 +892,7 @@ namespace CADability
             return ControlCenter?.GetPropertyPage(Name);
         }
 
-        #region handling menu commands
+#region handling menu commands
         public virtual bool OnCommand(string MenuId)
         {
             CurrentMenuId = MenuId; // ist das hier die richtige Stelle?
@@ -913,6 +929,7 @@ namespace CADability
             // TODO: show appropriate view
             if (MenuId.StartsWith("MenuId.View.Layout.LayoutView."))
             {   // Layout View anzeigen
+#if !WEBASSEMBLY
                 string layoutName = MenuId.Substring("MenuId.View.Layout.LayoutView.".Length);
                 foreach (LayoutView lv in layoutViews.Values)
                 {
@@ -935,6 +952,7 @@ namespace CADability
                         return true;
                     }
                 }
+#endif
             }
             if (MenuId.StartsWith("MenuId.View.Model.ModelView."))
             {   // ModelView anzeigen
@@ -1694,6 +1712,7 @@ namespace CADability
                         newAnimatedView.SelectionEnabled = true;
                     }
                     return true;
+#if !WEBASSEMBLY
                 case "MenuId.View.NewGDIView":
                     if (project != null)
                     {
@@ -1704,8 +1723,8 @@ namespace CADability
                         this.ActiveView = newGDIView;
                         newGDIView.ZoomToModelExtent(1.1);
                     }
-
                     return true;
+#endif
             }
             // forward command handling to the project
             if ((project as ICommandHandler).OnCommand(MenuId)) return true;
@@ -2063,11 +2082,12 @@ namespace CADability
             return false; // could not handle this command
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
-        #endregion
+#endregion
 
         private void OnProjectViewChanged(Project sender, IView viewWhichChanged)
         {
             string oldname = null;
+#if !WEBASSEMBLY
             if (viewWhichChanged is LayoutView)
             {
                 LayoutView lv = viewWhichChanged as LayoutView;
@@ -2085,6 +2105,7 @@ namespace CADability
                 }
                 layoutViews[lv.Layout.Name] = lv;
             }
+#endif
             if (viewWhichChanged is ModelView)
             {
                 ModelView mv = viewWhichChanged as ModelView;
@@ -2104,6 +2125,7 @@ namespace CADability
             }
             if (viewWhichChanged == null)
             {   // einer wurde entfernt
+#if !WEBASSEMBLY
                 foreach (KeyValuePair<string, LayoutView> kv in layoutViews)
                 {
                     if (!project.FindLayoutName(kv.Key))
@@ -2112,6 +2134,7 @@ namespace CADability
                         break;
                     }
                 }
+#endif
                 foreach (KeyValuePair<string, ModelView> kv in modelViews)
                 {
                     if (!project.FindModelViewName(kv.Key))
@@ -2150,6 +2173,7 @@ namespace CADability
             if (createViews)
             {
                 // Alle Views erzeugen, aber noch nicht anzeigen
+#if !WEBASSEMBLY
                 for (int i = 0; i < project.LayoutCount; ++i)
                 {
                     Layout l = project.GetLayout(i);
@@ -2159,6 +2183,7 @@ namespace CADability
                         layoutViews[l.Name] = lv;
                     }
                 }
+#endif
                 for (int i = 0; i < project.ModelViewCount; ++i)
                 {
                     ProjectedModel pm = project.GetProjectedModel(i);
@@ -2170,7 +2195,9 @@ namespace CADability
                     }
                 }
                 animatedViews = new List<AnimatedView>(project.AnimatedViews);
+#if !WEBASSEMBLY
                 gdiViews = new List<GDI2DView>(project.GdiViews);
+#endif
 
             }
         }
@@ -2183,19 +2210,20 @@ namespace CADability
             {
                 views.Add(mv);
             }
+#if !WEBASSEMBLY
             foreach (LayoutView lv in layoutViews.Values)
             {
                 views.Add(lv);
-            }
-            foreach (AnimatedView av in animatedViews)
-            {
-                views.Add(av);
             }
             foreach (GDI2DView gv in gdiViews)
             {
                 views.Add(gv);
             }
-
+#endif
+            foreach (AnimatedView av in animatedViews)
+            {
+                views.Add(av);
+            }
             viewProperties.Add(new MultiViewProperty(views.ToArray(), this), true);
             bool showScrollBars = Settings.GlobalSettings.GetBoolValue("ShowScrollBars", true);
         }
@@ -2208,6 +2236,7 @@ namespace CADability
                 return e.Current;
             }
         }
+#if !WEBASSEMBLY
         private LayoutView FirstLayoutView
         {
             get
@@ -2217,6 +2246,7 @@ namespace CADability
                 return e.Current;
             }
         }
+#endif
         private void project_RefreshEvent(object sender, EventArgs args)
         {
             // TODO: somehow inform the derived class to update the window
@@ -2248,6 +2278,7 @@ namespace CADability
                     return vw;
                 }
             }
+#if !WEBASSEMBLY
             foreach (IView vw in layoutViews.Values)
             {
                 if (vw.Name == project.ActiveViewName)
@@ -2255,14 +2286,15 @@ namespace CADability
                     return vw;
                 }
             }
-            foreach (IView vw in animatedViews)
+            foreach (IView vw in gdiViews)
             {
                 if (vw.Name == project.ActiveViewName)
                 {
                     return vw;
                 }
             }
-            foreach (IView vw in gdiViews)
+#endif
+            foreach (IView vw in animatedViews)
             {
                 if (vw.Name == project.ActiveViewName)
                 {
@@ -2512,7 +2544,7 @@ namespace CADability
             }
         }
 
-        #region SnapModes implementation
+#region SnapModes implementation
         private SnapPointFinder.SnapModes snapMode;
         /// <summary>
         /// The snapping mode for mouse movements when interactively constructing objects
@@ -2572,7 +2604,7 @@ namespace CADability
             Settings.GlobalSettings.SetValue("KeepState.SnapMode", (int)snapMode);
         }
 
-        #endregion
+#endregion
 
 
         public delegate bool DragDropDelegate(DragEventArgs e);
