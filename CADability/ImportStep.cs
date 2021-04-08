@@ -1449,6 +1449,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             System.Diagnostics.Trace.WriteLine("Finished step read" + Environment.TickCount.ToString());
 #endif
 #if DEBUG
+            BoundingCube ext = res.GetExtent();
             for (int i = 0; i < res.Count; i++)
             {
                 Shell shell = null;
@@ -1856,7 +1857,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (94864 == item.definingIndex)
+            if (17287 == item.definingIndex)
             {
 
             }
@@ -2247,6 +2248,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
+#if DEBUG
+                            if (36694 == item.definingIndex)
+                            {
+                            }
+#endif
                             List<List<StepEdgeDescriptor>> bounds = new List<List<StepEdgeDescriptor>>();
                             foreach (Item sub in item.parameter["boundaries"].lval)
                             {
@@ -2278,6 +2284,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         {
                                             System.Diagnostics.Trace.WriteLine("invalid Face: " + item.definingIndex.ToString());
                                             importProblems[item.definingIndex] = "inconsistent face";
+                                        }
+                                        if (93129 == item.definingIndex)
+                                        {
+                                            (item.val as Face[])[i].AssureTriangles(0.4);
                                         }
                                         ++faceCount;
 #else
@@ -2313,9 +2323,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            //if (7890 == item.definingIndex || 9868 == item.definingIndex || 11534 == item.definingIndex)
-                            //if (7858 == item.definingIndex || 12742 == item.definingIndex)
-                            if (27171 == item.definingIndex)
+                            if (7331 == item.definingIndex || 108344 == item.definingIndex)
                             {
                             }
 #endif
@@ -2342,7 +2350,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         defIndex = item.definingIndex;
                                     }
 #if DEBUG
-                                    if (8820 == item.definingIndex)
+                                    if (7331 == item.definingIndex)
                                     {
                                         Face dbgfc = (item.val as Face[])[0];
                                         dbgfc.AssureTriangles(0.2);

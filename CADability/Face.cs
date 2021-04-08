@@ -63,7 +63,7 @@ namespace CADability.GeoObject
                     se.Add(dbghashcode);
 #endif
                     se.Add(new NameProperty(this.face, "Name", "Face.Name"));
-                    if (face.Surface.PropertyEntry!=null)
+                    if (face.Surface.PropertyEntry != null)
                     {
                         //IShowPropertyImpl sp = face.Surface as IShowPropertyImpl;
                         //if (sp != null) sp.Frame = base.Frame; // der Frame wird benötigt wg. ReadOnly
@@ -233,7 +233,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 630)
+            if (hashCode == 2509)
             {
 
             }
@@ -302,20 +302,37 @@ namespace CADability.GeoObject
                     surface.ReverseOrientation(); // 2d modification is not relevant here
                 }
                 // if a loop contains two identical edges, which are back and forth, we remove this pair and split the loop into two parts
-                for (int i = loops.Count-1; i >= 0; --i)
+                for (int i = loops.Count - 1; i >= 0; --i)
                 {
                     bool seamFound = false;
                     for (int j = 0; j < loops[i].Count; j++)
                     {
-                        for (int k = j+1; k < loops[i].Count; k++)
+                        for (int k = j + 1; k < loops[i].Count; k++)
                         {
-                            if ((loops[i][k].vertex1== loops[i][j].vertex1 && loops[i][k].vertex2 == loops[i][j].vertex2) ||
-                                (loops[i][k].vertex1 == loops[i][j].vertex2 && loops[i][k].vertex2 == loops[i][j].vertex1))
+                            if (loops[i][j].curve.SameGeometry(loops[i][k].curve, precision))
                             {
-                                if (loops[i][j].curve.SameGeometry(loops[i][k].curve, precision))
+                                if ((loops[i][k].vertex1 == loops[i][j].vertex1 && loops[i][k].vertex2 == loops[i][j].vertex2) ||
+                                    (loops[i][k].vertex1 == loops[i][j].vertex2 && loops[i][k].vertex2 == loops[i][j].vertex1))
                                 {
                                     loops[i][j].isSeam = loops[i][k].isSeam = true;
                                     seamFound = true;
+                                }
+                                else
+                                {   // maybe different vertices with identical positions as in "1242_14_PUNZONE.stp"
+                                    if ((loops[i][k].vertex1.Position | loops[i][j].vertex1.Position) < precision * 1e-6 && (loops[i][k].vertex2.Position | loops[i][j].vertex2.Position) < precision * 1e-6)
+                                    {
+                                        loops[i][k].vertex1.MergeWith(loops[i][j].vertex1);
+                                        loops[i][k].vertex2.MergeWith(loops[i][j].vertex2);
+                                        loops[i][j].isSeam = loops[i][k].isSeam = true;
+                                        seamFound = true;
+                                    }
+                                    else if ((loops[i][k].vertex1.Position | loops[i][j].vertex2.Position) < precision * 1e-6 && (loops[i][k].vertex2.Position | loops[i][j].vertex1.Position) < precision * 1e-6)
+                                    {
+                                        loops[i][k].vertex1.MergeWith(loops[i][j].vertex2);
+                                        loops[i][k].vertex2.MergeWith(loops[i][j].vertex1);
+                                        loops[i][j].isSeam = loops[i][k].isSeam = true;
+                                        seamFound = true;
+                                    }
                                 }
                             }
                         }
@@ -751,12 +768,15 @@ namespace CADability.GeoObject
                     {
                         for (int j = 0; j < loops[i].Count; j++)
                         {
-                            if (loops[i][j].forward) orientedCurves.Add(loops[i][j].curve);
-                            else
+                            if (loops[i][j].curve != null)
                             {
-                                ICurve clone = loops[i][j].curve.Clone();
-                                clone.Reverse();
-                                orientedCurves.Add(clone);
+                                if (loops[i][j].forward) orientedCurves.Add(loops[i][j].curve);
+                                else
+                                {
+                                    ICurve clone = loops[i][j].curve.Clone();
+                                    clone.Reverse();
+                                    orientedCurves.Add(clone);
+                                }
                             }
                         }
                     }
@@ -1609,13 +1629,24 @@ namespace CADability.GeoObject
                     {
                         // all loops are reversed, we reverse the surface
                         ModOp2D mreverse = surface.ReverseOrientation();
+#if DEBUG
+                        //GeoObjectList dbggrd = (surface as ISurfaceImpl).DebugGrid;
+#endif
                         ext = BoundingRect.EmptyBoundingRect;
                         for (int i = 0; i < loops.Count; i++)
                         {
                             loopExt[i] = BoundingRect.EmptyBoundingRect;
                             for (int j = 0; j < loops[i].Count; j++)
                             {
-                                loops[i][j].curve2d = loops[i][j].curve2d.GetModified(mreverse);
+                                if (loops[i][j].curve2d is ProjectedCurve pc)
+                                {
+                                    loops[i][j].curve2d = surface.GetProjectedCurve(loops[i][j].curve, surfacePrecision);
+                                    if (!loops[i][j].forward) loops[i][j].curve2d.Reverse();
+                                }
+                                else
+                                {
+                                    loops[i][j].curve2d = loops[i][j].curve2d.GetModified(mreverse);
+                                }
                                 loopExt[i].MinMax(loops[i][j].curve2d.GetExtent());
                             }
                             ext.MinMax(loopExt[i]);
@@ -1624,7 +1655,7 @@ namespace CADability.GeoObject
                     }
                     else
                     {
-                        // reverse only some loops: heere we leave the surface unchanged and only reverse those loops
+                        // reverse only some loops: here we leave the surface unchanged and only reverse those loops
                         for (int i = 0; i < loops.Count; i++)
                         {
                             if (loopsToreverse.Contains(i))
@@ -5312,7 +5343,7 @@ namespace CADability.GeoObject
         internal void ModifySurfaceOnly(ModOp m)
         {
 #if DEBUG
-            if (hashCode==1371)
+            if (hashCode == 1371)
             { }
 #endif
             BoundingRect ext = (surface as ISurfaceImpl).usedArea;
@@ -5797,7 +5828,7 @@ namespace CADability.GeoObject
             //}
 #endif
 #if DEBUG
-            if (hashCode == 1371)
+            if (hashCode == 2444)
             { }
 #endif
             for (int i = 0; i < outline.Length; ++i)
@@ -6036,7 +6067,7 @@ namespace CADability.GeoObject
                 {
                     bc.MinMax(trianglePoint[i]);
                 }
-                if (bc.Zmax > 20)
+                if (bc.Zmin < -40.5)
                 { }
                 for (int i = 0; i < triangleIndex.Length; i += 3)
                 {
@@ -6131,6 +6162,15 @@ namespace CADability.GeoObject
                             sumTriPoint.AddRange(tmpTriPoint);
                             sumTriUv.AddRange(tmpTriUv);
                             sumTriInd.AddRange(tmpTriInd);
+#if DEBUG
+                            BoundingCube bc = BoundingCube.EmptyBoundingCube;
+                            for (int k = 0; k < tmpTriPoint.Length; k++)
+                            {
+                                bc.MinMax(tmpTriPoint[k]);
+                            }
+                            if (bc.Zmin < -40.5)
+                            { }
+#endif
                         }
                         catch (ApplicationException)
                         {

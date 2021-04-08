@@ -9299,7 +9299,7 @@ namespace CADability.GeoObject
         public GeoPoint2D[] GetLineIntersection(GeoPoint startPoint, GeoVector direction)
         {
 #if DEBUG
-            DebuggerContainer dc = Debug;
+            //DebuggerContainer dc = Debug;
 #endif
             List<GeoPoint2D> res = new List<GeoPoint2D>();
             ParEpi[] cubes = octtree.GetObjectsFromLine(startPoint, direction, 0.0);

@@ -311,7 +311,7 @@ namespace CADability.GeoObject
                         sw = new SweepAngle(new Angle(res.startParameter), new Angle(endpar), ccw);
                         //}
                         res.sweepParameter = sw.Radian;
-                        if (res.sweepParameter == 0.0 && Math.Abs(res.sweepAng) > Math.PI)
+                        if (Math.Abs(res.sweepParameter) < 1e-6 && Math.Abs(res.sweepAng) > Math.PI)
                         {
                             // Sonderfall: ein fast Vollkreis wird nicht als solcher erkannt und liefert 
                             // allerdings exakt 0.0 für sweepAng
@@ -894,7 +894,7 @@ namespace CADability.GeoObject
                 plane = new Plane(Center, MajorAxis, MinorAxis);
                 majorRadius = MajorAxis.Length;
                 minorRadius = MinorAxis.Length;
-                
+
                 startParameter = 0.0;
                 sweepParameter = Math.PI * 2.0; // sweep parameter was 0 previously, but it should be a full ellipse
             }
@@ -2210,7 +2210,7 @@ namespace CADability.GeoObject
             return a.Radian;
         }
 
-        private double sqr(double s) {  return s*s; }
+        private double sqr(double s) { return s * s; }
         private double ParameterOf(GeoPoint p, double startValue)
         {
             double cx = Center.x;

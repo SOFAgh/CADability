@@ -579,7 +579,7 @@ namespace CADability.Curve2D
         public override GeoPoint2D PointAt(double Position)
         {
             double a = Position * 2.0 * Math.PI;
-            if (!counterClock) a = 2.0 * Math.PI - a;
+            if (counterClock == fromUnitCircle.Determinant<0) a = 2.0 * Math.PI - a; // a reflecting matrix also reverses the ellipse, we only need to reverse it once
             GeoVector2D dbgx = fromUnitCircle * GeoVector2D.XAxis;
             GeoVector2D dbgy = fromUnitCircle * GeoVector2D.YAxis;
             return fromUnitCircle * new GeoPoint2D(Math.Cos(a), Math.Sin(a));

@@ -88,7 +88,12 @@ namespace CADability.GeoObject
             {
                 if (!simpleSurfaceChecked)
                 {
-                    double precision = BoxedSurfaceEx.GetRawExtent().Size * 1e-6;
+                    BoundingCube polesext = BoundingCube.EmptyBoundingCube;
+                    foreach (GeoPoint point in poles)
+                    {
+                        polesext.MinMax(point);
+                    }
+                    double precision = polesext.Size * 1e-6;
                     if (GetSimpleSurface(precision, out simpleSurface, out toSimpleSurface))
                     {
                     }
@@ -2822,7 +2827,7 @@ namespace CADability.GeoObject
             }
             if (vmax > vKnots[vKnots.Length - 1]) vmax = vKnots[vKnots.Length - 1];
             if (vmin < vKnots[0]) vmin = vKnots[0];
-            if (vmin == vmax) return null;
+            if ((vmax - vmin) < (vKnots[vKnots.Length - 1] - vKnots[0]) * 1e-8) return null;
             adjustUPeriod(ref u);
             double[] us = GetUSingularities();
             if (us != null)
@@ -2877,7 +2882,7 @@ namespace CADability.GeoObject
             }
             if (umax > uKnots[uKnots.Length - 1]) umax = uKnots[uKnots.Length - 1];
             if (umin < uKnots[0]) umin = uKnots[0];
-            if (umin == umax) return null;
+            if ((umax - umin) < (uKnots[uKnots.Length - 1] - uKnots[0]) * 1e-8) return null;
             adjustVPeriod(ref v);
             double[] vs = GetVSingularities();
             if (vs != null)

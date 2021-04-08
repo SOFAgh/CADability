@@ -528,10 +528,14 @@ namespace CADability.Curve2D
             double a1 = (a - startPar) / sweepPar;
             double a2 = (a - startPar + 2.0 * Math.PI) / sweepPar;
             double a3 = (a - startPar - 2.0 * Math.PI) / sweepPar;
+            double a4 = (a - startPar + 4.0 * Math.PI) / sweepPar;
+            double a5 = (a - startPar - 4.0 * Math.PI) / sweepPar;
             // welcher der 3 Werte ist näher an 0.5 ?
             double ax = a1;
             if (Math.Abs(a2 - 0.5) < Math.Abs(ax - 0.5)) ax = a2;
             if (Math.Abs(a3 - 0.5) < Math.Abs(ax - 0.5)) ax = a3;
+            if (Math.Abs(a4 - 0.5) < Math.Abs(ax - 0.5)) ax = a4;
+            if (Math.Abs(a5 - 0.5) < Math.Abs(ax - 0.5)) ax = a5;
             return ax;
         }
         /// <summary>

@@ -6,6 +6,11 @@ using CADability.Curve2D;
 
 namespace CADability.GeoObject
 {
+    /// <summary>
+    /// Conical surface with a uv system (parametric space) which is not periodic and has no pole. The uv system correspond to a plane through the apex perpendicular to the axis
+    /// which contains the projected cone to this plane. Disadvantage is numeric precision when the opening angle is very small. A solution would be an offset and a factor
+    /// which only projects the "used area" of this cone to a standard ring
+    /// </summary>
     [Serializable()]
     public class ConicalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable
     {
@@ -156,6 +161,11 @@ namespace CADability.GeoObject
         }
         public override GeoPoint PointAt(GeoPoint2D uv)
         {
+            //double vo = 0.0;
+            //double vf = 1.0;
+            //double l = Math.Sqrt(sqr(uv.y) + sqr(uv.x));
+            //double u = vf * uv.x * (l - vo) / l;
+            //double v = vf * uv.y * (l - vo) / l;
             return location + (Math.Sqrt(sqr(uv.y) + sqr(uv.x)) * zAxis) + uv.y * yAxis + uv.x * xAxis;
         }
         public override GeoPoint2D PositionOf(GeoPoint p)

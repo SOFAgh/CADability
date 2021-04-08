@@ -139,7 +139,7 @@ namespace CADability.GeoObject
                         else ok = false;
                     }
 #if DEBUG
-                    GeoObjectList dbg = DebugGrid;
+                    // GeoObjectList dbg = DebugGrid;
 #endif
                     if (ok) return;
                 }

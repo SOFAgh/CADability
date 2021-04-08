@@ -69,12 +69,13 @@ namespace CADability.GeoObject
                 periodicBounds.Right = periodicSurface.UPeriod;
                 uperiodic = true;
             }
-            else //if (periodicSurface.IsVPeriodic)
+            else if (periodicSurface.IsVPeriodic)
             {
                 periodicBounds.Bottom = 0.0;
                 periodicBounds.Top = periodicSurface.VPeriod;
                 uperiodic = false;
             }
+            else uperiodic = false; // must be assigned
             Init(uperiodic);
         }
         private void Init(bool uPeriodic)
@@ -85,6 +86,15 @@ namespace CADability.GeoObject
             {
                 fullPeriod = true;
                 double[] sv = periodicSurface.GetVSingularities();
+                if (sv != null && sv.Length > 1)
+                {
+                    List<double> lsv = new List<double>(sv);
+                    for (int i = lsv.Count-1; i >= 0; --i)
+                    {
+                        if (lsv[i] < periodicBounds.Bottom || lsv[i] > periodicBounds.Top) lsv.RemoveAt(i);
+                    }
+                    sv = lsv.ToArray();
+                }
                 if (sv != null && sv.Length > 0)
                 {
                     if (sv.Length == 1)
@@ -123,6 +133,15 @@ namespace CADability.GeoObject
             {
                 fullPeriod = true;
                 double[] su = periodicSurface.GetUSingularities();
+                if (su != null && su.Length > 1)
+                {
+                    List<double> lsu = new List<double>(su);
+                    for (int i = lsu.Count - 1; i >= 0; --i)
+                    {
+                        if (lsu[i] < periodicBounds.Left || lsu[i] > periodicBounds.Right) lsu.RemoveAt(i);
+                    }
+                    su = lsu.ToArray();
+                }
                 if (su != null && su.Length > 0)
                 {
                     if (su.Length == 1)
@@ -159,14 +178,14 @@ namespace CADability.GeoObject
                 if (su != null && su.Length == 1)
                 {   // the "period" to be resolved is in v, when u==su[0] you can change v and the point stays fixed
                     hasPole = true;
-                    if (su[0] == periodicBounds.Left)
+                    if (Math.Abs(su[0] - periodicBounds.Left) < periodicBounds.Width * 1e-6)
                     {   // we have to map the v interval of the periodic surface onto [0..pi/2] and the u interval onto [0..1]
                         // and we also have to exchange u and v, so the non periodic bounds are [0..pi/2] in u and [0..1] in v
                         double fvu = Math.PI / 2.0 / periodicBounds.Height; // tested: ok
                         double fuv = 1.0 / periodicBounds.Width;
                         toNonPeriodicBounds = new ModOp2D(0, fvu, -fvu * periodicBounds.Bottom, fuv, 0, -fuv * periodicBounds.Left);
                     }
-                    else if (su[0] == periodicBounds.Right)
+                    else if (Math.Abs(su[0] - periodicBounds.Right) < periodicBounds.Width * 1e-6)
                     {   // here we additionally have tor reverse the v interval
                         double fvu = Math.PI / 2.0 / periodicBounds.Height; // tested: ok
                         double fuv = 1.0 / periodicBounds.Width;
@@ -181,13 +200,13 @@ namespace CADability.GeoObject
                     if (sv != null && sv.Length == 1)
                     {   // the "period" to be resolved is in u
                         hasPole = true;
-                        if (sv[0] == periodicBounds.Bottom)
+                        if (Math.Abs(sv[0] - periodicBounds.Bottom) < periodicBounds.Height * 1e-6)
                         {   // we have to map the u interval of the periodic surface onto [0..pi/2] and the v interval onto [0..1]
                             double fvu = Math.PI / 2.0 / periodicBounds.Width; // tested: ok
                             double fuv = 1.0 / periodicBounds.Height;
                             toNonPeriodicBounds = new ModOp2D(-fvu, 0, fvu * periodicBounds.Right, 0, fuv, -fuv * periodicBounds.Bottom);
                         }
-                        else if (sv[0] == periodicBounds.Top)
+                        else if (Math.Abs(sv[0] - periodicBounds.Top) < periodicBounds.Height * 1e-6)
                         {
                             double fvu = Math.PI / 2.0 / periodicBounds.Width; // tested: ok
                             double fuv = 1.0 / periodicBounds.Height;
@@ -496,10 +515,25 @@ namespace CADability.GeoObject
         public override bool IsVPeriodic => false;
         public override ModOp2D ReverseOrientation()
         {
-            GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax);
-            toNonPeriodicBounds = toNonPeriodicBounds * ModOp2D.Scale(new GeoPoint2D((umin + umax) / 2, 0), -1, 1);
-            toPeriodicBounds = toNonPeriodicBounds.GetInverse();
-            return ModOp2D.Scale(-1, 1);
+            GeoPoint2D[] from = new GeoPoint2D[3];
+            from[0] = new GeoPoint2D(0.5, 0.5);
+            from[1] = new GeoPoint2D(0.5, 0.7);
+            from[2] = new GeoPoint2D(0.7, 0.5);
+            GeoPoint[] from3d = new GeoPoint[3];
+            for (int i = 0; i < 3; i++)
+            {
+                from3d[i] = PointAt(from[i]);
+            }
+            periodicSurface.ReverseOrientation();
+            Init(periodicSurface.IsUPeriodic);
+            //toNonPeriodicBounds = toNonPeriodicBounds * ModOp2D.Scale(-1, 1);
+            //toPeriodicBounds = toNonPeriodicBounds.GetInverse();
+            GeoPoint2D[] to = new GeoPoint2D[3];
+            for (int i = 0; i < 3; i++)
+            {
+                to[i] = PositionOf(from3d[i]);
+            }
+            return ModOp2D.Fit(from, to, true);
         }
         public override bool SameGeometry(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, double precision, out ModOp2D firstToSecond)
         {
