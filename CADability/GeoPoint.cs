@@ -1521,9 +1521,9 @@ namespace CADability
             get { return new GeoVector2D(0.0, 0.0); }
         }
         /// <summary>
-        /// Returns the area of the parallelgram defined by the two vectors. The result will be positive
-        /// if the sweepdirection from <paramref name="from"/> to <paramref name="to"/> is counterclockwise
-        /// otherwise it will be negative. If you need the angle of the triangle devide the result by 2.0
+        /// Returns the area of the parallelogram defined by the two vectors. The result will be positive
+        /// if the sweep-direction from <paramref name="from"/> to <paramref name="to"/> is counterclockwise
+        /// otherwise it will be negative. If you need the angle of the triangle divide the result by 2.0
         /// </summary>
         /// <param name="from">First vector</param>
         /// <param name="to">Second vector</param>
@@ -1534,8 +1534,8 @@ namespace CADability
         }
         /// <summary>
         /// Returns a positive value if the second vector turns to the left relative to the direction of the first vector,
-        /// a negative value if it turns to the right and 0.0 if the vectors are parallel. The value is the length of the corssproduct
-        /// of the two vectors in 3D or the area of the paralleogram build by the two vectors.
+        /// a negative value if it turns to the right and 0.0 if the vectors are parallel. The value is the length of the crossproduct
+        /// of the two vectors in 3D or the area of the parallelogram build by the two vectors.
         /// </summary>
         /// <param name="v1">First vector</param>
         /// <param name="v2">Second vector</param>

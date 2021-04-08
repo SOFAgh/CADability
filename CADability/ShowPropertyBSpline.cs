@@ -134,7 +134,7 @@ namespace CADability.UserInterface
                 polesProperty.GeoPointSelectionChangedEvent -= new CADability.UserInterface.GeoPointProperty.SelectionChangedDelegate(OnPointsSelectionChanged);
                 polesProperty.StateChangedEvent -= new StateChangedDelegate(OnPolesPropertyStateChanged);
             }
-            polesProperty = new MultiGeoPointProperty(new PolesIndexedGeoPoint(this), "BSpline.Poles");
+            polesProperty = new MultiGeoPointProperty(new PolesIndexedGeoPoint(this), "BSpline.Poles", this.Frame);
             polesProperty.ModifyWithMouseEvent += new CADability.UserInterface.MultiGeoPointProperty.ModifyWithMouseIndexDelegate(OnModifyPolesWithMouse);
             polesProperty.GeoPointSelectionChangedEvent += new CADability.UserInterface.GeoPointProperty.SelectionChangedDelegate(OnPointsSelectionChanged);
             polesProperty.StateChangedEvent += new StateChangedDelegate(OnPolesPropertyStateChanged);
@@ -147,7 +147,7 @@ namespace CADability.UserInterface
                     throughPointsProperty.GeoPointSelectionChangedEvent -= new CADability.UserInterface.GeoPointProperty.SelectionChangedDelegate(OnPointsSelectionChanged);
                     throughPointsProperty.StateChangedEvent -= new StateChangedDelegate(OnThroughPointsPropertyStateChanged);
                 }
-                throughPointsProperty = new MultiGeoPointProperty(new ThroughPointsIndexedGeoPoint(this), "BSpline.ThroughPoints");
+                throughPointsProperty = new MultiGeoPointProperty(new ThroughPointsIndexedGeoPoint(this), "BSpline.ThroughPoints", this.Frame);
                 throughPointsProperty.ModifyWithMouseEvent += new CADability.UserInterface.MultiGeoPointProperty.ModifyWithMouseIndexDelegate(OnModifyThroughPointsWithMouse);
                 throughPointsProperty.GeoPointSelectionChangedEvent += new CADability.UserInterface.GeoPointProperty.SelectionChangedDelegate(OnPointsSelectionChanged);
                 throughPointsProperty.StateChangedEvent += new StateChangedDelegate(OnThroughPointsPropertyStateChanged);
@@ -285,7 +285,7 @@ namespace CADability.UserInterface
                 }
             }
         }
-#endregion
+        #endregion
         private GeoPoint OnThroughPointsGetInsertionPoint(IShowProperty sender, int index, bool after)
         {
             if (index == 0 && !after)
@@ -345,7 +345,7 @@ namespace CADability.UserInterface
         }
 
 
-#region IDisplayHotSpots Members
+        #region IDisplayHotSpots Members
 
         public event CADability.HotspotChangedDelegate HotspotChangedEvent;
         public void ReloadProperties()
@@ -374,7 +374,7 @@ namespace CADability.UserInterface
                 }
             }
             IsPole = propertyTreeView.IsOpen(polesProperty);
-            IsThroughPoint = propertyTreeView.IsOpen(throughPointsProperty);
+            IsThroughPoint = throughPointsProperty != null && propertyTreeView.IsOpen(throughPointsProperty);
             // Zumachen, damit die Hotspots weggehen
             if (polesProperty != null) propertyTreeView.OpenSubEntries(polesProperty, false);
             if (throughPointsProperty != null) propertyTreeView.OpenSubEntries(throughPointsProperty, false);
@@ -392,7 +392,7 @@ namespace CADability.UserInterface
             }
         }
 
-#endregion
+        #endregion
 
         private void OnPointsSelectionChanged(GeoPointProperty sender, bool isSelected)
         {
@@ -458,7 +458,7 @@ namespace CADability.UserInterface
         {
             bSpline.IsClosed = val;
         }
-#region ICommandHandler Members
+        #region ICommandHandler Members
 
         public bool OnCommand(string MenuId)
         {
@@ -509,7 +509,7 @@ namespace CADability.UserInterface
         {
             return "MenuId.Object.Spline";
         }
-#endregion
+        #endregion
 
     }
 }

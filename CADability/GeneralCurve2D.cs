@@ -1674,13 +1674,13 @@ namespace CADability.Curve2D
             DebuggerContainer dc1 = new DebuggerContainer();
             try
             {
-                //Polyline2D pl2d = new Polyline2D(points);
-                //dc1.Add(pl2d, System.Drawing.Color.Red, -1);
-                //for (int i = 0; i < directions.Length; ++i)
-                //{
-                //    Line2D l2d = new Line2D(points[i], points[i] + directions[i]);
-                //    dc1.Add(l2d, System.Drawing.Color.Blue, i);
-                //}
+                Polyline2D pl2d = new Polyline2D(points);
+                dc1.Add(pl2d, System.Drawing.Color.Red, -1);
+                for (int i = 0; i < directions.Length; ++i)
+                {
+                    Line2D l2d = new Line2D(points[i], points[i] + directions[i]);
+                    dc1.Add(l2d, System.Drawing.Color.Blue, i);
+                }
             }
             catch (Polyline2DException) { }
 #endif
@@ -2801,6 +2801,33 @@ namespace CADability.Curve2D
             } while (Math.Abs(dp) > 1e-6);
             return true;
         }
+        private bool NewtonTangential(GeoVector2D dir, ref double par)
+        {
+            double dp = double.MaxValue;
+            int dbg = 0;
+            dir = dir.ToLeft().Normalized; // search for perpendicular
+            do
+            {
+                ++dbg;
+                GeoPoint2D s = PointAt(par);
+                GeoVector2D v = DirectionAt(par);
+                double d = (v.x * v.x + v.y * v.y);
+                if (d == 0.0) return true; // null vector: singularity
+                double l = (dir * v);
+                if (Math.Abs(l) > Math.Abs(dp / 2.0)) return false; // konvergiert nicht
+                dp = l;
+                par += dp;
+#if DEBUGCURVE
+
+                DebuggerContainer dc = new DebuggerContainer();
+                dc.Add(this);
+                Line2D l2d = new Line2D(s, s + v);
+                dc.Add(l2d);
+                dc.Add(p, System.Drawing.Color.Red, 0);
+#endif
+            } while (Math.Abs(dp) > 1e-6);
+            return true;
+        }
 
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.TangentPoints (GeoPoint2D, GeoPoint2D)"/>
@@ -3278,8 +3305,66 @@ namespace CADability.Curve2D
             for (int i = 0; i < interpol.Length; ++i)
             {
                 ext.MinMax(interpol[i]);
+                if (i < interpol.Length - 1)
+                {
+                    if (Math.Sign(interdir[i].x) != Math.Sign(interdir[i + 1].x))
+                    {
+                        if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.XAxis, out double par))
+                        {
+                            ext.MinMax(PointAt(par));
+                        }
+                    }
+                    if (Math.Sign(interdir[i].y) != Math.Sign(interdir[i + 1].y))
+                    {
+                        if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.YAxis, out double par))
+                        {
+                            ext.MinMax(PointAt(par));
+                        }
+                    }
+                }
             }
             return ext;
+        }
+
+        private bool BisectPerpendicular(double p1, double p2, GeoVector2D dir, out double par)
+        {
+            double d1 = DirectionAt(p1) * dir;
+            double d2 = DirectionAt(p2) * dir;
+            if (d1 == 0.0)
+            {
+                par = p1;
+                return true;
+            }
+            if (d2 == 0.0)
+            {
+                par = p2;
+                return true;
+            }
+            if (Math.Sign(d1) == Math.Sign(d2))
+            {
+                par = 0.0;
+                return false;
+            }
+            while (p2 - p1 > 1e-6)
+            {
+                double p = (p1 + p2) / 2.0;
+                double d = DirectionAt(p) * dir;
+                if (d == 0.0)
+                {
+                    par = p;
+                    return true;
+                }
+                else if (Math.Sign(d) == Math.Sign(d1))
+                {
+                    p1 = p;
+                }
+                else
+                {
+                    p2 = p;
+                }
+            }
+            par = (p1 + p2) / 2.0;
+            return true;
         }
 
         private bool TriangleHitTest(ref ClipRect rect, GeoPoint2D sp, GeoPoint2D ep, GeoPoint2D tr, double spar, double epar, GeoVector2D sdir, GeoVector2D edir)

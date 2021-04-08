@@ -3258,13 +3258,14 @@ namespace CADability
         /// <returns></returns>
         public static GeoVector ReBase(GeoVector toRebase, GeoVector sysDirx, GeoVector sysDiry, GeoVector sysDirz)
         {
-            Matrix m = new Matrix(sysDirx, sysDiry, sysDirz);
-            Matrix s = m.SaveSolveTranspose(new Matrix(toRebase));
-            if (s != null)
-            {
-                return new GeoVector(s[0, 0], s[1, 0], s[2, 0]);
-            }
-            else throw new GeometryException("no solution: linear dependant coordinate system");
+            return new GeoVector(toRebase * sysDirx / sysDirx.LengthSqared, toRebase * sysDiry / sysDiry.LengthSqared, toRebase * sysDirz / sysDirz.LengthSqared);
+            //Matrix m = new Matrix(sysDirx, sysDiry, sysDirz);
+            //Matrix s = m.SaveSolveTranspose(new Matrix(toRebase));
+            //if (s != null)
+            //{
+            //    return new GeoVector(s[0, 0], s[1, 0], s[2, 0]);
+            //}
+            //else throw new GeometryException("no solution: linear dependent coordinate system");
         }
         public static GeoVector2D Dir2D(GeoVector dirx, GeoVector diry, GeoVector toConvert)
         {

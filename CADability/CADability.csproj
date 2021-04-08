@@ -2,14 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <BuildDocFx Condition=" '$(Configuration)'=='Debug' ">false</BuildDocFx>
-    <BuildDocFx Condition="'$(Configuration)'=='WebDebug'">false</BuildDocFx>
-    <Configurations>Debug;Release;WebDebug</Configurations>
+    <BuildDocFx Condition=" '$(Configuration)'!='RelWithDoc' ">false</BuildDocFx>
+    <Configurations>Debug;Release;RelWithDoc;WebDebug</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, USENONPRIODICSURFACES</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WebDebug|AnyCPU'">
@@ -35,6 +34,19 @@
     <Compile Remove="WebDrawing.cs" />
   </ItemGroup>
 
+<ItemGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>xPARALLEL, xTESTNEWCONTEXTMENU</DefineConstants>
+    <Optimize>false</Optimize>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DocumentationFile />
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="CADability.DXF\**" />
     <Compile Remove="_site\**" />
@@ -46,6 +58,7 @@
 
   <ItemGroup>
     <Compile Remove="Scripting.cs" />
+    <Compile Remove="Tangulation.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -71,7 +84,7 @@
 
   <ItemGroup>
     <Reference Include="Microsoft.VisualStudio.DebuggerVisualizers">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\PublicAssemblies\Microsoft.VisualStudio.DebuggerVisualizers.dll</HintPath>
+      <HintPath>$(VsInstallRoot)\Common7\IDE\PublicAssemblies\Microsoft.VisualStudio.DebuggerVisualizers.dll</HintPath>
     </Reference>
   </ItemGroup>
 

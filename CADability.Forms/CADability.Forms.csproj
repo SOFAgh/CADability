@@ -59,6 +59,15 @@
   <PropertyGroup>
     <StartupObject />
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'RelWithDoc|AnyCPU'">
+    <OutputPath>bin\RelWithDoc\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.VisualStudio.DebuggerVisualizers, Version=16.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -221,18 +230,18 @@
     <EmbeddedResource Include="Bitmaps\Buttons5.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CADability\CADability.csproj">
-      <Project>{b234840a-1f1c-4c53-9789-4eeb82349f98}</Project>
-      <Name>CADability</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Bitmaps\Icons.bmp" />
     <EmbeddedResource Include="Bitmaps\PointSymbols.bmp" />
     <EmbeddedResource Include="Bitmaps\PointSymbolsB.bmp" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Bitmaps\Hotspots.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CADability\CADability.csproj">
+      <Project>{b234840a-1f1c-4c53-9789-4eeb82349f98}</Project>
+      <Name>CADability</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

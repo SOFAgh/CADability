@@ -361,6 +361,121 @@ namespace CADability
                 return double.MaxValue;
             }
         }
+        public static double Ellipse2DFit(IArray<GeoPoint2D> points2d, GeoPoint2D center2d, double majrad, double minrad, double angle, double precision, out Ellipse2D ellipse)
+        {
+            // we need a distance function from a point to the ellipse. This was done with maxima, moving the point to a horizontally aligned ellipse around the origin.
+            // Then calculating the angle and using the distance between the point of the ellipse at this angle and the test point.
+            // maxima text:
+            
+            // e(u):=[a * cos(u), b * sin(u)]; /* horizontal ellipse around origin*/
+            // s(p):=[(p[1] - cx) * cos(-w) - (p[2] - cy) * sin(-w), (p[1] - cx) * sin(-w) + (p[2] - cy) * cos(-w)]; /* from offset (cx,cy) and rotation (w) to origin and horizontal */
+            // u(p):= atan2(s(p)[2] / b, s(p)[1] / a); /* parameter for point u */
+            // d(p):= (e(u(p))[1] - s(p)[1]) ^ 2 + (e(u(p))[2] - s(p)[2]) ^ 2;
+            // fo: openw("C:/Temp/ellipse.txt");
+            // printf(fo, "d=~a;", d(p));
+            // newline(fo);
+            // printf(fo, "dcx=~a;", diff(d(p), cx, 1));
+            // newline(fo);
+            // printf(fo, "dcy=~a;", diff(d(p), cy, 1));
+            // newline(fo);
+            // printf(fo, "dw=~a;", diff(d(p), w, 1));
+            // newline(fo);
+            // printf(fo, "da=~a;", diff(d(p), a, 1));
+            // newline(fo);
+            // printf(fo, "db=~a;", diff(d(p), b, 1));
+            // newline(fo);
+            // close(fo);
+            
+            // The result was passed through CommonSubExpr to make it a little more readable.
+
+            // parameters are cx,cy, a,b, w (center, major radius, minor radius, angle)
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[points2d.Length];
+                double cx = parameters[0];
+                double cy = parameters[1];
+                double a = parameters[2];
+                double b = parameters[3];
+                double w = parameters[4];
+                double sw = Math.Sin(w);
+                double cw = Math.Cos(w);
+                for (int i = 0; i < points2d.Length; i++)
+                {
+                    double sc19 = ((points2d[i].y - cy) * cw - (points2d[i].x - cx) * sw);
+                    double sc18 = (points2d[i].y - cy) * sw + (points2d[i].x - cx) * cw;
+                    double sc17 = sqr(sc19);
+                    double sc16 = sqr(sc18);
+                    double sc15 = (-(points2d[i].y - cy)) * sw - (points2d[i].x - cx) * cw;
+                    double sc14 = sc16 / sqr(a) + sc17 / sqr(b);
+                    double sc13 = 2.0 * sc19;
+                    double sc12 = Math.Sqrt(sc14);
+                    double sc11 = exp32(sc14);
+                    double sc10 = 2.0 * sc11;
+                    double sc9 = -cw / sc12;
+                    double sc8 = cube(b) * sc11;
+                    double sc7 = cube(a) * sc11;
+                    double sc6 = 2.0 * sw * sc19 / sqr(b) - 2.0 * cw * sc18 / sqr(a);
+                    double sc5 = sc19 / sc12;
+                    double sc4 = (-(2.0 * sw * sc18)) / sqr(a) - 2.0 * cw * sc19 / sqr(b);
+                    double sc3 = sc5 + (points2d[i].x - cx) * sw - (points2d[i].y - cy) * cw;
+                    double sc2 = sc18 / sc12 - (points2d[i].y - cy) * sw - (points2d[i].x - cx) * cw;
+                    double sc1 = sc13 * sc18 / sqr(a) + sc13 * sc15 / sqr(b);
+                    values[i] = sqr(sc2) + sqr(sc3);
+                }
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = new Matrix(points2d.Length, 5); // Jacobi Matrix 
+                double cx = parameters[0];
+                double cy = parameters[1];
+                double a = parameters[2];
+                double b = parameters[3];
+                double w = parameters[4];
+                double sw = Math.Sin(w);
+                double cw = Math.Cos(w);
+                for (int i = 0; i < points2d.Length; i++)
+                {
+                    double sc19 = (points2d[i].y - cy) * cw - (points2d[i].x - cx) * sw;
+                    double sc18 = (points2d[i].y - cy) * sw + (points2d[i].x - cx) * cw;
+                    double sc17 = sqr(sc19);
+                    double sc16 = sqr(sc18);
+                    double sc15 = (-(points2d[i].y - cy)) * sw - (points2d[i].x - cx) * cw;
+                    double sc14 = sc16 / sqr(a) + sc17 / sqr(b);
+                    double sc13 = 2.0 * sc19;
+                    double sc12 = Math.Sqrt(sc14);
+                    double sc11 = exp32(sc14);
+                    double sc10 = 2.0 * sc11;
+                    double sc9 = -cw / sc12;
+                    double sc8 = cube(b) * sc11;
+                    double sc7 = cube(a) * sc11;
+                    double sc6 = 2.0 * sw * sc19 / sqr(b) - 2.0 * cw * sc18 / sqr(a);
+                    double sc5 = sc19 / sc12;
+                    double sc4 = (-(2.0 * sw * sc18)) / sqr(a) - 2.0 * cw * sc19 / sqr(b);
+                    double sc3 = sc5 + (points2d[i].x - cx) * sw - (points2d[i].y - cy) * cw;
+                    double sc2 = sc18 / sc12 - (points2d[i].y - cy) * sw - (points2d[i].x - cx) * cw;
+                    double sc1 = sc13 * sc18 / sqr(a) + sc13 * sc15 / sqr(b);
+                    derivs[i, 0] = 2.0 * (sc9 - sc18 * sc6 / sc10 + cw) * sc2 + 2.0 * (sw / sc12 - sc19 * sc6 / sc10 - sw) * sc3;
+                    derivs[i, 1] = 2.0 * (-sw / sc12 - sc18 * sc4 / sc10 + sw) * sc2 + 2.0 * (sc9 - sc19 * sc4 / sc10 + cw) * sc3;
+                    derivs[i, 2] = 2.0 * cube(sc18) * sc2 / sc7 + sc13 * sc16 * sc3 / sc7;
+                    derivs[i, 3] = 2.0 * sc17 * sc18 * sc2 / sc8 + 2.0 * cube(sc19) * sc3 / sc8;
+                    derivs[i, 4] = 2.0 * (sc5 - sc18 * sc1 / sc10 + (points2d[i].x - cx) * sw - (points2d[i].y - cy) * cw) * sc2 + 2.0 * sc3 * (sc15 / sc12 - sc19 * sc1 / sc10 + (points2d[i].y - cy) * sw + (points2d[i].x - cx) * cw);
+                }
+            }
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc);
+            if (minrad == majrad) minrad = majrad * 0.9; // they should not be equal, because the derivation for the angle will be 0
+            bool ok = gnm.Solve(new double[] { center2d.x, center2d.y, majrad, minrad, angle }, 30, precision * precision * 1e-2, precision * precision, out double minError, out int numiter, out double[] result);
+            if (ok)
+            {
+                GeoVector2D axdir = new GeoVector2D(new Angle(result[4]));
+                ellipse = new Ellipse2D(new GeoPoint2D(result[0], result[1]), result[2] * axdir, result[3] * axdir.ToLeft());
+                return Math.Sqrt(minError);
+            }
+            else
+            {
+                ellipse = null;
+                return double.MaxValue;
+            }
+        }
         public static double PlaneFit(IArray<GeoPoint> points, double precision, out Plane plane)
         {
             // We use a GaussNewtonMinimizer with the following parameters: n: normal of the plane (nx,ny,nz)

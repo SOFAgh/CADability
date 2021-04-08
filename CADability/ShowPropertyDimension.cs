@@ -73,7 +73,7 @@ namespace CADability.UserInterface
 
             if (dimension.DimType == Dimension.EDimType.DimPoints || dimension.DimType == Dimension.EDimType.DimCoord)
             {
-                points = new MultiGeoPointProperty(this, "Dimension.Points");
+                points = new MultiGeoPointProperty(this, "Dimension.Points", this.Frame);
                 points.ModifyWithMouseEvent += new CADability.UserInterface.MultiGeoPointProperty.ModifyWithMouseIndexDelegate(OnModifyPointWithMouse);
                 points.StateChangedEvent += new StateChangedDelegate(OnPointsStateChanged);
                 points.GeoPointSelectionChangedEvent += new CADability.UserInterface.GeoPointProperty.SelectionChangedDelegate(OnPointsSelectionChanged);

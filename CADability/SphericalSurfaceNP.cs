@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CADability.Curve2D;
+using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text;
@@ -17,6 +18,7 @@ namespace CADability.GeoObject
     {
         GeoPoint center;
         GeoVector xAxis, yAxis, zAxis;
+        Polynom implicitPolynomial; // will be calculated when needed
         public SphericalSurfaceNP(GeoPoint center, GeoVector xAxis, GeoVector yAxis, GeoVector zAxis)
         {
             this.center = center;
@@ -136,6 +138,9 @@ namespace CADability.GeoObject
                         }
                         else ok = false;
                     }
+#if DEBUG
+                    // GeoObjectList dbg = DebugGrid;
+#endif
                     if (ok) return;
                 }
             }
@@ -184,7 +189,13 @@ namespace CADability.GeoObject
             GeoVector pv = Geometry.ReBase(p - center, xAxis, yAxis, zAxis); // vector to the point in unit system
             pv.Length = 1; // map onto the sphere (if not already there)
             Axis beam = new Axis(new GeoPoint(0, 0, -1), new GeoVector(pv.x, pv.y, pv.z + 1)); // beam from south pole to point
-            return Plane.XYPlane.Intersect(beam); // intersection of XY plane
+            try
+            {
+                return Plane.XYPlane.Intersect(beam); // intersection of XY plane
+            } catch (PlaneException pe)
+            {
+                return GeoPoint2D.Invalid;
+            }
         }
         double pow32(double x)
         {
@@ -249,11 +260,11 @@ namespace CADability.GeoObject
             duv = sc3 * v * zAxis / sc7 + sc5 * u * v * zAxis / sc6 - sc2 * u * v * zAxis / sc9 - u * yAxis / sc15 + 3.0 * u * sqr(v) * yAxis / sc16 - v * xAxis / sc15 + 3.0 * sqr(u) * v * xAxis / sc16;
         }
         public override void GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax)
-        {   // there are no natural bounds, this are the bounds of a half sphere
-            umin = -xAxis.Length;
-            umax = xAxis.Length;
-            vmin = -xAxis.Length;
-            vmax = xAxis.Length;
+        {   // there are no natural bounds, this are the bounds of a little more than the half sphere
+            umin = -1;
+            umax = 1;
+            vmin = -1;
+            vmax = 1;
         }
         public override ModOp2D ReverseOrientation()
         {   // flip x and y axis, keep z axis, left handed system
@@ -269,6 +280,17 @@ namespace CADability.GeoObject
         {
             return new SphericalSurfaceNP(center, xAxis, yAxis, zAxis);
         }
+        public override void CopyData(ISurface CopyFrom)
+        {
+            SphericalSurfaceNP snp = CopyFrom as SphericalSurfaceNP;
+            if (snp!=null)
+            {
+                center = snp.center;
+                xAxis = snp.xAxis;
+                yAxis = snp.yAxis;
+                zAxis = snp.zAxis;
+            }
+        }
         public override bool SameGeometry(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, double precision, out ModOp2D firstToSecond)
         {
             if (other is SphericalSurfaceNP snp)
@@ -282,6 +304,20 @@ namespace CADability.GeoObject
                 return false;
             }
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
+        }
+        public override Polynom GetImplicitPolynomial()
+        {
+            if (implicitPolynomial == null)
+            {
+                PolynomVector x = (new GeoVector(center.x, center.y, center.z) - PolynomVector.xyz);
+                implicitPolynomial = (x * x) - xAxis * xAxis;
+                // we need to scale the implicit polynomial so that it yields the true distance to the surface
+                GeoPoint p = center + xAxis + xAxis.Normalized; // a point outside the sphere with distance 1
+                double d = implicitPolynomial.Eval(p); // this should be 1 when the polynomial is normalized
+                if ((xAxis ^ yAxis) * zAxis < 0) d = -d; // inverse oriented sphere
+                implicitPolynomial = (1 / d) * implicitPolynomial; // normalize the polynomial
+            }
+            return implicitPolynomial;
         }
         public override bool UvChangesWithModification => true;
         void IJsonSerialize.GetObjectData(IJsonWriteData data)
@@ -313,5 +349,120 @@ namespace CADability.GeoObject
             info.AddValue("YAxis", yAxis);
             info.AddValue("ZAxis", zAxis);
         }
+        public override GeoPoint2D[] GetExtrema()
+        {
+            List<GeoPoint2D> res = new List<GeoPoint2D>();
+            double radius = xAxis.Length;
+            // assuming the same radius in all directions
+            GeoPoint2D p = PositionOf(center + radius*GeoVector.XAxis);
+            if (p.IsValid) res.Add(p);
+            p = PositionOf(center - radius * GeoVector.XAxis);
+            if (p.IsValid) res.Add(p);
+            p = PositionOf(center + radius * GeoVector.YAxis);
+            if (p.IsValid) res.Add(p);
+            p = PositionOf(center - radius * GeoVector.YAxis);
+            if (p.IsValid) res.Add(p);
+            p = PositionOf(center + radius * GeoVector.ZAxis);
+            if (p.IsValid) res.Add(p);
+            p = PositionOf(center - radius * GeoVector.ZAxis);
+            if (p.IsValid) res.Add(p);
+            return res.ToArray();
+        }
+        public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
+        {
+            ICurve2D dbg = base.GetProjectedCurve(curve, precision);
+            if (curve is Ellipse elli)
+            {   // a circle on the surface is projected to an ellipse in the uv plane
+                GeoPoint2D[] positions = new GeoPoint2D[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    positions[i] = PositionOf(elli.PointAtParam(i*Math.PI*2.0/6.0));
+                }
+                Ellipse2D elli2d = Ellipse2D.FromFivePoints(positions, true);
+                double prec = precision;
+                if (prec == 0) prec = Precision.eps;
+                if (elli2d == null)
+                {
+                    BoundingRect ext = new BoundingRect(positions);
+                    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(positions), ext.GetCenter(), ext.Size / 2.0, ext.Size / 3.0, 0.0, prec, out elli2d);
+                }
+                else
+                {
+                    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(positions), elli2d.center, elli2d.majrad, elli2d.minrad, elli2d.majorAxis.Angle, prec, out elli2d);
+                }
+                //GeoPoint2D center = PositionOf(elli.Center);
+                //GeoPoint2D maj = PositionOf(elli.Center + elli.MajorAxis);
+                //GeoPoint2D min = PositionOf(elli.Center + elli.MinorAxis);
+                //Geometry.PrincipalAxis(maj - center, min - center, out GeoVector2D majorAxis, out GeoVector2D minorAxis);
+                //Ellipse2D elli2d = new Ellipse2D(center, maj - center, min - center);
+                if (elli.IsArc)
+                {
+                    double sp = elli2d.PositionOf(PositionOf(elli.StartPoint));
+                    double ep = elli2d.PositionOf(PositionOf(elli.EndPoint));
+                    EllipseArc2D elliarc2d = elli2d.Trim(sp, ep) as EllipseArc2D;
+                    // there must be a more sophisticated way to calculate the orientation and which part to use, but the following works:
+                    double pm = elliarc2d.PositionOf(PositionOf(elli.PointAt(0.5)));
+                    if (pm < 0 || pm > 1) elliarc2d = elliarc2d.GetComplement();
+                    pm = elliarc2d.PositionOf(PositionOf(elli.PointAt(0.1)));
+                    if (pm > 0.5) elliarc2d.Reverse();
+                    return elliarc2d;
+                }
+                else
+                {   // get the correct orientation
+                    double pos = elli2d.PositionOf(PositionOf(elli.PointAt(0.1)));
+                    if (pos > 0.5) elli2d.Reverse();
+                    return elli2d;
+                }
+            }
+            return base.GetProjectedCurve(curve, precision);
+        }
+#if DEBUG
+        public override GeoObjectList DebugGrid
+        {
+            get
+            {
+                GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax);
+                GeoObjectList res = new GeoObjectList();
+                int n = 25;
+                for (int i = 0; i <= n; i++)
+                {   
+                    GeoPoint[] pu = new GeoPoint[n + 1];
+                    GeoPoint[] pv = new GeoPoint[n + 1];
+                    for (int j = 0; j <= n; j++)
+                    {
+                        pu[j] = PointAt(new GeoPoint2D(umin + j * (umax - umin) / n, vmin + i * (vmax - vmin) / n));
+                        pv[j] = PointAt(new GeoPoint2D(umin + i * (umax - umin) / n, vmin + j * (vmax - vmin) / n));
+                    }
+                    try
+                    {
+                        Polyline plu = Polyline.Construct();
+                        plu.SetPoints(pu, false);
+                        res.Add(plu);
+                    }
+                    catch (PolylineException)
+                    {   // there should not be a pole
+                        Point pntu = Point.Construct();
+                        pntu.Location = pu[0];
+                        pntu.Symbol = PointSymbol.Cross;
+                        res.Add(pntu);
+                    }
+                    try
+                    {
+                        Polyline plv = Polyline.Construct();
+                        plv.SetPoints(pv, false);
+                        res.Add(plv);
+                    }
+                    catch (PolylineException)
+                    {
+                        Point pntv = Point.Construct();
+                        pntv.Location = pv[0];
+                        pntv.Symbol = PointSymbol.Cross;
+                        res.Add(pntv);
+                    }
+                }
+                return res;
+            }
+        }
+#endif
     }
 }

@@ -6,6 +6,11 @@ using CADability.Curve2D;
 
 namespace CADability.GeoObject
 {
+    /// <summary>
+    /// Conical surface with a uv system (parametric space) which is not periodic and has no pole. The uv system correspond to a plane through the apex perpendicular to the axis
+    /// which contains the projected cone to this plane. Disadvantage is numeric precision when the opening angle is very small. A solution would be an offset and a factor
+    /// which only projects the "used area" of this cone to a standard ring
+    /// </summary>
     [Serializable()]
     public class ConicalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable
     {
@@ -13,6 +18,7 @@ namespace CADability.GeoObject
         GeoVector xAxis, yAxis, zAxis; // the axis build a perpendicular coordinate system, the zAxis is the axis of the cone. Right handed: the axis is inside the cone
         // only the part int the direction of the zAxis is used. the x and y system define the u,v system, the length of the zAxis with respect to the length of x and y axis
         // define the opening angle
+        Polynom implicitPolynomial; // cached value for the implicit form of the surface
         public ConicalSurfaceNP(GeoPoint location, GeoVector xAxis, GeoVector yAxis, GeoVector zAxis, double semiAngle)
         {
             this.location = location;
@@ -26,28 +32,140 @@ namespace CADability.GeoObject
         public ConicalSurfaceNP(GeoPoint location, GeoVector xAxis, GeoVector yAxis, GeoVector zAxis)
         {
             this.location = location;
-            this.xAxis = xAxis;
-            this.yAxis = yAxis;
-            this.zAxis = zAxis;
+            double f = 1.0 / xAxis.Length;
+            this.xAxis = f * xAxis;
+            this.yAxis = f * yAxis;
+            this.zAxis = f * zAxis;
         }
         public override ISurface Clone()
         {
             return new ConicalSurfaceNP(location, xAxis, yAxis, zAxis);
         }
+        public override void CopyData(ISurface CopyFrom)
+        {
+            ConicalSurfaceNP cnp = CopyFrom as ConicalSurfaceNP;
+            if (cnp != null)
+            {
+                location = cnp.location;
+                xAxis = cnp.xAxis;
+                yAxis = cnp.yAxis;
+                zAxis = cnp.zAxis;
+            }
+        }
         public override ICurve FixedU(double u, double vmin, double vmax)
-        {   // the result would be a parabola, which is not implemented as a 3d curve
-            return new SurfaceCurve(this, new Line2D(new GeoPoint2D(u, vmin), new GeoPoint2D(u, vmax)));
+        {
+            return Make3dCurve(new Line2D(new GeoPoint2D(u, vmin), new GeoPoint2D(u, vmax)));
         }
         public override ICurve FixedV(double v, double umin, double umax)
         {
-            return new SurfaceCurve(this, new Line2D(new GeoPoint2D(umin, v), new GeoPoint2D(umax, v)));
+            return Make3dCurve(new Line2D(new GeoPoint2D(umin, v), new GeoPoint2D(umax, v)));
         }
         public override ISurface GetModified(ModOp m)
         {   // m must be orthogonal
             return new ConicalSurfaceNP(m * location, m * xAxis, m * yAxis, m * zAxis);
         }
+        public override ICurve Make3dCurve(ICurve2D curve2d)
+        {
+            if (curve2d is Line2D l2d)
+            {
+                if (Math.Abs(Geometry.DistPL(GeoPoint2D.Origin, l2d.StartPoint, l2d.EndPoint)) < Precision.eps)
+                {
+                    double p0 = l2d.PositionOf(GeoPoint2D.Origin);
+                    if (p0 > 1e-6 && p0 < 1 - 1e-6)
+                    {
+                        // the line passes through the apex: we have to split this edge and make a polyline
+                        return Polyline.FromPoints(new GeoPoint[] { PointAt(l2d.StartPoint), location, PointAt(l2d.EndPoint) });
+                    }
+                    else
+                    {
+                        return Line.TwoPoints(PointAt(l2d.StartPoint), PointAt(l2d.EndPoint));
+                    }
+                }
+                else
+                {
+                    // the result is a parabola, which is exactly represented by a BSpline of degree 2 with 3 poles
+                    BSpline parabola = BSpline.Construct();
+                    parabola.ThroughPoints(new GeoPoint[] { PointAt(l2d.StartPoint), PointAt(l2d.PointAt(0.5)), PointAt(l2d.EndPoint) }, 2, false);
+                    return parabola;
+                }
+            }
+            else if (curve2d is Ellipse2D elli2d)
+            {   // includes EllipseArc2D
+                // this is an ellipse in 3d
+                GeoPoint[] fp3d = new GeoPoint[5];
+                double n = 5.0;
+                if (elli2d is EllipseArc2D) n = 4.0;
+                for (int i = 0; i < 5; i++)
+                {
+                    fp3d[i] = PointAt(elli2d.PointAt(i / n));
+                }
+                Ellipse elli = Ellipse.FromFivePoints(fp3d, !(elli2d is EllipseArc2D));
+                if (elli != null) return elli;
+            }
+            else if (curve2d is Circle2D circle2d)
+            {   // includes Arc2D
+                if (Precision.IsEqual(circle2d.Center, GeoPoint2D.Origin))
+                {
+                    // this is an ellipse in 3d
+                    GeoPoint[] fp3d = new GeoPoint[5];
+                    double n = 5.0;
+                    if (circle2d is Arc2D) n = 4.0;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        fp3d[i] = PointAt(circle2d.PointAt(i / n));
+                    }
+                    Ellipse elli = Ellipse.FromFivePoints(fp3d, !(circle2d is Arc2D));
+                    if (elli != null) return elli;
+                }
+            }
+            return base.Make3dCurve(curve2d);
+        }
+        public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
+        {
+            if (curve is Line line)
+            {
+                // this must be a line through the apex, otherwise there are no lines on the cone
+                // if it is an extremely small line not through the apex, the result will also be a line, which
+                // in reverse projection will give a very short ellipse
+                return new Line2D(PositionOf(line.StartPoint), PositionOf(line.EndPoint));
+            }
+            else if (curve is Ellipse elli)
+            {
+                // this is a intersection with a plane. 
+                GeoPoint2D[] fp2d = new GeoPoint2D[5];
+                double n = 5.0;
+                if (elli.IsArc) n = 4.0;
+                for (int i = 0; i < 5; i++)
+                {
+                    fp2d[i] = PositionOf(elli.PointAt(i / n));
+                }
+                Ellipse2D elli2d = Ellipse2D.FromFivePoints(fp2d, !elli.IsArc); // returns both full ellipse and ellipse arc
+                if (elli2d != null) return elli2d;
+            }
+            return base.GetProjectedCurve(curve, precision);
+        }
+        public override ICurve2D[] GetTangentCurves(GeoVector direction, double umin, double umax, double vmin, double vmax)
+        {
+            if (Precision.SameDirection(direction, zAxis, false))
+            {
+                return new ICurve2D[0];
+            }
+            GeoPoint2D uv = PositionOf(location + zAxis + (direction ^ zAxis));
+            GeoVector2D dir2d = uv.ToVector();
+            dir2d.Length = Math.Max(Math.Max(Math.Abs(umax), Math.Abs(umin)), Math.Max(Math.Abs(vmax), Math.Abs(vmin))) * 1.1;
+            ClipRect clr = new ClipRect(umin, umax, vmin, vmax);
+            GeoPoint2D sp = GeoPoint2D.Origin - dir2d;
+            GeoPoint2D ep = GeoPoint2D.Origin + dir2d;
+            if (clr.ClipLine(ref sp, ref ep)) return new ICurve2D[] { new Line2D(sp, ep) };
+            else return new ICurve2D[0];
+        }
         public override GeoPoint PointAt(GeoPoint2D uv)
         {
+            //double vo = 0.0;
+            //double vf = 1.0;
+            //double l = Math.Sqrt(sqr(uv.y) + sqr(uv.x));
+            //double u = vf * uv.x * (l - vo) / l;
+            //double v = vf * uv.y * (l - vo) / l;
             return location + (Math.Sqrt(sqr(uv.y) + sqr(uv.x)) * zAxis) + uv.y * yAxis + uv.x * xAxis;
         }
         public override GeoPoint2D PositionOf(GeoPoint p)
@@ -96,7 +214,6 @@ namespace CADability.GeoObject
             xAxis = yAxis;
             yAxis = tmp;
             return new ModOp2D(0, 1, 0, 1, 0, 0);
-
         }
         public override bool IsUPeriodic => false;
         public override bool IsVPeriodic => false;
@@ -122,20 +239,39 @@ namespace CADability.GeoObject
                 return 2 * Math.Atan2(xAxis.Length, zAxis.Length);
             }
         }
+        public override GeoPoint2D[] PerpendicularFoot(GeoPoint fromHere)
+        {
+            try
+            {
+                Plane pln = new Plane(location, zAxis, fromHere - location);
+                // in this plane the x-axis is the conical axis, the origin is the apex of the cone
+                Angle dira = OpeningAngle / 2.0;
+                // this line through origin with angle dira and -dira are the envelope lines of the cone
+                GeoPoint2D fromHere2d = pln.Project(fromHere);
+                GeoPoint2D fp1 = Geometry.DropPL(fromHere2d, GeoPoint2D.Origin, new GeoVector2D(dira));
+                GeoPoint2D fp2 = Geometry.DropPL(fromHere2d, GeoPoint2D.Origin, new GeoVector2D(-dira));
+                return new GeoPoint2D[] { PositionOf(pln.ToGlobal(fp1)), PositionOf(pln.ToGlobal(fp2)) };
+            }
+            catch
+            {   // fromHere is on the axis
+                return new GeoPoint2D[0];
+            }
+        }
         public override Polynom GetImplicitPolynomial()
         {
-            double xz2 = (2.0 * xAxis.z);
-            double xy2 = 2.0 * xAxis.y;
-            double xx2 = 2.0 * xAxis.x;
-            double sc19 = 2.0 * sqr(zAxis.x);
-            double sc18 = xx2 * zAxis.x;
-            double sc17 = xy2 * zAxis.y;
-            double c = (quad(zAxis.z) + xz2 * cube(zAxis.z) + (2.0 * sqr(zAxis.y) + sc17 + sc19 + sc18 + sqr(xAxis.z)) * sqr(zAxis.z) + (xz2 * sqr(zAxis.y) + xy2 * xAxis.z * zAxis.y + xz2 * sqr(zAxis.x) + xx2 * xAxis.z * zAxis.x) * zAxis.z + quad(zAxis.y) + xy2 * cube(zAxis.y) + (sc19 + sc18 + sqr(xAxis.y)) * sqr(zAxis.y) + (xy2 * sqr(zAxis.x) + xx2 * xAxis.y * zAxis.x) * zAxis.y + quad(zAxis.x) + xx2 * cube(zAxis.x) + sqr(xAxis.x) * sqr(zAxis.x)) / (sqr(zAxis.z) + xz2 * zAxis.z + sqr(zAxis.y) + sc17 + sqr(zAxis.x) + sc18 + sqr(xAxis.z) + sqr(xAxis.y) + sqr(xAxis.x));
-            if ((xAxis ^ yAxis) * zAxis < 0) c = -c;
-            Polynom x = new Polynom(1, "x", 0, "y", 0, "z");
-            Polynom y = new Polynom(0, "x", 1, "y", 0, "z");
-            Polynom z = new Polynom(0, "x", 0, "y", 1, "z");
-            return (((z - location.z) * zAxis.z + (y - location.y) * zAxis.y + (x - location.x) * zAxis.x)^2) - c * (((z - location.z)^2) + ((y - location.y)^2) + ((x - location.x)^2));
+            if (implicitPolynomial == null)
+            {
+                PolynomVector w = zAxis ^ (location.ToVector() - PolynomVector.xyz); // the distance of a point to the axis
+                Polynom l = zAxis * PolynomVector.xyz - zAxis * location.ToVector(); // the distance from location along the axis 
+                //(w*w)/(l*l)==(xAxis*xAxis)/(zAxis*zAxis) == tan(half opening angle)
+                implicitPolynomial = (w * w) - ((xAxis * xAxis) / (zAxis * zAxis)) * (l * l);
+                double d1 = implicitPolynomial.Eval(PointAt(new GeoPoint2D(0.5, 0.5)));
+                double d2 = implicitPolynomial.Eval(PointAt(new GeoPoint2D(10, -10)));
+                GeoPoint p = PointAt(new GeoPoint2D(1, 0)) + GetNormal(new GeoPoint2D(1, 0)).Normalized; // a point with distance 1 from the cone
+                double d = implicitPolynomial.Eval(p); // this should be 1
+                implicitPolynomial = (1 / d) * implicitPolynomial; // OK, this makes a good scaling (but it is not the distance)
+            }
+            return implicitPolynomial;
         }
         public double DebugImplicit(GeoPoint p)
         {

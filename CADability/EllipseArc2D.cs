@@ -319,6 +319,13 @@ namespace CADability.Curve2D
                 // if ((sweep < 0.0 && res > 0.0) || (sweep > 0.0 && res < 0.0)) res = -res; // 2.2.17 entfernt: 
             }
         }
+        internal void MakeFullEllipse()
+        {
+            if (sweepPar < 0) sweepPar = -Math.PI * 2.0;
+            else sweepPar = Math.PI * 2.0;
+            endPoint = startPoint;
+            RecalcQuadrant();
+        }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Clone ()"/>
         /// </summary>
@@ -479,7 +486,7 @@ namespace CADability.Curve2D
             }
         }
         internal void Close()
-        {
+        {   // maybe this is wrong, see MakeFullEllipse
             if (sweep > 0) sweep = Math.PI * 2.0;
             else sweep = -Math.PI * 2.0;
             RecalcQuadrant();
@@ -521,10 +528,14 @@ namespace CADability.Curve2D
             double a1 = (a - startPar) / sweepPar;
             double a2 = (a - startPar + 2.0 * Math.PI) / sweepPar;
             double a3 = (a - startPar - 2.0 * Math.PI) / sweepPar;
+            double a4 = (a - startPar + 4.0 * Math.PI) / sweepPar;
+            double a5 = (a - startPar - 4.0 * Math.PI) / sweepPar;
             // welcher der 3 Werte ist näher an 0.5 ?
             double ax = a1;
             if (Math.Abs(a2 - 0.5) < Math.Abs(ax - 0.5)) ax = a2;
             if (Math.Abs(a3 - 0.5) < Math.Abs(ax - 0.5)) ax = a3;
+            if (Math.Abs(a4 - 0.5) < Math.Abs(ax - 0.5)) ax = a4;
+            if (Math.Abs(a5 - 0.5) < Math.Abs(ax - 0.5)) ax = a5;
             return ax;
         }
         /// <summary>
@@ -885,6 +896,16 @@ namespace CADability.Curve2D
                 double segtriangle = GeoVector2D.Area(startPoint - center, endPoint - center); // area of the parallelogram
                 return (triangle + segment - segtriangle) / 2.0; // all values are double size, hence /2.0
             }
+        }
+        public EllipseArc2D GetComplement()
+        {
+            double sp;
+            if (sweepPar > 0) sp = Math.PI * 2.0 - sweepPar;
+            else sp = -(Math.PI * 2.0 + sweepPar);
+            double st = startPar + sweepPar;
+            if (st > Math.PI * 2.0) st -= Math.PI * 2.0;
+            if (st < 0.0) st += Math.PI * 2.0;
+            return new EllipseArc2D(center, majorAxis, minorAxis, st, sp, left, right, bottom, top);
         }
         #region ISerializable Members
         /// <summary>

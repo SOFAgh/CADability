@@ -2269,6 +2269,7 @@ namespace CADability
                         SKLR[k, l] = calc.Mul(1.0 / calc.Weight(SKL[0, 0]), v1);
                     }
                 }
+                SKLR[0, 0] = SKL[0, 0];
                 return SKLR;
             }
 
@@ -2478,7 +2479,7 @@ namespace CADability
             for (int i = 0; i <= k - udegree; ++i) newpoles[i] = poles[i];
             for (int i = k - s; i <= np; ++i) newpoles[i + r] = poles[i];
             // for (int i = 0; i <= udegree - s; ++i) RW[i] = poles[k - udegree + i];
-            for (int i = 0; i <= udegree; ++i) RW[i] = poles[Math.Min(k - udegree + i,poles.Length-1)]; // introduced Math.Min for nurbs where the last multiplicity is less than or equal degree
+            for (int i = 0; i <= udegree; ++i) RW[i] = poles[Math.Min(k - udegree + i, poles.Length - 1)]; // introduced Math.Min for nurbs where the last multiplicity is less than or equal degree
             int L = 0;
             for (int j = 1; j <= r; ++j)
             {

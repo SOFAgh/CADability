@@ -317,7 +317,7 @@ namespace CADability.GeoObject
                         sw = new SweepAngle(new Angle(res.startParameter), new Angle(endpar), ccw);
                         //}
                         res.sweepParameter = sw.Radian;
-                        if (res.sweepParameter == 0.0 && Math.Abs(res.sweepAng) > Math.PI)
+                        if (Math.Abs(res.sweepParameter) < 1e-6 && Math.Abs(res.sweepAng) > Math.PI)
                         {
                             // Sonderfall: ein fast Vollkreis wird nicht als solcher erkannt und liefert 
                             // allerdings exakt 0.0 für sweepAng
@@ -333,6 +333,60 @@ namespace CADability.GeoObject
             }
             return res;
         }
+
+        internal static Ellipse FromFivePoints(GeoPoint[] fp3d, bool isFull)
+        {
+            if (fp3d.Length != 5) return null;
+            Plane pln = Plane.FromPoints(fp3d, out double maxDist, out bool isLinear);
+            if (maxDist < Precision.eps && !isLinear)
+            {
+                GeoPoint2D[] fp2d = new GeoPoint2D[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    fp2d[i] = pln.Project(fp3d[i]);
+                }
+                Ellipse2D e2d = Ellipse2D.FromFivePoints(fp2d);
+                if (e2d != null)
+                {
+                    Ellipse elli = e2d.MakeGeoObject(pln) as Ellipse;
+                    if (elli != null)
+                    {
+                        // get the correct orientation
+                        double mindist = double.MaxValue;
+                        double p0 = elli.PositionOf(fp3d[0]);
+                        for (int i = 1; i < 5; i++)
+                        {
+                            double p1 = elli.PositionOf(fp3d[i]);
+                            if (Math.Abs(p1 - p0) < Math.Abs(mindist))
+                            {
+                                mindist = p1 - p0;
+                            }
+                            p0 = p1;
+                        }
+                        if (mindist < 0) (elli as ICurve).Reverse();
+                        if (!isFull)
+                        {
+                            double sp = elli.PositionOf(fp3d[0]);
+                            double ep = elli.PositionOf(fp3d[4]);
+                            double mp = elli.PositionOf(fp3d[2]);
+                            if (sp < ep)
+                            {
+                                if (sp < mp && mp < ep) elli.Trim(sp, ep);
+                                else elli.Trim(ep, sp);
+                            }
+                            else
+                            {   // to be tested!
+                                if (sp < mp && mp < ep) elli.Trim(ep, sp);
+                                else elli.Trim(sp, ep);
+                            }
+                        }
+                        return elli;
+                    }
+                }
+            }
+            return null;
+        }
+
         internal BSpline ToBSpline()
         {
             BSpline bsp = BSpline.Construct();
@@ -846,7 +900,7 @@ namespace CADability.GeoObject
                 plane = new Plane(Center, MajorAxis, MinorAxis);
                 majorRadius = MajorAxis.Length;
                 minorRadius = MinorAxis.Length;
-                
+
                 startParameter = 0.0;
                 sweepParameter = Math.PI * 2.0; // sweep parameter was 0 previously, but it should be a full ellipse
             }
@@ -1958,6 +2012,16 @@ namespace CADability.GeoObject
             return plane.Location + Math.Cos(ea) * majorRadius * plane.DirectionX + Math.Sin(ea) * minorRadius * plane.DirectionY;
         }
         /// <summary>
+        /// Returns the point at the provided parameter. 2*pi is the full circle, it starts at the startParameter
+        /// </summary>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public GeoPoint PointAtParam(double param)
+        {
+            double ea = startParameter + param;
+            return plane.Location + Math.Cos(ea) * majorRadius * plane.DirectionX + Math.Sin(ea) * minorRadius * plane.DirectionY;
+        }
+        /// <summary>
         /// Implements <see cref="CADability.GeoObject.ICurve.PositionOf (GeoPoint)"/>
         /// </summary>
         /// <param name="p"></param>
@@ -2152,7 +2216,7 @@ namespace CADability.GeoObject
             return a.Radian;
         }
 
-        private double sqr(double s) {  return s*s; }
+        private double sqr(double s) { return s * s; }
         private double ParameterOf(GeoPoint p, double startValue)
         {
             double cx = Center.x;

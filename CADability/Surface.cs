@@ -2226,6 +2226,10 @@ namespace CADability.GeoObject
                             ext.Top = Math.Min(ns.VKnots[ns.VKnots.Length - 1], ext.Top);
                         }
                     }
+                    else if (this is NonPeriodicSurface)
+                    {
+                        // do not expand extent
+                    }
                     else if (usedArea != BoundingRect.EmptyBoundingRect)
                     {
                         // the usedArea can differ from natural bounds in periodic cases: we may not restrict to 0..2*pi!
@@ -2786,20 +2790,19 @@ namespace CADability.GeoObject
         public virtual GeoPoint2D[] GetLineIntersection(GeoPoint startPoint, GeoVector direction)
         {
             Polynom impl = GetImplicitPolynomial();
-            if (impl!=null)
+            if (impl != null)
             {
+                List<GeoPoint2D> res = new List<GeoPoint2D>();
                 Polynom toSolve = impl.Substitute(new Polynom(direction.x, "u", startPoint.x, ""), new Polynom(direction.y, "u", startPoint.y, ""), new Polynom(direction.z, "u", startPoint.z, ""));
                 double[] roots = toSolve.Roots();
                 for (int i = 0; i < roots.Length; i++)
                 {
                     GeoPoint p1 = startPoint + roots[i] * direction;
-                    double dbg = impl.Eval(p1.x, p1.y, p1.z);
+                    res.Add(PositionOf(p1));
                 }
+                return res.ToArray();
             }
             return BoxedSurfaceEx.GetLineIntersection(startPoint, direction);
-            //CndHlp3D.Surface sf = Helper;
-            //CndHlp2D.GeoPoint2D[] hres = sf.GetLinearIntersection(startPoint.ToCndHlp(), direction.ToCndHlp());
-            //return GeoPoint2D.FromCndHlp(hres);
         }
         /// <summary>
         /// Implements <see cref="CADability.GeoObject.ISurface.GetSafeParameterSteps (double, double, double, double, out double[], out double[])"/>
@@ -2812,8 +2815,6 @@ namespace CADability.GeoObject
         /// <param name="intv"></param>
         public virtual void GetSafeParameterSteps(double umin, double umax, double vmin, double vmax, out double[] intu, out double[] intv)
         {
-            //intu = new double[] { umin, umax };
-            //intv = new double[] { vmin, vmax };
             int n = 4;
             intu = new double[n];
             intv = new double[n];
@@ -3005,10 +3006,10 @@ namespace CADability.GeoObject
             {
                 Polyline pl = curve as Polyline;
                 List<ICurve2D> res = new List<ICurve2D>();
-                Line ln = Line.Construct();
                 GeoPoint2D lastEndPoint = GeoPoint2D.Invalid;
                 for (int i = 0; i < pl.Vertices.Length - 1; i++)
                 {
+                    Line ln = Line.Construct();
                     ln.SetTwoPoints(pl.Vertices[i], pl.Vertices[i + 1]);
                     ICurve2D c2d = GetProjectedCurve(ln, precision);
                     if (c2d != null)
@@ -3284,12 +3285,12 @@ namespace CADability.GeoObject
             //    uOnCurve3Ds[i] = curve.PositionOf(ips[i]);
             //}
             Polynom implpol = GetImplicitPolynomial();
-            if (implpol!=null) 
-            if (curve is IDualSurfaceCurve)
-            {
-                IDualSurfaceCurve dsc = (curve as IDualSurfaceCurve);
-                // Surfaces.Intersect(this,uvExtent,dsc.Surface1,dsc.Curve2D1.GetExtent(),dsc.Surface2,dsc.Curve2D2.GetExtent(),)
-            }
+            if (implpol != null)
+                if (curve is IDualSurfaceCurve)
+                {
+                    IDualSurfaceCurve dsc = (curve as IDualSurfaceCurve);
+                    // Surfaces.Intersect(this,uvExtent,dsc.Surface1,dsc.Curve2D1.GetExtent(),dsc.Surface2,dsc.Curve2D2.GetExtent(),)
+                }
             BoxedSurfaceEx.Intersect(curve, uvExtent, out ips, out uvOnFaces, out uOnCurve3Ds);
         }
         /// <summary>
@@ -3402,7 +3403,191 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public virtual bool HitTest(BoundingCube cube, out GeoPoint2D uv)
         {
+            Polynom implicitSurface = GetImplicitPolynomial();
+            uv = GeoPoint2D.Origin;
+            if (implicitSurface != null)
+            {
+                double cntDist = implicitSurface.Eval(cube.GetCenter());
+                // if (cube.DiagonalLength / 2 < Math.Abs(cntDist)) return false; // the cube is too far away from the surface
+                // the distance only works for certain surfaces (plane, sphere, cylinder, not for torus, cone)
+                int cntSign = Math.Sign(cntDist);
+                GeoPoint[] vertices = cube.Points;
+                int[] vertexSign = new int[vertices.Length];
+                bool differentSign = false;
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    vertexSign[i] = Math.Sign(implicitSurface.Eval(vertices[i]));
+                    differentSign |= vertexSign[i] != cntSign;
+                }
+                int[,] ln = cube.LineNumbers;
+                if (differentSign)
+                {   // there must be at least 3 edges of the cube passing through the surface
+                    // we should return them all, but the parameter allows only one
+                    for (int i = 0; i < 12; i++)
+                    {
+                        if (vertexSign[ln[i, 0]] != vertexSign[ln[i, 1]])
+                        {   // the line from vertices[ln[i,0]] to vertices[ln[i,1]] intersects the surface.
+                            GeoPoint startPoint = vertices[ln[i, 0]];
+                            GeoVector direction = vertices[ln[i, 1]] - startPoint;
+                            Polynom toSolve = implicitSurface.Substitute(Polynom.Line3d(startPoint, direction));
+                            double[] roots = toSolve.Roots();
+                            for (int j = 0; j < roots.Length; j++)
+                            {
+                                if (roots[j] >= 0 && roots[j] <= 1)
+                                {
+                                    GeoPoint p = startPoint + roots[j] * direction;
+                                    uv = PositionOf(p);
+                                    return true;
+                                }
+                            }
+
+                        }
+                    }
+                }
+                else
+                {
+                    // no cube edge intersects the surface (an odd number of times) and the surface is close to the cube
+                    // test all edges of the cube against the surface
+                    for (int i = 0; i < 12; i++)
+                    {
+                        GeoPoint startPoint = vertices[ln[i, 0]];
+                        GeoVector direction = vertices[ln[i, 1]] - startPoint;
+                        Polynom toSolve = implicitSurface.Substitute(Polynom.Line3d(startPoint, direction));
+                        double[] roots = toSolve.Roots();
+                        for (int j = 0; i < roots.Length; i++)
+                        {
+                            if (roots[j] >= 0 && roots[j] <= 1)
+                            {
+                                GeoPoint p = startPoint + roots[j] * direction;
+                                uv = PositionOf(p);
+                                return true;
+                            }
+                        }
+                    }
+                }
+#if DEBUG
+                // find a plane which separates the surface and the cube
+                // doesn't help
+                //PolynomVector normalPolynom = new PolynomVector(implicitSurface.Derivate(1, 0, 0), implicitSurface.Derivate(0, 1, 0), implicitSurface.Derivate(0, 0, 1));
+                //GeoPoint center = cube.GetCenter();
+                //GeoVector normal = normalPolynom.Eval(center);
+                //normal.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+                //Polynom plane = implicitSurface.Substitute(new Polynom(center.x, "", dirx.x, "u", diry.x, "v"), new Polynom(center.y, "", dirx.y, "u", diry.y, "v"), new Polynom(center.z, "", dirx.z, "u", diry.z, "v"));
+                //double[] uminmax = plane.Derivate(1, 0).Roots();
+                //double[] vminmax = plane.Derivate(0, 1).Roots();
+#endif
+                // no cube edge intersects the surface any number of times
+                // Maybe a sphere or a torus touch the cube without intersection one of it's edges
+                GeoPoint2D[] extrema = this.GetExtrema(); // the extrema in axis direction
+                for (int i = 0; i < extrema.Length; i++)
+                {
+                    if (cube.Contains(PointAt(extrema[i])))
+                    {
+                        uv = extrema[i];
+                        return true;
+                    }
+                }
+                // a torus may pass through the cube without interfering with the edges: check the foot points from the center
+                GeoPoint2D[] footPoints = this.PerpendicularFoot(cube.GetCenter());
+                for (int i = 0; i < footPoints.Length; i++)
+                {
+                    if (cube.Contains(PointAt(footPoints[i])))
+                    {
+                        uv = footPoints[i];
+                        return true;
+                    }
+                }
+                return false;
+            }
             return this.BoxedSurfaceEx.HitTest(cube, out uv);
+        }
+        private bool DebugNewHitTest(BoundingCube cube, out GeoPoint2D uv)
+        {
+            Polynom implicitSurface = GetImplicitPolynomial();
+            uv = GeoPoint2D.Origin;
+            if (implicitSurface != null)
+            {
+                double cntDist = implicitSurface.Eval(cube.GetCenter());
+                if (cube.DiagonalLength / 2 < Math.Abs(cntDist)) return false; // the cube is too far away from the surface
+                int cntSign = Math.Sign(cntDist);
+                GeoPoint[] vertices = cube.Points;
+                int[] vertexSign = new int[vertices.Length];
+                bool differentSign = false;
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    vertexSign[i] = Math.Sign(implicitSurface.Eval(vertices[i]));
+                    differentSign |= vertexSign[i] != cntSign;
+                }
+                int[,] ln = cube.LineNumbers;
+                if (differentSign)
+                {   // there must be at least 3 edges of the cube passing through the surface
+                    // we should return them all, but the parameter allows only one
+                    for (int i = 0; i < 12; i++)
+                    {
+                        if (vertexSign[ln[i, 0]] != vertexSign[ln[i, 1]])
+                        {   // the line from vertices[ln[i,0]] to vertices[ln[i,1]] intersects the surface.
+                            GeoPoint startPoint = vertices[ln[i, 0]];
+                            GeoVector direction = vertices[ln[i, 1]] - startPoint;
+                            Polynom toSolve = implicitSurface.Substitute(Polynom.Line3d(startPoint, direction));
+                            double[] roots = toSolve.Roots();
+                            for (int j = 0; i < roots.Length; i++)
+                            {
+                                if (roots[j] >= 0 && roots[j] <= 1)
+                                {
+                                    GeoPoint p = startPoint + roots[j] * direction;
+                                    uv = PositionOf(p);
+                                    return true;
+                                }
+                            }
+
+                        }
+                    }
+                }
+                else
+                {
+                    // no cube edge intersects the surface (an odd number of times) and the surface is close to the cube
+                    // test all edges of the cube against the surface
+                    for (int i = 0; i < 12; i++)
+                    {
+                        GeoPoint startPoint = vertices[ln[i, 0]];
+                        GeoVector direction = vertices[ln[i, 1]] - startPoint;
+                        Polynom toSolve = implicitSurface.Substitute(Polynom.Line3d(startPoint, direction));
+                        double[] roots = toSolve.Roots();
+                        for (int j = 0; i < roots.Length; i++)
+                        {
+                            if (roots[j] >= 0 && roots[j] <= 1)
+                            {
+                                GeoPoint p = startPoint + roots[j] * direction;
+                                uv = PositionOf(p);
+                                return true;
+                            }
+                        }
+                    }
+                }
+                // no cube edge intersects the surface any number of times
+                // Maybe a sphere or a torus touch the cube without intersection one of it's edges
+                GeoPoint2D[] extrema = this.GetExtrema(); // the extrema in axis direction
+                for (int i = 0; i < extrema.Length; i++)
+                {
+                    if (cube.Contains(PointAt(extrema[i])))
+                    {
+                        uv = extrema[i];
+                        return true;
+                    }
+                }
+                // a torus may pass through the cube without interfering with the edges: check the foot points from the center
+                GeoPoint2D[] footPoints = this.PerpendicularFoot(cube.GetCenter());
+                for (int i = 0; i < footPoints.Length; i++)
+                {
+                    if (cube.Contains(PointAt(footPoints[i])))
+                    {
+                        uv = footPoints[i];
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return false;
         }
         public virtual bool Oriented
         {
@@ -8245,6 +8430,7 @@ namespace CADability.GeoObject
             // die Normalen sind normiert oder???
             // Die Normalen sollen keine größeren Winkel einschließen als 45° (der Wert kann noch besser einjustiert werden
             double lim = Math.Sqrt(2.0) / 2.0; //45°, es gibt aber keinen logischen Grund dafür
+            lim = 0.5; // changed to 60°
             //if ((Math.Abs(cube.nll * cube.nlr) < lim || Math.Abs(cube.nll * cube.nul) < lim || Math.Abs(cube.nll * cube.nur) < lim ||
             //    Math.Abs(cube.nlr * cube.nul) < lim || Math.Abs(cube.nlr * cube.nur) < lim || Math.Abs(cube.nul * cube.nur) < lim) && !toosmall)
             // Math.Abs entfernt, denn sehr große Winkel (>135°) fallen sonst raus...
@@ -8310,22 +8496,28 @@ namespace CADability.GeoObject
 
             if (((cube.nll * cube.nlr) < lim || (cube.nll * cube.nul) < lim || (cube.nll * cube.nur) < lim ||
                 (cube.nlr * cube.nul) < lim || (cube.nlr * cube.nur) < lim || (cube.nul * cube.nur) < lim ||
-                (udirl * udirr) < lim || (vdirb * vdirt) < lim) && !toosmall && !isFolded)
+                (udirl * udirr) < 0.1 || (vdirb * vdirt) < 0.1 ) && !toosmall && !isFolded)
+            // condition (udirl * udirr) < 0.1 || (vdirb * vdirt) < 0.1 ) is for flat rotated curves, which are rotated more than about 65°
             {   // Bedingung (udirl * udirr) < lim || (vdirb * vdirt) < lim eingeführt, denn ein fast flacher Toruspatch, der in u 180° hat, in v aber nur wenig
                 // besteht sonst die Prüfung, ist aber nicht gut!
                 // hier einfach zu vierteilen leiefrt manchmal schlechte Ergebnisse
                 // deshalb hier besser überprüfen und nur zweiteilen
 #if DEBUG
-                //DebuggerContainer dc = new DebuggerContainer();
-                //Face fc = Face.MakeFace(this.surface, uvPatch);
-                //// dc.Add(fc, 0);
-                //dc.Add(Line.TwoPoints(cube.pll, cube.pll + 10 * cube.nll));
-                //dc.Add(Line.TwoPoints(cube.plr, cube.plr + 10 * cube.nlr));
-                //dc.Add(Line.TwoPoints(cube.pul, cube.pul + 10 * cube.nul));
-                //dc.Add(Line.TwoPoints(cube.pur, cube.pur + 10 * cube.nur));
-                //dc.Add(Line.TwoPoints(surface.PointAt(uvPatch.GetCenter()), surface.PointAt(uvPatch.GetCenter()) + 20 * ncnt));
-                //dc.Add(Line.TwoPoints(cube.pll, cube.pll + 10 * surface.UDirection(uvPatch.GetLowerLeft())), 0);
-                //dc.Add(Line.TwoPoints(cube.pll, cube.pll + 10 * surface.VDirection(uvPatch.GetLowerLeft())), 1);
+                DebuggerContainer dc = new DebuggerContainer();
+                Face fc = Face.MakeFace(this.surface, uvPatch);
+                dc.Add(fc, 0);
+                double len = ((cube.plr | cube.pul) + (cube.pll | cube.pur)) / 4.0;
+                dc.Add(Line.TwoPoints(cube.pll, cube.pll + len * cube.nll));
+                dc.Add(Line.TwoPoints(cube.plr, cube.plr + len * cube.nlr));
+                dc.Add(Line.TwoPoints(cube.pul, cube.pul + len * cube.nul));
+                dc.Add(Line.TwoPoints(cube.pur, cube.pur + len * cube.nur));
+                dc.Add(Line.TwoPoints(surface.PointAt(uvPatch.GetCenter()), surface.PointAt(uvPatch.GetCenter()) + len * ncnt));
+                dc.Add(Line.TwoPoints(cube.pll, cube.pll + len * surface.UDirection(uvPatch.GetLowerLeft())), 0);
+                dc.Add(Line.TwoPoints(cube.pll, cube.pll + len * surface.VDirection(uvPatch.GetLowerLeft())), 1);
+                dc.Add(Line.TwoPoints(surface.PointAt(uvPatch.GetMiddleLeft()), surface.PointAt(uvPatch.GetMiddleLeft()) + len * udirl));
+                dc.Add(Line.TwoPoints(surface.PointAt(uvPatch.GetMiddleRight()), surface.PointAt(uvPatch.GetMiddleRight()) + len * udirr));
+                dc.Add(Line.TwoPoints(surface.PointAt(uvPatch.GetLowerMiddle()), surface.PointAt(uvPatch.GetLowerMiddle()) + len * vdirb));
+                dc.Add(Line.TwoPoints(surface.PointAt(uvPatch.GetUpperMiddle()), surface.PointAt(uvPatch.GetUpperMiddle()) + len * vdirt));
 #endif
                 int split = 0; // 1: split in u, 2: split in v, 3: split both
                 if (((cube.nll * cube.nlr) < lim || (cube.nul * cube.nur) < lim) || (udirl * udirr) < lim) split = 1;
@@ -9111,6 +9303,9 @@ namespace CADability.GeoObject
         }
         public GeoPoint2D[] GetLineIntersection(GeoPoint startPoint, GeoVector direction)
         {
+#if DEBUG
+            //DebuggerContainer dc = Debug;
+#endif
             List<GeoPoint2D> res = new List<GeoPoint2D>();
             ParEpi[] cubes = octtree.GetObjectsFromLine(startPoint, direction, 0.0);
             for (int i = 0; i < cubes.Length; i++)
@@ -9162,14 +9357,14 @@ namespace CADability.GeoObject
                 if (split)
                 {
 #if DEBUG
-                    {
-                        DebuggerContainer dc = new DebuggerContainer();
-                        Face fc = Face.MakeFace(surface, new CADability.Shapes.SimpleShape(cube.uvPatch.ToBorder()));
-                        dc.Add(fc);
-                        Line l3d = Line.MakeLine(startPoint, startPoint + direction);
-                        dc.Add(l3d);
-                        dc.Add(cube.GetSolid());
-                    }
+                    //{
+                    //    DebuggerContainer dc = new DebuggerContainer();
+                    //    Face fc = Face.MakeFace(surface, new CADability.Shapes.SimpleShape(cube.uvPatch.ToBorder()));
+                    //    dc.Add(fc);
+                    //    Line l3d = Line.MakeLine(startPoint, startPoint + direction);
+                    //    dc.Add(l3d);
+                    //    dc.Add(cube.GetSolid());
+                    //}
 #endif
                     // wir betrachten hier den uvPatch und teilen ihn so in 4 Stücke, dass der gefundene Schnittpunkt
                     // nicht dabei ist. Gehen aber nicht rekursiv sondern machen das nur einmal
@@ -9450,23 +9645,23 @@ namespace CADability.GeoObject
                 // damit am Rand oszillierende Punkte gefunden werden können
 #if DEBUG
                 {
-                    DebuggerContainer dc = new DebuggerContainer();
-                    try
-                    {
-                        Face fc = Face.MakeFace(surface, new CADability.Shapes.SimpleShape(boundingRect));
-                        dc.Add(fc);
-                    }
-                    catch (Polyline2DException) { }
-                    try
-                    {
-                        Plane pln = new Plane(loc, udir, vdir);
-                        Face plnfc = Face.MakeFace(new PlaneSurface(loc, udir, vdir, udir ^ vdir), new CADability.Shapes.SimpleShape(CADability.Shapes.Border.MakeRectangle(0, 1, 0, 1)));
-                        dc.Add(plnfc);
-                        Line ln = Line.Construct();
-                        ln.SetTwoPoints(startPoint - direction, startPoint + direction);
-                        dc.Add(ln);
-                    }
-                    catch (PlaneException) { }
+                    //DebuggerContainer dc = new DebuggerContainer();
+                    //try
+                    //{
+                    //    Face fc = Face.MakeFace(surface, new CADability.Shapes.SimpleShape(boundingRect));
+                    //    dc.Add(fc);
+                    //}
+                    //catch (Polyline2DException) { }
+                    //try
+                    //{
+                    //    Plane pln = new Plane(loc, udir, vdir);
+                    //    Face plnfc = Face.MakeFace(new PlaneSurface(loc, udir, vdir, udir ^ vdir), new CADability.Shapes.SimpleShape(CADability.Shapes.Border.MakeRectangle(0, 1, 0, 1)));
+                    //    dc.Add(plnfc);
+                    //    Line ln = Line.Construct();
+                    //    ln.SetTwoPoints(startPoint - direction, startPoint + direction);
+                    //    dc.Add(ln);
+                    //}
+                    //catch (PlaneException) { }
                 }
 #endif
 
@@ -9490,29 +9685,29 @@ namespace CADability.GeoObject
                         vdir = surface.VDirection(uvSurface); // die müssen auch von der Länge her stimmen!
                         double e = Geometry.DistPL(loc, startPoint, direction);
 #if DEBUG
-                        DebuggerContainer dc = new DebuggerContainer();
-                        try
-                        {
-                            Face fc = Face.MakeFace(surface, new CADability.Shapes.SimpleShape(boundingRect));
-                            dc.Add(fc);
-                        }
-                        catch (Polyline2DException) { }
-                        try
-                        {
-                            Plane pln = new Plane(loc, udir, vdir);
-                            Face plnfc = Face.MakeFace(new PlaneSurface(pln), new CADability.Shapes.SimpleShape(CADability.Shapes.Border.MakeRectangle(-1, 1, -1, 1)));
-                            dc.Add(plnfc);
-                        }
-                        catch (PlaneException) { }
-                        Line ln = Line.Construct();
-                        ln.SetTwoPoints(startPoint - direction, startPoint + direction);
-                        dc.Add(ln);
-                        ln = Line.Construct();
-                        ln.SetTwoPoints(loc, loc + udir);
-                        dc.Add(ln, 1);
-                        ln = Line.Construct();
-                        ln.SetTwoPoints(loc, loc + vdir);
-                        dc.Add(ln, 2);
+                        //DebuggerContainer dc = new DebuggerContainer();
+                        //try
+                        //{
+                        //    Face fc = Face.MakeFace(surface, new CADability.Shapes.SimpleShape(boundingRect));
+                        //    dc.Add(fc);
+                        //}
+                        //catch (Polyline2DException) { }
+                        //try
+                        //{
+                        //    Plane pln = new Plane(loc, udir, vdir);
+                        //    Face plnfc = Face.MakeFace(new PlaneSurface(pln), new CADability.Shapes.SimpleShape(CADability.Shapes.Border.MakeRectangle(-1, 1, -1, 1)));
+                        //    dc.Add(plnfc);
+                        //}
+                        //catch (PlaneException) { }
+                        //Line ln = Line.Construct();
+                        //ln.SetTwoPoints(startPoint - direction, startPoint + direction);
+                        //dc.Add(ln);
+                        //ln = Line.Construct();
+                        //ln.SetTwoPoints(loc, loc + udir);
+                        //dc.Add(ln, 1);
+                        //ln = Line.Construct();
+                        //ln.SetTwoPoints(loc, loc + vdir);
+                        //dc.Add(ln, 2);
 #endif
                         if (!boundingRect.Contains(uvSurface))
                         {
@@ -11236,21 +11431,22 @@ namespace CADability.GeoObject
                 if (mres == null) return false;
                 res.x += mres[0, 0];
                 res.y += mres[1, 0];
-                if (!found.uvPatch.ContainsEps(res, -0.01))
+                if (!found.uvPatch.ContainsEps(res, -0.05))
                 {
                     ++missed;
                     // versuchsweise auch nach außen laufen lassen
                     //if (missed > 2) return false;
-                    if (!natbound2.Contains(res) && missed > 1) return false;
-                    if (!natbound.Contains(res)) // wieder eingeführt, da bei manchen NURBS Endlosschleife
-                    {   // wenn ganz außerhalb, dann auf die Grenze setzen
-                        // gut, solange es konvergiert
-                        SurfaceHelper.AdjustPeriodic(surface, natbound, ref res);
-                        if (res.x < natbound.Left) res.x = natbound.Left;
-                        if (res.x > natbound.Right) res.x = natbound.Right;
-                        if (res.y < natbound.Bottom) res.y = natbound.Bottom;
-                        if (res.y > natbound.Top) res.y = natbound.Top;
-                    }
+                    if (!natbound2.Contains(res) && missed > 1) return false; // too far outside
+                    // if the 2d point is outside the natural bounds we stopped the whole process, but I don't see a reason why, as long as it converges
+                    //if (!natbound.Contains(res)) // wieder eingeführt, da bei manchen NURBS Endlosschleife
+                    //{   // wenn ganz außerhalb, dann auf die Grenze setzen
+                    //    // gut, solange es konvergiert
+                    //    SurfaceHelper.AdjustPeriodic(surface, natbound, ref res);
+                    //    if (res.x < natbound.Left) res.x = natbound.Left;
+                    //    if (res.x > natbound.Right) res.x = natbound.Right;
+                    //    if (res.y < natbound.Bottom) res.y = natbound.Bottom;
+                    //    if (res.y > natbound.Top) res.y = natbound.Top;
+                    //}
                 }
                 else
                 {
@@ -11266,6 +11462,7 @@ namespace CADability.GeoObject
                     if (!acceptDiverge)
                     {
                         if (mindist < Precision.eps) break;
+                        if (Math.Abs(mindist - d) < Precision.eps*0.1) break; // doesn't change any more
                         return false; // konvergiert nicht oder schlecht "*0.9" hinzugefügt (18.7.14)
                     }
                     else
@@ -11276,13 +11473,14 @@ namespace CADability.GeoObject
                 mindist = d;
             }
             if (double.IsNaN(mindist)) return false;
-            if (missed > 2)
-            {
-                BoundingRect brcopy = found.uvPatch;
-                brcopy.Inflate(brcopy.Width / 100, brcopy.Height / 100);
-                bool ok = brcopy.Contains(res);
-                return ok;
-            }
+            // don't know why we should dismiss this case
+            //if (missed > 2)
+            //{
+            //    BoundingRect brcopy = found.uvPatch;
+            //    brcopy.Inflate(brcopy.Width / 100, brcopy.Height / 100);
+            //    bool ok = brcopy.Contains(res);
+            //    return ok;
+            //}
             return true;
         }
         private void SplitCubes(ParEpi[] cubes)
@@ -11400,10 +11598,10 @@ namespace CADability.GeoObject
                 double vmax = uvbounds.Top;
                 if (surface is IRestrictedDomain restrictedDomain)
                 {
-                    int n = 50;
-                    for (int i = 0; i <= n; i++)
+                    int n = 10;
+                    for (int i = 1; i < n; i++)
                     {
-                        Line2D l2d = new Line2D(new GeoPoint2D(umin + i * (umax - umin) / n, vmin), new GeoPoint2D(umin + i * (umax - umin) / n, vmin));
+                        Line2D l2d = new Line2D(new GeoPoint2D(umin + i * (umax - umin) / n, vmin), new GeoPoint2D(umin + i * (umax - umin) / n, vmax));
                         double[] ips = restrictedDomain.Clip(l2d);
                         for (int j = 0; j < ips.Length; j += 2)
                         {

@@ -157,6 +157,11 @@ namespace CADability.Shapes
         private double maxGap; // maximale zu schließende Lücke
         private QuadTree clusterTree; // QuadTree aller Cluster
         private UntypedSet clusterSet; // Menge aller Cluster (parallel zum QuadTree)
+        /// <summary>
+        /// Liste an unbrauchbaren Objekten die bei erstellen eines CompoundShape angefallen sind
+        /// </summary>
+        public List<IGeoObject> DeadObjects { get; } = new List<IGeoObject>();
+
         static public CurveGraph CrackCurves(GeoObjectList l, Plane plane, double maxGap)
         {   // alle Kurven in l werden in die Ebene plane projiziert. Das ist mal ein erster Ansatz
             // Man könnte auch gemeinsame Ebenen finden u.s.w.
@@ -410,7 +415,9 @@ namespace CADability.Shapes
                 clusterTree.RemoveObject(NextCluster);
                 clusterSet.Remove(NextCluster);
                 if (NextCluster.Joints.Count > 0)
-                {
+                {                    
+                    DeadObjects.Add(NextCluster.Joints[0].curve.MakeGeoObject(Plane.XYPlane));
+
                     Joint lp = NextCluster.Joints[0]; // es gibt ja genau einen
                     if (lp.StartCluster == NextCluster) NextCluster = lp.EndCluster;
                     else NextCluster = lp.StartCluster;

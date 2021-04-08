@@ -88,7 +88,12 @@ namespace CADability.GeoObject
             {
                 if (!simpleSurfaceChecked)
                 {
-                    double precision = BoxedSurfaceEx.GetRawExtent().Size * 1e-6;
+                    BoundingCube polesext = BoundingCube.EmptyBoundingCube;
+                    foreach (GeoPoint point in poles)
+                    {
+                        polesext.MinMax(point);
+                    }
+                    double precision = polesext.Size * 1e-6;
                     if (GetSimpleSurface(precision, out simpleSurface, out toSimpleSurface))
                     {
                     }
@@ -1311,6 +1316,11 @@ namespace CADability.GeoObject
                                 double openingAngle = Math.Atan2(Math.Abs(radii[0] - radii[4]), centers[0] | centers[4]);
                                 double minerror = GaussNewtonMinimizer.ConeFit(samples.Linear(), a1, axis, openingAngle, precision, out ConicalSurface cs);
                                 if (minerror < precision) found = cs;
+                                if (Math.Abs(radii[0] - radii[4]) < 10 * precision )
+                                {   // could still be a cylinder
+                                    double minerrorcyl = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cyls);
+                                    if (minerrorcyl < precision && minerrorcyl < minerror) found = cyls;
+                                }
                             }
                         }
                     }
@@ -2817,7 +2827,7 @@ namespace CADability.GeoObject
             }
             if (vmax > vKnots[vKnots.Length - 1]) vmax = vKnots[vKnots.Length - 1];
             if (vmin < vKnots[0]) vmin = vKnots[0];
-            if (vmin == vmax) return null;
+            if ((vmax - vmin) < (vKnots[vKnots.Length - 1] - vKnots[0]) * 1e-8) return null;
             adjustUPeriod(ref u);
             double[] us = GetUSingularities();
             if (us != null)
@@ -2872,7 +2882,7 @@ namespace CADability.GeoObject
             }
             if (umax > uKnots[uKnots.Length - 1]) umax = uKnots[uKnots.Length - 1];
             if (umin < uKnots[0]) umin = uKnots[0];
-            if (umin == umax) return null;
+            if ((umax - umin) < (uKnots[uKnots.Length - 1] - uKnots[0]) * 1e-8) return null;
             adjustVPeriod(ref v);
             double[] vs = GetVSingularities();
             if (vs != null)
@@ -3251,6 +3261,60 @@ namespace CADability.GeoObject
         }
 #endif
         #region ISurfaceImpl Overrides
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            BoundingRect ext = BoundingRect.EmptyBoundingRect;
+            for (int i = 0; i < orientedCurves.Length; i++)
+            {
+                ext.MinMax(this.GetProjectedCurve(orientedCurves[i], 0.0).GetExtent());
+            }
+            BoundingRect ext1 = ext;
+            ext1.InflateRelative(1.001);
+            bool ok = false; // when there are poles, we only need to make it non-periodic, when the pole is inside the extent
+            double[] us = GetUSingularities();
+            double[] vs = GetVSingularities();
+            if (us.Length>0)
+            {
+                for (int i = 0; i < us.Length; i++)
+                {
+                    if (us[i]>=ext1.Left && us[i]<=ext1.Right)
+                    {
+                        ok = true;
+                        if (us[i] < ext.Left) ext.Left = us[i];
+                        if (us[i] > ext.Right) ext.Right = us[i];
+                        if (us[i]>ext.Left&&us[i]<ext.Right)
+                        {   // the pole must be on the border, maybe we have to correct the extent here
+                            if (ext.Right - us[i] < us[i] - ext.Left) ext.Right = us[i];
+                            else ext.Left = us[i];
+                        }
+                        break;
+                    }
+                }
+            }
+            if (!ok && vs.Length>0)
+            {
+                for (int i = 0; i < vs.Length; i++)
+                {
+                    if (vs[i] >= ext1.Bottom && vs[i] <= ext1.Top)
+                    {
+                        ok = true;
+                        if (vs[i] < ext.Bottom) ext.Bottom = vs[i];
+                        if (vs[i] > ext.Top) ext.Top = vs[i];
+                        if (vs[i] > ext.Bottom && vs[i] < ext.Top)
+                        {   // the pole must be on the border, maybe we have to correct the extent here
+                            if (ext.Top - vs[i] < vs[i] - ext.Bottom) ext.Top = vs[i];
+                            else ext.Bottom = vs[i];
+                        }
+                        break;
+                    }
+                }
+            }
+            if (ok || (IsUPeriodic && ext.Width > UPeriod * 0.9) || (IsVPeriodic && ext.Height > VPeriod * 0.9) )
+            {
+                return new NonPeriodicSurface(this, ext);
+            }
+            return null;
+        }
         /// <summary>
         /// Implements <see cref="ISurface.GetModified"/>.
         /// </summary>
@@ -3386,7 +3450,7 @@ namespace CADability.GeoObject
         /// <param name="dv"></param>
         public override void DerivationAt(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv)
         {
-            if (nubs == null && nurbs == null) Init(); // manchmal nötig, da währen des deserialisierens nich nicht initialisiert
+            if (nubs == null && nurbs == null) Init(); // sometimes necessary
             if (IsUPeriodic && UPeriod > 0)
             {
                 while (uv.x < uKnots[0]) uv.x += UPeriod;
@@ -3397,24 +3461,22 @@ namespace CADability.GeoObject
                 while (uv.y < vKnots[0]) uv.y += VPeriod;
                 while (uv.y > vKnots[vKnots.Length - 1]) uv.y -= VPeriod;
             }
-            GeoPoint dbgloc;
-            GeoVector dbgdu, dbgdv;
             if (nubs != null)
             {
                 GeoPoint[,] der = nubs.SurfaceDeriv(uv.x, uv.y, 1);
-                dbgloc = der[0, 0];
-                dbgdu = new GeoVector(der[1, 0].x, der[1, 0].y, der[1, 0].z);
-                dbgdv = new GeoVector(der[0, 1].x, der[0, 1].y, der[0, 1].z);
+                location = der[0, 0];
+                du = new GeoVector(der[1, 0].x, der[1, 0].y, der[1, 0].z);
+                dv = new GeoVector(der[0, 1].x, der[0, 1].y, der[0, 1].z);
             }
             else
             {
                 GeoPointH[,] der = nurbs.SurfaceDeriv(uv.x, uv.y, 1);
-                dbgloc = (GeoPoint)der[0, 0];
-                dbgdu = (GeoVector)der[1, 0];
-                dbgdv = (GeoVector)der[0, 1];
+                location = (GeoPoint)der[0, 0];
+                du = (GeoVector)der[1, 0];
+                dv = (GeoVector)der[0, 1];
             }
 
-            base.DerivationAt(uv, out location, out du, out dv);
+            // base.DerivationAt(uv, out location, out du, out dv);
         }
         public override double VPeriod
         {
@@ -4141,6 +4203,7 @@ namespace CADability.GeoObject
             // we only look for singularities at the Endpoints of the u/v mesh. In theory there could be singularities in between,
             // we could find them by intersecting fixed v curves in 3d
             double[] us = null;
+            double precision = PolesExtent.Size * 1e-6; // there was a problem with a nurbs surface having singularities depending on scaling
             try
             {
                 if (uSingularities != null)
@@ -4156,7 +4219,7 @@ namespace CADability.GeoObject
             bool equal = true;
             for (int j = 0; j < vmax - 1; j++)
             {
-                if (!Precision.IsEqual(poles[0, j], poles[0, j + 1]))
+                if ((poles[0, j] | poles[0, j + 1]) > precision)
                 {
                     equal = false;
                     break;
@@ -4166,7 +4229,7 @@ namespace CADability.GeoObject
             equal = true;
             for (int j = 0; j < vmax - 1; j++)
             {
-                if (!Precision.IsEqual(poles[umax - 1, j], poles[umax - 1, j + 1]))
+                if ((poles[umax - 1, j] | poles[umax - 1, j + 1]) > precision)
                 {
                     equal = false;
                     break;
@@ -4184,6 +4247,7 @@ namespace CADability.GeoObject
         public override double[] GetVSingularities()
         {
             double[] vs = null;
+            double precision = PolesExtent.Size * 1e-6; // there was a problem with a nurbs surface having singularities depending on scaling
             try
             {
                 if (vSingularities != null)
@@ -4199,7 +4263,7 @@ namespace CADability.GeoObject
             bool equal = true;
             for (int i = 0; i < umax - 1; i++)
             {
-                if (!Precision.IsEqual(poles[i, 0], poles[i + 1, 0]))
+                if ((poles[i, 0] | poles[i + 1, 0]) > precision)
                 {
                     equal = false;
                     break;
@@ -4209,7 +4273,7 @@ namespace CADability.GeoObject
             equal = true;
             for (int i = 0; i < umax - 1; i++)
             {
-                if (!Precision.IsEqual(poles[i, vmax - 1], poles[i + 1, vmax - 1]))
+                if ((poles[i, vmax - 1] | poles[i + 1, vmax - 1]) > precision)
                 {
                     equal = false;
                     break;
@@ -4922,7 +4986,7 @@ namespace CADability.GeoObject
                         }
                         if (Math.Abs(sp.x - ep.x) < uSpan * 1e-5 || Math.Abs(sp.y - ep.y) < vSpan * 1e-5) testLine = new Line2D(sp, ep);
                     }
-                    if (testLine != null)
+                    if (testLine != null && testLine.StartPoint.x>=uKnots[0] && testLine.StartPoint.x <= uKnots[uKnots.Length-1] && testLine.StartPoint.y >= vKnots[0] && testLine.StartPoint.y <= vKnots[vKnots.Length -1])
                     {
                         ICurve crv = Make3dCurve(testLine);
                         if (crv != null)
@@ -5082,6 +5146,20 @@ namespace CADability.GeoObject
             return res;
             // return base.GetOffsetSurface(offset);
         }
+        //public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        //{
+        //    if (IsUPeriodic || IsVPeriodic || GetUSingularities().Length > 0 || GetVSingularities().Length > 0)
+        //    {
+        //        BoundingRect bounds = BoundingRect.EmptyBoundingRect;
+        //        for (int i = 0; i < orientedCurves.Length; i++)
+        //        {
+        //            bounds.MinMax(this.GetProjectedCurve(orientedCurves[i], 0).GetExtent());
+        //        }
+        //        this.GetNaturalBounds(out bounds.Left, out bounds.Right, out bounds.Bottom, out bounds.Top);
+        //        return new NonPeriodicSurface(this, bounds);
+        //    }
+        //    return null;
+        //}
         #endregion
         #region ISerializable Members
         // constructor for serialization

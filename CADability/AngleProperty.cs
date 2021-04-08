@@ -46,7 +46,11 @@ namespace CADability.UserInterface
         }
         string IHotSpot.GetInfoText(CADability.UserInterface.InfoLevelMode Level)
         {
-            return angleProperty.LabelText;
+            return angleProperty.Label;
+        }
+        public string ResourceId
+        {
+            get { return angleProperty.ResourceId; }
         }
         MenuWithHandler[] IHotSpot.ContextMenu
         {

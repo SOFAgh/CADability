@@ -12,7 +12,7 @@ namespace CADability.Attribute
     public class DimensionStyle : IShowPropertyImpl, ISerializable, INamedAttribute, ICommandHandler
     {
         // die Einstellungen so aus CONDOR Version 4 übernommen:
-
+        [Flags]
         public enum ETypeFlag { DimPoints = 0x1, DimCoord = 0x2, DimAngle = 0x4, DimRadius = 0x8, DimDiameter = 0x10, DimLocation = 0x20, DimAllTypes = 0x3F }; // gültig für diese Typen
         // ETypeFlag muss in der selben Reihenfolge sein wie Dimension.EDimType {DimPoints,DimCoord,DimAngle,DimRadius,DimDiameter};
         public enum ETextFlag

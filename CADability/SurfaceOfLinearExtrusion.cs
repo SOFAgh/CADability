@@ -172,10 +172,10 @@ namespace CADability.GeoObject
             }
             double pos = (uv.x - curveStartParameter) / (curveEndParameter - curveStartParameter);
             basisCurve.TryPointDeriv2At(pos, out GeoPoint upoint, out du, out duu);
-            location =  upoint + (uv.y * direction);
+            location = upoint + (uv.y * direction);
             dv = direction;
-            du = (curveEndParameter - curveStartParameter)*du;
-            duu = (curveEndParameter - curveStartParameter)*duu;
+            du = (curveEndParameter - curveStartParameter) * du;
+            duu = (curveEndParameter - curveStartParameter) * duu;
             dvv = GeoVector.NullVector;
             duv = du;
         }
@@ -624,6 +624,39 @@ namespace CADability.GeoObject
         public override bool IsExtruded(GeoVector direction)
         {
             return Precision.SameDirection(this.direction, direction, false);
+        }
+        public override ISurface GetCanonicalForm(double precision, BoundingRect? bounds)
+        {
+            ICurve testWith = basisCurve;
+            if (basisCurve is BSpline bsp)
+            {
+                if (bsp.GetSimpleCurve(precision, out ICurve simpleCurve))
+                {
+                    testWith = simpleCurve;
+                }
+            }
+            if (testWith is Ellipse elli && elli.IsCircle)
+            {
+                double r = (elli).Radius;
+                if (Precision.SameDirection(elli.Plane.Normal, this.direction, false))
+                {
+                    CylindricalSurface cs = new CylindricalSurface(elli.Center, elli.MajorAxis, elli.MinorAxis, elli.Plane.Normal);
+                    GeoVector n1 = this.GetNormal(this.PositionOf(elli.StartPoint));
+                    GeoVector n2 = cs.GetNormal(cs.PositionOf(elli.StartPoint));
+                    if (n1 * n2 < 0) cs.ReverseOrientation();
+                    return cs;
+                }
+            }
+            else if (testWith is Line line && !Precision.SameDirection(line.EndDirection, direction, false))
+            {   // a plane
+                PlaneSurface ps = new PlaneSurface(line.StartPoint, line.StartDirection.Normalized, direction.Normalized);
+                // test the orientation
+                GeoVector n1 = this.GetNormal(this.PositionOf(line.StartPoint));
+                GeoVector n2 = ps.GetNormal(ps.PositionOf(line.StartPoint));
+                if (n1 * n2 < 0) ps.ReverseOrientation();
+                return ps;
+            }
+            return null;
         }
 #if DEBUG
         public override GeoObjectList DebugGrid

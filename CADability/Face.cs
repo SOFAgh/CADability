@@ -70,7 +70,7 @@ namespace CADability.GeoObject
                     se.Add(dbghashcode);
 #endif
                     se.Add(new NameProperty(this.face, "Name", "Face.Name"));
-                    if (face.Surface.PropertyEntry!=null)
+                    if (face.Surface.PropertyEntry != null)
                     {
                         //IShowPropertyImpl sp = face.Surface as IShowPropertyImpl;
                         //if (sp != null) sp.Frame = base.Frame; // der Frame wird benötigt wg. ReadOnly
@@ -240,7 +240,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 630)
+            if (hashCode == 2509)
             {
 
             }
@@ -308,6 +308,61 @@ namespace CADability.GeoObject
                     surface = surface.Clone();
                     surface.ReverseOrientation(); // 2d modification is not relevant here
                 }
+                // if a loop contains two identical edges, which are back and forth, we remove this pair and split the loop into two parts
+                for (int i = loops.Count - 1; i >= 0; --i)
+                {
+                    bool seamFound = false;
+                    for (int j = 0; j < loops[i].Count; j++)
+                    {
+                        for (int k = j + 1; k < loops[i].Count; k++)
+                        {
+                            if (loops[i][j].curve.SameGeometry(loops[i][k].curve, precision))
+                            {
+                                if ((loops[i][k].vertex1 == loops[i][j].vertex1 && loops[i][k].vertex2 == loops[i][j].vertex2) ||
+                                    (loops[i][k].vertex1 == loops[i][j].vertex2 && loops[i][k].vertex2 == loops[i][j].vertex1))
+                                {
+                                    loops[i][j].isSeam = loops[i][k].isSeam = true;
+                                    seamFound = true;
+                                }
+                                else
+                                {   // maybe different vertices with identical positions as in "1242_14_PUNZONE.stp"
+                                    if ((loops[i][k].vertex1.Position | loops[i][j].vertex1.Position) < precision * 1e-6 && (loops[i][k].vertex2.Position | loops[i][j].vertex2.Position) < precision * 1e-6)
+                                    {
+                                        loops[i][k].vertex1.MergeWith(loops[i][j].vertex1);
+                                        loops[i][k].vertex2.MergeWith(loops[i][j].vertex2);
+                                        loops[i][j].isSeam = loops[i][k].isSeam = true;
+                                        seamFound = true;
+                                    }
+                                    else if ((loops[i][k].vertex1.Position | loops[i][j].vertex2.Position) < precision * 1e-6 && (loops[i][k].vertex2.Position | loops[i][j].vertex1.Position) < precision * 1e-6)
+                                    {
+                                        loops[i][k].vertex1.MergeWith(loops[i][j].vertex2);
+                                        loops[i][k].vertex2.MergeWith(loops[i][j].vertex1);
+                                        loops[i][j].isSeam = loops[i][k].isSeam = true;
+                                        seamFound = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (seamFound)
+                    {   // we assume, there is only one seam, I never had a case with multiple seams in one loop
+                        List<StepEdgeDescriptor>[] newLoops = new List<StepEdgeDescriptor>[] { new List<StepEdgeDescriptor>(), new List<StepEdgeDescriptor>() };
+                        int ind = 0;
+                        for (int j = 0; j < loops[i].Count; j++)
+                        {
+                            if (loops[i][j].isSeam)
+                            {
+                                ind = 1 - ind;
+                                continue;
+                            }
+                            newLoops[ind].Add(loops[i][j]);
+                        }
+                        loops.RemoveAt(i);
+                        if (newLoops[0].Count > 0) loops.Add(newLoops[0]);
+                        if (newLoops[1].Count > 0) loops.Add(newLoops[1]);
+                    }
+                }
+                if (loops.Count == 0) return null; // there is only a seam (in some cases a very narrow face, which is smaller than precision)
                 // simply remove loop edges which are too short
                 for (int i = 0; i < loops.Count; i++)
                 {
@@ -319,7 +374,7 @@ namespace CADability.GeoObject
                         }
                     }
                 }
-                // Some problem arise, because the curves may be not very precise. We try to adjust start- and enpoints
+                // Some problem arise, because the curves may be not very precise. We try to adjust start- and endpoints
                 // so the connections are precise
                 bool orientationChanged = false;
                 for (int i = 0; i < loops.Count; i++)
@@ -487,7 +542,7 @@ namespace CADability.GeoObject
                                     List<StepEdgeDescriptor> part1 = subloops[k].GetRange(first, second - first + 1);
                                     subloops[k].RemoveRange(first, second - first + 1);
                                     subloops.Add(part1);
-                                    break; // the vertex vtx has been handled
+                                    break; // the vertex <vtx> has been handled
                                 }
                             }
                         }
@@ -498,8 +553,8 @@ namespace CADability.GeoObject
                         }
                         loops.RemoveAt(i);
                         loops.InsertRange(i, subloops);
-                        // now a self intersecting loop has been splitted in multiple non-selfintersecting loops
-                        // We should now remove those parts, wich are incorrect oriented.
+                        // now a self intersecting loop has been split in multiple non-self-intersecting loops
+                        // We should now remove those parts, which are incorrect oriented.
                     }
                     // of course there could also be a self intersection of edge curves inside the curves. This is not checked here
                     if (loops.Count > 1000) throw new ApplicationException("error in splitting loops");
@@ -532,7 +587,7 @@ namespace CADability.GeoObject
                 }
 
                 // if a loop-curve has already created edges (i.e. this is the second usage of this loop-curve)
-                // and there has more than one edge been created (a previous face was splitted)
+                // and there has more than one edge been created (a previous face was split)
                 // then we split this loop curve into two loop curves to make further processing easier
                 for (int i = 0; i < loops.Count; i++)
                 {
@@ -589,7 +644,7 @@ namespace CADability.GeoObject
                 }
                 // split loops containing seams. (like in 2472g.stp)
                 // A loop may contain an edge which is used twice in different directions. Remove this edge and split the loop into two loops:
-                // NO!!! we don't do this, if there is a real seam, the face will be splitted, and splitting can deal with it
+                // NO!!! we don't do this, if there is a real seam, the face will be split, and splitting can deal with it
                 // we only check to find the seam edges
                 for (int i = loops.Count - 1; i >= 0; --i)
                 {
@@ -692,8 +747,7 @@ namespace CADability.GeoObject
                 ISurface canonical = surface.GetCanonicalForm(surfacePrecision);
                 if (canonical is ToroidalSurface ts)
                 {
-                    canonical = null;
-                    //if (ts.MinorRadius > ts.XAxis.Length * 10) canonical = null; // torus with poles are not very stable, especially when they almost resemble a sphere
+                    if (ts.MinorRadius > ts.XAxis.Length * 10) canonical = null; // torus with poles are not very stable, especially when they almost resemble a sphere
                 }
                 if (canonical != null)
                 {
@@ -721,12 +775,15 @@ namespace CADability.GeoObject
                     {
                         for (int j = 0; j < loops[i].Count; j++)
                         {
-                            if (loops[i][j].forward) orientedCurves.Add(loops[i][j].curve);
-                            else
+                            if (loops[i][j].curve != null)
                             {
-                                ICurve clone = loops[i][j].curve.Clone();
-                                clone.Reverse();
-                                orientedCurves.Add(clone);
+                                if (loops[i][j].forward) orientedCurves.Add(loops[i][j].curve);
+                                else
+                                {
+                                    ICurve clone = loops[i][j].curve.Clone();
+                                    clone.Reverse();
+                                    orientedCurves.Add(clone);
+                                }
                             }
                         }
                     }
@@ -988,13 +1045,13 @@ namespace CADability.GeoObject
                     for (int j = 0; j < loops[i].Count; j++)
                     {
                         if (loops[i][j].createdEdges.Count > 1)
-                        {   // this edge has been splitted
+                        {   // this edge has been split
                             Vertex sv = null;
                             if (loops[i][j].forward) sv = loops[i][j].vertex1;
                             else sv = loops[i][j].vertex2;
                             if (loops[i][j].createdEdges[0].EndVertex(loops[i][j].createdEdges[0].PrimaryFace) == sv)
                             {
-                                // nothig to do, createdEdges is in correct order
+                                // nothing to do, createdEdges is in correct order
                             }
                             else
                             {
@@ -1407,13 +1464,13 @@ namespace CADability.GeoObject
                 if (openLoops.Count > 0)
                 {   // open loops limit parts of closed surfaces. E.g. two circles bound a segment of a cylinder
                     // the orientation of these curves is sometimes wrong, so we have to test
-                    // there must be exactely two loops
+                    // there must be exactly two loops
                     if (openLoops.Count == 2)
                     {
                         int ii = openLoops[0];
-                        int oppii = openLoops[1]; // oppii is the other open loop one
+                        int oppii = openLoops[1]; // "oppii" is the other open loop one
                                                   // calculating the area is a bad idea
-                                                  // file 0816.5.001.stp with step index 160309 is a example, where the area dosn't work
+                                                  // file 0816.5.001.stp with step index 160309 is a example, where the area doesn't work
                         if (Geometry.InnerIntersection(loops[ii][loops[ii].Count - 1].curve2d.EndPoint, loops[oppii][0].curve2d.StartPoint, loops[oppii][loops[oppii].Count - 1].curve2d.EndPoint, loops[ii][0].curve2d.StartPoint))
                         {
                             for (int i = 0; i < loops.Count; i++)
@@ -1579,13 +1636,24 @@ namespace CADability.GeoObject
                     {
                         // all loops are reversed, we reverse the surface
                         ModOp2D mreverse = surface.ReverseOrientation();
+#if DEBUG
+                        //GeoObjectList dbggrd = (surface as ISurfaceImpl).DebugGrid;
+#endif
                         ext = BoundingRect.EmptyBoundingRect;
                         for (int i = 0; i < loops.Count; i++)
                         {
                             loopExt[i] = BoundingRect.EmptyBoundingRect;
                             for (int j = 0; j < loops[i].Count; j++)
                             {
-                                loops[i][j].curve2d = loops[i][j].curve2d.GetModified(mreverse);
+                                if (loops[i][j].curve2d is ProjectedCurve pc)
+                                {
+                                    loops[i][j].curve2d = surface.GetProjectedCurve(loops[i][j].curve, surfacePrecision);
+                                    if (!loops[i][j].forward) loops[i][j].curve2d.Reverse();
+                                }
+                                else
+                                {
+                                    loops[i][j].curve2d = loops[i][j].curve2d.GetModified(mreverse);
+                                }
                                 loopExt[i].MinMax(loops[i][j].curve2d.GetExtent());
                             }
                             ext.MinMax(loopExt[i]);
@@ -1594,7 +1662,7 @@ namespace CADability.GeoObject
                     }
                     else
                     {
-                        // reverse only some loops: heere we leave the surface unchanged and only reverse those loops
+                        // reverse only some loops: here we leave the surface unchanged and only reverse those loops
                         for (int i = 0; i < loops.Count; i++)
                         {
                             if (loopsToreverse.Contains(i))
@@ -1965,7 +2033,7 @@ namespace CADability.GeoObject
                             }
                         }
                     }
-                    List<ICurve2D> crvs2d = new List<ICurve2D>(); // all 2d curves (splitted and unsplitted)
+                    List<ICurve2D> crvs2d = new List<ICurve2D>(); // all 2d curves (split and un-split)
                     List<ICurve> crvs3d = new List<ICurve>(); // synchronous list of 3d curves
                     List<int> loopSpan = new List<int>(); // indices in crvs2d where a new loop begins
                     allVertices = new Set<Vertex>();
@@ -1986,7 +2054,7 @@ namespace CADability.GeoObject
                                 allVertices.Add(loops[i][j].vertex1);
                                 allVertices.Add(loops[i][j].vertex2);
                                 List<double> ispPos = new List<double>();
-                                // cut the edges by the plane(s) to make unperiodic parts
+                                // cut the edges by the plane(s) to make un-periodic parts
                                 ICurve forwardOrientedCurve = loops[i][j].curve.Clone();
                                 if (!loops[i][j].forward) forwardOrientedCurve.Reverse(); // this 3d curve is forward oriented for this surface
                                                                                           // we need the orientation to get the 2d curves in the correct order
@@ -3658,6 +3726,10 @@ namespace CADability.GeoObject
                                         ICurve make3d = surface.Make3dCurve(cc2d);
                                         res.Add(make3d);
                                     }
+                                    else
+                                    {
+
+                                    }
                                 }
                             }
                         }
@@ -3727,12 +3799,12 @@ namespace CADability.GeoObject
         internal SimpleShape area; // outline und holes als SimpleShape, wird nur bei Bedarf erzeugt
         private void MakeArea()
         {
-            // in public SimpleShape Area there is an old, weird algorithm, probably due to some bugs when importing step files with the old Opencascade step import
+            // in public SimpleShape Area there is an old, weird algorithm, probably due to some bugs when importing step files with the old OpenCascade step import
             // When the edges are correct (end there are no seam edges), there should be no adjustments necessary to create the SimpeShape
             ICurve2D[] soutline = new ICurve2D[outline.Length];
             for (int i = 0; i < outline.Length; i++)
             {
-                soutline[i] = outline[i].Curve2D(this);
+                soutline[i] = outline[i].Curve2D(this).Clone();
             }
             Border boutline = new Border(soutline);
             Border[] bholes = new Border[holes.Length];
@@ -3743,21 +3815,50 @@ namespace CADability.GeoObject
                 ICurve2D[] holecurves = new ICurve2D[n];
                 for (int j = 0; j < n; j++)
                 {   // order in the array will be reverse
-                    holecurves[n - 1 - j] = holes[i][j].Curve2D(this).Clone(); // for the Border we have to clone this curve, because it will be reversed
-                    holecurves[n - 1 - j].Reverse();
+                    holecurves[n - 1 - j] = holes[i][j].Curve2D(this).CloneReverse(true); // for the Border we have to clone this curve, because it will be reversed
                 }
                 bholes[i] = new Border(holecurves);
             }
             area = new SimpleShape(boutline, bholes);
         }
         /// <summary>
-        /// Returns the twodimensional shape of the outline of this face in the parametric (u/v) space of the surface.
+        /// Returns the two dimensional shape of the outline of this face in the parametric (u/v) space of the surface.
         /// </summary>
         public SimpleShape Area
-        {   // ersetzt die alte version, eigentlich sind die Kurven ja bereits orientiert
-            // Die Überprüfung auf Nulllinien ist weggelassen, ist das OK?
+        {   // This is old code, which had to do a lot with incorrect imported faces from OpenCascade and with seam edges, which don't exist any more
+            // And it has to deal with a design error: all borders are counterclockwise oriented. 
+            // But in the 2d system of a face, the holes are clockwise. In a SimpleShape the holes are borders and thus counterclockwise (which was a bad idea)
+            // Now we would need a new kind of border, which has no orientation preference and a new class SimpleShape, which has counterclockwise outline and clockwise holes.
             get
             {
+#if USENONPRIODICSURFACES // it has nothing to do with non-periodic surfaces here but is a code cleanup, which is implemented at the same time
+                if (area == null)
+                {   // everything should be correct oriented and thus it is straight forward to construct the SimpleShape
+
+                    ICurve2D[] clonedOutline = new ICurve2D[outline.Length];
+                    for (int i = 0; i < outline.Length; i++)
+                    {
+                        clonedOutline[i] = outline[i].Curve2D(this).Clone();
+                    }
+                    Border soutline = new Border(out bool reversed, clonedOutline);
+                    bool ok = !reversed;
+                    int hl = 0;
+                    if (holes != null) hl = holes.Length;
+                    Border[] sholes = new Border[hl];
+                    for (int i = 0; i < hl; i++)
+                    {
+                        ICurve2D[] clondeHole = new ICurve2D[holes[i].Length];
+                        for (int j = 0; j < holes[i].Length; j++)
+                        {
+                            clondeHole[holes[i].Length - j - 1] = holes[i][j].Curve2D(this).CloneReverse(true);
+                        }
+                        sholes[i] = new Border(out reversed, clondeHole);
+                        if (reversed) ok = false;
+                    }
+                    if (ok) area = new SimpleShape(soutline, sholes);   // the area has clones of the curves, because the holes are reverse oriented to the 2d curves of the face
+                    // it should always be OK here, if not, something went wrong with the construction of the face and should be fixed there
+                }
+#endif
                 if (area == null)
                 {
                     // periodic ist hier bereits erledigt (von wem???)
@@ -4685,7 +4786,7 @@ namespace CADability.GeoObject
                     Line2D l3 = new Line2D(triangleUVPoint[triangleIndex[i + 2]], triangleUVPoint[triangleIndex[i]]);
                     res.Add(l1, System.Drawing.Color.Red, i);
                     res.Add(l2, System.Drawing.Color.Red, i);
-                    res.Add(l2, System.Drawing.Color.Red, i);
+                    res.Add(l3, System.Drawing.Color.Red, i);
                 }
                 return res;
             }
@@ -4702,7 +4803,7 @@ namespace CADability.GeoObject
                     Line l3 = Line.TwoPoints(trianglePoint[triangleIndex[i + 2]], trianglePoint[triangleIndex[i]]);
                     res.Add(l1, i);
                     res.Add(l2, i);
-                    res.Add(l2, i);
+                    res.Add(l3, i);
                 }
                 return res;
             }
@@ -5248,6 +5349,10 @@ namespace CADability.GeoObject
         /// <param name="m"></param>
         internal void ModifySurfaceOnly(ModOp m)
         {
+#if DEBUG
+            if (hashCode == 1371)
+            { }
+#endif
             BoundingRect ext = (surface as ISurfaceImpl).usedArea;
             surface = surface.GetModified(m);
             (surface as ISurfaceImpl).usedArea = ext; // needed for BoxedSurface
@@ -5256,12 +5361,15 @@ namespace CADability.GeoObject
         {
             // usually called from Shell, which modifies the edges separately
 #if DEBUG
+            if (hashCode == 1371)
+            { }
             int tc0 = System.Environment.TickCount;
 #endif
             using (new Changing(this, false)) // no undo necessary
             {   // not sure, why changing is needed here
                 BoundingRect ext = (surface as ISurfaceImpl).usedArea;
                 surface = surface.GetModified(m);
+                area = null; // ProjectedCurves might be wrong after surface modification
                 (surface as ISurfaceImpl).usedArea = ext; // needed for BoxedSurface
                                                           // we don't modify the surface directly but get a new copy of the modified surface
                                                           // Edges with InterpolatedDualSurfaceCurves (hopefully) can deal with this
@@ -5290,6 +5398,10 @@ namespace CADability.GeoObject
         /// <param name="m"></param>
         public override void Modify(ModOp m)
         {
+#if DEBUG
+            if (hashCode == 1371)
+            { }
+#endif
             using (new Changing(this, "ModifyInverse", m))
             {
                 ModifySurface(m);
@@ -5366,20 +5478,24 @@ namespace CADability.GeoObject
         {
             if (extent.IsEmpty && surface != null)
             {
-                // wir betrachten die äußeren Randkurven und ggf. noch Extrempunkte
+                // we need to check both the outline and the holes: a (non periodic) cylinder may have two cricles as edges
+                // we must consider both edges (one of which is a hole)
                 extent = BoundingCube.EmptyBoundingCube;
-                for (int i = 0; i < outline.Length; ++i)
+                foreach (Edge edge in AllEdgesIterated())
                 {
-                    if (outline[i].Curve3D != null)
+                    if (edge.Curve3D != null)
                     {
-                        extent.MinMax(outline[i].Curve3D.GetExtent());
+                        extent.MinMax(edge.Curve3D.GetExtent());
                     }
                 }
-                // warum war folgendes auskommentiert???
+#if DEBUG
+                if (hashCode == 3061) { }
+#endif
+                // a surface extreme point in axis direction is also necessary to check
                 GeoPoint2D[] extrema = surface.GetExtrema();
                 for (int i = 0; i < extrema.Length; ++i)
                 {
-                    if (Contains(ref extrema[i], true)) // überprüft auch periodisch!
+                    if (Contains(ref extrema[i], true)) // respects periodicity
                     {
                         extent.MinMax(surface.PointAt(extrema[i]));
                     }
@@ -5718,6 +5834,10 @@ namespace CADability.GeoObject
             //    }
             //}
 #endif
+#if DEBUG
+            if (hashCode == 2444)
+            { }
+#endif
             for (int i = 0; i < outline.Length; ++i)
             {
                 usedCurves[i] = outline[i].Curve2D(this, usedCurves);
@@ -5766,12 +5886,6 @@ namespace CADability.GeoObject
                 {
                     for (int i = polyoutline.Count - 1; i >= 0; --i)
                     {
-                        //if (polyoutline[i].x > umax || polyoutline[i].x < umin)
-                        //{
-                        //    polyoutline.RemoveAt(i);
-                        //    removed = true;
-                        //}
-                        // nicht verwerfen sondern reinschieben
                         if (polyoutline[i].x > umax)
                         {
                             polyoutline[i] = new GeoPoint2D(umax, polyoutline[i].y);
@@ -5788,12 +5902,6 @@ namespace CADability.GeoObject
                 {
                     for (int i = polyoutline.Count - 1; i >= 0; --i)
                     {
-                        //if (polyoutline[i].y > vmax || polyoutline[i].y < vmin)
-                        //{
-                        //    polyoutline.RemoveAt(i);
-                        //    removed = true;
-                        //}
-                        // nicht verwerfen sondern reinschieben
                         if (polyoutline[i].y > vmax)
                         {
                             polyoutline[i] = new GeoPoint2D(polyoutline[i].x, vmax);
@@ -5966,7 +6074,7 @@ namespace CADability.GeoObject
                 {
                     bc.MinMax(trianglePoint[i]);
                 }
-                if (bc.Zmax > 0)
+                if (bc.Zmin < -40.5)
                 { }
                 for (int i = 0; i < triangleIndex.Length; i += 3)
                 {
@@ -6061,6 +6169,15 @@ namespace CADability.GeoObject
                             sumTriPoint.AddRange(tmpTriPoint);
                             sumTriUv.AddRange(tmpTriUv);
                             sumTriInd.AddRange(tmpTriInd);
+#if DEBUG
+                            BoundingCube bc = BoundingCube.EmptyBoundingCube;
+                            for (int k = 0; k < tmpTriPoint.Length; k++)
+                            {
+                                bc.MinMax(tmpTriPoint[k]);
+                            }
+                            if (bc.Zmin < -40.5)
+                            { }
+#endif
                         }
                         catch (ApplicationException)
                         {
@@ -7051,6 +7168,9 @@ namespace CADability.GeoObject
             //                              (otherwise false)
             // outside of the face          (otherwise true)
             //  =>  cube doesn't hit the face
+#if DEBUG
+            if (hashCode == 3061) { }
+#endif
             GeoPoint2D uv;
             return (Surface.HitTest(bc, out uv) && Contains(ref uv, true));
         }
@@ -7084,10 +7204,10 @@ namespace CADability.GeoObject
             //}
             //return false;
         }
-        // Hittest for the interior of the face. the edges have already been tested
+        // Hit-test for the interior of the face. the edges have already been tested
         internal bool HitTestWithoutEdges(ref BoundingCube cube, double precision)
         {
-            // since the edges and vertices have already been testet we only have to test whether the cube interferes with the surface at all
+            // since the edges and vertices have already been tested we only have to test whether the cube interferes with the surface at all
             // and if so, whether an arbitrary uv point inside the cube is inside the bounds of the face.
             GeoPoint2D uv;
             return (Surface.HitTest(cube, out uv) && Contains(ref uv, false));
@@ -7101,7 +7221,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override bool HitTest(Projection projection, BoundingRect rect, bool onlyInside)
         {
-            if (trianglePoint == null) return false; // egal welche triangulierung, ist nur zum Picken
+            if (trianglePoint == null) return false; // this is only for selecting with the mouse
             ClipRect clr = new ClipRect(ref rect);
             if (onlyInside)
             {
@@ -7139,8 +7259,17 @@ namespace CADability.GeoObject
         /// <param name="onlyInside"></param>
         /// <returns></returns>
         public override bool HitTest(Projection.PickArea area, bool onlyInside)
-        {
-
+        {   // this is the hit test when selecting
+            // there are two different approaches: let the "beam" of the pick area intersect the surface of this face and test
+            // whether the intersection belongs to the face or use the triangulation.
+            // Maybe we should decide by the kind of surface, which is faster
+            GeoPoint2D[] lip = Surface.GetLineIntersection(area.FrontCenter, area.Direction);
+            for (int i = 0; i < lip.Length; i++)
+            {
+                if (Contains(ref lip[i], true)) return true;
+            }
+            return false;
+            // use the triangles (currently not executed)
             if (trianglePoint == null) AssureTriangles(area.Projection.Precision); // eingefügt, da in GDI Ansichten Hatch Objekte als Faces nicht trianguliert und somit nicht pickbar sind
             if (onlyInside)
             {

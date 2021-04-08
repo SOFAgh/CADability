@@ -319,6 +319,10 @@ namespace CADability
             Project = pr;
             ActiveView = modelView;
         }
+        public FrameImpl(ICanvas canvas) : this()
+        {
+            this.canvas = canvas;
+        }
 
         /// <summary>
         /// Returns the <see cref="ICommandHandler">CommandHandler</see> of this frame. All menu and toolbar commands
@@ -783,6 +787,22 @@ namespace CADability
         {
         }
 
+        public void Dispose()
+        {
+            while (ActiveAction != null)
+            {
+                RemoveActiveAction();
+            }
+            Settings.GlobalSettings.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
+            Settings.SaveGlobalSettings();
+            Settings.GlobalSettings.Dispose(); // it will be reloaded when access is needed
+            if (project != null)
+            {
+                project.ViewChangedEvent -= new CADability.Project.ViewChangedDelegate(OnProjectViewChanged);
+                project.RefreshEvent -= new CADability.Project.RefreshDelegate(project_RefreshEvent);
+            }
+            if (MainFrame == this) MainFrame = null;
+        }
         public ActionStack ActionStack => actionStack;
         /// <summary>
         /// Implements <see cref="IFrame.SetAction"/>.
@@ -864,12 +884,12 @@ namespace CADability
 
         public void ShowPropertyDisplay(string Name)
         {
-            ControlCenter.ShowPropertyPage(Name);
+            ControlCenter?.ShowPropertyPage(Name);
         }
 
         IPropertyPage IFrame.GetPropertyDisplay(string Name)
         {
-            return ControlCenter.GetPropertyPage(Name);
+            return ControlCenter?.GetPropertyPage(Name);
         }
 
 #region handling menu commands

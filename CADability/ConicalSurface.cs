@@ -185,7 +185,7 @@ namespace CADability.GeoObject
                 GeoPoint2D fromHere2d = pln.Project(fromHere);
                 GeoPoint2D fp1 = Geometry.DropPL(fromHere2d, GeoPoint2D.Origin, new GeoVector2D(dira));
                 GeoPoint2D fp2 = Geometry.DropPL(fromHere2d, GeoPoint2D.Origin, new GeoVector2D(-dira));
-                return new GeoPoint2D[] { PositionOf(pln.ToGlobal(fp1)), PositionOf(pln.ToGlobal(fp1)) };
+                return new GeoPoint2D[] { PositionOf(pln.ToGlobal(fp1)), PositionOf(pln.ToGlobal(fp2)) };
             }
             catch
             {   // fromHere is on the axis
@@ -1524,7 +1524,17 @@ namespace CADability.GeoObject
         }
         public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
         {
-            return new ConicalSurfaceNP(Location, XAxis, YAxis, ZAxis);
+            ConicalSurfaceNP res = new ConicalSurfaceNP(Location, XAxis, YAxis, ZAxis);
+            GeoPoint testPoint = orientedCurves[0].PointAt(0.5); // any point except the apex
+            // we need the zAxis to have positive values for all points (a face with a conical surface never contains parts from both sides of the apex)
+            double lp = Geometry.LinePar(Location, ZAxis, testPoint);
+            if (lp<0) res = new ConicalSurfaceNP(Location, XAxis, YAxis, -ZAxis);
+            //GeoPoint testPoint1 = res.PointAt(res.PositionOf(testPoint));
+            //if (PositionOf(testPoint).y<0) res = new ConicalSurfaceNP(Location, XAxis, YAxis, -ZAxis);
+            GeoVector normalOriginal = GetNormal(PositionOf(testPoint));
+            GeoVector normalNp = res.GetNormal(res.PositionOf(testPoint));
+            if (normalOriginal * normalNp < 0) res.ReverseOrientation(); // make the same orientation as this conical surface
+            return res;
         }
         public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {
