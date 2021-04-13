@@ -70,12 +70,9 @@ namespace CADability.GeoObject
                     se.Add(dbghashcode);
 #endif
                     se.Add(new NameProperty(this.face, "Name", "Face.Name"));
-                    if (face.Surface.PropertyEntry != null)
+                    if (face.Surface.GetPropertyEntry(this.Frame) != null)
                     {
-                        //IShowPropertyImpl sp = face.Surface as IShowPropertyImpl;
-                        //if (sp != null) sp.Frame = base.Frame; // der Frame wird benötigt wg. ReadOnly
-                        //(face.Surface as IShowProperty).ReadOnly = true;
-                        se.Add(face.Surface.PropertyEntry);
+                        se.Add(face.Surface.GetPropertyEntry(Frame));
                     }
                     SimplePropertyGroup edgeprops = new SimplePropertyGroup("Face.Edge");
                     foreach (Edge edge in face.AllEdges)
@@ -92,7 +89,6 @@ namespace CADability.GeoObject
                     {
                         se.Add(attributeProperties[i] as IPropertyEntry);
                     }
-                    // se.AddRange(attributeProperties as IPropertyEntry[]); // not possible to cast
                     subItems = se.ToArray();
                 }
                 return subItems;

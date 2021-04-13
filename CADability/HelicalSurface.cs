@@ -610,44 +610,10 @@ namespace CADability.GeoObject
             vmax = curveEndParameter;
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "HelicalSurface";
+            return new GroupProperty("HelicalSurface", new IPropertyEntry[0]);
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
         #region ISerializable Members
         protected HelicalSurface(SerializationInfo info, StreamingContext context) : base()
         {

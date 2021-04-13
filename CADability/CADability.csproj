@@ -8,7 +8,7 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, USENONPRIODICSURFACES</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WebDebug|AnyCPU'">

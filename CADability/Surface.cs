@@ -476,7 +476,7 @@ namespace CADability.GeoObject
         /// <summary>
         /// Gets the IPropertyEntry to display this surface in the property grid (may be null)
         /// </summary>
-        IPropertyEntry PropertyEntry { get; }
+        IPropertyEntry GetPropertyEntry(IFrame frame);
     }
 
     /// <summary>
@@ -2197,8 +2197,7 @@ namespace CADability.GeoObject
     /// <summary>
     /// Internal helper class for <see cref="ISurface"/> implementation.
     /// </summary>
-    public abstract class ISurfaceImpl : IShowPropertyImpl, ISurface, IOctTreeInsertable
-        , IPropertyEntry
+    public abstract class ISurfaceImpl : ISurface, IOctTreeInsertable
     {
         protected GeoPoint2D[] extrema; // Achtung, muss bei Modify auf null gesetzt werden
         internal BoxedSurface boxedSurface;
@@ -3913,7 +3912,7 @@ namespace CADability.GeoObject
         }
         public virtual bool UvChangesWithModification => false;
 
-        public virtual IPropertyEntry PropertyEntry => this;
+        public abstract IPropertyEntry GetPropertyEntry(IFrame frame);
 #if DEBUG
         // Starte mit dem Mittelpunkt
         // Betrache die Kurve f(u) = u²*d2+u*d1+d0 (d2 ist die 2. Ableitung in der Richtung der beiden Punkte, d1 die 1., d0 der Punkt selbst),

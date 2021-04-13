@@ -678,43 +678,18 @@ namespace CADability.GeoObject
             }
         }
 #endif
-        #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "SurfaceOfLinearExtrusion";
-        }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            if (basisCurve is IGeoObject go)
             {
-                return ShowPropertyEntryType.GroupTitle;
+                se.Add(go.GetShowProperties(frame) as IPropertyEntry);
             }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
+            GeoVectorProperty dir = new GeoVectorProperty(frame, "SurfaceOfLinearExtrusion.Direction");
+            dir.ReadOnly = true;
+            dir.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return Direction; });
+            se.Add(dir);
+            return new GroupProperty("SurfaceOfLinearExtrusion", se.ToArray());
         }
         #endregion
         #region ISerializable Members

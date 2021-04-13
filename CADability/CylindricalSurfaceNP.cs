@@ -495,35 +495,32 @@ namespace CADability.GeoObject
             }
         }
         public override bool UvChangesWithModification => true;
-        public override IPropertyEntry PropertyEntry
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            get
-            {
                 List<IPropertyEntry> se = new List<IPropertyEntry>();
-                GeoPointProperty location = new GeoPointProperty("CylindricalSurface.Location", base.Frame, false);
+                GeoPointProperty location = new GeoPointProperty("CylindricalSurface.Location", frame, false);
                 location.ReadOnly = true;
                 location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return this.location; };
                 se.Add(location);
-                GeoVectorProperty dirx = new GeoVectorProperty("CylindricalSurface.DirectionX", base.Frame, false);
+                GeoVectorProperty dirx = new GeoVectorProperty("CylindricalSurface.DirectionX", frame, false);
                 dirx.ReadOnly = true;
                 dirx.IsAngle = false;
                 dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return xAxis; };
                 se.Add(dirx);
-                GeoVectorProperty diry = new GeoVectorProperty("CylindricalSurface.DirectionY", base.Frame, false);
+                GeoVectorProperty diry = new GeoVectorProperty("CylindricalSurface.DirectionY", frame, false);
                 diry.ReadOnly = true;
                 diry.IsAngle = false;
                 diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return yAxis; };
                 se.Add(diry);
                 if (Precision.IsEqual(xAxis.Length, yAxis.Length))
                 {
-                    DoubleProperty radius = new DoubleProperty("CylindricalSurface.Radius", base.Frame);
+                    DoubleProperty radius = new DoubleProperty("CylindricalSurface.Radius", frame);
                     radius.ReadOnly = true;
                     radius.DoubleValue = xAxis.Length;
                     radius.GetDoubleEvent += delegate (DoubleProperty sender) { return xAxis.Length; };
                     se.Add(radius);
                 }
                 return new GroupProperty("CylindricalSurface", se.ToArray());
-            }
         }
     }
 }

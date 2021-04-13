@@ -5211,56 +5211,11 @@ namespace CADability.GeoObject
         }
 
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "NurbsSurface";
+            // to implement:
+            return new GroupProperty("NurbsSurface", new IPropertyEntry[0]);
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    // blöd: der get event braucht den index
-                    //foreach (GeoPoint pole in poles)
-                    //{
-                    //    GeoPointProperty location = new GeoPointProperty("NurbsSurface.Pole", base.Frame, false);
-                    //    location.ReadOnly = true;
-                    //    location.GetGeoPointEvent += delegate(GeoPointProperty sender) { return fromUnitPlane * GeoPoint.Origin; };
-                    //    se.Add(location);
-                    //}
-                    //BooleanProperty up = new BooleanProperty("NurbsSurface.UPeriodic", "NurbsSurface.UPeriodic.Values");
-                    //up.GetBooleanEvent += delegate() { return uPeriodic; };
-                    //se.Add(up);
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
         #region IDeserializationCallback Members
 
         void IDeserializationCallback.OnDeserialization(object sender)

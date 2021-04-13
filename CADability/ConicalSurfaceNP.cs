@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.Serialization;
 using CADability.Curve2D;
+using CADability.UserInterface;
 
 namespace CADability.GeoObject
 {
@@ -286,6 +287,29 @@ namespace CADability.GeoObject
 
             // z * (-2 * location_z * zAxis_z ^ 2 + (-2 * location_y * zAxis_y - 2 * location_x * zAxis_x) * zAxis_z + 2 * y * zAxis_y * zAxis_z + 2 * x * zAxis_x * zAxis_z + 2 * c * location_z) + z ^ 2 * (zAxis_z ^ 2 - c) + location_z ^ 2 * zAxis_z ^ 2 + y * (-2 * location_z * zAxis_y * zAxis_z - 2 * location_y * zAxis_y ^ 2 + 2 * x * zAxis_x * zAxis_y - 2 * location_x * zAxis_x * zAxis_y + 2 * c * location_y) + x * (-2 * location_z * zAxis_x * zAxis_z - 2 * location_y * zAxis_x * zAxis_y - 2 * location_x * zAxis_x ^ 2 + 2 * c * location_x) + (2 * location_y * location_z * zAxis_y + 2 * location_x * location_z * zAxis_x) * zAxis_z + y ^ 2 * (zAxis_y ^ 2 - c) + location_y ^ 2 * zAxis_y ^ 2 + 2 * location_x * location_y * zAxis_x * zAxis_y + x ^ 2 * (zAxis_x ^ 2 - c) + location_x ^ 2 * zAxis_x ^ 2 - c * location_z ^ 2 - c * location_y ^ 2 - c * location_x ^ 2
             return sqr(zAxis.z * (p.z - location.z) + zAxis.y * (p.y - location.y) + zAxis.x * (p.x - location.x)) - c * (sqr(p.z - location.z) + sqr(p.y - location.y) + sqr(p.x - location.x));
+        }
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty location = new GeoPointProperty("ConicalSurface.Location", frame, false);
+            location.ReadOnly = true;
+            location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return this.location; };
+            se.Add(location);
+            GeoVectorProperty dirx = new GeoVectorProperty("ConicalSurface.DirectionX", frame, false);
+            dirx.ReadOnly = true;
+            dirx.IsAngle = false;
+            dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return xAxis; };
+            se.Add(dirx);
+            GeoVectorProperty diry = new GeoVectorProperty("ConicalSurface.DirectionY", frame, false);
+            diry.ReadOnly = true;
+            diry.IsAngle = false;
+            diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return yAxis; };
+            se.Add(diry);
+            AngleProperty openingAngle = new AngleProperty("ConicalSurface.OpeningAngle", frame, false);
+            openingAngle.ReadOnly = true;
+            openingAngle.GetAngleEvent += delegate () { return OpeningAngle; };
+            se.Add(openingAngle);
+            return new GroupProperty("ConicalSurface", se.ToArray());
         }
         #region IJsonSerialize
         protected ConicalSurfaceNP() { }

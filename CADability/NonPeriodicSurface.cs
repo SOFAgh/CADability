@@ -1,5 +1,6 @@
 ﻿using CADability.Curve2D;
 using CADability.Shapes;
+using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -548,6 +549,10 @@ namespace CADability.GeoObject
                 return false;
             }
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
+        }
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            return periodicSurface.GetPropertyEntry(frame);
         }
         private GeoPoint2D toPeriodic(GeoPoint2D uv)
         {

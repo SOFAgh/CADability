@@ -26,7 +26,7 @@ namespace CADability.GeoObject
             toTorus = m2 * m1;
             toUnit = toTorus.GetInverse();
             this.minorRadius = toUnit.Factor * minorRadius;
-            // majorRadius ist 1
+            // majorRadius is 1
         }
         internal ToroidalSurface(ModOp toTorus, double minorRadius)
         {
@@ -2539,68 +2539,33 @@ namespace CADability.GeoObject
             toUnit = toTorus.GetInverse();
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "ToroidalSurface";
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty location = new GeoPointProperty(frame, "ToroidalSurface.Location");
+            location.ReadOnly = true;
+            location.OnGetValue = new EditableProperty<GeoPoint>.GetValueDelegate(delegate () { return toTorus * GeoPoint.Origin; });
+            se.Add(location);
+            GeoVectorProperty dirx = new GeoVectorProperty(frame, "ConicaToroidalSurfacelSurface.DirectionX");
+            dirx.ReadOnly = true;
+            dirx.IsAngle = false;
+            dirx.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return toTorus * GeoVector.XAxis; });
+            se.Add(dirx);
+            GeoVectorProperty diry = new GeoVectorProperty(frame, "ToroidalSurface.DirectionY");
+            diry.ReadOnly = true;
+            diry.IsAngle = false;
+            diry.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return toTorus * GeoVector.XAxis; });
+            se.Add(diry);
+            DoubleProperty majrad = new DoubleProperty(frame, "ToroidalSurface.MajorRadius");
+            majrad.ReadOnly = true;
+            majrad.OnGetValue = new EditableProperty<double>.GetValueDelegate(delegate () { return toTorus.Factor; });
+            se.Add(majrad);
+            DoubleProperty minrad = new DoubleProperty(frame, "ToroidalSurface.MinorRadius");
+            minrad.ReadOnly = true;
+            minrad.OnGetValue = new EditableProperty<double>.GetValueDelegate(delegate () { return toTorus.Factor * minorRadius; });
+            se.Add(minrad);
+            return new GroupProperty("ToroidalSurface", se.ToArray());
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    GeoPointProperty location = new GeoPointProperty("ToroidalSurface.Location", base.Frame, false);
-                    location.ReadOnly = true;
-                    location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return toTorus * GeoPoint.Origin; };
-                    se.Add(location);
-                    GeoVectorProperty dirx = new GeoVectorProperty("ToroidalSurface.DirectionX", base.Frame, false);
-                    dirx.ReadOnly = true;
-                    dirx.IsAngle = false;
-                    dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toTorus * GeoVector.XAxis; };
-                    se.Add(dirx);
-                    GeoVectorProperty diry = new GeoVectorProperty("ToroidalSurface.DirectionY", base.Frame, false);
-                    diry.ReadOnly = true;
-                    diry.IsAngle = false;
-                    diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toTorus * GeoVector.YAxis; };
-                    se.Add(diry);
-                    DoubleProperty majrad = new DoubleProperty("ToroidalSurface.MajorRadius", base.Frame);
-                    majrad.ReadOnly = true;
-                    majrad.GetDoubleEvent += delegate (DoubleProperty sender) { return toTorus.Factor; };
-                    majrad.DoubleValue = toTorus.Factor;
-                    se.Add(majrad);
-                    DoubleProperty minrad = new DoubleProperty("ToroidalSurface.MinorRadius", base.Frame);
-                    minrad.ReadOnly = true;
-                    minrad.GetDoubleEvent += delegate (DoubleProperty sender) { return toTorus.Factor * minorRadius; };
-                    minrad.DoubleValue = toTorus.Factor * minorRadius;
-                    se.Add(minrad);
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
         ImplicitPSurface IImplicitPSurface.GetImplicitPSurface()
         {
             // implicit form according to https://en.wikipedia.org/wiki/Implicit_surface

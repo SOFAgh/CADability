@@ -323,7 +323,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoVector GetNormal(GeoPoint2D uv)
         {
-            if (uv.y == 0.0) uv.y = 1.0; 
+            if (uv.y == 0.0) uv.y = 1.0;
             return UDirection(uv) ^ VDirection(uv);
         }
         /// <summary>
@@ -1528,7 +1528,7 @@ namespace CADability.GeoObject
             GeoPoint testPoint = orientedCurves[0].PointAt(0.5); // any point except the apex
             // we need the zAxis to have positive values for all points (a face with a conical surface never contains parts from both sides of the apex)
             double lp = Geometry.LinePar(Location, ZAxis, testPoint);
-            if (lp<0) res = new ConicalSurfaceNP(Location, XAxis, YAxis, -ZAxis);
+            if (lp < 0) res = new ConicalSurfaceNP(Location, XAxis, YAxis, -ZAxis);
             //GeoPoint testPoint1 = res.PointAt(res.PositionOf(testPoint));
             //if (PositionOf(testPoint).y<0) res = new ConicalSurfaceNP(Location, XAxis, YAxis, -ZAxis);
             GeoVector normalOriginal = GetNormal(PositionOf(testPoint));
@@ -1785,59 +1785,29 @@ namespace CADability.GeoObject
             voffset = 0.0;
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "ConicalSurface";
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty location = new GeoPointProperty(frame, "ConicalSurface.Location");
+            location.ReadOnly = true;
+            location.OnGetValue =new EditableProperty<GeoPoint>.GetValueDelegate( delegate () { return toCone * GeoPoint.Origin; });
+            se.Add(location);
+            GeoVectorProperty dirx = new GeoVectorProperty(frame, "ConicalSurface.DirectionX");
+            dirx.ReadOnly = true;
+            dirx.IsAngle = false;
+            dirx.OnGetValue =new EditableProperty<GeoVector>.GetValueDelegate( delegate () { return toCone * GeoVector.XAxis; });
+            se.Add(dirx);
+            GeoVectorProperty diry = new GeoVectorProperty(frame, "ConicalSurface.DirectionY");
+            diry.ReadOnly = true;
+            diry.IsAngle = false;
+            diry.OnGetValue =new EditableProperty<GeoVector>.GetValueDelegate( delegate () { return toCone * GeoVector.XAxis; });
+            se.Add(diry);
+            AngleProperty openingAngle = new AngleProperty(frame, "ConicalSurface.OpeningAngle");
+            openingAngle.ReadOnly = true;
+            openingAngle.OnGetValue =new EditableProperty<Angle>.GetValueDelegate( delegate () { return OpeningAngle; });
+            se.Add(openingAngle);
+            return new GroupProperty("ConicalSurface", se.ToArray());
         }
-
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    GeoPointProperty location = new GeoPointProperty("ConicalSurface.Location", base.Frame, false);
-                    location.ReadOnly = true;
-                    location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return toCone * GeoPoint.Origin; };
-                    se.Add(location);
-                    GeoVectorProperty dirx = new GeoVectorProperty("ConicalSurface.DirectionX", base.Frame, false);
-                    dirx.ReadOnly = true;
-                    dirx.IsAngle = false;
-                    dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toCone * GeoVector.XAxis; };
-                    se.Add(dirx);
-                    GeoVectorProperty diry = new GeoVectorProperty("ConicalSurface.DirectionY", base.Frame, false);
-                    diry.ReadOnly = true;
-                    diry.IsAngle = false;
-                    diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toCone * GeoVector.YAxis; };
-                    se.Add(diry);
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
 #if DEBUG
         Face DebugAsFace
         {

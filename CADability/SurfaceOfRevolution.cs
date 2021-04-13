@@ -22,7 +22,7 @@ namespace CADability.GeoObject
         private ICurve2D basisCurve2D; // die Basiskurve im 2D
 
         // in the new implementation we only need these 3 properties. The parameter on the curve is in the natural parameter system
-        private ICurve curveToRotate; // not necessary in a plane with the axis ans planar, but often is
+        private ICurve curveToRotate; // not necessary in a plane with the axis, but often is
         private GeoPoint axisLocation;
         private GeoVector axisDirection;
 
@@ -1574,44 +1574,23 @@ namespace CADability.GeoObject
             return base.GetCanonicalForm(precision, bounds);
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "SurfaceOfRevolution";
-        }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            if (curveToRotate is IGeoObject go)
             {
-                return ShowPropertyEntryType.GroupTitle;
+                se.Add(go.GetShowProperties(frame) as IPropertyEntry);
             }
+            GeoPointProperty loc = new GeoPointProperty(frame, "SurfaceOfRevolution.AxisLocation");
+            loc.ReadOnly = true;
+            loc.OnGetValue = new EditableProperty<GeoPoint>.GetValueDelegate(delegate () { return axisLocation; });
+            se.Add(loc);
+            GeoVectorProperty dir = new GeoVectorProperty(frame, "SurfaceOfRevolution.AxisDirection");
+            dir.ReadOnly = true;
+            dir.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return axisDirection; });
+            se.Add(dir);
+            return new GroupProperty("SurfaceOfRevolution", se.ToArray());
         }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
         #region ISerializable Members
         protected SurfaceOfRevolution(SerializationInfo info, StreamingContext context) : base()
         {

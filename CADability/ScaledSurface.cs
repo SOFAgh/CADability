@@ -366,5 +366,9 @@ namespace CADability
         {
             throw new NotImplementedException();
         }
+        public IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            return new GroupProperty("ScaledSurface", new IPropertyEntry[0]);
+        }
     }
 }

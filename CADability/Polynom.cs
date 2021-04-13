@@ -2,6 +2,7 @@
 using CADability.GeoObject;
 using CADability.LinearAlgebra;
 using CADability.Shapes;
+using CADability.UserInterface;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -4141,7 +4142,6 @@ namespace CADability
         Polynom[,] px, py, pz, pw, qx, qy, qz;
         // pw, qx, qy, qz können null sein
         // hat die Form x = (px + sqrt(qx))/pw, y, z analog
-
         int uIndex(double u)
         {
             int high = uKnots.Length - 1;
@@ -4172,7 +4172,6 @@ namespace CADability
             }
             return mid;
         }
-
         public override GeoPoint PointAt(GeoPoint2D uv)
         {
             int i = uIndex(uv.x);
@@ -4225,15 +4224,17 @@ namespace CADability
         {
             throw new NotImplementedException();
         }
-
         public override ICurve FixedV(double u, double umin, double umax)
         {
             throw new NotImplementedException();
         }
-
         public override ISurface GetModified(ModOp m)
         {
             throw new NotImplementedException();
+        }
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            return null;
         }
     }
 

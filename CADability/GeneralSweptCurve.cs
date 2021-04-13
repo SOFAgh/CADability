@@ -2,6 +2,7 @@
 using CADability.Curve2D;
 using CADability.GeoObject;
 using CADability.LinearAlgebra;
+using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -379,7 +380,8 @@ namespace CADability
     /// OrientationAt(u) is the x-axis
     /// </summary>
     [Serializable]
-    public class GeneralSweptCurve : ISurfaceImpl, ISerializable
+    public class 
+        GeneralSweptCurve : ISurfaceImpl, ISerializable
     {   // erstmal nur zum internen berechnen verwenden, kein Helper
         /*
          * gegeben: 2d Kurve "c" und surface "s" für das Bewegungssystem, das ist die v-Richtung
@@ -805,6 +807,11 @@ namespace CADability
             along.Reverse();
             return ModOp2D.Translate(1, 0) * ModOp2D.Scale(-1, 1);
         }
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            return new GroupProperty("GeneralSweptCurve", new IPropertyEntry[0]);
+        }
+
         protected GeneralSweptCurve(SerializationInfo info, StreamingContext context)
         {
             toSweep = (ICurve)info.GetValue("ToSweep", typeof(ICurve));

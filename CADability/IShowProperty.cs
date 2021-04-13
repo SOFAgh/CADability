@@ -268,8 +268,7 @@ namespace CADability.UserInterface
     /// standard way as a virtual method to give derived classes the possibility to override
     /// these implementations.
     /// </summary>
-    public class IShowPropertyImpl : IShowProperty
-        , IPropertyEntry
+    public class IShowPropertyImpl : IShowProperty, IPropertyEntry
     {
         protected IPropertyPage propertyTreeView => propertyPage;
         /// <summary>

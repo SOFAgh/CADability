@@ -1204,9 +1204,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             entityPattern = new Dictionary<string, HashSet<string>>();
 #endif
             transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", true);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
+            
+            // transformationMode = false;
             // for most files, transformationMode is not important.
             // files, for which transformationMode must be false:
             // ATTREZZATURA + GIRANTE.stp
+
+            // Assembly2.step doesn't work correctly with both methods!
             // edgeCollection = new StepEdgeCollection();
             Item.Init();
         }
@@ -2330,7 +2334,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (7331 == item.definingIndex || 108344 == item.definingIndex)
+                            if (2421 == item.definingIndex || 108344 == item.definingIndex)
                             {
                             }
 #endif
@@ -2357,7 +2361,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         defIndex = item.definingIndex;
                                     }
 #if DEBUG
-                                    if (7331 == item.definingIndex)
+                                    if (2421 == item.definingIndex)
                                     {
                                         Face dbgfc = (item.val as Face[])[0];
                                         dbgfc.AssureTriangles(0.2);

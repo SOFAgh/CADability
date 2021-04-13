@@ -1,4 +1,5 @@
 ﻿using CADability.Curve2D;
+using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -415,6 +416,20 @@ namespace CADability.GeoObject
                 }
             }
             return base.GetProjectedCurve(curve, precision);
+        }
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty centerprop = new GeoPointProperty(frame, "SphericalSurface.Center");
+            centerprop.ReadOnly = true;
+            centerprop.OnGetValue = new EditableProperty<GeoPoint>.GetValueDelegate(delegate () { return center; });
+            se.Add(centerprop);
+            DoubleProperty radius = new DoubleProperty(frame, "SphericalSurface.Radius");
+            radius.ReadOnly = true;
+            radius.OnGetValue = new EditableProperty<double>.GetValueDelegate(delegate () { return xAxis.Length; });
+            radius.Refresh();
+            se.Add(radius);
+            return new GroupProperty("SphericalSurface", se.ToArray());
         }
 #if DEBUG
         public override GeoObjectList DebugGrid
