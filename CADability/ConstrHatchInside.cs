@@ -160,12 +160,12 @@ namespace CADability.Actions
                     CurveGraph cg = CurveGraph.CrackCurves(l, foundOnPlane, l.GetExtent().Size * 1e-6); // gap eine Ordnung größer als Precision
                     if (cg != null)
                     {
-                        cs = cg.CreateCompoundShape(true, onPlane, mode);
+                        cs = cg.CreateCompoundShape(true, onPlane, mode, false);
 #if DEBUG
                         if (cs == null)
                         {
                             cg = CurveGraph.CrackCurves(l, foundOnPlane, l.GetExtent().Size * 1e-6); // gap eine Ordnung größer als Precision
-                            cs = cg.CreateCompoundShape(true, onPlane, mode);
+                            cs = cg.CreateCompoundShape(true, onPlane, mode, false);
                         }
 #endif
                     }
