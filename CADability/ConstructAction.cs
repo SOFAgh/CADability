@@ -5847,7 +5847,7 @@ namespace CADability.Actions
             if (cg != null)
             {
                 onPlane = plane.Project(p);
-                return cg.CreateCompoundShape(true, onPlane, ConstrHatchInside.HatchMode.excludeHoles);
+                return cg.CreateCompoundShape(true, onPlane, ConstrHatchInside.HatchMode.excludeHoles, false);
             }
             return null;
         }

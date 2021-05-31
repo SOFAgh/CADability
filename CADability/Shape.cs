@@ -1992,12 +1992,13 @@ namespace CADability.Shapes
         /// </summary>
         /// <param name="curves2d">The curves</param>
         /// <param name="maxGap">Maximum gap between curves</param>
+        /// <param name="partInPart">Return Part in Part (true) or remove them (false)</param>
         /// <param name="deadObjectList">List of objects that could not be used to build a CompoundShape</param>
         /// <returns>The shape</returns>
-        public static CompoundShape CreateFromList(ICurve2D[] curves2d, double maxGap, out GeoObjectList deadObjectList)
+        public static CompoundShape CreateFromList(ICurve2D[] curves2d, double maxGap, bool partInPart, out GeoObjectList deadObjectList)
         {
             CurveGraph pg = new CurveGraph(curves2d, maxGap);
-            CompoundShape res = pg.CreateCompoundShape(false, new GeoPoint2D(0.0, 0.0), ConstrHatchInside.HatchMode.hull);
+            CompoundShape res = pg.CreateCompoundShape(false, new GeoPoint2D(0.0, 0.0), ConstrHatchInside.HatchMode.hull, partInPart);
             deadObjectList = new GeoObjectList(pg.DeadObjects);
             return res;
         }
@@ -2010,7 +2011,7 @@ namespace CADability.Shapes
         public static CompoundShape CreateFromList(ICurve2D[] curves2d, double maxGap)
         {
             CurveGraph pg = new CurveGraph(curves2d, maxGap);
-            CompoundShape res = pg.CreateCompoundShape(false, new GeoPoint2D(0.0, 0.0), ConstrHatchInside.HatchMode.hull);
+            CompoundShape res = pg.CreateCompoundShape(false, new GeoPoint2D(0.0, 0.0), ConstrHatchInside.HatchMode.hull, false);
             return res;
         }
         /// <summary>
@@ -2020,7 +2021,7 @@ namespace CADability.Shapes
         /// <param name="maxGap">Maximum gap between curves</param>
         /// <param name="plane">The common plane and the location of the shape in 3d space</param>
         /// <returns>The shape, may be null if no shape could be created</returns>
-        public static CompoundShape CreateFromList(GeoObjectList TheObjects, double maxGap, out Plane plane)
+        public static CompoundShape CreateFromList(GeoObjectList TheObjects, double maxGap, out Plane plane, bool partInPart = false)
         {
             ArrayList curvesal = new ArrayList();
 
@@ -2047,7 +2048,7 @@ namespace CADability.Shapes
                 r2d.BreakPolylines = true;
                 r2d.OutputMode = Reduce2D.Mode.Simple;
                 CurveGraph pg = new CurveGraph(r2d.Reduced, maxGap);
-                CompoundShape res = pg.CreateCompoundShape(false, new GeoPoint2D(0.0, 0.0), ConstrHatchInside.HatchMode.hull);
+                CompoundShape res = pg.CreateCompoundShape(false, new GeoPoint2D(0.0, 0.0), ConstrHatchInside.HatchMode.hull, partInPart);
                 if (res != null)
                 {
                     for (int i = 0; i < res.simpleShapes.Length; i++)
@@ -2104,9 +2105,9 @@ namespace CADability.Shapes
                 }
                 CompoundShape res;
                 if (excludeHoles)
-                    res = pg.CreateCompoundShape(true, plane.Project(innerPoint), ConstrHatchInside.HatchMode.excludeHoles);
+                    res = pg.CreateCompoundShape(true, plane.Project(innerPoint), ConstrHatchInside.HatchMode.excludeHoles, false);
                 else
-                    res = pg.CreateCompoundShape(true, plane.Project(innerPoint), ConstrHatchInside.HatchMode.simple); // richtiger Mode?
+                    res = pg.CreateCompoundShape(true, plane.Project(innerPoint), ConstrHatchInside.HatchMode.simple, false); // richtiger Mode?
                 return res;
             }
             return null;

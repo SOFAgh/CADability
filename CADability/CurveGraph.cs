@@ -415,7 +415,7 @@ namespace CADability.Shapes
                 clusterTree.RemoveObject(NextCluster);
                 clusterSet.Remove(NextCluster);
                 if (NextCluster.Joints.Count > 0)
-                {                    
+                {
                     DeadObjects.Add(NextCluster.Joints[0].curve.MakeGeoObject(Plane.XYPlane));
 
                     Joint lp = NextCluster.Joints[0]; // es gibt ja genau einen
@@ -934,7 +934,7 @@ namespace CADability.Shapes
 
         }
 #endif
-        public CompoundShape CreateCompoundShape(bool useInnerPoint, GeoPoint2D innerPoint, ConstrHatchInside.HatchMode mode)
+        public CompoundShape CreateCompoundShape(bool useInnerPoint, GeoPoint2D innerPoint, ConstrHatchInside.HatchMode mode, bool partInPart)
         {
             // 1. Die offenen Enden mit anderen offenen Enden verbinden, wenn Abstand kleiner maxGap.
             // 2. Alle verbleibenden Sackgassen entfernen (alle einzelpunkte sammeln und von dort aus "aufessen".)
@@ -945,6 +945,7 @@ namespace CADability.Shapes
             //		jetzt haben wir einen (oder mehrere) überschneidungsfreien Graphen, in denen man leicht
             //		durch linksrumgehen die Border findet. Zusätzlich findet man auch noch für jeden
             //		Graphen die Hülle. Die erkennt man daran, dass sie rechtrum geht.
+            // 6. Wenn useInnerPoint == false && partInPart == true dann werden auch verschachtelte Teile gesucht und zurückgegeben
 
             // Lückenschließer einfügen, und zwar die kürzestmöglichen
             // und nur an offenen Enden
@@ -1044,17 +1045,21 @@ namespace CADability.Shapes
                 }
             }
             else
-            {   // wenn nicht "useInnerPoint", dann die erste (größte) Border liefern
-                if (AllBorders.Length == 1)
+            {
+                // wenn nicht "useInnerPoint", dann die erste (größte) Border liefern
+
+                if (AllBorders.Length == 0)
+                    return null;
+                
+                if (AllBorders.Length == 1)                    
+                    return new CompoundShape(new SimpleShape(AllBorders[0]));                    
+                
+                //Bei mehr als einer Border
+                Array.Reverse(AllBorders); // das größte zuerst
+                List<Border> toIterate = new List<Border>(AllBorders);
+
+                if (!partInPart) //Hier werden Teile die in Teilen liegen entfernt
                 {
-                    SimpleShape ss = new SimpleShape(AllBorders[0]);
-                    CompoundShape cs = new CompoundShape(ss);
-                    return cs;
-                }
-                else if (AllBorders.Length > 1)
-                {   // bei überlappenden Konturen kein definiertes Vorgehen
-                    Array.Reverse(AllBorders); // das größte zuerst
-                    List<Border> toIterate = new List<Border>(AllBorders);
                     CompoundShape res = new CompoundShape();
                     while (toIterate.Count > 0)
                     {
@@ -1074,6 +1079,55 @@ namespace CADability.Shapes
                         res = CompoundShape.Union(res, cs);
                     }
                     return res;
+                }
+                else //Hier werden Teile in Teilen als neues SimpleShape zurückgegeben
+                {
+                    CompoundShape cs = new CompoundShape(new SimpleShape(toIterate[0]));
+                    //Von groß nach klein
+                    for (int i = 1; i < toIterate.Count; i++)
+                    {
+                        SimpleShape innerShape = new SimpleShape(toIterate[i]);
+
+                        //Position des innerShape bestimmen
+                        var shapePos = SimpleShape.GetPosition(cs.SimpleShapes[0], innerShape);
+
+                        switch (shapePos)
+                        {
+                            case SimpleShape.Position.firstcontainscecond:
+                                //innerShape aus outerShape ausschneiden weil dieses vollständig innerhalb liegt
+                                cs.Subtract(innerShape); 
+                                break;
+                            case SimpleShape.Position.intersecting:
+                                //sollten sich Teile überschneiden werden diese zusammengefügt
+                                cs = CompoundShape.Union(cs, new CompoundShape(innerShape)); 
+                                break;                                
+                            case SimpleShape.Position.disjunct:
+                                //die Teile liegen vollständig unabhängig
+                                
+                                bool shapeHandled = false;
+                                //aber vielleicht liegt das Teil innerhalb eines der anderen SimpleShapes?
+                                for (int j = 1; j < cs.SimpleShapes.Length; j++)
+                                {
+                                    var shapePos2 = SimpleShape.GetPosition(cs.SimpleShapes[j], innerShape);
+                                    if (shapePos2 == SimpleShape.Position.firstcontainscecond)
+                                    {
+                                        cs.Subtract(innerShape);
+                                        shapeHandled = true;
+                                        break;
+                                    }
+                                    else if (shapePos2 == SimpleShape.Position.intersecting)
+                                    {
+                                        cs = CompoundShape.Union(cs, new CompoundShape(innerShape));
+                                        shapeHandled = true;
+                                        break;
+                                    }
+                                }
+                                if (!shapeHandled)
+                                    cs.UniteDisjunct(innerShape);
+                                break;
+                        }
+                    }
+                    return cs;
                 }
             }
             // was sollen wir liefern, wenn nicht useInnerPoint gegeben ist und mehrere Borders gefunden wurden?

@@ -1141,11 +1141,26 @@ namespace CADability.Shapes
             // they make problems in BorderOperation since the position of the start/endpoint 0.0 ad 1.0 is ambiguous
             if (segment.Length == 1)
             {
+                UnsplittedOutline = segment[0].Clone();
                 segment = segment[0].Split(0.5);
+
+                //Save the userdata to the splitted
+                foreach (var item in segment)
+                    item.UserData.Add(UnsplittedOutline.UserData);
+
                 bool dumy;
                 Recalc(out dumy);
             }
+            else
+                UnsplittedOutline = null;
         }
+
+        /// <summary>
+        /// In case of a border with a single outline like circles or closed bsplines
+        /// this property will contain a cloned unsplitted outline. While GetClonedSegments() will return the splitted one.
+        /// </summary>
+        public ICurve2D UnsplittedOutline { get; private set; }
+
         //public void RemoveSegmentsSmaller(double prec)
         //{
         //    List<ICurve2D> red = new List<ICurve2D>();
