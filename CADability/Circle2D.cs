@@ -1,5 +1,9 @@
 ﻿using CADability.GeoObject;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
+using MathNet.Numerics.Optimization;
 using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace CADability.Curve2D
@@ -561,6 +565,71 @@ namespace CADability.Curve2D
             info.AddValue("Center", center);
             info.AddValue("Radius", radius);
             info.AddValue("CounterClock", counterClock, typeof(bool));
+        }
+
+        internal static double Fit(IEnumerable<GeoPoint2D> points, ref GeoPoint2D center2d, ref double radius)
+        {
+            GeoPoint2D[] pnts = null;
+            if (points is GeoPoint2D[] a) pnts = a;
+            else if (points is List<GeoPoint2D> l) pnts = l.ToArray();
+            else
+            {
+                List<GeoPoint2D> lp = new List<GeoPoint2D>();
+                foreach (GeoPoint2D point2D in points)
+                {
+                    lp.Add(point2D);
+                }
+                pnts = lp.ToArray();
+            }
+            Vector<double> observedX = new DenseVector(pnts.Length); // there is no need to set values
+            Vector<double> observedY = new DenseVector(pnts.Length); // this is the data we want to achieve, namely 0.0
+            LevenbergMarquardtMinimizer lm = new LevenbergMarquardtMinimizer(gradientTolerance: 1e-12, maximumIterations: 20);
+            IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                {
+                    // parameters: 0:cx, 1:cy, 3: radius
+                    GeoPoint2D cnt = new GeoPoint2D(vd[0], vd[1]);
+                    DenseVector res = new DenseVector(pnts.Length);
+                    for (int i = 0; i < pnts.Length; i++)
+                    {
+                        res[i] = (pnts[i] | cnt) - vd[2];
+                    }
+#if DEBUG
+                    double err = 0.0;
+                    for (int i = 0; i < pnts.Length; i++) err += res[i] * res[i];
+#endif
+                    return res;
+                }),
+                new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                {
+                    // parameters: 0:cx, 1:cy, 3: radius
+                    GeoPoint2D cnt = new GeoPoint2D(vd[0], vd[1]);
+                    var prime = new DenseMatrix(pnts.Length, 3);
+                    for (int i = 0; i < pnts.Length; i++)
+                    {
+                        double d = pnts[i] | cnt;
+                        prime[i, 0] = -(pnts[i].x - vd[0]) / d;
+                        prime[i, 1] = -(pnts[i].y - vd[1]) / d;
+                        prime[i, 2] = -1;
+                    }
+                    return prime;
+                }), observedX, observedY);
+            NonlinearMinimizationResult mres = lm.FindMinimum(iom, new DenseVector(new double[] { center2d.x, center2d.y, radius }));
+            if (mres.ReasonForExit == ExitCondition.Converged || mres.ReasonForExit == ExitCondition.RelativeGradient)
+            {
+                center2d = new GeoPoint2D(mres.MinimizingPoint[0], mres.MinimizingPoint[1]);
+                radius = mres.MinimizingPoint[2];
+                double err = 0.0;
+                for (int i = 0; i < pnts.Length; i++)
+                {
+                    err += Math.Abs((pnts[i] | center2d) - radius);
+                }
+                return err;
+            }
+            else
+            {
+                return double.MaxValue;
+            }
         }
         #endregion
     }

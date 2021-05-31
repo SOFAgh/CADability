@@ -1,6 +1,8 @@
 ﻿using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
+using MathNet.Numerics.LinearAlgebra.Factorization;
 using System;
 using System.Collections.Generic;
 using Wintellect.PowerCollections;
@@ -861,86 +863,6 @@ namespace CADability
                 return res;
             }
         }
-        /// <summary>
-        /// Löst das lineare Gleichungssystem a*x=b
-        /// </summary>
-        /// <param name="a">Matrix der Konstanten</param>
-        /// <param name="b">Ergebnisvektor der Gleichung</param>
-        /// <param name="x">Lösungsvektor</param>
-        /// <returns>true, linear unabhängig, d.h. wenn eine Lösung gefunden werden konnte</returns>
-        internal static bool lingl(double[,] a, double[] b, double[] x)
-        {
-            int hi, r;
-            int i, j, k;
-            double max, hr;
-            int dimension = a.GetLength(0);
-            if (a.GetLength(1) != dimension)
-                throw new ArgumentException("lingl: parameter a must be a square matrix");
-            if (b.Length != dimension)
-                throw new ArgumentException("lingl: parameter b must be same size as a");
-            if (x.Length != dimension)
-                throw new ArgumentException("lingl: parameter x must be same size as a");
-
-            int[] p = new int[dimension];
-            double[] h = new double[dimension];
-
-            for (i = 0; i < dimension; i++) p[i] = i;
-
-            for (j = 0; j < dimension; j++)
-            {
-                max = Math.Abs(a[j, j]); r = j;
-                for (i = j + 1; i < dimension; i++)
-                { // Pivot Suche
-                    if (Math.Abs(a[i, j]) > max)
-                    {
-                        max = Math.Abs(a[i, j]);
-                        r = i;
-                    }
-                }
-                if (max > 0) // nicht singulär
-                {
-                    if (r > j) // Zeilen vertauschen
-                    {
-                        hi = p[j];
-                        p[j] = p[r];
-                        p[r] = hi;
-                        for (k = 0; k < dimension; k++)
-                        {
-                            hr = a[j, k];
-                            a[j, k] = a[r, k];
-                            a[r, k] = hr;
-                        }
-                    }
-                    hr = 1 / a[j, j];
-                    for (i = 0; i < dimension; i++) a[i, j] = hr * a[i, j];
-                    a[j, j] = hr;
-                    for (k = 0; k < dimension; k++)
-                    {
-                        if (j != k)
-                        {
-                            for (i = 0; i < dimension; i++)
-                            {
-                                if (i != j) a[i, k] = a[i, k] - a[i, j] * a[j, k];
-                            }
-                            a[j, k] = -hr * a[j, k];
-                        }
-                    }
-                }
-                else return false;
-            }
-            for (i = 0; i < dimension; i++)
-            {
-                for (k = 0; k < dimension; k++) h[p[k]] = a[i, k];
-                for (k = 0; k < dimension; k++) a[i, k] = h[k];
-            }
-            for (i = 0; i < dimension; i++)
-            {
-                hr = 0;
-                for (j = 0; j < dimension; j++) hr = hr + a[i, j] * b[j];
-                x[i] = hr;
-            }
-            return true;
-        }
         internal static bool FastSolve22(double a00, double a01, double a10, double a11, double b0, double b1, out double x, out double y)
         {
             double det = a00 * a11 - a10 * a01;
@@ -970,13 +892,6 @@ namespace CADability
             //    x = (b1 - a01 * y) / a00;
             //}
             //return !double.IsInfinity(x) && !double.IsInfinity(y);
-        }
-        internal static bool FastSolve33(double a00, double a01, double a02,
-            double a10, double a11, double a12,
-            double a20, double a21, double a22,
-            double b0, double b1, double b3, out double x, out double y, out double z)
-        {   // muss man mit maxima machen
-            throw new NotImplementedException();
         }
         /// <summary>
         /// Liefert den Parameter des gegebenen Punktes auf der gegebenen Linie
@@ -1219,14 +1134,14 @@ namespace CADability
             {
                 GeoVector xdir = l1Dir ^ l2Dir;
                 xdir.Norm();
-                Matrix m = new Matrix(l1Dir, l2Dir, xdir);
-                Matrix b = new Matrix(l2Start - l1Start);
-                Matrix x = m.SaveSolveTranspose(b);
-                if (x != null)
+                Matrix m = DenseMatrix.OfRowArrays(l1Dir, l2Dir, xdir);
+                Vector b = new DenseVector(l2Start - l1Start);
+                Vector x = (Vector)m.Transpose().Solve(b);
+                if (x.IsValid())
                 {
-                    par1 = x[0, 0];
-                    par2 = -x[1, 0];
-                    return Math.Abs(x[2, 0]);
+                    par1 = x[0];
+                    par2 = -x[1];
+                    return Math.Abs(x[2]);
                 }
                 else
                 {
@@ -1243,7 +1158,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// intersectionpoint of two lines in 3D. This should only be called when the two lines share a common plane. If not, the result will be in the middle
+        /// Intersection point of two lines in 3D. This should only be called when the two lines share a common plane. If not, the result will be in the middle
         /// of the closest connection of the two points. If the lines are parallel a GeometryException will be thrown.
         /// </summary>
         /// <param name="l1Start">Startpoint of first line</param>
@@ -1257,12 +1172,12 @@ namespace CADability
             {
                 GeoVector xdir = l1Dir ^ l2Dir;
                 xdir.Norm();
-                Matrix m = new Matrix(l1Dir, l2Dir, xdir);
-                Matrix b = new Matrix(l2Start - l1Start);
-                Matrix x = m.SaveSolveTranspose(b);
-                if (x != null)
+                Matrix m = DenseMatrix.OfRowArrays(l1Dir, l2Dir, xdir);
+                Vector b = new DenseVector(l2Start - l1Start);
+                Vector x = (Vector)m.Transpose().Solve(b);
+                if (x.IsValid())
                 {
-                    return new GeoPoint(l1Start + x[0, 0] * l1Dir, l2Start - x[1, 0] * l2Dir);
+                    return new GeoPoint(l1Start + x[0] * l1Dir, l2Start - x[1] * l2Dir);
                 }
                 else
                 {
@@ -1284,14 +1199,14 @@ namespace CADability
             {
                 GeoVector xdir = l1Dir ^ l2Dir;
                 xdir.Norm();
-                Matrix m = new Matrix(l1Dir, l2Dir, xdir);
-                Matrix b = new Matrix(l2Start - l1Start);
-                Matrix x = m.SaveSolveTranspose(b);
+                Matrix m = DenseMatrix.OfRowArrays(l1Dir, l2Dir, xdir);
+                Vector b = new DenseVector(l2Start - l1Start);
+                Vector x = (Vector)m.Transpose().Solve(b);
                 if (x != null)
                 {
-                    par1 = x[0, 0];
-                    par2 = x[1, 0];
-                    return Math.Abs(x[2, 0]);
+                    par1 = x[0];
+                    par2 = x[1];
+                    return Math.Abs(x[2]);
                 }
                 else
                 {
@@ -2116,22 +2031,15 @@ namespace CADability
             //                           m10*p2x + m11*p2y + m12 = 1.0
             // m00*t1x + m01*t1y                                 = 0.0
             //                           m10*t2x + m11*t2y       = 0.0
-            double[,] a = { { p1.x, p1.y,  1.0,  0.0,  0.0,  0.0 },
+            Matrix a = DenseMatrix.OfArray(new double[,]{ { p1.x, p1.y,  1.0,  0.0,  0.0,  0.0 },
                             {  0.0,  0.0,  0.0, p1.x, p1.y,  1.0 },
                             { p2.x, p2.y,  1.0,  0.0,  0.0,  0.0 },
                             {  0.0,  0.0,  0.0, p2.x, p2.y,  1.0 },
                             { t1.x, t1.y,  0.0,  0.0,  0.0,  0.0 },
-                            {  0.0,  0.0,  0.0, t2.x, t2.y,  0.0 } };
-            double[] b = { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 };
-            double[] x = new double[6];
-
-            // Folgendes funktioniert genauso wie lingl:
-            //double[,] bb = { { 1.0 }, { 0.0 }, { 0.0 }, { 1.0 }, { 0.0 }, { 0.0 } };
-            //MathNet.Numerics.LinearAlgebra.Matrix mm = new MathNet.Numerics.LinearAlgebra.Matrix(a);
-            //MathNet.Numerics.LinearAlgebra.LUDecomposition dc = new MathNet.Numerics.LinearAlgebra.LUDecomposition(mm);
-            //MathNet.Numerics.LinearAlgebra.Matrix result = dc.Solve(new MathNet.Numerics.LinearAlgebra.Matrix(bb));
-
-            if (lingl(a, b, x))
+                            {  0.0,  0.0,  0.0, t2.x, t2.y,  0.0 } });
+            Vector b = new DenseVector(new double[] { 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 });
+            Vector x = (Vector)a.Solve(b);
+            if (x.IsValid())
             {
                 ModOp2D m = new ModOp2D(x[0], x[1], x[2], x[3], x[4], x[5]);
                 try
@@ -2143,12 +2051,8 @@ namespace CADability
                     return null;
                 }
                 return new CADability.Curve2D.Ellipse2D(m * GeoPoint2D.Origin, m * new GeoVector2D(1.0, 0.0), m * new GeoVector2D(0.0, 1.0));
-                // in Ellipse2D wird bei diesem Konstruktor die Hauptachsentransformation gemacht
             }
-            else
-            {
-                return null;
-            }
+            else return null;
         }
         /// <summary>
         /// Calculates the principal axis (major and minor axis) of an ellipse
@@ -2490,23 +2394,23 @@ namespace CADability
         public static bool AxisThroughTriangle(GeoPoint axisLoc, GeoVector axisDir, GeoPoint t1, GeoPoint t2, GeoPoint t3)
         {
             // bestimmt den Schnittpunkt von Achse und Dreiecksebene als Skalarfaktoren zu t2 - t1, t3 - t1 und axisDir
-            Matrix m = new Matrix(t2 - t1, t3 - t1, axisDir);
-            Matrix s = m.SaveSolveTranspose(new Matrix(axisLoc - t1));
-            if (s != null)
+            Matrix m = DenseMatrix.OfRowArrays(t2 - t1, t3 - t1, axisDir);
+            Vector s = (Vector)m.Transpose().Solve(new DenseVector(axisLoc - t1));
+            if (s.IsValid())
             {
-                if (s[0, 0] >= 0.0 && s[1, 0] >= 0.0 && s[0, 0] + s[1, 0] <= 1) return true;
+                if (s[0] >= 0.0 && s[1] >= 0.0 && s[0] + s[1] <= 1) return true;
             }
             return false;
         }
         internal static bool AxisThroughTriangle(GeoPoint axisLoc, GeoVector axisDir, GeoPoint t1, GeoPoint t2, GeoPoint t3, out double a)
         {
             // bestimmt den Schnittpunkt von Achse und Dreiecksebene als Skalarfaktoren zu t2 - t1, t3 - t1 und axisDir
-            Matrix m = new Matrix(t2 - t1, t3 - t1, axisDir);
-            Matrix s = m.SaveSolveTranspose(new Matrix(axisLoc - t1));
-            if (s != null)
+            Matrix m = DenseMatrix.OfRowArrays(t2 - t1, t3 - t1, axisDir);
+            Vector s = (Vector)m.Transpose().Solve(new DenseVector(axisLoc - t1));
+            if (s.IsValid())
             {
-                a = s[2, 0];
-                if (s[0, 0] >= 0.0 && s[1, 0] >= 0.0 && s[0, 0] + s[1, 0] <= 1) return true;
+                a = s[2];
+                if (s[0] >= 0.0 && s[1] >= 0.0 && s[0] + s[1] <= 1) return true;
             }
             a = 0.0;
             return false;
@@ -2524,11 +2428,11 @@ namespace CADability
         /// <returns>true, if the beam passes through the triangle, false otherwise</returns>
         public static bool BeamThroughTriangle(GeoPoint axisLoc, GeoVector axisDir, GeoPoint t1, GeoPoint t2, GeoPoint t3)
         {
-            Matrix m = new Matrix(t2 - t1, t3 - t1, axisDir);
-            Matrix s = m.SaveSolveTranspose(new Matrix(axisLoc - t1));
+            Matrix m = DenseMatrix.OfRowArrays(t2 - t1, t3 - t1, axisDir);
+            Vector s = (Vector)m.Transpose().Solve(new DenseVector(axisLoc - t1));
             if (s != null)
             {
-                if (s[0, 0] >= 0.0 && s[1, 0] >= 0.0 && s[0, 0] + s[1, 0] <= 1 && s[2, 0] >= 0.0) return true;
+                if (s[0] >= 0.0 && s[1] >= 0.0 && s[0] + s[1] <= 1 && s[2] >= 0.0) return true;
             }
             return false;
         }
@@ -3033,14 +2937,14 @@ namespace CADability
 #if DEBUG
             Polyline2D p2d = new Polyline2D(p);
 #endif
-            Matrix m = new Matrix(3, 3, 0.0);
-            Matrix b = new Matrix(1, 3, 0.0); // die sind schon 0
+            Matrix m = new DenseMatrix(3, 3);
+            Vector b = new DenseVector(3);
             for (int i = 0; i < p.Length; i++)
             {
                 double s = p[i].x * p[i].x + p[i].y * p[i].y;
-                b[0, 0] += p[i].x * s;
-                b[0, 1] += p[i].y * s;
-                b[0, 2] += s;
+                b[0] += p[i].x * s;
+                b[1] += p[i].y * s;
+                b[2] += s;
                 s = p[i].x * p[i].y;
                 m[0, 0] += p[i].x * p[i].x;
                 m[0, 1] += s;
@@ -3052,12 +2956,12 @@ namespace CADability
                 m[2, 1] += p[i].y;
             }
             m[2, 2] = p.Length;
-            Matrix slv = m.SaveSolveTranspose(b);
-            if (slv != null)
+            Vector slv = (Vector)m.Transpose().Solve(b);
+            if (slv.IsValid())
             {
-                c.x = slv[0, 0] / 2.0;
-                c.y = slv[1, 0] / 2.0;
-                double rt = 4 * slv[2, 0] + slv[0, 0] * slv[0, 0] + slv[1, 0] * slv[1, 0];
+                c.x = slv[0] / 2.0;
+                c.y = slv[1] / 2.0;
+                double rt = 4 * slv[2] + slv[0] * slv[0] + slv[1] * slv[1];
                 if (rt >= 0)
                 {
                     r = Math.Sqrt(rt) / 2.0;
@@ -3134,65 +3038,22 @@ namespace CADability
                 return double.MaxValue;
             }
         }
-        public static double LineFitOld(GeoPoint2D[] points, out GeoPoint2D location, out GeoVector2D direction)
-        {
-            if (points.Length < 3) throw new ApplicationException("Invalid parameter at LineFit: points must contain more than two points");
-            LinearAlgebra.Matrix X = new LinearAlgebra.Matrix(points.Length, 2);
-            LinearAlgebra.Matrix B = new LinearAlgebra.Matrix(points.Length, 1);
-            double ext = 0.0;
-            for (int i = 0; i < points.Length; ++i)
-            {
-                X[i, 0] = points[i].x;
-                X[i, 1] = points[i].y;
-                B[i, 0] = 1;
-            }
-            LinearAlgebra.QRDecomposition qrd = X.QRD();
-            GeoVector2D normal = new GeoVector2D(0.0, 0.0);
-            if (qrd.FullRank)
-            {
-                LinearAlgebra.Matrix resx = qrd.Solve(B);
-                normal.x = resx[0, 0];
-                normal.y = resx[1, 0];
-                direction = normal.ToRight();
-                location = points[0];
-                GeoVector2D corr = GeoVector2D.NullVector;
-                for (int i = 1; i < points.Length; i++)
-                {
-                    GeoPoint2D drp = DropPL(points[i], location, direction);
-                    corr += drp - points[i];
-                }
-                location += 1.0 / points.Length * corr;
-                double res = 0.0;
-                for (int i = 0; i < points.Length; i++)
-                {
-                    double d = Math.Abs(DistPL(points[i], location, direction));
-                    if (d > res) res = d;
-                }
-                return res;
-            }
-            else
-            {
-                location = points[0];
-                direction = GeoVector2D.NullVector;
-                return double.MaxValue;
-            }
-        }
         public static double LineFit(GeoPoint2D[] points, out GeoPoint2D location, out GeoVector2D direction)
         {   // nach http://stackoverflow.com/questions/2352256/fit-a-3d-line-to-3d-point-data-in-java
             if (points.Length < 3) throw new ApplicationException("Invalid parameter at LineFit: points must contain more than two points");
-            Matrix P = new Matrix(points.Length, 2);
+            Matrix P = new DenseMatrix(points.Length, 2);
             for (int i = 0; i < points.Length; i++)
             {
                 P[i, 0] = points[i].x;
                 P[i, 1] = points[i].y;
             }
-            SingularValueDecomposition svd = new SingularValueDecomposition(Matrix.Transpose(P) * P);
+            Svd<double> svd = (P.Transpose() * P).Svd();
             int maxind = 0;
             for (int i = 1; i < 2; i++)
             {
-                if (svd.SingularValues[i] > svd.SingularValues[maxind]) maxind = i;
+                if (svd.S[i] > svd.S[maxind]) maxind = i;
             }
-            direction = new GeoVector2D(svd.RightSingularVectors[0, maxind], svd.RightSingularVectors[1, maxind]);
+            direction = new GeoVector2D(svd.VT[0, maxind], svd.VT[1, maxind]);
             location = new GeoPoint2D(points);
             double d = 0.0;
             double dl = direction.Length;
@@ -3210,20 +3071,20 @@ namespace CADability
         {   // nach http://stackoverflow.com/questions/2352256/fit-a-3d-line-to-3d-point-data-in-java
             // better use GaussNewtonMinimizer.LineFit
             if (points.Length < 3) throw new ApplicationException("Invalid parameter at LineFit: points must contain more than two points");
-            Matrix P = new Matrix(points.Length, 3);
+            Matrix P = new DenseMatrix(points.Length, 3);
             for (int i = 0; i < points.Length; i++)
             {
                 P[i, 0] = points[i].x;
                 P[i, 1] = points[i].y;
                 P[i, 2] = points[i].z;
             }
-            SingularValueDecomposition svd = new SingularValueDecomposition(Matrix.Transpose(P) * P);
+            Svd<double> svd = (P.Transpose() * P).Svd();
             int maxind = 0;
             for (int i = 1; i < 3; i++)
             {
-                if (svd.SingularValues[i] > svd.SingularValues[maxind]) maxind = i;
+                if (svd.S[i] > svd.S[maxind]) maxind = i;
             }
-            direction = new GeoVector(svd.RightSingularVectors[0, maxind], svd.RightSingularVectors[1, maxind], svd.RightSingularVectors[2, maxind]);
+            direction = new GeoVector(svd.VT[0, maxind], svd.VT[1, maxind], svd.VT[2, maxind]);
             location = new GeoPoint(points);
             double d = 0.0;
             double dl = direction.Length;
@@ -3240,11 +3101,11 @@ namespace CADability
         }
         public static GeoPoint2D GetPosition(GeoPoint2D p, GeoPoint2D sysLoc, GeoVector2D sysDirx, GeoVector2D sysDiry)
         {
-            Matrix m = new Matrix(sysDirx, sysDiry);
-            Matrix s = m.SaveSolveTranspose(new Matrix(p - sysLoc));
-            if (s != null)
+            Matrix m = DenseMatrix.OfRowArrays(sysDirx, sysDiry);
+            Vector s = (Vector)m.Transpose().Solve(new DenseVector(p - sysLoc));
+            if (s.IsValid())
             {
-                return new GeoPoint2D(s[0, 0], s[1, 0]);
+                return new GeoPoint2D(s[0], s[1]);
             }
             else throw new GeometryException("no solution: linear dependant coordinate system");
         }
@@ -3614,7 +3475,7 @@ namespace CADability
             // maxDegree==6: 89 Koeffizienten, 2: 11 Koeffizienten
             List<Tripel<int, int, int>> coeff = GetCoeff(maxDegree);
 
-            Matrix m = new Matrix(coeff.Count, coeff.Count);
+            Matrix m = new DenseMatrix(coeff.Count, coeff.Count);
             // suche coeff.Count viele gleichverteilte Punkte auf der surface
             // für jeden Punkt gibt es eine zeile in der matrix, die mit GetPolyFormCoeff bestimmt wird.
             // der vektor B ist 0
@@ -3689,21 +3550,21 @@ namespace CADability
             }
             // y = (d*s^2 + e*s + f)/((s-s2)*(s-s3))
             // (d*t[i]^2 + e*t[i] + f) == cy[i]*((t[i]-s2)*(t[i]-s3))
-            Matrix m = new Matrix(3, 3);
-            Matrix b = new Matrix(3, 1);
+            Matrix m = new DenseMatrix(3, 3);
+            Vector b = new DenseVector(3);
             for (int i = 0; i < 3; i++)
             {
                 m[i, 0] = t[i] * t[i];
                 m[i, 1] = t[i];
                 m[i, 2] = 1;
-                b[i, 0] = cy[i] * ((t[i] - s2) * (t[i] - s3));
+                b[i] = cy[i] * ((t[i] - s2) * (t[i] - s3));
             }
-            Matrix x = m.SaveSolve(b);
+            Vector x = (Vector)m.Solve(b);
             if (x != null)
             {
-                double d = x[0, 0];
-                double e = x[1, 0];
-                double f = x[2, 0];
+                double d = x[0];
+                double e = x[1];
+                double f = x[2];
                 double r0, r1;
                 int n = quadgl(d, e, f, out r0, out r1);
                 if (n == 0) return false;

@@ -12,6 +12,7 @@ using Point = System.Drawing.Point;
 #endif
 using System.Runtime.Serialization;
 using System.Threading;
+using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability.GeoObject
 {
@@ -284,14 +285,14 @@ namespace CADability.GeoObject
                     // für andere Zwecke braucht man Start- und Endparameter:
                     double[,] a = new double[2, 2];
                     double[] b = new double[2];
-                    double[] x = new double[2];
                     a[0, 0] = res.majax.x;
                     a[0, 1] = res.minax.x;
                     a[1, 0] = res.majax.y;
                     a[1, 1] = res.minax.y;
                     b[0] = StartDir.x;
                     b[1] = StartDir.y;
-                    if (Geometry.lingl(a, b, x))
+                    Vector x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
+                    if (x.IsValid())
                     {
                         res.startParameter = Math.Atan2(x[1], x[0]);
                     }
@@ -301,7 +302,8 @@ namespace CADability.GeoObject
                     a[1, 1] = res.minax.y;
                     b[0] = EndDir.x;
                     b[1] = EndDir.y;
-                    if (Geometry.lingl(a, b, x))
+                    x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
+                    if (x.IsValid())
                     {
                         double endpar = Math.Atan2(x[1], x[0]);
                         SweepAngle sw;
@@ -2882,19 +2884,19 @@ namespace CADability.GeoObject
         #region IQuadTreeInsertableZ Members
         public double GetZPosition(GeoPoint2D p)
         {
-            // Gleichung plane.loc + l1*plane.dirx + l2*plane.diry = (p.x,p.y)
+            // Equation plane.loc + l1*plane.dirx + l2*plane.diry = (p.x,p.y)
             double[,] m = new double[2, 2];
             m[0, 0] = plane.DirectionX.x;
             m[0, 1] = plane.DirectionY.x;
             m[1, 0] = plane.DirectionX.y;
             m[1, 1] = plane.DirectionY.y;
-            double[,] b = new double[,] { { p.x - plane.Location.x }, { p.y - plane.Location.y } };
-            LinearAlgebra.Matrix mx = new CADability.LinearAlgebra.Matrix(m);
-            LinearAlgebra.Matrix s = mx.SaveSolve(new CADability.LinearAlgebra.Matrix(b));
-            if (s != null)
+            double[] b = new double[] {  p.x - plane.Location.x ,  p.y - plane.Location.y  };
+            Matrix mx = DenseMatrix.OfArray(m);
+            Vector s = (Vector)mx.Solve(new DenseVector(b));
+            if (s.IsValid())
             {
-                double l1 = s[0, 0];
-                double l2 = s[1, 0];
+                double l1 = s[0];
+                double l2 = s[1];
                 return plane.Location.z + l1 * plane.DirectionX.z + l2 * plane.DirectionY.z;
             }
 

@@ -1,6 +1,6 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.Shapes;
 using CADability.UserInterface;
 using System;
@@ -2719,14 +2719,14 @@ namespace CADability.GeoObject
                     GeoVector diry;
                     GeoPoint loc;
                     this.DerivationAt(res, out loc, out dirx, out diry);
-                    Matrix mtx = new Matrix(dirx, diry, dirx ^ diry);
-                    Matrix b = new Matrix(p - loc);
+                    Matrix mtx = DenseMatrix.OfRowArrays(dirx, diry, dirx ^ diry);
+                    Vector b = new DenseVector(p - loc);
                     if (!Precision.IsNullVector(dirx) && !Precision.IsNullVector(diry))
                     {
-                        Matrix x = mtx.SaveSolveTranspose(b);
-                        if (x != null)
+                        Vector x = (Vector)mtx.Transpose().Solve(b);
+                        if (x.IsValid())
                         {
-                            GeoPoint2D res1 = new GeoPoint2D(res.x + x[0, 0], res.y + x[1, 0]);
+                            GeoPoint2D res1 = new GeoPoint2D(res.x + x[0], res.y + x[1]);
                             double du = umax - umin;
                             double dv = vmax - vmin;
                             if (res1.x >= umin - du / 2.0 && res1.x <= umax + du / 2.0 && res1.y >= vmin - dv / 2.0 && res1.y <= vmax + dv / 2.0) res = res1;
@@ -4297,13 +4297,13 @@ namespace CADability.GeoObject
             // An 3 Stellen der Oberfläche sind die Normalenvektoeren gegeben. Wenn sie die gewünschte Richtung einschließen
             // dann sollte die Stelle an der der Normalenvektor und dir identisch sind innerhalb des dreiecks liegen
             // bei Sattelflächen kann es auch nach außen wendern
-            Matrix m = new Matrix(v1, v2, v3);
-            Matrix b = new Matrix(dir);
+            Matrix m = DenseMatrix.OfRowArrays(v1, v2, v3);
+            Vector b = new DenseVector(dir);
             try
             {
-                Matrix s = m.SolveTranspose(b);
-                if ((s[0, 0] >= 0.0 && s[1, 0] >= 0.0 && s[2, 0] >= 0.0) ||
-                    (s[0, 0] <= 0.0 && s[1, 0] <= 0.0 && s[2, 0] <= 0.0))
+                Vector s = (Vector)m.Transpose().Solve(b);
+                if ((s[0] >= 0.0 && s[1] >= 0.0 && s[2] >= 0.0) ||
+                    (s[0] <= 0.0 && s[1] <= 0.0 && s[2] <= 0.0))
                 {   // die gesuchte Richtung wird positiv oder negativ aufgespannt
                     if (Math.Abs(par1.x - par2.x) + Math.Abs(par2.x - par3.x) + Math.Abs(par3.x - par1.x) > epsu ||
                     Math.Abs(par1.y - par2.y) + Math.Abs(par2.y - par3.y) + Math.Abs(par3.y - par1.y) > epsv)
@@ -4324,12 +4324,12 @@ namespace CADability.GeoObject
                         // hier angekommen liegt das gesuchte Ergebnis außerhalb des Dreiecks durch par1,par2,par3
                         // Das passiert bei Sattelflächen (z.B. beim Torus)
                         // es ist also eine der drei ursprünglichen Dreiecksseiten, aus dem wir hier rausgefallen sind
-                        m = new Matrix(v1, v12, v2);
+                        m = DenseMatrix.OfRowArrays(v1, v12, v2);
                         try
                         {
-                            s = m.SolveTranspose(b);
-                            if ((s[0, 0] >= 0.0 && s[1, 0] >= 0.0 && s[2, 0] >= 0.0) ||
-                                (s[0, 0] <= 0.0 && s[1, 0] <= 0.0 && s[2, 0] <= 0.0))
+                            s = (Vector)m.Transpose().Solve(b);
+                            if ((s[0] >= 0.0 && s[1] >= 0.0 && s[2] >= 0.0) ||
+                                (s[0] <= 0.0 && s[1] <= 0.0 && s[2] <= 0.0))
                             {
                                 // die Verbindung par1<->par2 macht ein Problem
                                 // spiegele par3 an par12 und suche in den beiden Dreiecken
@@ -4342,12 +4342,12 @@ namespace CADability.GeoObject
                         }
                         catch (ApplicationException) { } // macht nix, liegen in einer Ebene, waren also nicht der Auslöser für das Problem
                         // analog mit den beiden anderen Seiten
-                        m = new Matrix(v2, v23, v3);
+                        m = DenseMatrix.OfRowArrays(v2, v23, v3);
                         try
                         {
-                            s = m.SolveTranspose(b);
-                            if ((s[0, 0] >= 0.0 && s[1, 0] >= 0.0 && s[2, 0] >= 0.0) ||
-                                (s[0, 0] <= 0.0 && s[1, 0] <= 0.0 && s[2, 0] <= 0.0))
+                            s = (Vector)m.Transpose().Solve(b);
+                            if ((s[0] >= 0.0 && s[1] >= 0.0 && s[2] >= 0.0) ||
+                                (s[0] <= 0.0 && s[1] <= 0.0 && s[2] <= 0.0))
                             {
                                 GeoPoint2D par4 = par23 + (par23 - par1);
                                 GeoVector v4 = GetNormal(par4).Normalized;
@@ -4356,12 +4356,12 @@ namespace CADability.GeoObject
                             }
                         }
                         catch (ApplicationException) { }
-                        m = new Matrix(v3, v31, v1);
+                        m = DenseMatrix.OfRowArrays(v3, v31, v1);
                         try
                         {
-                            s = m.SolveTranspose(b);
-                            if ((s[0, 0] >= 0.0 && s[1, 0] >= 0.0 && s[2, 0] >= 0.0) ||
-                                (s[0, 0] <= 0.0 && s[1, 0] <= 0.0 && s[2, 0] <= 0.0))
+                            s = (Vector)m.Transpose().Solve(b);
+                            if ((s[0] >= 0.0 && s[1] >= 0.0 && s[2] >= 0.0) ||
+                                (s[0] <= 0.0 && s[1] <= 0.0 && s[2] <= 0.0))
                             {
                                 GeoPoint2D par4 = par31 + (par31 - par2);
                                 GeoVector v4 = GetNormal(par4).Normalized;
@@ -4431,7 +4431,7 @@ namespace CADability.GeoObject
                 // a2*paru + b2*parv + c2 = diry
                 // a3*paru + b3*parv + c3 = dirz wobei hier paru ubd parv gesucht sind. Zu beachten ist, dass elle Vekoren
                 // normiert sein müssen. Das System ist überbestimmt
-                Matrix m = new Matrix(12, 9, 0.0);
+                Matrix m = new DenseMatrix(12, 9);
                 m[0, 0] = par1.x; m[0, 1] = par1.y; m[0, 2] = 1.0;
                 m[1, 3] = par1.x; m[1, 4] = par1.y; m[1, 5] = 1.0;
                 m[2, 6] = par1.x; m[2, 7] = par1.y; m[2, 8] = 1.0;
@@ -4448,36 +4448,36 @@ namespace CADability.GeoObject
                 m[10, 3] = par3.x; m[10, 4] = par3.y; m[10, 5] = 1.0;
                 m[11, 6] = par3.x; m[11, 7] = par3.y; m[11, 8] = 1.0;
 
-                Matrix b = new Matrix(12, 1);
-                b[0, 0] = v1.x;
-                b[1, 0] = v1.y;
-                b[2, 0] = v1.z;
-                b[3, 0] = v2.x;
-                b[4, 0] = v2.y;
-                b[5, 0] = v2.z;
-                b[6, 0] = v3.x;
-                b[7, 0] = v3.y;
-                b[8, 0] = v3.z;
-                b[9, 0] = v4.x;
-                b[10, 0] = v4.y;
-                b[11, 0] = v4.z;
+                Vector b = new DenseVector(12);
+                b[0] = v1.x;
+                b[1] = v1.y;
+                b[2] = v1.z;
+                b[3] = v2.x;
+                b[4] = v2.y;
+                b[5] = v2.z;
+                b[6] = v3.x;
+                b[7] = v3.y;
+                b[8] = v3.z;
+                b[9] = v4.x;
+                b[10] = v4.y;
+                b[11] = v4.z;
                 try
                 {
-                    Matrix s = m.Solve(b);
-                    m = new Matrix(3, 2);
-                    m[0, 0] = s[0, 0];
-                    m[0, 1] = s[1, 0];
-                    m[1, 0] = s[3, 0];
-                    m[1, 1] = s[4, 0];
-                    m[2, 0] = s[6, 0];
-                    m[2, 1] = s[7, 0];
-                    b = new Matrix(3, 1);
-                    b[0, 0] = dir.x - s[2, 0];
-                    b[1, 0] = dir.y - s[5, 0];
-                    b[2, 0] = dir.z - s[8, 0];
-                    s = m.Solve(b);
-                    p.x = s[0, 0];
-                    p.y = s[1, 0];
+                    Vector s = (Vector)m.Solve(b);
+                    m = new DenseMatrix(3, 2);
+                    m[0, 0] = s[0];
+                    m[0, 1] = s[1];
+                    m[1, 0] = s[3];
+                    m[1, 1] = s[4];
+                    m[2, 0] = s[6];
+                    m[2, 1] = s[7];
+                    b = new DenseVector(3);
+                    b[0] = dir.x - s[2];
+                    b[1] = dir.y - s[5];
+                    b[2] = dir.z - s[8];
+                    s = (Vector)m.Solve(b);
+                    p.x = s[0];
+                    p.y = s[1];
                     GeoVector v = GetNormal(p).Normalized;
 
                     double newsc = dir * v;
@@ -5423,21 +5423,21 @@ namespace CADability.GeoObject
                 // Wenn die Flächen recht tangential sind, ist die Fehlerabfrage schlecht, da man in uv noch sehr daneben liegen kann.
                 // BRep-Operationen brauchen aber genaue Werte. Deshalb wird hier bis zu "Rauschen" konvergiert, durch die error/2 Bedingung
                 // aber maximal 48 mal
-                Matrix m = new Matrix(new double[6, 6] { { u1.x, v1.x, -u2.x, -v2.x, 0, 0 }, { u1.y, v1.y, -u2.y, -v2.y, 0, 0 }, { u1.z, v1.z, -u2.z, -v2.z, 0, 0 }, { 0, 0, -u2.x, -v2.x, u3.x, v3.x }, { 0, 0, -u2.y, -v2.y, u3.y, v3.y }, { 0, 0, -u2.z, -v2.z, u3.z, v3.z } });
+                Matrix m = DenseMatrix.OfArray(new double[6, 6] { { u1.x, v1.x, -u2.x, -v2.x, 0, 0 }, { u1.y, v1.y, -u2.y, -v2.y, 0, 0 }, { u1.z, v1.z, -u2.z, -v2.z, 0, 0 }, { 0, 0, -u2.x, -v2.x, u3.x, v3.x }, { 0, 0, -u2.y, -v2.y, u3.y, v3.y }, { 0, 0, -u2.z, -v2.z, u3.z, v3.z } });
                 try
                 {
-                    Matrix x = m.SaveSolve(new Matrix(new double[,] { { p2.x - p1.x }, { p2.y - p1.y }, { p2.z - p1.z }, { p2.x - p3.x }, { p2.y - p3.y }, { p2.z - p3.z } }));
-                    if (x == null)
+                    Vector x = (Vector)m.Solve(new DenseVector(new double[] { p2.x - p1.x ,  p2.y - p1.y ,  p2.z - p1.z ,  p2.x - p3.x ,  p2.y - p3.y ,  p2.z - p3.z  }));
+                    if (x.IsValid())
                     {
                         if (error < Precision.eps) break; // geht wohl nicht besser
                         else return false;
                     }
-                    uv1.x += x[0, 0];
-                    uv1.y += x[1, 0];
-                    uv2.x += x[2, 0];
-                    uv2.y += x[3, 0];
-                    uv3.x += x[4, 0];
-                    uv3.y += x[5, 0];
+                    uv1.x += x[0];
+                    uv1.y += x[1];
+                    uv2.x += x[2];
+                    uv2.y += x[3];
+                    uv3.x += x[4];
+                    uv3.y += x[5];
                     p1 = surface1.PointAt(uv1);
                     p2 = surface2.PointAt(uv2);
                     p3 = surface3.PointAt(uv3);
@@ -6676,13 +6676,13 @@ namespace CADability.GeoObject
 
                 while (true) // entweder kommt break oder return
                 {
-                    Matrix m = Matrix.RowVector(udir, vdir, direction);
-                    Matrix s = m.SaveSolve(Matrix.RowVector(startPoint - loc));
-                    if (s != null)
+                    Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, direction);
+                    Vector s = (Vector)m.Solve(new DenseVector(startPoint - loc));
+                    if (s.IsValid())
                     {
-                        double du = s[0, 0];
-                        double dv = s[1, 0];
-                        double l = s[2, 0];
+                        double du = s[0];
+                        double dv = s[1];
+                        double l = s[2];
                         uvSurface.x += du; // oder -=
                         uvSurface.y += dv; // oder -=
                         loc = surface.PointAt(uvSurface);
@@ -6951,13 +6951,13 @@ namespace CADability.GeoObject
                     double error = pOnCurve | pOnSurface;
                     while (error > eps)
                     {
-                        Matrix m = Matrix.RowVector(udir, vdir, direction);
-                        Matrix s = m.SaveSolve(Matrix.RowVector(pOnCurve - pOnSurface));
-                        if (s != null)
+                        Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, direction);
+                        Vector s = (Vector)m.Solve(new DenseVector(pOnCurve - pOnSurface));
+                        if (s.IsValid())
                         {
-                            double du = s[0, 0];
-                            double dv = s[1, 0];
-                            double l = s[2, 0];
+                            double du = s[0];
+                            double dv = s[1];
+                            double l = s[2];
                             uvOnSurface[i].x += du;
                             uvOnSurface[i].y += dv;
                             uOnCurve[i] -= l;
@@ -7468,12 +7468,12 @@ namespace CADability.GeoObject
                     }
                 }
 
-                Matrix m = Matrix.RowVector(udir, vdir, udir ^ vdir);
-                Matrix s = m.SaveSolve(Matrix.RowVector(curvepoint - loc));
-                if (s != null)
+                Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, udir ^ vdir);
+                Vector s = (Vector)m.Solve(new DenseVector(curvepoint - loc));
+                if (s.IsValid())
                 {
-                    double du = s[0, 0];
-                    double dv = s[1, 0];
+                    double du = s[0];
+                    double dv = s[1];
                     uv.x += du;
                     uv.y += dv;
                     loc = surface.PointAt(uv);
@@ -7551,13 +7551,13 @@ namespace CADability.GeoObject
             ip = new GeoPoint(loc, curvepoint);
             while (error > Math.Max(Precision.eps, loc.Size * 1e-6))
             {
-                Matrix m = Matrix.RowVector(udir, vdir, curvedir);
-                Matrix s = m.SaveSolve(Matrix.RowVector(curvepoint - loc));
-                if (s != null)
+                Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, curvedir);
+                Vector s = (Vector)m.Solve(new DenseVector(curvepoint - loc));
+                if (s.IsValid())
                 {
-                    double du = s[0, 0];
-                    double dv = s[1, 0];
-                    double dcurve = s[2, 0];
+                    double du = s[0];
+                    double dv = s[1];
+                    double dcurve = s[2];
                     uv.x += du; // oder -=
                     uv.y += dv; // oder -=
                     loc = surface.PointAt(uv);
@@ -7710,10 +7710,10 @@ namespace CADability.GeoObject
             int missed = 0;
             while (mindist > Precision.eps * 100)
             {
-                Matrix m = new Matrix(dirx, diry, dirz);
-                Matrix res = m.SolveTranspose(new Matrix(p3d - loc));
-                uv.x += res[0, 0];
-                uv.y += res[1, 0];
+                Matrix m = DenseMatrix.OfRowArrays(dirx, diry, dirz);
+                Vector res = (Vector)m.Transpose().Solve(new DenseVector(p3d - loc));
+                uv.x += res[0];
+                uv.y += res[1];
                 if (!found.uvPatch.Contains(uv))
                 {
                     ++missed;
@@ -7906,11 +7906,11 @@ namespace CADability.GeoObject
                 {
                     // loc + a*diru + b*dirv == sp + c*direction
                     // a*diru + b*dirv -c*direction = sp - loc
-                    Matrix m = new Matrix(diru, dirv, direction);
-                    Matrix s = m.SaveSolveTranspose(new Matrix(startPoint - loc));
-                    if (s != null)
+                    Matrix m = DenseMatrix.OfRowArrays(diru, dirv, direction);
+                    Vector s = (Vector)m.Transpose().Solve(new DenseVector(startPoint - loc));
+                    if (s.IsValid())
                     {
-                        return (s[0, 0] >= 0.0) && (s[0, 0] <= 1.0) && (s[1, 0] >= 0.0) && (s[1, 0] <= 1.0);
+                        return (s[0] >= 0.0) && (s[0] <= 1.0) && (s[1] >= 0.0) && (s[1] <= 1.0);
                     }
                     else
                     {
@@ -7928,11 +7928,11 @@ namespace CADability.GeoObject
                 {
                     // loc + a*diru + b*dirv == sp + c*direction
                     // a*diru + b*dirv -c*direction = sp - loc
-                    Matrix m = new Matrix(diru, dirv, endPoint - startPoint);
-                    Matrix s = m.SaveSolveTranspose(new Matrix(startPoint - loc));
-                    if (s != null)
+                    Matrix m = DenseMatrix.OfRowArrays(diru, dirv, endPoint - startPoint);
+                    Vector s = (Vector)m.Transpose().Solve(new DenseVector(startPoint - loc));
+                    if (s.IsValid())
                     {
-                        return (s[0, 0] >= 0.0) && (s[0, 0] <= 1.0) && (s[1, 0] >= 0.0) && (s[1, 0] <= 1.0);
+                        return (s[0] >= 0.0) && (s[0] <= 1.0) && (s[1] >= 0.0) && (s[1] <= 1.0);
                     }
                     else
                     {
@@ -8088,8 +8088,8 @@ namespace CADability.GeoObject
                 }
                 if (x == null)
                 {
-                    Matrix m = new Matrix(10, 10);
-                    Matrix b = new Matrix(10, 2);
+                    Matrix m = new DenseMatrix(10, 10);
+                    Matrix b = new DenseMatrix(10, 2);
                     for (int i = 0; i < 10; i++)
                     {
                         GeoPoint2D uv;
@@ -8130,11 +8130,11 @@ namespace CADability.GeoObject
                         m[i, 8] = p.z;
                         m[i, 9] = 1.0;
                     }
-                    x = m.SaveSolve(b);
-                    if (x == null) x = new Matrix(0, 0); // we need this to state, that there is no quadratic form (maybe linear in one direction)
+                    x = (Matrix)m.Solve(b);
+                    if (!x.IsValid()) x = new DenseMatrix(0, 0); // we need this to state, that there is no quadratic form (maybe linear in one direction)
                     quad3dTo2d = new WeakReference(x);
                 }
-                if (x != null && x.RowCount > 0)
+                if (x.IsValid() && x.RowCount > 0)
                 {
                     GeoPoint2D res = new GeoPoint2D(
                     x[0, 0] * p3d.x * p3d.x +
@@ -8495,7 +8495,7 @@ namespace CADability.GeoObject
 
             if (((cube.nll * cube.nlr) < lim || (cube.nll * cube.nul) < lim || (cube.nll * cube.nur) < lim ||
                 (cube.nlr * cube.nul) < lim || (cube.nlr * cube.nur) < lim || (cube.nul * cube.nur) < lim ||
-                (udirl * udirr) < 0.1 || (vdirb * vdirt) < 0.1 ) && !toosmall && !isFolded)
+                (udirl * udirr) < 0.1 || (vdirb * vdirt) < 0.1) && !toosmall && !isFolded)
             // condition (udirl * udirr) < 0.1 || (vdirb * vdirt) < 0.1 ) is for flat rotated curves, which are rotated more than about 65°
             {   // Bedingung (udirl * udirr) < lim || (vdirb * vdirt) < lim eingeführt, denn ein fast flacher Toruspatch, der in u 180° hat, in v aber nur wenig
                 // besteht sonst die Prüfung, ist aber nicht gut!
@@ -8602,8 +8602,8 @@ namespace CADability.GeoObject
             GeoVector dirv = (pul - pll) + (pur - plr); // dgl. in v
             try
             {
-                Matrix m = Matrix.RowVector(diru, dirv, normal).SaveInverse();
-                if (m != null)
+                Matrix m = (Matrix)DenseMatrix.OfColumnArrays(diru, dirv, normal).Inverse();
+                if (m.IsValid())
                 {
                     // zunächst verwenden wir einen Kubus, da hier die minima/maxima einfacher zu bestimmen sind
                     BoundingCube bc = new BoundingCube(m * pll, m * plr, m * pul, m * pur);
@@ -8711,14 +8711,14 @@ namespace CADability.GeoObject
                 cube.normal = new GeoVector(cube.nll, cube.nlr, cube.nul, cube.nur);
                 cube.diru = (cube.plr - cube.pll) + (cube.pur - cube.pul);
                 cube.dirv = (cube.pul - cube.pll) + (cube.pur - cube.plr);
-                Matrix m = Matrix.RowVector(cube.diru, cube.dirv, cube.normal);
+                Matrix m = DenseMatrix.OfColumnArrays(cube.diru, cube.dirv, cube.normal);
 
                 if (m.Rank() < 3)
                 {
                 }
                 else
                 {
-                    m = m.Inverse();
+                    m = (Matrix)m.Inverse();
                     GeoPoint mpll = m * cube.pll;
                     GeoPoint mplr = m * cube.plr;
                     GeoPoint mpul = m * cube.pul;
@@ -8738,7 +8738,7 @@ namespace CADability.GeoObject
             {
                 try
                 {
-                    Matrix m = Matrix.RowVector(cube.diru, cube.dirv, cube.normal).Inverse();
+                    Matrix m = (Matrix)DenseMatrix.OfColumnArrays(cube.diru, cube.dirv, cube.normal).Inverse();
                     BoundingCube bc = new BoundingCube(m * cube.pll, m * cube.plr, m * cube.pul, m * cube.pur);
                     // für die neue Methode (7.7.2016)
                     //                GeoPoint2D found;
@@ -8854,7 +8854,7 @@ namespace CADability.GeoObject
                     {
                     }
 
-                    m = Matrix.RowVector(cube.diru, cube.dirv, cube.normal).Inverse();
+                    m = (Matrix)DenseMatrix.OfColumnArrays(cube.diru, cube.dirv, cube.normal).Inverse();
                     cube.toUnit.SetData(m, m * (-cube.loc));
 
 #if DEBUGx
@@ -8900,13 +8900,13 @@ namespace CADability.GeoObject
                     cube.normal = new GeoVector(cube.nll, cube.nlr, cube.nul, cube.nur);
                     cube.diru = (cube.plr - cube.pll) + (cube.pur - cube.pul);
                     cube.dirv = (cube.pul - cube.pll) + (cube.pur - cube.plr);
-                    Matrix m = Matrix.RowVector(cube.diru, cube.dirv, cube.normal);
+                    Matrix m = DenseMatrix.OfColumnArrays(cube.diru, cube.dirv, cube.normal);
                     if (m.Rank() < 3)
                     {
                     }
                     else
                     {
-                        m = m.Inverse();
+                        m = (Matrix)m.Inverse();
                         cube.toUnit.SetData(m, m * (-cube.loc));
                     }
                     // System.Diagnostics.Debug.Assert(false, "inavlid Patch in ParallelEpiped");
@@ -9069,9 +9069,9 @@ namespace CADability.GeoObject
                     // liegt dir überhaupt in dem vom Patch "aufgespannten" Raum?
                     // 3 Normalenvektoren geben mit a*n1+b*n2+c*n3==dir die Bedingung, wenn a,b und c das geiche Vorzeichen haben
                     bool dotest = false;
-                    Matrix m = Matrix.RowVector(cube.nll, cube.nlr, cube.nul);
-                    Matrix x = m.SaveSolve(Matrix.RowVector(dir));
-                    if (x != null && Math.Sign(x[0, 0]) == Math.Sign(x[1, 0]) && Math.Sign(x[0, 0]) == Math.Sign(x[2, 0]))
+                    Matrix m = DenseMatrix.OfColumnArrays(cube.nll, cube.nlr, cube.nul);
+                    Vector x = (Vector)m.Solve(new DenseVector(dir));
+                    if (x.IsValid() && Math.Sign(x[0]) == Math.Sign(x[1]) && Math.Sign(x[0]) == Math.Sign(x[2]))
                     {
 #if DEBUG
                         //DebuggerContainer dc = new CADability.DebuggerContainer();
@@ -9086,9 +9086,9 @@ namespace CADability.GeoObject
                     }
                     if (!dotest)
                     {
-                        m = Matrix.RowVector(cube.nur, cube.nul, cube.nlr);
-                        x = m.SaveSolve(Matrix.RowVector(dir));
-                        if (x != null && Math.Sign(x[0, 0]) == Math.Sign(x[1, 0]) && Math.Sign(x[0, 0]) == Math.Sign(x[2, 0]))
+                        m = DenseMatrix.OfColumnArrays(cube.nur, cube.nul, cube.nlr);
+                        x = (Vector)m.Solve(new DenseVector(dir));
+                        if (x.IsValid() && Math.Sign(x[0]) == Math.Sign(x[1]) && Math.Sign(x[0]) == Math.Sign(x[2]))
                         {
                             dotest = true;
                         }
@@ -9549,20 +9549,20 @@ namespace CADability.GeoObject
                 double err = Math.Abs(du.Normalized * normal) + Math.Abs(dv.Normalized * normal); // dieser Wert sollte 0 werden
                 for (int k = 0; k < 10; k++)
                 {
-                    Matrix m = new Matrix(2, 2);
+                    Matrix m = new DenseMatrix(2, 2);
                     m[0, 0] = duu * normal;
                     m[1, 0] = m[0, 1] = duv * normal;
                     m[1, 1] = dvv * normal;
-                    Matrix b = new Matrix(2, 1);
-                    b[0, 0] = -du * normal;
-                    b[1, 0] = -dv * normal;
-                    Matrix x;
-                    QRDecomposition qrd = new QRDecomposition(m);
-                    if (qrd.FullRank) x = qrd.Solve(b); // qrd ist stabiler, wenns um sehr kleine Werte geht, oder?
-                    else x = m.SaveSolve(b);
-                    if (x != null)
+                    Vector b = new DenseVector(2);
+                    b[0] = -du * normal;
+                    b[1] = -dv * normal;
+                    Vector x;
+                    
+                    if (m.QR().IsFullRank) x = (Vector)m.QR().Solve(b); // qrd ist stabiler, wenns um sehr kleine Werte geht, oder?
+                    else x = (Vector)m.Solve(b);
+                    if (x.IsValid())
                     {
-                        GeoVector2D step = new GeoVector2D(x[0, 0], x[1, 0]);
+                        GeoVector2D step = new GeoVector2D(x[0], x[1]);
                         if (step.Length > maxStepSize * 2) return false;
                         double te;
                         do
@@ -9666,17 +9666,17 @@ namespace CADability.GeoObject
 
                 while (true) // entweder kommt break oder return
                 {
-                    Matrix m = Matrix.RowVector(udir, vdir, direction);
-                    Matrix s = m.SaveSolve(Matrix.RowVector(startPoint - loc));
-                    if (s != null)
+                    Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, direction);
+                    Vector s = (Vector)m.Solve(new DenseVector(startPoint - loc));
+                    if (s.IsValid())
                     {
-                        double du = s[0, 0];
-                        double dv = s[1, 0];
+                        double du = s[0];
+                        double dv = s[1];
                         if (du > umax - umin) du = umax - umin;
                         if (du < umin - umax) du = umin - umax;
                         if (dv > vmax - vmin) dv = vmax - vmin;
                         if (dv < vmin - vmax) dv = vmin - vmax;
-                        double l = s[2, 0];
+                        double l = s[2];
                         uvSurface.x += du; // oder -=
                         uvSurface.y += dv; // oder -=
                         loc = surface.PointAt(uvSurface);
@@ -9951,13 +9951,13 @@ namespace CADability.GeoObject
                     double error = pOnCurve | pOnSurface;
                     while (error > eps)
                     {
-                        Matrix m = Matrix.RowVector(udir, vdir, direction);
-                        Matrix s = m.SaveSolve(Matrix.RowVector(pOnCurve - pOnSurface));
-                        if (s != null)
+                        Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, direction);
+                        Vector s = (Vector)m.Solve(new DenseVector(pOnCurve - pOnSurface));
+                        if (s.IsValid())
                         {
-                            double du = s[0, 0];
-                            double dv = s[1, 0];
-                            double l = s[2, 0];
+                            double du = s[0];
+                            double dv = s[1];
+                            double l = s[2];
                             uvOnSurface[i].x += du;
                             uvOnSurface[i].y += dv;
                             uOnCurve[i] -= l;
@@ -10558,7 +10558,83 @@ namespace CADability.GeoObject
                         {
                             if (cubes[j].Interferes(curve, th.TetraederParams[i], th.TetraederParams[i + 1], th.TetraederBase[i], th.TetraederBase[i + 1], th.TetraederVertex[2 * i], th.TetraederVertex[2 * i + 1]))
                             {
-                                GetCurveIntersection(curve, th.TetraederParams[i], th.TetraederParams[i + 1], cubes[j], lips, luvOnFace, luOnCurve);
+                                GeoPoint2D uvStart = cubes[j].uvPatch.GetCenter();
+                                double tStart = (th.TetraederParams[i] + th.TetraederParams[i + 1]) / 2;
+                                bool found = false;
+                                GeoPoint ip;
+                                if (curve is InterpolatedDualSurfaceCurve dsc)
+                                {
+                                    GeoPoint closePoint = new GeoPoint(surface.PointAt(uvStart), curve.PointAt(tStart));
+                                    ////Polynom implicitSurface1 = null, implicitSurface2 = null, implicitSurface3 = null;
+                                    ////if (dsc.Surface1 is ISurfaceImpl si1) implicitSurface1 = si1.GetImplicitPolynomial();
+                                    ////if (dsc.Surface2 is ISurfaceImpl si2) implicitSurface2 = si2.GetImplicitPolynomial();
+                                    ////if (surface is ISurfaceImpl si3) implicitSurface3 = si3.GetImplicitPolynomial();
+                                    ////if (implicitSurface1 != null && implicitSurface2 != null && implicitSurface3 != null)
+                                    ////{
+                                    ////    // Performance test: 3 surfaces intersection in parametric and implicit form: implicit form is a little slower
+                                    ////    for (int ii = 0; ii < 1000; ii++)
+                                    ////    {
+                                    ////        ip = closePoint;
+                                    ////        BoxedSurfaceExtension.SurfacesIntersectionLM(implicitSurface1, implicitSurface2, implicitSurface3, ref ip);
+                                    ////    }
+                                    ////    for (int ii = 0; ii < 1000; ii++)
+                                    ////    {
+                                    ////        GeoPoint2D uv11 = dsc.Surface1.PositionOf(curve.PointAt(tStart));
+                                    ////        GeoPoint2D uv22 = dsc.Surface2.PositionOf(curve.PointAt(tStart));
+                                    ////        ip = closePoint;
+                                    ////        BoxedSurfaceExtension.SurfacesIntersectionLM(dsc.Surface1, dsc.Surface2, surface, ref uv11, ref uv22, ref uvStart, ref ip);
+                                    ////    }
+                                    ////}
+                                    GeoPoint2D uv1 = dsc.Surface1.PositionOf(curve.PointAt(tStart));
+                                    GeoPoint2D uv2 = dsc.Surface2.PositionOf(curve.PointAt(tStart));
+                                    ip = closePoint;
+                                    if (BoxedSurfaceExtension.SurfacesIntersectionLM(dsc.Surface1, dsc.Surface2, surface, ref uv1, ref uv2, ref uvStart, ref ip))
+                                    {
+                                        luOnCurve.Add(curve.PositionOf(ip));
+                                        luvOnFace.Add(uvStart);
+                                        lips.Add(ip);
+                                        found = true;
+                                    }
+                                }
+                                // TODO: introduce flags to indicate whether surface or curve provide 2nd derivative
+                                if (!found && BoxedSurfaceExtension.CurveSurfaceIntersection(surface, curve, ref uvStart, ref tStart, out ip))
+                                {
+                                    if (cubes[j].uvPatch.Contains(uvStart) && th.TetraederParams[i] <= tStart && tStart <= th.TetraederParams[i + 1])
+                                    {
+                                        luOnCurve.Add(tStart);
+                                        luvOnFace.Add(uvStart);
+                                        lips.Add(ip);
+                                        found = true;
+                                    }
+                                }
+                                //if (BoxedSurfaceExtension.CurveSurfaceIntersection(surface, curve, cubes[j].uvPatch, th.TetraederParams[i], th.TetraederParams[i + 1], ref uvStart, ref tStart, out ip))
+                                //{
+                                //    // Performance test: almost the same, CurveSurfaceIntersectionwith the TrustRegionNewtonCGMinimizer is a little slower than LevenbergMarquardtMinimizer
+                                //    // TrustRegionDogLegMinimizer and TrustRegionNewtonCGMinimizer are about the same
+                                //    for (int ii = 0; ii < 1000; ii++)
+                                //    {
+                                //        uvStart = cubes[j].uvPatch.GetCenter();
+                                //        tStart = (th.TetraederParams[i] + th.TetraederParams[i + 1]) / 2;
+                                //        BoxedSurfaceExtension.CurveSurfaceIntersection(surface, curve, cubes[j].uvPatch, th.TetraederParams[i], th.TetraederParams[i + 1], ref uvStart, ref tStart, out ip);
+                                //    }
+                                //    for (int ii = 0; ii < 1000; ii++)
+                                //    {
+                                //        uvStart = cubes[j].uvPatch.GetCenter();
+                                //        tStart = (th.TetraederParams[i] + th.TetraederParams[i + 1]) / 2;
+                                //        BoxedSurfaceExtension.CurveSurfaceIntersectionDL(surface, curve, cubes[j].uvPatch, th.TetraederParams[i], th.TetraederParams[i + 1], ref uvStart, ref tStart, out ip);
+                                //    }
+                                //}
+                                if (!found && BoxedSurfaceExtension.CurveSurfaceIntersectionLM(surface, curve, ref uvStart, ref tStart, out ip))
+                                {
+                                    if (cubes[j].uvPatch.Contains(uvStart) && th.TetraederParams[i] <= tStart && tStart <= th.TetraederParams[i + 1])
+                                    {
+                                        luOnCurve.Add(tStart);
+                                        luvOnFace.Add(uvStart);
+                                        lips.Add(ip);
+                                        found = true;
+                                    }
+                                }
+                                if (!found) GetCurveIntersection(curve, th.TetraederParams[i], th.TetraederParams[i + 1], cubes[j], lips, luvOnFace, luOnCurve);
                             }
                         }
                     }
@@ -10667,6 +10743,7 @@ namespace CADability.GeoObject
             ICurve icurve = curve as ICurve;
             uv = cube.uvPatch.GetCenter();
             u = 0.5; // in der Mitte, unwichtig
+            // BoxedSurfaceExtension.CurveSurfaceIntersection(surface, curve as ICurve, ref uv, ref u);
             GeoVector udir = surface.UDirection(uv);
             GeoVector vdir = surface.VDirection(uv); // die müssen auch von der Länge her stimmen!
             GeoPoint loc = surface.PointAt(uv);
@@ -10714,12 +10791,12 @@ namespace CADability.GeoObject
                     }
 
                     //Matrix m = Matrix.RowVector(udir, vdir, udir ^ vdir);
-                    Matrix m = Matrix.RowVector(udir, vdir, icurve.DirectionAt(u));
-                    Matrix s = m.SaveSolve(Matrix.RowVector(curvepoint - loc));
-                    if (s != null)
+                    Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, icurve.DirectionAt(u));
+                    Vector s = (Vector)m.Solve(new DenseVector(curvepoint - loc));
+                    if (s.IsValid())
                     {
-                        double du = s[0, 0];
-                        double dv = s[1, 0];
+                        double du = s[0];
+                        double dv = s[1];
                         uv.x += du;
                         uv.y += dv;
                         loc = surface.PointAt(uv);
@@ -10833,13 +10910,13 @@ namespace CADability.GeoObject
             {
                 double tan = (udir ^ vdir).Normalized * curvedir.Normalized;
                 if (Math.Abs(tan) < 0.01) return CurveIntersectionMode.tangential;
-                Matrix m = Matrix.RowVector(udir, vdir, curvedir);
-                Matrix s = m.SaveSolve(Matrix.RowVector(curvepoint - loc));
-                if (s != null)
+                Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, curvedir);
+                Vector s = (Vector)m.Solve(new DenseVector(curvepoint - loc));
+                if (s.IsValid())
                 {
-                    double du = s[0, 0];
-                    double dv = s[1, 0];
-                    double dcurve = s[2, 0];
+                    double du = s[0];
+                    double dv = s[1];
+                    double dcurve = s[2];
                     uv.x += du; // oder -=
                     uv.y += dv; // oder -=
                     loc = surface.PointAt(uv);
@@ -10928,13 +11005,13 @@ namespace CADability.GeoObject
             ip = new GeoPoint(loc, curvepoint);
             while (error > 0)
             {
-                Matrix m = Matrix.RowVector(udir, vdir, curvedir);
-                Matrix s = m.SaveSolve(Matrix.RowVector(curvepoint - loc));
-                if (s != null)
+                Matrix m = DenseMatrix.OfColumnArrays(udir, vdir, curvedir);
+                Vector s = (Vector)m.Solve(new DenseVector(curvepoint - loc));
+                if (s.IsValid())
                 {
-                    double du = s[0, 0];
-                    double dv = s[1, 0];
-                    double dcurve = s[2, 0];
+                    double du = s[0];
+                    double dv = s[1];
+                    double dcurve = s[2];
                     uv.x += du; // oder -=
                     uv.y += dv; // oder -=
                     loc = surface.PointAt(uv);
@@ -11131,12 +11208,12 @@ namespace CADability.GeoObject
                     for (int j = 0; j < ips.Length; j++)
                     {
                         GeoPoint p = excrv.PointAt(ips[j]);
-                        Matrix m = new Matrix(dirx[i], diry[i], dirx[i] ^ diry[i]);
-                        Matrix mres = m.SaveSolveTranspose(new Matrix(p - loc[i]));
-                        if (mres != null)
+                        Matrix m = DenseMatrix.OfRowArrays(dirx[i], diry[i], dirx[i] ^ diry[i]);
+                        Vector mres = (Vector)m.Transpose().Solve(new DenseVector(p - loc[i]));
+                        if (mres.IsValid())
                         {
-                            double x = mres[0, 0];
-                            double y = mres[1, 0]; // mres[2, 0] muss ja 0 sein
+                            double x = mres[0];
+                            double y = mres[1]; // mres[2, 0] muss ja 0 sein
                             if (x >= 0 && x <= 1 && y >= 0 && y <= 1)
                             {
                                 // eintretender oder austretender Schnitt? Wenn die Seiten richtig orientiert wären, wäre das einfach
@@ -11403,8 +11480,28 @@ namespace CADability.GeoObject
         /// <returns></returns>
         private bool PositionOf(GeoPoint p3d, ParEpi found, out GeoPoint2D res, out double mindist)
         {
-#if DEBUG
+#if DEBUGx
             // bool dbg = PositionOfWithFixedCurves(p3d, found, out res); 
+            res = found.PositionOf(p3d, surface); // this is usually a good guess by the ParEpi
+            if (!res.IsValid) res = found.uvPatch.GetCenter();
+            GeoPoint2D start = res;
+            var at = PerformanceTimer.AllTimers;
+            using (new PerformanceTick("LM"))
+            {
+                for (int i = 0; i < 100; i++)
+                {
+                    res = start;
+                    BoxedSurfaceExtension.PositionOfLM(surface, p3d, ref res, out double mdmn);
+                }
+            }
+            using (new PerformanceTick("MN"))
+            {
+                for (int i = 0; i < 100; i++)
+                {
+                    res = start;
+                    BoxedSurfaceExtension.PositionOfMN(surface, p3d, ref res, out double mdmn);
+                }
+            }
 #endif
             // Suche vom u/v Mittelpunkt von found ausgehend mit dem Tangentenverfahren den Fußpunkt
             // wenn der patch verlassen wird, dann exception
@@ -11425,11 +11522,11 @@ namespace CADability.GeoObject
             while (mindist > Math.Min(Precision.eps, found.Size * 1e-4)) // war *100 (18.7.14)
             {
                 if (dirx.IsNullVector() || diry.IsNullVector() || dirz.IsNullVector()) return false;
-                Matrix m = new Matrix(dirx, diry, dirz);
-                Matrix mres = m.SaveSolveTranspose(new Matrix(p3d - loc));
-                if (mres == null) return false;
-                res.x += mres[0, 0];
-                res.y += mres[1, 0];
+                Matrix m = DenseMatrix.OfRowArrays(dirx, diry, dirz);
+                Vector mres = (Vector)m.Transpose().Solve(new DenseVector(p3d - loc));
+                if (!mres.IsValid()) return false;
+                res.x += mres[0];
+                res.y += mres[1];
                 if (!found.uvPatch.ContainsEps(res, -0.05))
                 {
                     ++missed;
@@ -11461,7 +11558,7 @@ namespace CADability.GeoObject
                     if (!acceptDiverge)
                     {
                         if (mindist < Precision.eps) break;
-                        if (Math.Abs(mindist - d) < Precision.eps*0.1) break; // doesn't change any more
+                        if (Math.Abs(mindist - d) < Precision.eps * 0.1) break; // doesn't change any more
                         return false; // konvergiert nicht oder schlecht "*0.9" hinzugefügt (18.7.14)
                     }
                     else
@@ -11820,17 +11917,17 @@ namespace CADability.GeoObject
                     }
                     else
                     {
-                        Matrix m = Matrix.RowVector(diru1, dirv1, n1);
-                        Matrix s = m.SaveSolve(Matrix.RowVector(lip.cross));
-                        if (s != null)
+                        Matrix m = DenseMatrix.OfColumnArrays(diru1, dirv1, n1);
+                        Vector s = (Vector)m.Solve(new DenseVector(lip.cross));
+                        if (s.IsValid())
                         {
-                            lip.dir1 = new GeoVector2D(s[0, 0], s[1, 0]).Normalized;
+                            lip.dir1 = new GeoVector2D(s[0], s[1]).Normalized;
                         }
-                        m = Matrix.RowVector(diru2, dirv2, n2);
-                        s = m.SaveSolve(Matrix.RowVector(lip.cross));
-                        if (s != null)
+                        m = DenseMatrix.OfColumnArrays(diru2, dirv2, n2);
+                        s = (Vector)m.Solve(new DenseVector(lip.cross));
+                        if (s.IsValid())
                         {
-                            lip.dir2 = new GeoVector2D(s[0, 0], s[1, 0]).Normalized;
+                            lip.dir2 = new GeoVector2D(s[0], s[1]).Normalized;
                         }
                     }
                     res.Add(lip);
@@ -11867,17 +11964,17 @@ namespace CADability.GeoObject
                 }
                 else
                 {
-                    Matrix m = Matrix.RowVector(diru1, dirv1, n1);
-                    Matrix s = m.SaveSolve(Matrix.RowVector(lip.cross));
-                    if (s != null)
+                    Matrix m = DenseMatrix.OfColumnArrays(diru1, dirv1, n1);
+                    Vector s = (Vector)m.Solve(new DenseVector(lip.cross));
+                    if (s.IsValid())
                     {
-                        lip.dir1 = new GeoVector2D(s[0, 0], s[1, 0]);
+                        lip.dir1 = new GeoVector2D(s[0], s[1]);
                     }
-                    m = Matrix.RowVector(diru2, dirv2, n2);
-                    s = m.SaveSolve(Matrix.RowVector(lip.cross));
-                    if (s != null)
+                    m = DenseMatrix.OfColumnArrays(diru2, dirv2, n2);
+                    s = (Vector)m.Solve(new DenseVector(lip.cross));
+                    if (s.IsValid())
                     {
-                        lip.dir2 = new GeoVector2D(s[0, 0], s[1, 0]);
+                        lip.dir2 = new GeoVector2D(s[0], s[1]);
                     }
                 }
                 return lip;

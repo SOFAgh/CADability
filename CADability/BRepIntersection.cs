@@ -1,7 +1,7 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.Shapes;
 using System;
 using System.Collections;
@@ -971,7 +971,7 @@ namespace CADability
             GeoVector dirf2 = face2.Surface.UDirection(uv2) ^ face2.Surface.VDirection(uv2);
             // die orientierung der Faces wird als bereits richtig angenommen
             // auch für die Differenz, da ist die 2. Shell "links gemacht"
-            Matrix m = new Matrix(dircurve, dirf1, dirf2);
+            Matrix m = DenseMatrix.OfRowArrays(dircurve, dirf1, dirf2);
             double det = m.Determinant(); // ??? Richtung bestimmen ???
             Edge edge = new Edge(null, curve);
             bool forward = (operation == Operation.union) != (det > 0);
@@ -5237,11 +5237,15 @@ namespace CADability
                     {
                         edg.ReplaceOrAddFace(faceToSplit, fc);
                     }
-                    fc.Set(faceToSplit.Surface.Clone(), edgeLoop[i], holes); // we need a clone of the surface because two independant faces shall not have the identical surface
+                    fc.Set(faceToSplit.Surface.Clone(), edgeLoop[i], holes); // we need a clone of the surface because two independent faces shall not have the identical surface
                     fc.CopyAttributes(faceToSplit);
-                    fc.UserData["BRepIntersection.IsPartOf"] = faceToSplit.Owner.GetHashCode(); // only hascode here to avoid cloning userdata of damaged faces
+                    fc.UserData["BRepIntersection.IsPartOf"] = faceToSplit.Owner.GetHashCode(); // only hash code here to avoid cloning user data of damaged faces
 #if DEBUG
                     System.Diagnostics.Debug.Assert(fc.CheckConsistency());
+                    if (fc.GetHashCode() == 115)
+                    {
+                        SimpleShape ss = fc.Area;
+                    }
 #endif
 
                     trimmedFaces.Add(fc);
@@ -5249,8 +5253,8 @@ namespace CADability
             }
             if (operation == Operation.clip) return ClippedParts(trimmedFaces);
             // Now trimmedFaces contains all faces which are cut by faces of the relative other shell, even those, where the other shell cuts 
-            // exactely along existing edges and nothing has been created.
-            // The faces, which have been cut, i.e. faceToIntersectionEdges.Keys, are invalid now, we disconnect all egdes from these faces
+            // exactly along existing edges and nothing has been created.
+            // The faces, which have been cut, i.e. faceToIntersectionEdges.Keys, are invalid now, we disconnect all edges from these faces
             trimmedFaces.AddMany(overlappingCommonFaces);
             discardedFaces.AddMany(usedByOverlapping);
 #if DEBUG   // show all trimmed faces
@@ -5436,7 +5440,7 @@ namespace CADability
             // What about "nonManifoldEdges"?
             // 
             List<Shell> res = new List<Shell>(); // the result of this method.
-                                                 // allfaces now contains all the trimmed faces plus the faces, which are (directly or indirectly) connected (via edges) to the trimmed faces
+                                                 // allFaces now contains all the trimmed faces plus the faces, which are (directly or indirectly) connected (via edges) to the trimmed faces
             List<Face> nonManifoldParts = new List<Face>();
             while (allFaces.Count > 0)
             {

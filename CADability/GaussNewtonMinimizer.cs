@@ -1,6 +1,8 @@
 ﻿using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.Optimization;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
 
@@ -47,7 +49,7 @@ namespace CADability
         private CurtailParameterFunction curtailParameter;
         private Matrix Jacobi;
         private Matrix JacobiTJacobi;
-        private double[] NegJacobiTError;
+        private Vector<double> NegJacobiTError;
         private double[] Error;
 
         public GaussNewtonMinimizer(ErrorFunction eFunction, JacobiFunction jFunction, CheckParameterFunction checkParameter = null, CurtailParameterFunction curtailParameter = null)
@@ -68,9 +70,9 @@ namespace CADability
             }
             return sum;
         }
-        private void UnaryMinus(double[] d)
+        private void UnaryMinus(Vector<double> d)
         {
-            for (int i = 0; i < d.Length; i++)
+            for (int i = 0; i < d.Count; i++)
             {
                 d[i] = -d[i];
             }
@@ -78,8 +80,8 @@ namespace CADability
         private void ComputeLinearSystemInputs(double[] pCurrent)
         {
             jacobiFunction(pCurrent, out Jacobi);
-            JacobiTJacobi = Matrix.Transpose(Jacobi) * Jacobi;
-            NegJacobiTError = (Error * Jacobi).Row(0);
+            JacobiTJacobi = (Matrix)Jacobi.TransposeThisAndMultiply(Jacobi); // Matrix.Transpose(Jacobi) * Jacobi;
+            NegJacobiTError = (DenseMatrix.OfRowArrays(Error) * Jacobi).Row(0);
             UnaryMinus(NegJacobiTError);
 
             //double diagsum = 0.0;
@@ -122,36 +124,19 @@ namespace CADability
             {
                 ComputeLinearSystemInputs(pCurrent);
                 double[] pNext;
-                //CholeskyDecomposition cd = new CholeskyDecomposition(JacobiTJacobi); // there must be something wrong with Cholesky!
-                //Matrix solved1 = cd.Solve(new Matrix(NegJacobiTError, true));
-#if MATHNET
-                MathNet.Numerics.LinearAlgebra.Matrix<double> m = new MathNet.Numerics.LinearAlgebra.Double.DenseMatrix(JacobiTJacobi.RowCount, JacobiTJacobi.ColumnCount);
-                for (int i = 0; i < JacobiTJacobi.RowCount; i++)
-                {
-                    for (int j = 0; j < JacobiTJacobi.ColumnCount; j++)
-                    {
-                        m[i, j] = JacobiTJacobi[i, j];
-                    }
-                }
-                MathNet.Numerics.LinearAlgebra.Matrix<double> b = new MathNet.Numerics.LinearAlgebra.Double.DenseMatrix(NegJacobiTError.Length, 1);
-                for (int i = 0; i < NegJacobiTError.Length; i++)
-                {
-                    b[i, 0] = NegJacobiTError[i];
-                }
+
                 try
                 {
-                    MathNet.Numerics.LinearAlgebra.Vector<double> s = m.Cholesky().Solve(new MathNet.Numerics.LinearAlgebra.Double.DenseVector(NegJacobiTError));
+                    Vector<double> s = JacobiTJacobi.Cholesky().Solve(NegJacobiTError);
                     pNext = pCurrent.Add(s.ToArray());
                 }
                 catch (System.ArgumentException)
                 {
                     break;
                 }
-#else
-                Matrix solved = JacobiTJacobi.SaveSolve(new Matrix(NegJacobiTError, true));
-                if (solved == null) break; // should not happen
-                pNext = pCurrent.Add(solved.Column(0));
-#endif
+                //Matrix solved = JacobiTJacobi.SaveSolve(new Matrix(NegJacobiTError, true));
+                //if (solved == null) break; // should not happen
+                //pNext = pCurrent.Add(solved.Column(0));
                 if (checkParameter != null && !checkParameter(pNext))
                 {
                     curtailParameter?.Invoke(pNext);
@@ -170,7 +155,7 @@ namespace CADability
                     //minUpdateLength = Math.Sqrt(dot(NegJacobiTError, NegJacobiTError));
                     minLocation = pNext;
                     minError = error;
-                    // don't stop, if the convergation is still strong
+                    // don't stop, if the convergence is still strong
                     if (error <= errorTolerance && convergence > 0.25) // || minUpdateLength <= updateLengthTolerance)
                     {
                         parameters = pNext;
@@ -197,7 +182,8 @@ namespace CADability
             parameters = pCurrent;
             return minError <= errorTolerance;
         }
-
+        static private double quad(double x) { return x * x * x * x; }
+        static private double cube(double x) { return x * x * x; }
         static double sqr(double d) { return d * d; }
         static double exp32(double d) { return Math.Sqrt(d * d * d); }
         /// <summary>
@@ -245,7 +231,7 @@ namespace CADability
                 //(2 * (dy * (lz - pz) - dz * (ly - py)) * (lz - pz) + 2 * (px - lx) * (dx * (ly - py) - dy * (lx - px))) / (dz ^ 2 + dy ^ 2 + dx ^ 2) - (2 * dy * ((dy * (lz - pz) - dz * (ly - py)) ^ 2 + (dx * (lz - pz) - dz * (lx - px)) ^ 2 + (dx * (ly - py) - dy * (lx - px)) ^ 2)) / (dz ^ 2 + dy ^ 2 + dx ^ 2) ^ 2;
                 //(2 * (py - ly) * (dy * (lz - pz) - dz * (ly - py)) + 2 * (px - lx) * (dx * (lz - pz) - dz * (lx - px))) / (dz ^ 2 + dy ^ 2 + dx ^ 2) - (2 * dz * ((dy * (lz - pz) - dz * (ly - py)) ^ 2 + (dx * (lz - pz) - dz * (lx - px)) ^ 2 + (dx * (ly - py) - dy * (lx - px)) ^ 2)) / (dz ^ 2 + dy ^ 2 + dx ^ 2) ^ 2;
 
-                derivs = new Matrix(points.Length, 6); // Jacobi Matrix Ableitungen nach cx, cy, cz und r
+                derivs = DenseMatrix.Create(points.Length, 6, 0.0); // new Matrix(points.Length, 6); // Jacobi Matrix Ableitungen nach cx, cy, cz und r
                                                        // (pnts.x-cx)²+(pnts.y-cy)²+(pnts.z-cz)²-r² == 0
                 double lx = parameters[0];
                 double ly = parameters[1];
@@ -297,7 +283,13 @@ namespace CADability
         }
         public static double CircleFit(IArray<GeoPoint> points, GeoPoint center, double radius, double precision, out Ellipse elli)
         {
-            double maxerror = PlaneFit(points, precision, out Plane pln);
+            Plane pln = Plane.FromPoints(points.ToArray(), out double maxerror, out bool islinear);
+            //// double maxerror = PlaneFit(points, precision, out Plane pln);
+            if (islinear || maxerror > precision)
+            {
+                elli = null;
+                return double.MaxValue;
+            }
 
             GeoPoint2D[] points2d = new GeoPoint2D[points.Length];
             for (int i = 0; i < points2d.Length; i++)
@@ -332,7 +324,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(points2d.Length, 3); // Jacobi Matrix for (px-cx)²+(py-cy)²-r² == 0
+                derivs = DenseMatrix.Create(points2d.Length, 3, 0); // Jacobi Matrix for (px-cx)²+(py-cy)²-r² == 0
                 double cx = parameters[0];
                 double cy = parameters[1];
                 double r = parameters[2];
@@ -425,7 +417,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(points2d.Length, 5); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(points2d.Length, 5, 0); // Jacobi Matrix 
                 double cx = parameters[0];
                 double cy = parameters[1];
                 double a = parameters[2];
@@ -504,7 +496,7 @@ namespace CADability
             void jfunc(double[] parameters, out Matrix derivs)
             {
 
-                derivs = new Matrix(points.Length, 4); // Jacobi Matrix Derivations
+                derivs = DenseMatrix.Create(points.Length, 4, 0); // Jacobi Matrix Derivations
                 double a = parameters[0];
                 double b = parameters[1];
                 double c = parameters[2];
@@ -561,8 +553,6 @@ namespace CADability
                 return double.MaxValue;
             }
         }
-
-
         public static double ConeFitNew(IArray<GeoPoint> points, GeoPoint apex, GeoVector axis, double theta, double precision, out ConicalSurface cs)
         {
             // parameters: { lx,ly,lz,dx,dy,dz,t }
@@ -581,7 +571,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(points.Length, 7); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(points.Length, 7, 0); // Jacobi Matrix 
                 GeoPoint l = new GeoPoint(parameters[0], parameters[1], parameters[2]);
                 GeoVector d = new GeoVector(parameters[3], parameters[4], parameters[5]);
                 double t = parameters[6];
@@ -615,7 +605,6 @@ namespace CADability
                 return double.MaxValue;
             }
         }
-
         public static double ConeFit(IArray<GeoPoint> points, GeoPoint apex, GeoVector axis, double theta, double precision, out ConicalSurface cs)
         {
             /*
@@ -669,7 +658,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(points.Length, 6); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(points.Length, 6, 0); // Jacobi Matrix 
                 double ax = parameters[0];
                 double ay = parameters[1];
                 double az = parameters[2];
@@ -775,7 +764,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(points.Length, 7); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(points.Length, 7, 0); // Jacobi Matrix 
                 double cx = parameters[0];
                 double cy = parameters[1];
                 double cz = parameters[2];
@@ -858,7 +847,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(points.Length, 7); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(points.Length, 7, 0); // Jacobi Matrix 
                 double cx = parameters[0];
                 double cy = parameters[1];
                 double cz = parameters[2];
@@ -954,7 +943,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(pnts.Length, 4); // Jacobi Matrix Ableitungen nach cx, cy, cz und r
+                derivs = DenseMatrix.Create(pnts.Length, 4, 0); // Jacobi Matrix Ableitungen nach cx, cy, cz und r
                 // (pnts.x-cx)²+(pnts.y-cy)²+(pnts.z-cz)²-r² == 0
                 double cx = parameters[0];
                 double cy = parameters[1];
@@ -984,7 +973,6 @@ namespace CADability
                 return double.MaxValue;
             }
         }
-
         public static double SphereRadiusFit(IArray<GeoPoint> pnts, GeoPoint center, double radius, double precision, out SphericalSurface ss)
         {
             // parameters: 0:cx, 1:cy, 2: cz
@@ -1002,7 +990,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(pnts.Length, 3); // Jacobi Matrix Ableitungen nach cx, cy, cz und r
+                derivs = DenseMatrix.Create(pnts.Length, 3, 0); // Jacobi Matrix Ableitungen nach cx, cy, cz und r
                                                      // (pnts.x-cx)²+(pnts.y-cy)²+(pnts.z-cz)²-r² == 0
                 double cx = parameters[0];
                 double cy = parameters[1];
@@ -1044,7 +1032,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(3, 3);
+                derivs = DenseMatrix.Create(3, 3, 0);
                 double uu1 = parameters[0];
                 double uu2 = parameters[1];
                 double uu3 = parameters[2];
@@ -1118,7 +1106,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(points.Length, 6); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(points.Length, 6, 0); // Jacobi Matrix 
                 double ax = parameters[0];
                 double ay = parameters[1];
                 double dx = parameters[2];
@@ -1215,7 +1203,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(pnts.Length, 9); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(pnts.Length, 9, 0); // Jacobi Matrix 
 
                 for (int i = 0; i < pnts.Length; i++)
                 {
@@ -1252,28 +1240,33 @@ namespace CADability
                 double I = result[8];
                 double J = -1.0; //  result[9];
                 double r = Math.Sqrt(1.0 / Math.Abs(A));
-                Matrix MS = new Matrix(new double[,] { { A, B, C, D }, { B, E, F, G }, { C, F, H, I }, { D, G, I, J } });
-                EigenvalueDecomposition ed = MS.Eigen();
-                double[] ev = ed.RealEigenvalues;
+                Matrix MS = DenseMatrix.OfArray(new double[,] { { A, B, C, D }, { B, E, F, G }, { C, F, H, I }, { D, G, I, J } });
+                var ed = MS.Evd();
+                Vector<System.Numerics.Complex> ev = ed.EigenValues;
                 int a = 0, b = 0, c = 0;
-                for (int i = 0; i < ev.Length; i++)
+                for (int i = 0; i < ev.Count; i++)
                 {
-                    if (ev[i] > 0) ++a;
-                    else if (ev[i] < 0) ++b;
-                    else ++c;
+                    if (ev[i].Imaginary == 0.0)
+                    {
+                        if (ev[i].Real > 0) ++a;
+                        else if (ev[i].Real < 0) ++b;
+                        else ++c;
+                    }
                 }
-                Matrix MQ = new Matrix(new double[,] { { A, B, C }, { B, E, F }, { C, F, H } });
-                LUDecomposition lud = MQ.LUD();
-                ed = MQ.Eigen();
-                ev = ed.RealEigenvalues;
+                Matrix MQ = DenseMatrix.OfArray(new double[,] { { A, B, C }, { B, E, F }, { C, F, H } });
+                ed = MQ.Evd();
+                ev = ed.EigenValues;
                 int aq = 0, bq = 0, cq = 0;
-                for (int i = 0; i < ev.Length; i++)
+                for (int i = 0; i < ev.Count; i++)
                 {
-                    if (ev[i] > 0) ++aq;
-                    else if (ev[i] < 0) ++bq;
-                    else ++cq;
+                    if (ev[i].Imaginary == 0.0)
+                    {
+                        if (ev[i].Real > 0) ++aq;
+                        else if (ev[i].Real < 0) ++bq;
+                        else ++cq;
+                    }
                 }
-                Matrix trans = MQ.Inverse() * new Matrix(new double[] { D, G, I }, true);
+                Matrix trans = (Matrix)(MQ.Inverse() * DenseMatrix.OfRowArrays(new double[] { D, G, I }));
                 GeoPoint mp = new GeoPoint(trans[0, 0], trans[1, 0], trans[2, 0]);
                 GeoPoint mmp = new GeoPoint(-trans[0, 0], -trans[1, 0], -trans[2, 0]); // der liegt auf der Achse
                 return Math.Sqrt(minError);
@@ -1339,7 +1332,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(pnts.Length, 7); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(pnts.Length, 7, 0); // Jacobi Matrix 
                 double lx = parameters[0];
                 double ly = parameters[1];
                 double lz = parameters[2];
@@ -1423,7 +1416,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(2, 2); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(2, 2, 0); // Jacobi Matrix 
                 double t1 = parameters[0];
                 double t2 = parameters[1];
                 //derivs[0, 0] = (sqr(d1.z) + sqr(d1.y) + sqr(d1.x)) / Math.Sqrt((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))) - ((d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)) * (2.0 * d1.z * ((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z) + 2.0 * d1.y * ((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y) + 2.0 * d1.x * ((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x))) / (2.0 * exp32((sqr(((-d2.z) * t2 + d1.z * t1 - p2.z + p1.z)) + sqr(((-d2.y) * t2 + d1.y * t1 - p2.y + p1.y)) + sqr(((-d2.x) * t2 + d1.x * t1 - p2.x + p1.x)))));
@@ -1507,7 +1500,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(4, 4);
+                derivs = DenseMatrix.Create(4, 4, 0);
                 GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
                 GeoPoint2D uvs2 = new GeoPoint2D(parameters[2], parameters[3]);
                 surface1.Derivation2At(uvs1, out GeoPoint s, out GeoVector sdu, out GeoVector sdv, out GeoVector sduu, out GeoVector sdvv, out GeoVector sdudv);
@@ -1621,7 +1614,7 @@ namespace CADability
             }
             void jfunc(double[] parameters, out Matrix derivs)
             {
-                derivs = new Matrix(3, 3);
+                derivs = DenseMatrix.Create(3, 3, 0);
                 GeoPoint2D uvs1 = new GeoPoint2D(parameters[0], parameters[1]);
                 double us2 = parameters[2];
                 surface1.Derivation2At(uvs1, out GeoPoint s, out GeoVector sdu, out GeoVector sdv, out GeoVector sduu, out GeoVector sdvv, out GeoVector sdudv);
@@ -1742,7 +1735,7 @@ namespace CADability
             {
 
 
-                derivs = new Matrix(pnts.Length, 7); // Jacobi Matrix 
+                derivs = DenseMatrix.Create(pnts.Length, 7, 0); // Jacobi Matrix 
                 double cx = parameters[0];
                 double cy = parameters[1];
                 double cz = parameters[2];
@@ -2011,8 +2004,6 @@ namespace CADability
             //    pnts[i] = new GeoPoint(x, y, z);
             //}
         }
-        static private double quad(double x) { return x * x * x * x; }
-        static private double cube(double x) { return x * x * x; }
         static void Test()
         {
             double u = 0, p0x = 0, p0y = 0, p0z = 0, p0w = 0, p1x = 0, p1y = 0, p1z = 0, p1w = 0, p2x = 0, p2y = 0, p2z = 0, p2w = 0, p3x = 0, p3y = 0, p3z = 0, p3w = 0, p4x = 0, p4y = 0, p4z = 0, p4w = 0, dx = 0, dy = 0, dz = 0, lx = 0, ly = 0, lz = 0;

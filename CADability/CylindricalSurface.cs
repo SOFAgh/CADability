@@ -19,6 +19,7 @@ namespace CADability.GeoObject
         // Der Einheitszylinder steht im Ursprung mit Radius 1, u beschreibt einen Kreis, v eine Mantellinie
         protected ModOp toCylinder; // diese ModOp modifiziert den Einheitszylinder in den konkreten Zylinder
         protected ModOp toUnit; // die inverse ModOp zum schnelleren Rechnen
+        Polynom implicitPolynomial;
         /// <summary>
         /// Creates a cylindrical surface. The length of <paramref name="directionX"/> and <paramref name="directionY"/> specify the radius.
         /// The axis is perpendicular to <paramref name="directionX"/> and <paramref name="directionY"/> (right hand). The u parameter starts at
@@ -2026,6 +2027,21 @@ namespace CADability.GeoObject
             }
             // sonst die allgemeine Überprüfung
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
+        }
+        public override Polynom GetImplicitPolynomial()
+        {
+            if (implicitPolynomial == null)
+            {
+                GeoVector zNormed = ZAxis.Normalized;
+                PolynomVector x = zNormed ^ (new GeoVector(Location.x, Location.y, Location.z) - PolynomVector.xyz);
+                implicitPolynomial = (x * x) - XAxis * XAxis;
+                // we need to scale the implicit polynomial so that it yields the true distance to the surface
+                GeoPoint p = Location + XAxis + XAxis.Normalized; // a point outside the cylinder with distance 1
+                double d = implicitPolynomial.Eval(p); // this should be 1 when the polynomial is normalized
+                if ((XAxis ^ YAxis) * ZAxis < 0) d = -d; // inverse oriented cylinder
+                implicitPolynomial = (1 / d) * implicitPolynomial; // normalize the polynomial
+            }
+            return implicitPolynomial;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetExtrema ()"/>

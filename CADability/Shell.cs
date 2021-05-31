@@ -1,7 +1,7 @@
 ﻿using CADability.Actions;
 using CADability.Attribute;
 using CADability.Curve2D;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.Shapes;
 using CADability.UserInterface;
 using System;
@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Wintellect.PowerCollections;
+using MathNet.Numerics.LinearAlgebra.Factorization;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
@@ -899,25 +900,25 @@ namespace CADability.GeoObject
             // typically there is one side of the triangles, which is parallel to the axis. So let us try to find parallel triengla edges
             throw new NotImplementedException();
             int nTriple = points.Length / 3;
-            Matrix m = new Matrix(nTriple + 1, 3);
-            Matrix b = new Matrix(nTriple + 1, 1);
+            Matrix m = new DenseMatrix(nTriple + 1, 3);
+            Vector b = new DenseVector(nTriple + 1);
             for (int i = 0; i < points.Length; i += 3)
             {
                 GeoVector n = ((points[i + 1] - points[i]) ^ (points[i + 2] - points[i])).Normalized;
                 m[i, 0] = n.x;
                 m[i, 1] = n.y;
                 m[i, 2] = n.z;
-                b[i, 0] = 0;
+                b[i] = 0;
             }
             m[nTriple, 0] = m[nTriple, 0] = m[nTriple, 0] = 1;
-            b[nTriple, 0] = 1;
-            QRDecomposition qrd = m.QRD();
-            if (qrd.FullRank)
+            b[nTriple] = 1;
+            QR<double> qrd = m.QR();
+            if (qrd.IsFullRank)
             {
-                Matrix x = qrd.Solve(b);
-                if (x != null)
+                Vector x = (Vector)qrd.Solve(b);
+                if (x.IsValid())
                 {
-                    axisDir = new GeoVector(x[0, 0], x[0, 1], x[0, 2]);
+                    axisDir = new GeoVector(x[0], x[1], x[2]);
                     Plane pln = new Plane(GeoPoint.Origin, axisDir);
                     GeoPoint2D[] points2d = new GeoPoint2D[points.Length];
                     for (int i = 0; i < points.Length; i++)

@@ -9,6 +9,8 @@ using CADability.Attribute;
 using CADability.GeoObject;
 using System.Drawing;
 using System.Windows.Forms;
+using MathNet.Numerics.LinearAlgebra.Double;
+
 
 namespace CADability.Forms
 {
@@ -1931,15 +1933,15 @@ namespace CADability.Forms
                     mat[1, 3] = pmat[13];
                     mat[2, 3] = pmat[14];
                     mat[3, 3] = pmat[15];
-                    LinearAlgebra.Matrix m0 = new CADability.LinearAlgebra.Matrix(mat);
+                    Matrix m0 = DenseMatrix.OfArray(mat);
                     double det = m0.Determinant();
-                    LinearAlgebra.Matrix m1 = m0.Inverse();
-                    LinearAlgebra.Matrix trans = new CADability.LinearAlgebra.Matrix(new double[,] {
+                    Matrix m1 = (Matrix)m0.Inverse();
+                    Matrix trans = DenseMatrix.OfArray(new double[,] {
                     { 1, 0, 0, 0 },
                     { 0, 1, 0, 0 },
                     { 0, 0, 1, 0.001 }, // verschiebung in z un 1/1000
                     { 0, 0, 0, 1 } });
-                    LinearAlgebra.Matrix comp = m1 * trans * m0;
+                    Matrix comp = (Matrix)(m1 * trans * m0);
                     pmat[0] = comp[0, 0];
                     pmat[1] = comp[1, 0];
                     pmat[2] = comp[2, 0];

@@ -14,6 +14,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using Wintellect.PowerCollections;
+using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability.GeoObject
 {
@@ -4096,14 +4097,14 @@ namespace CADability.GeoObject
                     m[2, 0] = p3.x;
                     m[2, 1] = p3.y;
                     m[2, 2] = 1.0;
-                    double[,] b = new double[,] { { p1.z }, { p2.z }, { p3.z } };
-                    LinearAlgebra.Matrix mx = new CADability.LinearAlgebra.Matrix(m);
-                    LinearAlgebra.Matrix s = mx.SaveSolve(new CADability.LinearAlgebra.Matrix(b));
+                    double[] b = new double[] {  p1.z ,  p2.z ,  p3.z  };
+                    Matrix mx = DenseMatrix.OfArray(m);
+                    Vector s = (Vector)mx.Solve(new DenseVector(b));
                     if (s != null)
                     {
-                        fx = s[0, 0];
-                        fy = s[0, 1];
-                        c = s[0, 2];
+                        fx = s[0];
+                        fy = s[1];
+                        c = s[2];
                         this.projection = null; // da es geklappt hat
                     }
                 }

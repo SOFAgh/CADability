@@ -1,11 +1,13 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
-using CADability.LinearAlgebra;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.Serialization;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
+
 namespace CADability.GeoObject
 {
 
@@ -160,6 +162,24 @@ namespace CADability.GeoObject
                 base.GetObjectData(info, context);
                 info.AddValue("Plane", plane);
                 info.AddValue("Curve", curve);
+            }
+
+            public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+            {
+                if (curve.TryPointDeriv2At(position, out GeoPoint p3d, out GeoVector d1, out GeoVector d2))
+                {
+                    point = plane.Project(p3d);
+                    deriv = plane.Project(d1);
+                    deriv2 = plane.Project(d2);
+                    return true;
+                }
+                else
+                {
+                    point = GeoPoint2D.Origin;
+                    deriv = GeoVector2D.NullVector;
+                    deriv2 = GeoVector2D.NullVector;
+                    return false;
+                }
             }
 
             #endregion
@@ -1570,7 +1590,7 @@ namespace CADability.GeoObject
                                 GeoVector v1 = t2 - t1;
                                 GeoVector v2 = t4 - t1;
                                 GeoVector v3 = v1 ^ v2;
-                                Matrix m = Matrix.RowVector(v1, v2, v3).SaveInverse();
+                                Matrix m = (Matrix)DenseMatrix.OfRowArrays(new double[][] { v1, v2, v3 }).Inverse();
                                 if (m != null)
                                 {
                                     toUnit.SetData(m, t1);
@@ -1586,7 +1606,7 @@ namespace CADability.GeoObject
                             GeoVector v1 = t2 - t1;
                             GeoVector v2 = t3 - t1;
                             GeoVector v3 = t4 - t1;
-                            Matrix m = Matrix.RowVector(v1, v2, v3).Inverse();
+                            Matrix m = (Matrix)DenseMatrix.OfRowArrays(new double[][] { v1, v2, v3 }).Inverse();
                             GeoPoint trans = m * t1;
                             toUnit.SetData(m, new GeoPoint(-trans.x, -trans.y, -trans.z));
                         }
@@ -2120,9 +2140,9 @@ namespace CADability.GeoObject
                 GeoVector v3 = v1 ^ v2;
                 // v3 ist senkrecht auf beide, d.h. z muss 0 sein
                 GeoVector v4 = toTest - tetra1;
-                Matrix m = Matrix.RowVector(v1, v2, v3);
-                Matrix s = m.SaveSolve(Matrix.RowVector(v4));
-                if (s != null)
+                Matrix m = Extensions.RowVector(v1, v2, v3);
+                Matrix s = (Matrix)m.Solve(Extensions.RowVector(v4));
+                if (s.IsValid())
                 {
                     double x = s[0, 0];
                     double y = s[1, 0];
@@ -2145,9 +2165,9 @@ namespace CADability.GeoObject
 
                 GeoVector v4 = toTest - tetra1;
                 // x*v1+y*v2+z*v3 = v4; Löse für x,y und z
-                Matrix m = Matrix.RowVector(v1, v2, v3);
-                Matrix s = m.SaveSolve(Matrix.RowVector(v4));
-                if (s != null)
+                Matrix m = Extensions.RowVector(v1, v2, v3);
+                Matrix s = (Matrix)m.Solve(Extensions.RowVector(v4));
+                if (s.IsValid())
                 {
                     double x = s[0, 0];
                     double y = s[1, 0];
@@ -2523,13 +2543,13 @@ namespace CADability.GeoObject
 #endif
                 GeoVector xdir = dir1 ^ dir2;
                 double d = double.MaxValue;
-                Matrix m = new Matrix(dir1, dir2, xdir);
-                Matrix b = new Matrix(p2 - p1);
-                Matrix x = m.SaveSolveTranspose(b);
-                if (x != null)
+                Matrix m = DenseMatrix.OfColumnArrays(dir1, dir2, xdir);
+                Vector b = new DenseVector(p2 - p1);
+                Vector x = (Vector)m.Solve(b);
+                if (x.IsValid())
                 {
-                    par1 += x[0, 0];
-                    par2 -= x[1, 0]; // das ist richtig so, in DistLL hat par2 falsches Vorzeichen!
+                    par1 += x[0];
+                    par2 -= x[1]; // das ist richtig so, in DistLL hat par2 falsches Vorzeichen!
                     // der Parameter darf nicht aus dem [0,1] Intervall rauslaufen, denn dort gibt es keine Werte
                     // tut er es trotzdem, dann wird auf das Ende geklippt. Das Newtonverfahren
                     // kann ja hin und her wackeln, aber wenns nach dem Klippen immer noch rausläuft, dann ist aus

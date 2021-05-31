@@ -1647,6 +1647,11 @@ namespace CADability.Curve2D
                 curve = tc.curve;
             }
         }
+
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            return this.curve.TryPointDeriv2At(position, out point, out deriv, out deriv2);
+        }
     }
 
     [Serializable()]
@@ -2258,6 +2263,7 @@ namespace CADability.Curve2D
                     Geometry.IntersectLL(sp1, ep1, sp2, ep2, out ip);
                     double par1 = spar1 + Geometry.LinePar(sp1, ep1, ip) * (epar1 - spar1);
                     double par2 = spar2 + Geometry.LinePar(sp2, ep2, ip) * (epar2 - spar2);
+                    // bool dbg = BoxedSurfaceExtension.CurveIntersection2D(curve1, spar1, epar1, curve2, spar2, epar2, ref par1, ref par2, ref ip);
                     if (NewtonApproximation(curve1, spar1, epar1, curve2, spar2, epar2, ref par1, ref par2, ref ip))
                     {
                         GeoPoint2DWithParameter res = new GeoPoint2DWithParameter();
@@ -3287,12 +3293,12 @@ namespace CADability.Curve2D
         /// <param name="deriv"></param>
         /// <param name="deriv2"></param>
         /// <returns></returns>
-        public virtual bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
-        {
-            point = GeoPoint2D.Origin;
-            deriv = deriv2 = GeoVector2D.NullVector;
-            return false;
-        }
+        public abstract bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2);
+        //{
+        //    point = GeoPoint2D.Origin;
+        //    deriv = deriv2 = GeoVector2D.NullVector;
+        //    return false;
+        //}
 
         #endregion
 
@@ -3591,6 +3597,18 @@ namespace CADability.Curve2D
             ICurve2D c2d = original.Trim(StartPos, EndPos);
             if (c2d != null) return new TransformedCurve2D(c2d, transformation2D);
             return null;
+        }
+
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            if (original.TryPointDeriv2At(position, out point, out deriv,out deriv2))
+            {
+                point = transformation2D.TransformPoint(original, position);
+                deriv = transformation2D.TransformDeriv1(original, position);
+                deriv2 = transformation2D.TransformDeriv2(original, position);
+                return true;
+            }
+            return false;
         }
     }
 

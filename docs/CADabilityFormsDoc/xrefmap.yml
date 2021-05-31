@@ -858,6 +858,12 @@ references:
   commentId: T:CADability.Forms.CadFrame
   fullName: CADability.Forms.CadFrame
   nameWithType: CadFrame
+- uid: CADability.Forms.CadFrame.#ctor(CADability.Forms.CadCanvas,CADability.UserInterface.ICommandHandler)
+  name: CadFrame(CadCanvas, ICommandHandler)
+  href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame__ctor_CADability_Forms_CadCanvas_CADability_UserInterface_ICommandHandler_
+  commentId: M:CADability.Forms.CadFrame.#ctor(CADability.Forms.CadCanvas,CADability.UserInterface.ICommandHandler)
+  fullName: CADability.Forms.CadFrame.CadFrame(CADability.Forms.CadCanvas, CADability.UserInterface.ICommandHandler)
+  nameWithType: CadFrame.CadFrame(CadCanvas, ICommandHandler)
 - uid: CADability.Forms.CadFrame.#ctor(CADability.Forms.PropertiesExplorer,CADability.Forms.CadCanvas,CADability.UserInterface.ICommandHandler)
   name: CadFrame(PropertiesExplorer, CadCanvas, ICommandHandler)
   href: api/CADability.Forms.CadFrame.html#CADability_Forms_CadFrame__ctor_CADability_Forms_PropertiesExplorer_CADability_Forms_CadCanvas_CADability_UserInterface_ICommandHandler_

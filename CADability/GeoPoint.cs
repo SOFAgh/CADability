@@ -1,11 +1,11 @@
-﻿using CADability.LinearAlgebra;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Runtime.Serialization;
+using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability
 {
@@ -141,6 +141,19 @@ namespace CADability
             y = p.Y;
             z = 0.0;
         }
+        public GeoPoint(Vector d)
+        {
+            if (d.Count == 3)
+            {
+                x = d[0];
+                y = d[1];
+                z = d[2];
+            }
+            else
+            {
+                throw new ApplicationException("GeoPoint constructor: Length of array must be 3");
+            }
+        }
         /// <summary>
         /// Returns the distance from this point to the given point.
         /// </summary>
@@ -262,12 +275,17 @@ namespace CADability
         {
             return Geometry.Dist(p1, p2);
         }
+        public static double operator &(GeoPoint p1, GeoPoint p2)
+        {
+            return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z);
+        }
         public static GeoPoint operator *(Matrix m, GeoPoint p)
         {
             System.Diagnostics.Debug.Assert(m.ColumnCount == 3 && m.RowCount == 3);
             return new GeoPoint(m[0, 0] * p.x + m[0, 1] * p.y + m[0, 2] * p.z, m[1, 0] * p.x + m[1, 1] * p.y + m[1, 2] * p.z, m[2, 0] * p.x + m[2, 1] * p.y + m[2, 2] * p.z);
         }
-        public static implicit operator double[](GeoPoint p) => new double[] {p.x,p.y,p.z};
+
+        public static implicit operator double[](GeoPoint p) => new double[] { p.x, p.y, p.z };
 
         /// <summary>
         /// returns the origin, same as new GeoPoint(0.0,0.0,0.0);
@@ -574,6 +592,7 @@ namespace CADability
             if (other.Length == 0.0) return true; // oder was?
             return Math.Abs(this * other) / (Length * other.Length) < 1e-6;
         }
+        public static implicit operator double[](GeoVector v) => new double[] { v.x, v.y, v.z };
         public double this[int index]
         {
             get
@@ -1148,7 +1167,7 @@ namespace CADability
             x = (1 - ratio) * p1.x + ratio * p2.x;
             y = (1 - ratio) * p1.y + ratio * p2.y;
         }
-
+        public static implicit operator double[](GeoPoint2D p) => new double[] { p.x, p.y };
         internal double TaxicabDistance(GeoPoint2D To)
         {	// Betragsnorm, heißt echt auf Englisch Taxicab oder Manhattan
             return Math.Abs(x - To.x) + Math.Abs(y - To.y);
@@ -1217,6 +1236,16 @@ namespace CADability
         public static double operator |(GeoPoint2D p1, GeoPoint2D p2)
         {
             return Geometry.Dist(p1, p2);
+        }
+        /// <summary>
+        /// Square distance. Not a very nice operator symbol, but cannot overload ||, which I would prefer
+        /// </summary>
+        /// <param name="p1"></param>
+        /// <param name="p2"></param>
+        /// <returns></returns>
+        public static double operator &(GeoPoint2D p1, GeoPoint2D p2)
+        {
+            return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
         }
 
         public override bool Equals(object o)
@@ -1396,6 +1425,7 @@ namespace CADability
             this.x = v3.x;
             this.y = v3.y;
         }
+        public static implicit operator double[](GeoVector2D p) => new double[] { p.x, p.y };
         public void Norm()
         {
             if (Length <= 0.0) throw new GeoVectorException(GeoVectorException.tExceptionType.NullVector);

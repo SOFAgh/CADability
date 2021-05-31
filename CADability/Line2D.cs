@@ -111,6 +111,13 @@ namespace CADability.Curve2D
             double dy = endPoint.y - startPoint.y;
             return new GeoPoint2D(startPoint.x + Position * dx, startPoint.y + Position * dy);
         }
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            point = PointAt(position);
+            deriv = endPoint - startPoint;
+            deriv2 = GeoVector2D.NullVector;
+            return true;
+        }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.PositionOf (GeoPoint2D)"/>
         /// </summary>

@@ -1,6 +1,6 @@
 ﻿using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -919,12 +919,12 @@ namespace CADability
             GeoPoint loc;
             GeoVector diru, dirv;
             surface.DerivationAt(uv, out loc, out diru, out dirv);
-            Matrix m = new Matrix(diru, dirv, diru ^ dirv);
-            Matrix b = new Matrix(dir3d);
-            Matrix s = m.SaveSolveTranspose(b);
-            if (s != null)
+            Matrix m = DenseMatrix.OfColumnArrays(diru, dirv, diru ^ dirv);
+            Vector b = new DenseVector(dir3d);
+            Vector s = (Vector)m.Solve(b);
+            if (s.IsValid())
             {   // what about the length? Added the .Normalized, because in "HyperCube Evolution - Double Z motor 1.stp" the direction length is definitely wrong
-                dir = (endParam - startParam) * new GeoVector2D(s[0, 0], s[1, 0]).Normalized;
+                dir = (endParam - startParam) * new GeoVector2D(s[0], s[1]).Normalized;
             }
             else
             {
@@ -1084,6 +1084,13 @@ namespace CADability
             info.AddValue("StartParam", startParam);
             info.AddValue("EndParam", endParam);
             info.AddValue("PeriodicDomain", periodicDomain);
+        }
+
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            point = GeoPoint2D.Origin;
+            deriv = deriv2 = GeoVector2D.NullVector;
+            return false;
         }
 
         #endregion

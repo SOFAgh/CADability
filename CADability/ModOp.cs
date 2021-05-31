@@ -1,4 +1,5 @@
-﻿using CADability.LinearAlgebra;
+﻿using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Runtime.Serialization;
 using System.Threading;
@@ -362,9 +363,9 @@ namespace CADability
                 {0.0,0.0,src[0].x,src[0].y},
                 {src[1].x,src[1].y,0.0,0.0},
                 {0.0,0.0,src[1].x,src[1].y}};
-            LinearAlgebra.Matrix m = new CADability.LinearAlgebra.Matrix(a);
-            LinearAlgebra.Matrix r = m.Solve(new CADability.LinearAlgebra.Matrix(new double[,] { { dst[0].x }, { dst[0].y }, { dst[1].x }, { dst[1].y } }));
-            return new ModOp2D(r[0, 0], r[1, 0], 0.0, r[2, 0], r[3, 0], 0.0);
+            Matrix m = DenseMatrix.OfArray(a);
+            Vector r = (Vector)m.Solve(new DenseVector(new double[] { dst[0].x, dst[0].y, dst[1].x, dst[1].y }));
+            return new ModOp2D(r[0], r[1], 0.0, r[2], r[3], 0.0);
         }
         /// <summary>
         /// Constructs a modification, that transforms the Src points to the Dst points.
@@ -396,14 +397,14 @@ namespace CADability
                  * m00*s1x + m01*s1y + m02 + 0  = p1x
                  * m00*s1y +-m01*s1x +  0  +m12 = p1y
                  */
-                double[] x = new double[4];
                 double[,] a = { { Src[0].x, Src[0].y,  1.0, 0.0 },
                                 { Src[0].y, -Src[0].x, 0.0, 1.0 },
                                 { Src[1].x, Src[1].y,  1.0, 0.0 },
                                 { Src[1].y, -Src[1].x, 0.0, 1.0 } };
                 double[] b = { Dst[0].x, Dst[0].y, Dst[1].x, Dst[1].y };
 
-                if (Geometry.lingl(a, b, x))
+                Vector x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
+                if (!x.IsValid())
                 {
                     return new ModOp2D(x[0], x[1], x[2], -x[1], x[0], x[3]);
                 }
@@ -416,7 +417,6 @@ namespace CADability
             {
                 double[,] a = new double[6, 6];
                 double[] b = new double[6];
-                double[] x = new double[6];
 
                 a[0, 2] = 1.0;
                 a[1, 5] = 1.0;
@@ -435,7 +435,8 @@ namespace CADability
                 b[2] = Dst[1].x; b[3] = Dst[1].y;
                 b[4] = Dst[2].x; b[5] = Dst[2].y;
 
-                if (Geometry.lingl(a, b, x))
+                Vector x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
+                if (x.IsValid())
                 {
                     return new ModOp2D(x[0], x[1], x[2], x[3], x[4], x[5]);
                 }
@@ -449,8 +450,8 @@ namespace CADability
                 // dst = m*src
                 // dstix = m00*srcix+m01*srciy+m02
                 // dstiy = m10*srcix+m11*srciy+m12
-                LinearAlgebra.Matrix a = new LinearAlgebra.Matrix(2 * Src.Length, 6, 0.0); // mit 0 vorbesetzt
-                LinearAlgebra.Matrix b = new LinearAlgebra.Matrix(2 * Src.Length, 1);
+                Matrix a = new DenseMatrix(2 * Src.Length, 6); // mit 0 vorbesetzt
+                Vector b = new DenseVector(2 * Src.Length);
 
                 for (int i = 0; i < Src.Length; i++)
                 {
@@ -462,14 +463,14 @@ namespace CADability
                     a[2 * i + 1, 4] = Src[i].y;
                     a[2 * i + 1, 5] = 1.0;
 
-                    b[2 * i + 0, 0] = Dst[i].x;
-                    b[2 * i + 1, 0] = Dst[i].y;
+                    b[2 * i + 0] = Dst[i].x;
+                    b[2 * i + 1] = Dst[i].y;
                 }
-                LinearAlgebra.QRDecomposition qrd = a.QRD();
-                if (qrd.FullRank)
+                var qrd = a.QR();
+                if (qrd.IsFullRank)
                 {
-                    LinearAlgebra.Matrix x = qrd.Solve(b);
-                    return new ModOp2D(x[0, 0], x[1, 0], x[2, 0], x[3, 0], x[4, 0], x[5, 0]);
+                    Vector x = (Vector)qrd.Solve(b);
+                    return new ModOp2D(x[0], x[1], x[2], x[3], x[4], x[5]);
                 }
                 else
                 {
@@ -673,26 +674,26 @@ namespace CADability
     [Serializable()]
     public struct Matrix4 : ISerializable
     {
-        public Matrix hm;
-        public Matrix4(Matrix hm)
+        public Matrix<double> hm;
+        public Matrix4(Matrix<double> hm)
         {
             if (hm == null)
             {
-                this.hm = new Matrix(new double[,] { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+                this.hm = DenseMatrix.OfArray(new double[,] { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
             }
             else
             {
                 if (hm.RowCount != 4 || hm.ColumnCount != 4) throw new ApplicationException("Matrix4: wrong number of rows or columns");
-                this.hm = hm.Clone();
+                this.hm = (Matrix)hm.Clone();
             }
         }
         public Matrix4(double[,] m)
         {
-            hm = new Matrix(m);
+            hm = DenseMatrix.OfArray(m);
         }
         public Matrix4(ModOp m)
         {
-            this.hm = new Matrix(m);
+            this.hm = DenseMatrix.OfArray(m.Matrix); // new Matrix(m);
         }
         /// <summary>
         /// Modifies the given point by this modification.
@@ -702,7 +703,7 @@ namespace CADability
         /// <returns>modified point</returns>
         public static GeoPoint operator *(Matrix4 m, GeoPoint p)
         {
-            if (m.hm == null) return p; // damit man nicht immer checken muss
+            if (m.hm == null) return p; // so you don't need to check
             double d = m.hm[3, 0] * p.x + m.hm[3, 1] * p.y + m.hm[3, 2] * p.z + m.hm[3, 3];
             double x = (m.hm[0, 0] * p.x + m.hm[0, 1] * p.y + m.hm[0, 2] * p.z + m.hm[0, 3]) / d;
             double y = (m.hm[1, 0] * p.x + m.hm[1, 1] * p.y + m.hm[1, 2] * p.z + m.hm[1, 3]) / d;
@@ -711,7 +712,7 @@ namespace CADability
         }
         public static GeoVector operator *(Matrix4 m, GeoVector v)
         {
-            if (m.hm == null) return v; // damit man nicht immer checken muss
+            if (m.hm == null) return v; // so you don't need to check
             double d = m.hm[3, 0] * v.x + m.hm[3, 1] * v.y + m.hm[3, 2] * v.z + m.hm[3, 3];
             double x = (m.hm[0, 0] * v.x + m.hm[0, 1] * v.y + m.hm[0, 2] * v.z) / d;
             double y = (m.hm[1, 0] * v.x + m.hm[1, 1] * v.y + m.hm[1, 2] * v.z) / d;
@@ -720,41 +721,39 @@ namespace CADability
         }
         public static Matrix4 operator *(Matrix4 l, Matrix4 r)
         {
-            if (l.hm == null || r.hm == null) return new Matrix4(null);
-            Matrix4 res = new Matrix4(l.hm * r.hm);
+            if (l.hm == null || r.hm == null) return new Matrix4((double[,])null);
+            Matrix4 res = new Matrix4((Matrix)(l.hm * r.hm));
             return res;
         }
         public Matrix4 GetInverse()
         {
-            Matrix inv = hm.SaveInverse();
+            Matrix<double> inv = hm.Inverse();
             if (inv != null) return new Matrix4(inv);
-            else return new Matrix4(null); ;
+            else return new Matrix4((double[,])null); 
         }
         public static explicit operator double[,] (Matrix4 m)
         {
-            return (double[,])m.hm;
+            return m.hm.ToArray();
         }
         public Matrix Matrix
         {
             get
             {
-                return hm;
+                return (Matrix)hm;
             }
         }
         #region ISerializable Members
         Matrix4(SerializationInfo info, StreamingContext context)
         {
-            this.hm = new Matrix((double[,])info.GetValue("Matrix", typeof(double[,])));
-            // geht das gut, oder muss das bei deserializationdone gemacht werden?
-            // könnte gut gehen da der Konstruktor nur das Objekt übernimmt
+            this.hm = DenseMatrix.OfArray((double[,])info.GetValue("Matrix", typeof(double[,])));
         }
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             if (hm == null)
             {
-                hm = Matrix.Identity(4, 4);
+                hm = DenseMatrix.OfArray(new double[,] { { 1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } }); ; //.Identity(4, 4);
             }
-            info.AddValue("Matrix", (double[,])hm);
+            info.AddValue("Matrix", (double[,])hm.ToArray());
         }
         #endregion
         public double Determinant
@@ -887,9 +886,21 @@ namespace CADability
                 Matrix23 = value[2, 3];
             }
         }
-#if OC69
-#else
-#endif
+
+        public Matrix ToMatrix()
+        {
+            double[,] A = new double[4, 4];
+            double[,] mm = Matrix;
+            for (int i = 0; i < 3; ++i)
+            {
+                for (int j = 0; j < 4; ++j)
+                {
+                    A[i, j] = mm[i, j];
+                }
+            }
+            A[3, 3] = 1.0; // A[3,k] = 0.0; nicht nötig
+            return DenseMatrix.OfArray(A);
+        }
         internal ModOp(GeoVector vx, GeoVector vy, GeoVector vz, GeoPoint loc)
         {   // setzt die XY Ebene in die durch die Vektoren und den Punkt gegebene Ebene um
             Matrix00 = vx.x;
@@ -1345,11 +1356,14 @@ namespace CADability
             a[8, 6] = Src[2].x;
             a[8, 7] = Src[2].y;
             a[8, 8] = Src[2].z;
-            Matrix A = new Matrix(a);
-            Matrix B = new Matrix(new double[] { Dst[0].x, Dst[0].y, Dst[0].z, Dst[1].x, Dst[1].y, Dst[1].z, Dst[2].x, Dst[2].y, Dst[2].z }, 9);
-            Matrix X = A.SaveSolve(B);
+            MathNet.Numerics.LinearAlgebra.Double.Matrix A = MathNet.Numerics.LinearAlgebra.Double.DenseMatrix.OfArray(a);
+            MathNet.Numerics.LinearAlgebra.Double.Matrix B = MathNet.Numerics.LinearAlgebra.Double.DenseMatrix.OfColumnArrays(new double[] { Dst[0].x, Dst[0].y, Dst[0].z, Dst[1].x, Dst[1].y, Dst[1].z, Dst[2].x, Dst[2].y, Dst[2].z });
+            MathNet.Numerics.LinearAlgebra.Double.Matrix X = (MathNet.Numerics.LinearAlgebra.Double.Matrix)A.Solve(B);
+            ////Matrix A = new Matrix(a);
+            ////Matrix B = new Matrix(new double[] { Dst[0].x, Dst[0].y, Dst[0].z, Dst[1].x, Dst[1].y, Dst[1].z, Dst[2].x, Dst[2].y, Dst[2].z }, 9);
+            ////Matrix X = A.SaveSolve(B);
             ModOp res = ModOp.Identity;
-            if (X != null)
+            if (!double.IsNaN(X[0, 0]) && !double.IsInfinity(X[0,0]))
             {
                 res.Matrix00 = X[0, 0];
                 res.Matrix01 = X[1, 0];
@@ -1371,7 +1385,6 @@ namespace CADability
         {	// Abbildung von 3 Vektoren
             if (Src.Length != 3 || Dst.Length != 3) throw new ModOpException("ModOp.Fit: unable to perform fit", ModOpException.tExceptionType.InvalidParameter);
             double[,] a = new double[9, 9];
-            double[] x = new double[9];
             double[] b = new double[9];
             a[0, 0] = Src[0].x;
             a[0, 1] = Src[0].y;
@@ -1409,7 +1422,8 @@ namespace CADability
             b[6] = Dst[2].x;
             b[7] = Dst[2].y;
             b[8] = Dst[2].z;
-            if (!Geometry.lingl(a, b, x)) throw new ModOpException("ModOp.Fit: unable to perform fit", ModOpException.tExceptionType.InvalidParameter);
+            Vector x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
+            if (!x.IsValid()) throw new ModOpException("ModOp.Fit: unable to perform fit", ModOpException.tExceptionType.InvalidParameter);
             ModOp res = ModOp.Identity;
             res.Matrix00 = x[0];
             res.Matrix01 = x[1];
@@ -1542,7 +1556,6 @@ namespace CADability
             if (Src.Length == 4)
             {
                 double[,] a = new double[12, 12];
-                double[] x = new double[12];
                 double[] b = new double[12];
                 a[0, 0] = Src[0].x;
                 a[0, 1] = Src[0].y;
@@ -1608,7 +1621,8 @@ namespace CADability
                 b[9] = Dst[3].x;
                 b[10] = Dst[3].y;
                 b[11] = Dst[3].z;
-                if (!Geometry.lingl(a, b, x)) throw new ModOpException("ModOp.Fit: unable to perform fit", ModOpException.tExceptionType.InvalidParameter);
+                Vector x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
+                if (!x.IsValid()) throw new ModOpException("ModOp.Fit: unable to perform fit", ModOpException.tExceptionType.InvalidParameter);
                 ModOp res = ModOp.Identity;
                 res.Matrix00 = x[0];
                 res.Matrix01 = x[1];

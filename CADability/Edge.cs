@@ -3120,16 +3120,30 @@ namespace CADability
             if (from == primaryFace)
             {
                 primaryFace = to;
-                PrimaryCurve2D = PrimaryCurve2D.GetModified(m);
-                this.owner = primaryFace;
-                if (m.Determinant < 0) forwardOnPrimaryFace = !forwardOnPrimaryFace;
+                if (Curve3D is InterpolatedDualSurfaceCurve)
+                {
+                    UpdateInterpolatedDualSurfaceCurve();
+                }
+                else
+                {
+                    PrimaryCurve2D = PrimaryCurve2D.GetModified(m);
+                    this.owner = primaryFace;
+                    if (m.Determinant < 0) forwardOnPrimaryFace = !forwardOnPrimaryFace;
+                }
                 return true;
             }
             else if (from == secondaryFace)
             {
                 secondaryFace = to;
-                SecondaryCurve2D = SecondaryCurve2D.GetModified(m);
-                if (m.Determinant < 0) forwardOnSecondaryFace = !forwardOnSecondaryFace;
+                if (Curve3D is InterpolatedDualSurfaceCurve)
+                {
+                    UpdateInterpolatedDualSurfaceCurve();
+                }
+                else
+                {
+                    SecondaryCurve2D = SecondaryCurve2D.GetModified(m);
+                    if (m.Determinant < 0) forwardOnSecondaryFace = !forwardOnSecondaryFace;
+                }
                 return true;
             }
             else return false;

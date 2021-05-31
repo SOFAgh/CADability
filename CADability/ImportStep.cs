@@ -1,7 +1,7 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -1204,7 +1204,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             entityPattern = new Dictionary<string, HashSet<string>>();
 #endif
             transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", true);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
-            
+
             // transformationMode = false;
             // for most files, transformationMode is not important.
             // files, for which transformationMode must be false:
@@ -1461,6 +1461,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
 #if DEBUG
             BoundingCube ext = res.GetExtent();
+            double md = 0.0;
+            Face found = null;
             for (int i = 0; i < res.Count; i++)
             {
                 Shell shell = null;
@@ -1474,9 +1476,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                     foreach (Face face in shell.Faces)
                     {
-                        if (face.GetHashCode() == 725)
+                        foreach (Vertex  vtx in face.Vertices)
                         {
-                            face.AssureTriangles(0.38);
+                            double d = Math.Abs(face.Surface.GetDistance(vtx.Position));
+                            if (d>md)
+                            {
+                                md = d;
+                                found = face;
+                            }
                         }
                     }
                 }
@@ -2260,7 +2267,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (36694 == item.definingIndex)
+                            if (740 == item.definingIndex)
                             {
                             }
 #endif
@@ -2334,7 +2341,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (2421 == item.definingIndex || 108344 == item.definingIndex)
+                            if (740 == item.definingIndex || 108344 == item.definingIndex)
                             {
                             }
 #endif
@@ -2348,7 +2355,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             try
                             {
                                 double precision = Precision.eps;
-                                if (context != null && context.uncertainty > 0.0) precision = context.uncertainty;
+                                if (context != null && context.uncertainty > 0.0 && context.uncertainty < precision) precision = context.uncertainty;
                                 if (surface != null && bounds.Count > 0)
                                 {
                                     System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
@@ -4062,19 +4069,19 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             {   // gp_Trsf::SetTransformation 
                 FreeCoordSys FromA1 = trg;
                 FreeCoordSys ToA2 = org;
-                Matrix matrix = new Matrix(ToA2.DirectionX, ToA2.DirectionY, ToA2.DirectionZ);
-                Matrix loc = new Matrix(new double[,] { { ToA2.Location.x }, { ToA2.Location.y }, { ToA2.Location.z } });
+                Matrix matrix = DenseMatrix.OfRowArrays(ToA2.DirectionX, ToA2.DirectionY, ToA2.DirectionZ);
+                Vector loc = new DenseVector(new double[] {  ToA2.Location.x ,  ToA2.Location.y ,  ToA2.Location.z });
                 //matrix.Transpose();
-                loc = matrix * loc;
-                loc[0, 0] = -loc[0, 0]; loc[1, 0] = -loc[1, 0]; loc[2, 0] = -loc[2, 0];
+                loc = (Vector)(matrix * loc);
+                loc[0] = -loc[0]; loc[1] = -loc[1]; loc[2] = -loc[2];
 
-                Matrix MA1 = new Matrix(FromA1.DirectionX, FromA1.DirectionY, FromA1.DirectionZ);
+                Matrix MA1 = DenseMatrix.OfRowArrays(FromA1.DirectionX, FromA1.DirectionY, FromA1.DirectionZ);
                 MA1.Transpose();
-                Matrix MA1loc = new Matrix(new double[,] { { FromA1.Location.x }, { FromA1.Location.y }, { FromA1.Location.z } });
-                MA1loc = matrix * MA1loc;
-                loc += MA1loc;
-                matrix = MA1 * matrix;
-                res = new ModOp(matrix, new GeoVector(loc[0, 0], loc[1, 0], loc[2, 0]));
+                Vector MA1loc = new DenseVector(new double[] {  FromA1.Location.x ,  FromA1.Location.y ,  FromA1.Location.z  });
+                MA1loc = (Vector)(matrix * MA1loc);
+                loc = (Vector)(loc + MA1loc);
+                matrix = (Matrix)(MA1 * matrix);
+                res = new ModOp(matrix.ToArray(), new GeoVector(loc[0], loc[1], loc[2]));
             }
             if (transformationMode) //trg.Location == GeoPoint.Origin)
             {
@@ -4093,14 +4100,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             GeoVector ao = (GeoVector)origin.parameter["ref_direction"].val;
             GeoVector xo = ao - (ao * zo) * zo;
             GeoVector yo = zo ^ xo;
-            Matrix A = new Matrix(xo, yo, zo);
+            Matrix A = DenseMatrix.OfRowArrays(xo, yo, zo);
             GeoVector zt = (GeoVector)target.parameter["axis"].val;
             GeoVector at = (GeoVector)target.parameter["ref_direction"].val;
             GeoVector xt = at - (at * zt) * zt;
             GeoVector yt = zt ^ xt;
-            Matrix B = new Matrix(xt, yt, zt);
-            B.Transpose();
-            Matrix C = B * A;
+            Matrix B = DenseMatrix.OfRowArrays(xt, yt, zt);
+            B = (Matrix)B.Transpose();
+            Matrix C = (Matrix)( B * A);
             GeoPoint t = (GeoPoint)origin.parameter["location"].val;
             GeoPoint u = (GeoPoint)target.parameter["location"].val;
             t.x *= lfo;
@@ -4109,9 +4116,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             u.x *= lft;
             u.y *= lft;
             u.z *= lft;
-            Matrix v = C * new Matrix(new double[,] { { t.x }, { t.y }, { t.z } });
-            GeoVector trs = new GeoVector(u.x - v[0, 0], u.y - v[1, 0], u.z - v[2, 0]);
-            res = new ModOp(C, trs);
+            Vector v = (Vector)(C * new DenseVector(new double[] {  t.x ,  t.y ,  t.z  }));
+            GeoVector trs = new GeoVector(u.x - v[0], u.y - v[1], u.z - v[2]);
+            res = new ModOp(C.ToArray(), trs);
             // return res;
 
             //int code1 = 0, code2 = 0;

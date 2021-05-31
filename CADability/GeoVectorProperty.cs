@@ -145,6 +145,7 @@ namespace CADability.UserInterface
             componentsDigits = frame.GetIntSetting("Formatting.Coordinate.ComponentsDigits", 3);
             angleMode = (AngleMode)frame.GetIntSetting("Formatting.Angle.Mode", 0);
             angleDigits = frame.GetIntSetting("Formatting.Angle.Digits", 3);
+            this.Frame = frame;
         }
 
         public bool DisplayZComponent { get; set; } = true;

@@ -1,5 +1,5 @@
 ﻿using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Drawing;
 using System.Runtime.Serialization;
@@ -170,8 +170,8 @@ namespace CADability.Curve2D
         }
         public static Ellipse2D FromFivePoints(GeoPoint2D[] p)
         {
-            Matrix m = new Matrix(5, 5);
-            Matrix b = new Matrix(5, 1);
+            Matrix m = new DenseMatrix(5, 5);
+            Vector b = new DenseVector(5);
             for (int i = 0; i < 5; ++i)
             {
                 m[i, 0] = 1;
@@ -179,33 +179,33 @@ namespace CADability.Curve2D
                 m[i, 2] = 2 * p[i].y;
                 m[i, 3] = 2 * p[i].x * p[i].y;
                 m[i, 4] = p[i].y * p[i].y;
-                b[i, 0] = -p[i].x * p[i].x;
+                b[i] = -p[i].x * p[i].x;
             }
-            Matrix x = m.SaveSolve(b);
-            if (x == null) return null;
+            Vector x = (Vector)m.Solve(b);
+            if (!x.IsValid()) return null;
             double l1, l2;
-            if (Geometry.quadgl(1, -(1 + x[4, 0]), x[4, 0] - x[3, 0] * x[3, 0], out l1, out l2) == 0)
+            if (Geometry.quadgl(1, -(1 + x[4]), x[4] - x[3] * x[3], out l1, out l2) == 0)
             {
-                l1 = l2 = (1 + x[4, 0]) / 2.0;
+                l1 = l2 = (1 + x[4]) / 2.0;
             }
             if (l1 == 0.0 || l2 == 0.0) return null;
 
             Angle MajorAngle;
-            if (Math.Abs(l1 - 1) > Math.Abs(l2 - 1)) MajorAngle = Math.Atan2(l1 - 1, x[3, 0]);
-            else MajorAngle = Math.Atan2(l2 - 1, x[3, 0]) + Math.PI / 2.0;
-            double b1 = x[1, 0] * Math.Cos(MajorAngle) + x[2, 0] * Math.Sin(MajorAngle);
-            double b2 = -x[1, 0] * Math.Sin(MajorAngle) + x[2, 0] * Math.Cos(MajorAngle);
-            double MajorRadius = Math.Sqrt(Math.Abs((b1 * b1 / l1 + b2 * b2 / l2 - x[0, 0]) / l1));
-            double MinorRadius = Math.Sqrt(Math.Abs((b1 * b1 / l1 + b2 * b2 / l2 - x[0, 0]) / l2));
-            Matrix a = new Matrix(2, 2);
-            Matrix c = new Matrix(2, 1);
+            if (Math.Abs(l1 - 1) > Math.Abs(l2 - 1)) MajorAngle = Math.Atan2(l1 - 1, x[3]);
+            else MajorAngle = Math.Atan2(l2 - 1, x[3]) + Math.PI / 2.0;
+            double b1 = x[1] * Math.Cos(MajorAngle) + x[2] * Math.Sin(MajorAngle);
+            double b2 = -x[1] * Math.Sin(MajorAngle) + x[2] * Math.Cos(MajorAngle);
+            double MajorRadius = Math.Sqrt(Math.Abs((b1 * b1 / l1 + b2 * b2 / l2 - x[0]) / l1));
+            double MinorRadius = Math.Sqrt(Math.Abs((b1 * b1 / l1 + b2 * b2 / l2 - x[0]) / l2));
+            Matrix a = new DenseMatrix(2, 2);
+            Vector c = new DenseVector(2);
             a[0, 0] = 1;
-            a[1, 0] = a[0, 1] = x[3, 0];
-            a[1, 1] = x[4, 0];
-            c[0, 0] = -x[1, 0];
-            c[1, 0] = -x[2, 0];
-            Matrix mp = a.SaveSolve(c);
-            if (mp == null) return null;
+            a[1, 0] = a[0, 1] = x[3];
+            a[1, 1] = x[4];
+            c[0] = -x[1];
+            c[1] = -x[2];
+            Vector mp = (Vector)a.Solve(c);
+            if (!mp.IsValid()) return null;
 
 
             //{	// ein Test, ob die Lösung auch stimmt. Es gibt Lösungen
@@ -228,7 +228,7 @@ namespace CADability.Curve2D
 
             // hier ist nun alles bestimmt:
             Angle MinorAngle = MajorAngle + SweepAngle.ToLeft;
-            Ellipse2D res = new Ellipse2D(new GeoPoint2D(mp[0, 0], mp[1, 0]), MajorRadius * new GeoVector2D(MajorAngle), MinorRadius * new GeoVector2D(MinorAngle));
+            Ellipse2D res = new Ellipse2D(new GeoPoint2D(mp[0], mp[1]), MajorRadius * new GeoVector2D(MajorAngle), MinorRadius * new GeoVector2D(MinorAngle));
             return res;
         }
 

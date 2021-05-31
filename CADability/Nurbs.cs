@@ -1,4 +1,5 @@
-﻿using CADability.LinearAlgebra;
+﻿using MathNet.Numerics.LinearAlgebra.Double;
+using MathNet.Numerics.LinearAlgebra.Factorization;
 using System;
 using System.Collections.Generic;
 
@@ -1196,10 +1197,10 @@ namespace CADability
                     q[2 * i + 1, j] = c[j];
                 }
             }
-            LinearAlgebra.Matrix lam = new CADability.LinearAlgebra.Matrix(matrix);
-            LinearAlgebra.Matrix laq = new CADability.LinearAlgebra.Matrix(q);
-            LinearAlgebra.LUDecomposition lud = lam.LUD();
-            LinearAlgebra.Matrix lapoles = lud.Solve(laq);
+            Matrix lam = DenseMatrix.OfArray(matrix);
+            Matrix laq = DenseMatrix.OfArray(q);
+            LU<double> lud = lam.LU();
+            Matrix lapoles = (Matrix)lud.Solve(laq);
             for (int i = 0; i < poles.Length; ++i)
             {
                 double[] lap = new double[dim];
@@ -1325,7 +1326,8 @@ namespace CADability
             poles = new T[throughpoints.Length];
             // 4. Matrix für das Gleichungssystem erzeugen
             // double[,] matrix = new double[poles.Length, poles.Length]; // sind alle 0
-            LinearAlgebra.BandedMatrix bmatrix = new CADability.LinearAlgebra.BandedMatrix(poles.Length, degree - 1, degree - 1);
+            Matrix bmatrix = new SparseMatrix(poles.Length, poles.Length);
+            // LinearAlgebra.BandedMatrix bmatrix = new CADability.LinearAlgebra.BandedMatrix(poles.Length, degree - 1, degree - 1);
             for (int i = 0; i < poles.Length; ++i)
             {
                 double[] bf;
@@ -1352,11 +1354,11 @@ namespace CADability
                 }
             }
             //LinearAlgebra.Matrix lam = new CADability.LinearAlgebra.Matrix(matrix);
-            LinearAlgebra.Matrix laq = new CADability.LinearAlgebra.Matrix(q);
+            Matrix laq = DenseMatrix.OfArray(q);
             //LinearAlgebra.LUDecomposition lud = lam.LUD();
             //LinearAlgebra.Matrix lapoles = lud.Solve(laq);
-            LinearAlgebra.Matrix bpoles;
-            bpoles = bmatrix.Solve(laq);
+            Matrix bpoles;
+            bpoles = (Matrix)bmatrix.Solve(laq);
             if (bpoles != null)
             {
                 for (int i = 0; i < poles.Length; ++i)
@@ -1470,7 +1472,8 @@ namespace CADability
             poles = new T[throughpoints.Length];
             // 4. Matrix für das Gleichungssystem erzeugen
             // double[,] matrix = new double[poles.Length, poles.Length]; // sind alle 0
-            BandedMatrix bmatrix = new BandedMatrix(poles.Length, degree - 1, degree - 1);
+            Matrix bmatrix = new SparseMatrix(poles.Length, poles.Length);
+            // BandedMatrix bmatrix = new BandedMatrix(poles.Length, degree - 1, degree - 1);
             for (int i = 0; i < poles.Length; ++i)
             {
                 double[] bf;
@@ -1497,11 +1500,11 @@ namespace CADability
                 }
             }
             //LinearAlgebra.Matrix lam = new CADability.LinearAlgebra.Matrix(matrix);
-            LinearAlgebra.Matrix laq = new CADability.LinearAlgebra.Matrix(q);
+            Matrix laq = DenseMatrix.OfArray(q);
             //LinearAlgebra.LUDecomposition lud = lam.LUD();
             //LinearAlgebra.Matrix lapoles = lud.Solve(laq);
-            LinearAlgebra.Matrix bpoles;
-            bpoles = bmatrix.Solve(laq);
+            Matrix bpoles;
+            bpoles = (Matrix)bmatrix.Solve(laq);
             if (bpoles != null)
             {
                 for (int i = 0; i < poles.Length; ++i)
@@ -3014,10 +3017,10 @@ namespace CADability
                         q[i, j] = c[j];
                     }
                 }
-                LinearAlgebra.Matrix lam = new CADability.LinearAlgebra.Matrix(matrix);
-                LinearAlgebra.Matrix laq = new CADability.LinearAlgebra.Matrix(q);
-                LinearAlgebra.LUDecomposition lud = lam.LUD();
-                LinearAlgebra.Matrix lapoles = lud.Solve(laq);
+                Matrix lam = DenseMatrix.OfArray(matrix);
+                Matrix laq = DenseMatrix.OfArray(q);
+                LU<double> lud = lam.LU();
+                Matrix lapoles = (Matrix)lud.Solve(laq);
                 // LinearAlgebra.Matrix bpoles;
                 // bpoles = bmatrix.Solve(laq);
                 if (lapoles != null)
@@ -3092,7 +3095,8 @@ namespace CADability
                 poles = new T[n + 1];
                 // 4. Matrix für das Gleichungssystem erzeugen
                 // double[,] matrix = new double[poles.Length, poles.Length]; // sind alle 0
-                LinearAlgebra.BandedMatrix bmatrix = new CADability.LinearAlgebra.BandedMatrix(poles.Length, degree - 1, degree - 1);
+                Matrix bmatrix = new SparseMatrix(poles.Length, poles.Length);
+                //LinearAlgebra.BandedMatrix bmatrix = new CADability.LinearAlgebra.BandedMatrix(poles.Length, degree - 1, degree - 1);
                 for (int i = 0; i < poles.Length; ++i)
                 {
                     double[] bf;
@@ -3117,12 +3121,12 @@ namespace CADability
                     }
                 }
                 //LinearAlgebra.Matrix lam = new CADability.LinearAlgebra.Matrix(matrix);
-                LinearAlgebra.Matrix laq = new CADability.LinearAlgebra.Matrix(q);
+                Matrix laq = DenseMatrix.OfArray(q);
                 //LinearAlgebra.LUDecomposition lud = lam.LUD();
                 //LinearAlgebra.Matrix lapoles = lud.Solve(laq);
-                LinearAlgebra.Matrix bpoles;
-                bpoles = bmatrix.Solve(laq);
-                if (bpoles != null)
+                Matrix bpoles;
+                bpoles = (Matrix)bmatrix.Solve(laq);
+                if (bpoles.IsValid())
                 {
                     for (int i = 0; i < poles.Length; ++i)
                     {
@@ -3212,7 +3216,8 @@ namespace CADability
             poles = new T[n + 3];
             // 4. Matrix für das Gleichungssystem erzeugen
             // double[,] matrix = new double[poles.Length, poles.Length]; // sind alle 0
-            LinearAlgebra.BandedMatrix bmatrix = new CADability.LinearAlgebra.BandedMatrix(poles.Length, degree - 1, degree - 1);
+            Matrix bmatrix = new SparseMatrix(poles.Length, poles.Length);
+            //LinearAlgebra.BandedMatrix bmatrix = new CADability.LinearAlgebra.BandedMatrix(poles.Length, degree - 1, degree - 1);
             bmatrix[0, 0] = 1.0;
             bmatrix[1, 0] = -1.0;
             bmatrix[1, 1] = 1.0;
@@ -3269,11 +3274,11 @@ namespace CADability
                 }
             }
             //LinearAlgebra.Matrix lam = new CADability.LinearAlgebra.Matrix(matrix);
-            LinearAlgebra.Matrix laq = new CADability.LinearAlgebra.Matrix(q);
+            Matrix laq = DenseMatrix.OfArray(q);
             //LinearAlgebra.LUDecomposition lud = lam.LUD();
             //LinearAlgebra.Matrix lapoles = lud.Solve(laq);
-            LinearAlgebra.Matrix bpoles;
-            bpoles = bmatrix.Solve(laq);
+            Matrix bpoles;
+            bpoles = (Matrix)bmatrix.Solve(laq);
             if (bpoles != null)
             {
                 for (int i = 0; i < poles.Length; ++i)
@@ -3400,10 +3405,10 @@ namespace CADability
             {
                 q[2 * n + 1, j] = c[j];
             }
-            LinearAlgebra.Matrix lam = new CADability.LinearAlgebra.Matrix(matrix);
-            LinearAlgebra.Matrix laq = new CADability.LinearAlgebra.Matrix(q);
-            LinearAlgebra.LUDecomposition lud = lam.LUD();
-            LinearAlgebra.Matrix lapoles = lud.Solve(laq);
+            Matrix lam = DenseMatrix.OfArray(matrix);
+            Matrix laq = DenseMatrix.OfArray(q);
+            LU<double> lud = lam.LU();
+            Matrix lapoles = (Matrix)lud.Solve(laq);
             if (lapoles != null)
             {
                 for (int i = 0; i < poles.Length; ++i)

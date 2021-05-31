@@ -1,8 +1,9 @@
 ﻿using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
 using CADability.Shapes;
 using CADability.UserInterface;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -152,9 +153,9 @@ namespace CADability
                         GeoVector u = curve3d.surface1.UDirection(p);
                         GeoVector v = curve3d.surface1.VDirection(p);
                         GeoVector n = u ^ v;
-                        Matrix m = new Matrix(u, v, n);
-                        Matrix s = m.SaveSolveTranspose(new Matrix(dir));
-                        if (s != null)
+                        Matrix m = DenseMatrix.OfColumnArrays(u, v, n);
+                        Vector s = (Vector)m.Solve(new DenseVector(dir));
+                        if (s.IsValid())
                         {
                             if (lpoint.Count > 0)
                             {
@@ -173,7 +174,7 @@ namespace CADability
                             lpoint.Add(p);
                             if (reversed) lparameters.Add(1.0 - par);
                             else lparameters.Add(par);
-                            ldirections.Add(new GeoVector2D(s[0, 0], s[1, 0]));
+                            ldirections.Add(new GeoVector2D(s[0], s[1]));
                         }
                     }
                 }
@@ -194,14 +195,14 @@ namespace CADability
                         GeoVector u = curve3d.surface2.UDirection(p);
                         GeoVector v = curve3d.surface2.VDirection(p);
                         GeoVector n = u ^ v;
-                        Matrix m = new Matrix(u, v, n);
-                        Matrix s = m.SaveSolveTranspose(new Matrix(dir));
-                        if (s != null)
+                        Matrix m = DenseMatrix.OfColumnArrays(u, v, n);
+                        Vector s = (Vector)m.Solve(new DenseVector(dir));
+                        if (s.IsValid())
                         {
                             lpoint.Add(p);
                             if (reversed) lparameters.Add(1.0 - par);
                             else lparameters.Add(par);
-                            ldirections.Add(new GeoVector2D(s[0, 0], s[1, 0]));
+                            ldirections.Add(new GeoVector2D(s[0], s[1]));
                         }
                     }
                 }
@@ -258,15 +259,15 @@ namespace CADability
                     GeoVector u = curve3d.surface1.UDirection(uv1);
                     GeoVector v = curve3d.surface1.VDirection(uv1);
                     GeoVector n = u ^ v; // geändert, wird bei BRepIntersection12 so gebraucht
-                    Matrix m = new Matrix(u, v, n);
-                    Matrix s = m.SaveSolveTranspose(new Matrix(dir));
+                    Matrix m = DenseMatrix.OfColumnArrays(u, v, n);
+                    Vector s = (Vector)m.Solve(new DenseVector(dir));
                     int ind = curve3d.SegmentOfParameter(par);
                     double d = curve3d.basePoints[ind].psurface1 | curve3d.basePoints[ind + 1].psurface1; // Abstand der umgebenden Basispunkte
                     double span = 1.0 / (curve3d.basePoints.Length - 1); // Parameterbereich zwischen zwei Basispunkten
-                    if (s != null && s[0, 0] != 0.0 && s[1, 0] != 0.0)
+                    if (s.IsValid() && s[0] != 0.0 && s[1] != 0.0)
                     {
-                        GeoVector dbg = s[0, 0] * u + s[1, 0] * v + s[2, 0] * n;
-                        return d / span * (new GeoVector2D(s[0, 0], s[1, 0])).Normalized;
+                        GeoVector dbg = s[0] * u + s[1] * v + s[2] * n;
+                        return d / span * (new GeoVector2D(s[0], s[1])).Normalized;
                     }
                     else
                     {
@@ -281,14 +282,14 @@ namespace CADability
                     GeoVector u = curve3d.surface2.UDirection(uv2);
                     GeoVector v = curve3d.surface2.VDirection(uv2);
                     GeoVector n = u ^ v;
-                    Matrix m = new Matrix(u, v, n);
-                    Matrix s = m.SaveSolveTranspose(new Matrix(dir));
+                    Matrix m = DenseMatrix.OfColumnArrays(u, v, n);
+                    Vector s = (Vector)m.Solve(new DenseVector(dir));
                     int ind = curve3d.SegmentOfParameter(par);
                     double d = curve3d.basePoints[ind].psurface2 | curve3d.basePoints[ind + 1].psurface2; // Abstand der umgebenden Basispunkte
                     double span = 1.0 / (curve3d.basePoints.Length - 1); // Parameterbereich zwischen zwei Basispunkten
-                    if (s != null && s[0, 0] != 0.0 && s[1, 0] != 0.0)
+                    if (s.IsValid() && s[0] != 0.0 && s[1] != 0.0)
                     {
-                        return d / span * (new GeoVector2D(s[0, 0], s[1, 0])).Normalized;
+                        return d / span * (new GeoVector2D(s[0], s[1])).Normalized;
                     }
                     else
                     {
@@ -567,6 +568,14 @@ namespace CADability
                 // es muss sich hier um eine geometrisch identische Kurve handeln (Richtung?)
                 ClearTriangulation();
             }
+
+            public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+            {
+                point = GeoPoint2D.Origin;
+                deriv = deriv2 = GeoVector2D.NullVector;
+                return false;
+            }
+
             internal InterpolatedDualSurfaceCurve Curve3D
             {
                 get
@@ -1159,7 +1168,7 @@ namespace CADability
                 dc.Add(fc2);
                 dc.Add(fc3);
 #endif
-                Matrix m = new Matrix(new double[,]
+                Matrix m = DenseMatrix.OfArray(new double[,]
                 {
                     {du1.x,dv1.x,0,0,du3.x,dv3.x},
                     {du1.y,dv1.y,0,0,du3.y,dv3.y},
@@ -1168,7 +1177,7 @@ namespace CADability
                     {0,0,du2.y,dv2.y,du3.y,dv3.y},
                     {0,0,du2.z,dv2.z,du3.z,dv3.z},
                 });
-                Matrix s = m.Solve(new Matrix(new double[,] { { location.x - p1.x }, { location.y - p1.y }, { location.z - p1.z } ,
+                Matrix s = (Matrix)m.Solve(DenseMatrix.OfArray(new double[,] { { location.x - p1.x }, { location.y - p1.y }, { location.z - p1.z } ,
                 { location.x - p2.x }, { location.y - p2.y }, { location.z - p2.z } }));
                 uv1.x += s[0, 0];
                 uv1.y += s[1, 0];
@@ -1889,7 +1898,7 @@ namespace CADability
                 uv1 = basePoints[ind].psurface1 + d * (basePoints[ind + 1].psurface1 - basePoints[ind].psurface1);
                 uv2 = basePoints[ind].psurface2 + d * (basePoints[ind + 1].psurface2 - basePoints[ind].psurface2);
                 if (approxPolynom == null) InitApproxPolynom();
-                if (approxPolynom != null && basePoints.Length>2)
+                if (approxPolynom != null && basePoints.Length > 2)
                 {
                     GeoPoint pp = approxPolynom.PointAt(position);
                     uv1 = surface1.PositionOf(pp);
@@ -1964,19 +1973,18 @@ namespace CADability
                         dc.Add(dbgl);
                     }
 #endif
-                    Matrix m = new Matrix(new double[,]
+                    Matrix m = DenseMatrix.OfArray(new double[,]
                     {
-                    {du1.x,dv1.x,0,0,du3.x,dv3.x},
-                    {du1.y,dv1.y,0,0,du3.y,dv3.y},
-                    {du1.z,dv1.z,0,0,du3.z,dv3.z},
-                    {0,0,du2.x,dv2.x,du3.x,dv3.x},
-                    {0,0,du2.y,dv2.y,du3.y,dv3.y},
-                    {0,0,du2.z,dv2.z,du3.z,dv3.z},
+                        {du1.x,dv1.x,0,0,du3.x,dv3.x},
+                        {du1.y,dv1.y,0,0,du3.y,dv3.y},
+                        {du1.z,dv1.z,0,0,du3.z,dv3.z},
+                        {0,0,du2.x,dv2.x,du3.x,dv3.x},
+                        {0,0,du2.y,dv2.y,du3.y,dv3.y},
+                        {0,0,du2.z,dv2.z,du3.z,dv3.z},
                     });
-                    Matrix s = m.SaveSolve(new Matrix(new double[,] { { location.x - p1.x }, { location.y - p1.y }, { location.z - p1.z } ,
-                { location.x - p2.x }, { location.y - p2.y }, { location.z - p2.z } }));
-
-                    if (s != null)
+                    Matrix s = (Matrix)m.Solve(DenseMatrix.OfArray(new double[,] { { location.x - p1.x }, { location.y - p1.y }, { location.z - p1.z } ,
+                        { location.x - p2.x }, { location.y - p2.y }, { location.z - p2.z } }));
+                    if (s.IsValid())
                     {
                         GeoPoint2D uv1alt = uv1;
                         GeoPoint2D uv2alt = uv2;

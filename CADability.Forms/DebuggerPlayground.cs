@@ -39,13 +39,22 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                //TestCylinderNP();
-                if (frame.Project.GetActiveModel()[0] is Solid sld)
-                {
-                    SimpleShape ss = sld.Shells[0].GetShadow(Plane.XZPlane);
-                }
-
-                    return true;
+                BoxedSurfaceExtension.Test();
+                //Line2D l1 = new Line2D(new GeoPoint2D(10, 11), new GeoPoint2D(102, 103));
+                //Line2D l2 = new Line2D(new GeoPoint2D(104, 15), new GeoPoint2D(16, 107));
+                //double par1 = 0.0, par2 = 0.0;
+                //GeoPoint2D ip = GeoPoint2D.Origin;
+                //BoxedSurfaceExtension.CurveIntersection2D(l1, 0, 1, l2, 0, 1, ref par1, ref par2, ref ip);
+                //if (frame.SelectedObjects.Count == 2)
+                //{
+                //    Hatch h1 = frame.SelectedObjects[0] as Hatch;
+                //    Hatch h2 = frame.SelectedObjects[1] as Hatch;
+                //    if (h1 != null && h2 != null)
+                //    {
+                //        CompoundShape res = CompoundShape.Difference(h1.CompoundShape, h2.CompoundShape);
+                //    }
+                //}
+                return true;
             }
             return false;
         }

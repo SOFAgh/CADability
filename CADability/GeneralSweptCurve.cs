@@ -1,8 +1,8 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
 using CADability.UserInterface;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -690,15 +690,15 @@ namespace CADability
                 // GeoVector p = toSweep.PointAt(uv.x) - baseLoc;
 
                 GeoPoint dbg1 = modOpAt(uv.y) * toSweep.PointAt(uv.x);
-                Matrix m = Matrix.RowVector(dirX, dirY, dirZ);
-                Matrix b = Matrix.RowVector(dbg1 - baseLoc);
-                Matrix x = m.SaveSolve(b);
-                if (x != null)
+                Matrix m = DenseMatrix.OfColumnArrays(dirX, dirY, dirZ);
+                Vector b = new DenseVector(dbg1 - baseLoc);
+                Vector x = (Vector)m.Solve(b);
+                if (x.IsValid())
                 {
-                    GeoPoint dbg2 = baseLoc + x[0, 0] * dirX + x[1, 0] * dirY + x[2, 0] * dirZ;
-                    p.x = x[0, 0];
-                    p.y = x[1, 0];
-                    p.z = x[2, 0];
+                    GeoPoint dbg2 = baseLoc + x[0] * dirX + x[1] * dirY + x[2] * dirZ;
+                    p.x = x[0];
+                    p.y = x[1];
+                    p.z = x[2];
                 }
 
                 GeoVector ddirx = deriv2;

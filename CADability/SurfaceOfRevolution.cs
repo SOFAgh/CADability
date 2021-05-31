@@ -723,17 +723,17 @@ namespace CADability.GeoObject
             public HyperbolaHelp(GeoPoint sp, GeoVector dir, double ymin, double ymax)
             {   // sp & dir must be in the unit system, ymin & ymax the extent of the curve in the unit system
                 double par1, par2;
-                a = Geometry.DistLLWrongPar2(sp, dir, GeoPoint.Origin, GeoVector.YAxis, out par1, out par2);
+                a = Geometry.DistLL(sp, dir, GeoPoint.Origin, GeoVector.YAxis, out par1, out par2);
                 yoffset = par2;
                 GeoPoint test = sp;
                 if ((Geometry.DistPL(sp, GeoPoint.Origin, GeoVector.YAxis) - a) < Precision.eps)
                     test += dir;
                 double xquad = test.x * test.x + test.z * test.z;
-                double y = test.y - yoffset;
+                double y = test.y + yoffset;
                 b = y * a / (xquad - a * a);
-                double tminhelp = (ymin - yoffset) / b;
+                double tminhelp = (ymin + yoffset) / b;
                 tmin = Math.Log(tminhelp + Math.Sqrt(tminhelp * tminhelp + 1));
-                double tmaxhelp = (ymax - yoffset) / b;
+                double tmaxhelp = (ymax + yoffset) / b;
                 tmax = Math.Log(tmaxhelp + Math.Sqrt(tmaxhelp * tmaxhelp + 1));
                 this.ymin = ymin;
                 this.ymax = ymax;
@@ -928,7 +928,7 @@ namespace CADability.GeoObject
                 GeoVector dir = fromSurface * direction;
 
                 double par1, par2;
-                if (Geometry.DistLLWrongPar2(sp, dir, GeoPoint.Origin, new GeoVector(0, 1, 0), out par1, out par2) < Precision.eps)
+                if (Geometry.DistLL(sp, dir, GeoPoint.Origin, new GeoVector(0, 1, 0), out par1, out par2) < Precision.eps)
                 {
                     GeoPoint2DWithParameter[] old1 = basisCurve2D.Intersect(new GeoPoint2D(Math.Sqrt(sp.x * sp.x + sp.z * sp.z), sp.y),
                         new GeoPoint2D(Math.Sqrt((sp.x + dir.x) * (sp.x + dir.x) + (sp.z + dir.z) * (sp.z + dir.z)), sp.y + dir.y));

@@ -2450,6 +2450,14 @@ namespace CADability.GeoObject
                 }
             }
         }
+        public void SetDirections(GeoVector lineDirection, GeoVector glyphDirection)
+        {
+            using (new Changing(this))
+            {
+                this.glyphDirection = glyphDirection;
+                this.lineDirection = lineDirection;
+            }
+        }
         public GeoVector GlyphDirectionKeepSize
         {
             get { return glyphDirection; }

@@ -1,5 +1,5 @@
 ﻿using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -848,8 +848,8 @@ namespace CADability
             GeoVector dir2 = tri3 - tri1;
             GeoVector dir3 = dir1 ^ dir2;
             // Gleichung tri1 + l*dir1 + m*dir2 + n*dir3 = Eckpunkt vom cube
-            Matrix m = new Matrix(dir1, dir2, dir3);
-            Matrix b = new Matrix(new GeoPoint(Xmin, Ymin, Zmin) - tri1,
+            Matrix m = DenseMatrix.OfRowArrays(dir1, dir2, dir3);
+            Matrix b = DenseMatrix.OfRowArrays(new GeoPoint(Xmin, Ymin, Zmin) - tri1,
                 new GeoPoint(Xmax, Ymin, Zmin) - tri1,
                 new GeoPoint(Xmin, Ymax, Zmin) - tri1,
                 new GeoPoint(Xmax, Ymax, Zmin) - tri1,
@@ -858,11 +858,11 @@ namespace CADability
                 new GeoPoint(Xmin, Ymax, Zmax) - tri1,
                 new GeoPoint(Xmax, Ymax, Zmax) - tri1
                 );
-            Matrix res = m.SaveSolveTranspose(b);
+            Matrix res = (Matrix)m.Transpose().Solve(b.Transpose());
             // wenn zwei Eckpunkte verschiedenes Z haben (im Sinne des Dreiecks, dann könnte die verbindungslinie durchs Dreieck gehen
-            if (res != null)
+            if (res.IsValid())
             {
-                res.Transpose();
+                res = (Matrix)res.Transpose();
                 int s1 = Math.Sign(res[0, 2]);
                 for (int i = 1; i < 8; ++i)
                 {
@@ -871,11 +871,10 @@ namespace CADability
                         // die Ebene des Dreiecks
                         dir3 = new GeoPoint(b[i, 0], b[i, 1], b[i, 2]) - new GeoPoint(b[0, 0], b[0, 1], b[0, 2]);
                         // hier endet die Schleife, so oder so, die Variablen m, b, res können also recyclet werden
-                        m = new Matrix(dir1, dir2, dir3);
-                        b = new Matrix(new GeoVector(b[0, 0], b[0, 1], b[0, 2]));
-                        res = m.SolveTranspose(b);
-                        res.Transpose();
-                        if (res[0, 0] >= 0.0 && res[0, 0] <= 1.0 && res[0, 1] >= 0.0 && res[0, 1] <= 1.0 && (res[0, 0] + res[0, 1]) <= 1.0) return true;
+                        m = DenseMatrix.OfColumnArrays(dir1, dir2, dir3);
+                        Vector v = new DenseVector(new GeoVector(b[0, 0], b[0, 1], b[0, 2]));
+                        Vector resv = (Vector)m.Solve(v);
+                        if (resv[0] >= 0.0 && resv[0] <= 1.0 && resv[1] >= 0.0 && resv[1] <= 1.0 && (resv[0] + resv[1]) <= 1.0) return true;
                         return false; // die Linie geht nicht durchs Dreieck, dann sicher Dreieck außerhalb vom cube
                     }
                 }
@@ -893,13 +892,13 @@ namespace CADability
             return true;
         }
         /// <summary>
-        /// Returns true if the provided tetraeder (given by the four points tetra1..tetra4) and this
+        /// Returns true if the provided tetrahedron (given by the four points tetra1..tetra4) and this
         /// BoundingCube interfere
         /// </summary>
-        /// <param name="tetra1">1st tetraeder vertex</param>
-        /// <param name="tetra2">2nd tetraeder vertex</param>
-        /// <param name="tetra3">3rd tetraeder vertex</param>
-        /// <param name="tetra4">4th tetraeder vertex</param>
+        /// <param name="tetra1">1st tetrahedron vertex</param>
+        /// <param name="tetra2">2nd tetrahedron vertex</param>
+        /// <param name="tetra3">3rd tetrahedron vertex</param>
+        /// <param name="tetra4">4th tetrahedron vertex</param>
         /// <returns>True if objects interfere</returns>
         public bool Interferes(GeoPoint tetra1, GeoPoint tetra2, GeoPoint tetra3, GeoPoint tetra4)
         {
@@ -1224,8 +1223,8 @@ namespace CADability
 
             // nicht alle auf einer Seite, keine Kante schneidet
             // wir drehen den also Spieß um (und achten auf die gleiche Reihenfolge der Punkte)
-            Matrix m = Matrix.RowVector(dirx, diry, dirz);
-            Matrix s = m.SaveSolve(Matrix.RowVector(
+            Matrix m = DenseMatrix.OfColumnArrays(dirx, diry, dirz);
+            Matrix s = (Matrix)m.Solve(DenseMatrix.OfColumnArrays(
                 new GeoPoint(Xmin, Ymin, Zmin) - loc,
                 new GeoPoint(Xmax, Ymin, Zmin) - loc,
                 new GeoPoint(Xmin, Ymax, Zmin) - loc,
@@ -1234,7 +1233,7 @@ namespace CADability
                 new GeoPoint(Xmax, Ymin, Zmax) - loc,
                 new GeoPoint(Xmin, Ymax, Zmax) - loc,
                 new GeoPoint(Xmax, Ymax, Zmax) - loc));
-            if (s != null)
+            if (s.IsValid())
             {   // sonst hat das parallelepiped keine z-Ausdehnung
                 call = ClipAll; // alle bits gesetzt
                 for (int i = 0; i < 8; ++i)

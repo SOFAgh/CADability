@@ -8,6 +8,7 @@ using System.Drawing;
 using Point = System.Drawing.Point;
 #endif
 using System.Runtime.Serialization;
+using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability.GeoObject
 {
@@ -937,13 +938,13 @@ namespace CADability.GeoObject
             m[0, 1] = plane.DirectionY.x;
             m[1, 0] = plane.DirectionX.y;
             m[1, 1] = plane.DirectionY.y;
-            double[,] b = new double[,] { { p.x - plane.Location.x }, { p.y - plane.Location.y } };
-            LinearAlgebra.Matrix mx = new CADability.LinearAlgebra.Matrix(m);
-            LinearAlgebra.Matrix s = mx.SaveSolve(new CADability.LinearAlgebra.Matrix(b));
+            double[] b = new double[] {  p.x - plane.Location.x ,  p.y - plane.Location.y  };
+            Matrix mx = DenseMatrix.OfArray(m);
+            Vector s = (Vector)mx.Solve(new DenseVector(b));
             if (s != null)
             {
-                double l1 = s[0, 0];
-                double l2 = s[1, 0];
+                double l1 = s[0];
+                double l2 = s[1];
                 return plane.Location.z + l1 * plane.DirectionX.z + plane.DirectionY.z;
             }
             else

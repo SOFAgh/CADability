@@ -202,6 +202,14 @@ namespace CADability.Curve2D
             info.AddValue("FromUnit", fromUnit, typeof(ModOp2D));
         }
 
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {   // not yet tested
+            point = fromUnit * new GeoPoint2D(position, Math.Sin(ustart + position * udiff));
+            deriv = fromUnit * new GeoVector2D(1, udiff * Math.Cos(ustart + position * udiff));
+            deriv2 = fromUnit * new GeoVector2D(1, -udiff *udiff * Math.Sin(ustart + position * udiff));
+            return true;
+        }
+
         #endregion
     }
 }

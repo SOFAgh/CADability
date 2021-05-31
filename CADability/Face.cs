@@ -1,7 +1,7 @@
 ﻿using CADability.Actions;
 using CADability.Attribute;
 using CADability.Curve2D;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.Shapes;
 using CADability.UserInterface;
 using System;
@@ -5570,16 +5570,16 @@ namespace CADability.GeoObject
                     // dirx = p2-p1, diry = p3-p1, dirz = direction, org = p1
                     // org + x*dirx + y*diry+z = fromHere + z*direction
                     // x>0, y>0, x+y<1: getroffen
-                    Matrix m = new Matrix(p2 - p1, p3 - p1, -direction);
-                    Matrix b = new Matrix(fromHere - p1);
-                    Matrix x = m.SaveSolveTranspose(b); // liefert gleichzeitig die Bedingung für innen und den Abstand
+                    Matrix m = DenseMatrix.OfColumnArrays(p2 - p1, p3 - p1, -direction);
+                    Vector b = new DenseVector(fromHere - p1);
+                    Vector x = (Vector)m.Solve(b); // liefert gleichzeitig die Bedingung für innen und den Abstand
                     if (x != null)
                     {
-                        if (x[0, 0] >= 0.0 && x[1, 0] >= 0.0 && (x[0, 0] + x[1, 0]) <= 1.0)
+                        if (x[0] >= 0.0 && x[1] >= 0.0 && (x[0] + x[1]) <= 1.0)
                         {
-                            if (x[2, 0] < res)
+                            if (x[2] < res)
                             {
-                                res = x[2, 0];
+                                res = x[2];
                             }
                         }
                     }
@@ -7416,16 +7416,16 @@ namespace CADability.GeoObject
                         // dirx = p2-p1, diry = p3-p1, dirz = direction, org = p1
                         // org + x*dirx + y*diry+z = fromHere + z*direction
                         // x>0, y>0, x+y<1: getroffen
-                        Matrix m = new Matrix(p2 - p1, p3 - p1, -direction);
-                        Matrix b = new Matrix(fromHere - p1);
-                        Matrix x = m.SaveSolveTranspose(b); // liefert gleichzeitig die Bedingung für innen und den Abstand
+                        Matrix m = DenseMatrix.OfColumnArrays(p2 - p1, p3 - p1, -direction);
+                        Vector b = new DenseVector(fromHere - p1);
+                        Vector x = (Vector)m.Solve(b); // liefert gleichzeitig die Bedingung für innen und den Abstand
                         if (x != null)
                         {
-                            if (x[0, 0] >= 0.0 && x[1, 0] >= 0.0 && (x[0, 0] + x[1, 0]) <= 1.0)
+                            if (x[0] >= 0.0 && x[1] >= 0.0 && (x[0] + x[1]) <= 1.0)
                             {
-                                if (x[2, 0] < res)
+                                if (x[2] < res)
                                 {
-                                    res = x[2, 0];
+                                    res = x[2];
                                 }
                             }
                         }

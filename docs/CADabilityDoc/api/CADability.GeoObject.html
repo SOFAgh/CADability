@@ -94,7 +94,10 @@ A collection of several <a class="xref" href="CADability.GeoObject.IGeoObject.ht
 cone. The u parameter always describes a circle or ellipse, the v parameter a Line.</p>
 </section>
       <h4><a class="xref" href="CADability.GeoObject.ConicalSurfaceNP.html">ConicalSurfaceNP</a></h4>
-      <section></section>
+      <section><p>Conical surface with a uv system (parametric space) which is not periodic and has no pole. The uv system correspond to a plane through the apex perpendicular to the axis
+which contains the projected cone to this plane. Disadvantage is numeric precision when the opening angle is very small. A solution would be an offset and a factor
+which only projects the &quot;used area&quot; of this cone to a standard ring</p>
+</section>
       <h4><a class="xref" href="CADability.GeoObject.CurveException.html">CurveException</a></h4>
       <section><p>Exception thrown by object implementing <a class="xref" href="CADability.GeoObject.ICurve.html">ICurve</a>.</p>
 </section>
