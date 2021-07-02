@@ -253,7 +253,7 @@ namespace CADability.Actions
             Color backColor = base.Frame.GetColorSetting("Colors.Feedback", Color.DarkGray);
             feedBackEllipse.ColorDef = new ColorDef("", backColor);
             base.FeedBack.Add(feedBackEllipse);
-            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "RotateSmall.cur");
+            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "RotateSmall");
 
             //--> diese Inputs werden gebraucht
             GeoPointInput refPointInput = new GeoPointInput("Objects.RefPoint");
