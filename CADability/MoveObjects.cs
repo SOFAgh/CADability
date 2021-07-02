@@ -123,7 +123,7 @@ namespace CADability.Actions
             feedBackLine = Line.Construct();
             Color backColor = base.Frame.GetColorSetting("Colors.Feedback", Color.DarkGray);
             feedBackLine.ColorDef = new ColorDef("", backColor);
-            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "Move.cur");
+            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "Move");
 
 
             vec = new GeoVectorInput("MoveObjects.Vector");
