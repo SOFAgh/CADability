@@ -332,7 +332,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyPicture(this, Frame);
         }
@@ -490,11 +490,11 @@ namespace CADability.GeoObject
     }
 
 
-    public class ShowPropertyPicture : IShowPropertyImpl, ICommandHandler, IGeoObjectShowProperty, IDisplayHotSpots
+    public class ShowPropertyPicture : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty, IDisplayHotSpots
     {
         private IFrame frame;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-        private IShowProperty[] subEntries;
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries;
         private Picture picture;
         private GeoVectorProperty dirWidth;
         private GeoVectorProperty dirHeight;
@@ -581,7 +581,7 @@ namespace CADability.GeoObject
             frame.SetAction(gpa);
         }
 
-#region IShowProperty overrides
+        #region IPropertyEntry overrides
         private void OnGeoObjectDidChange(IGeoObject Sender, GeoObjectChange Change)
         {	// wird bei Änderungen der Geometrie aufgerufen, Abgleich der Anzeigen
             location.Refresh();
@@ -597,22 +597,20 @@ namespace CADability.GeoObject
             }
         }
         /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
+        /// Overrides <see cref="PropertyEntryImpl.Added (IPropertyTreeView)"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
         public override void Added(IPropertyPage propertyTreeView)
-        {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
-            // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
+        {	
             picture.DidChangeEvent += new ChangeDelegate(OnGeoObjectDidChange);
             base.Added(propertyTreeView);
-            OnGeoObjectDidChange(picture, null); // einmal die Hotspots reaktivieren, falls eine
-            // andere Zwischenänderung dran war
+            OnGeoObjectDidChange(picture, null); // reactivate HotSpots
         }
         /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Removed (IPropertyTreeView)"/>
+        /// Overrides <see cref="PropertyEntryImpl.Removed (IPropertyTreeView)"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyTreeView)
         {
             picture.DidChangeEvent -= new ChangeDelegate(OnGeoObjectDidChange);
             base.Removed(propertyTreeView);
@@ -642,27 +640,20 @@ namespace CADability.GeoObject
             }
             base.Opened(IsOpen);
         }
-        public override ShowPropertyEntryType EntryType
+        public override PropertyEntryType Flags 
         {
             get
             {
-                return ShowPropertyEntryType.GroupTitle;
+                return PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
             }
         }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> prop = new List<IShowProperty>();
+                    List<IPropertyEntry> prop = new List<IPropertyEntry>();
                     prop.Add(path);
                     prop.Add(location);
                     prop.Add(width);
@@ -671,8 +662,8 @@ namespace CADability.GeoObject
                     prop.Add(dirHeight);
                     prop.Add(keepAspectRatio);
                     prop.Add(rectangular);
-                    IShowProperty[] mainProps = prop.ToArray();
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    IPropertyEntry[] mainProps = prop.ToArray();
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
             }
@@ -757,16 +748,6 @@ namespace CADability.GeoObject
         {
             picture.Location = p;
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
-        }
 #endregion
 #region ICommandHandler Members
         bool ICommandHandler.OnCommand(string MenuId)
@@ -848,10 +829,7 @@ namespace CADability.GeoObject
         /// </summary>
         public void ReloadProperties()
         {
-            // TODO:  Add ShowPropertyLine.ReloadProperties implementation
-            // ich glaube, hier muss man nix machen, da sich ja nie was ändert, oder?
-            // TODO: aus dem IDisplayHotSpots interface entfernen und 
-            base.propertyTreeView.Refresh(this);
+            base.propertyPage.Refresh(this);
         }
 
 #endregion

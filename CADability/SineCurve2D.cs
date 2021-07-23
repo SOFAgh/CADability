@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 namespace CADability.Curve2D
 {
     [Serializable()]
-    public class SineCurve2D : TriangulatedCurve2D, ISerializable
+    public class SineCurve2D : GeneralCurve2D, ISerializable
     {
         double ustart, udiff;
         ModOp2D fromUnit;
@@ -129,6 +129,10 @@ namespace CADability.Curve2D
             double r4 = triangle - fromUnit.Determinant * (a0 - a1);
             System.Diagnostics.Trace.WriteLine("SinArea. " + (udiff > 0).ToString() + ", " + (fromUnit.Determinant > 0).ToString() + ", " + aa.ToString() + ", " + r1.ToString() + ", " + r2.ToString() + ", " + r3.ToString() + ", " + r4.ToString());
 #endif
+        }
+        internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
+        {
+            GetTriangulationBasis(out interpol, out _, out interparam);
         }
 
         protected override void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] positions)

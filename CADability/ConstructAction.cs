@@ -964,12 +964,12 @@ namespace CADability.Actions
         /// </summary>
         {
             SimplePropertyGroup simplePropertyGroup; // der Container
-            IShowProperty[] contents; // der Inhalt, wenn es noch keinen Container gibt
+            IPropertyEntry[] contents; // der Inhalt, wenn es noch keinen Container gibt
             public InputContainer(string resourceId)
                 : base(resourceId)
             {
             }
-            public void SetShowProperties(IShowProperty[] contents)
+            public void SetShowProperties(IPropertyEntry[] contents)
             {
                 if (simplePropertyGroup == null)
                 {
@@ -992,7 +992,7 @@ namespace CADability.Actions
                     base.constructAction.propertyTreeView.OpenSubEntries(simplePropertyGroup, open);
                 }
             }
-            public IShowProperty[] GetShowProperties()
+            public IPropertyEntry[] GetShowProperties()
             {
                 if (simplePropertyGroup == null)
                 {
@@ -1000,7 +1000,7 @@ namespace CADability.Actions
                 }
                 else
                 {
-                    return simplePropertyGroup.SubEntries;
+                    return simplePropertyGroup.SubItems;
                 }
             }
 #region IInputObject Members

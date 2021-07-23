@@ -370,5 +370,10 @@ namespace CADability
         {
             return new GroupProperty("ScaledSurface", new IPropertyEntry[0]);
         }
+
+        public double Fit(IEnumerable<GeoPoint> toPoints)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

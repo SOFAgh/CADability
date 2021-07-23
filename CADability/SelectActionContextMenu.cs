@@ -452,6 +452,8 @@ namespace CADability
 
         private void OnRepaintSelect(Rectangle IsInvalid, IView View, IPaintTo3D PaintToSelect)
         {
+            PaintToSelect.PushState();
+            bool oldSelect = PaintToSelect.SelectMode;
             PaintToSelect.SelectMode = true;
             PaintToSelect.SelectColor = Color.Yellow;
             int wobbleWidth = 3;
@@ -465,6 +467,8 @@ namespace CADability
                 displayList = PaintToSelect.CloseList();
                 PaintToSelect.SelectedList(displayList, wobbleWidth);
             }
+            PaintToSelect.SelectMode = oldSelect;
+            PaintToSelect.PopState();
         }
 
         private void ContextMenuCollapsed(int dumy)

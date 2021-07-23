@@ -127,12 +127,12 @@ namespace CADability.UserInterface
         }
         public override void Refresh()
         {
-            if (propertyTreeView == null) return;
+            if (propertyPage == null) return;
             bool wasOpen = false;
-            if (subEntries != null && propertyTreeView.IsOpen(this))
+            if (subEntries != null && propertyPage.IsOpen(this))
             {
                 wasOpen = true;
-                propertyTreeView.OpenSubEntries(this, false);
+                propertyPage.OpenSubEntries(this, false);
             }
             if (subEntries != null && controlledObject.GetGeoPointCount() != subEntries.Length)
             {
@@ -153,7 +153,7 @@ namespace CADability.UserInterface
             }
             if (wasOpen)
             {
-                propertyTreeView.OpenSubEntries(this, true);
+                propertyPage.OpenSubEntries(this, true);
             }
         }
         /// <summary>
@@ -162,14 +162,14 @@ namespace CADability.UserInterface
         /// <param name="initialValue">initial value of the new point</param>
         public void Append(GeoPoint initialValue)
         {
-            if (propertyTreeView.Selected != null && propertyTreeView.Selected is GeoPointProperty gpp) propertyTreeView.SelectEntry(this);
+            if (propertyPage.Selected != null && propertyPage.Selected is GeoPointProperty gpp) propertyPage.SelectEntry(this);
             subEntries = null; // damit werden diese ungültig
             controlledObject.InsertGeoPoint(-1, initialValue);
-            if (propertyTreeView != null)
+            if (propertyPage != null)
             {
-                propertyTreeView.Refresh(this); // damit werden neue subEntries erzeugt
-                propertyTreeView.OpenSubEntries(this, false);
-                propertyTreeView.OpenSubEntries(this, true);
+                propertyPage.Refresh(this); // damit werden neue subEntries erzeugt
+                propertyPage.OpenSubEntries(this, false);
+                propertyPage.OpenSubEntries(this, true);
             }
         }
         //public bool MouseEnabled(int Index)
@@ -183,30 +183,30 @@ namespace CADability.UserInterface
         /// <param name="open">true: open, false: close</param>
         public void ShowOpen(bool open)
         {
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, open);
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, open);
         }
         public void SetFocusToIndex(int index)
         {
-            if (propertyTreeView != null && subEntries != null && subEntries.Length > index)
+            if (propertyPage != null && subEntries != null && subEntries.Length > index)
             {
-                if (propertyTreeView.IsOpen(this))
+                if (propertyPage.IsOpen(this))
                 {
-                    propertyTreeView.SelectEntry(subEntries[index] as IPropertyEntry);
+                    propertyPage.SelectEntry(subEntries[index] as IPropertyEntry);
                 }
             }
         }
         //public void EnableMouse(int Index)
         //{
-        //    if (propertyTreeView!=null) 
+        //    if (propertyPage!=null) 
         //    {
         //        GeoPointProperty gpp = subEntries[Index] as GeoPointProperty;
         //        gpp.SetMouseButton(MouseButtonMode.MouseActive);
         //    }
         //}
 #region IShowPropertyImpl Overrides
-        public override void Added(IPropertyPage propertyTreeView)
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
             IShowProperty[] sub = SubEntries;
             for (int i = 0; i < sub.Length; ++i)
             {
@@ -388,12 +388,12 @@ namespace CADability.UserInterface
         /// <param name="index">Where to insert</param>
         /// <param name="after">true: insert after this index, false: insert before this index</param>
         /// <returns>The new point to be inserted</returns>
-        public delegate GeoPoint GetInsertionPointDelegate(IShowProperty sender, int index, bool after);
+        public delegate GeoPoint GetInsertionPointDelegate(IPropertyEntry sender, int index, bool after);
         /// <summary>
         /// When a point is about to be inserted this property needs some initial value.
         /// The default initial value is the same point as the first/last point, when inserted before the first
-        /// or after the last point, and the middle point of the intervall where the point is to be inserted.
-        /// If you wisch another behaviour add a handler to this event and return the appropriate point.
+        /// or after the last point, and the middle point of the interval where the point is to be inserted.
+        /// If you wish another behavior add a handler to this event and return the appropriate point.
         /// </summary>
         public GetInsertionPointDelegate GetInsertionPointEvent;
 

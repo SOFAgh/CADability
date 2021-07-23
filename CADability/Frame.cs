@@ -424,9 +424,12 @@ namespace CADability
             }
             set
             {
-                activeView = value;
-                canvas.ShowView(activeView);
-                SetViewProperties();
+                if (activeView != value)
+                {
+                    activeView = value;
+                    canvas.ShowView(activeView);
+                    SetViewProperties();
+                }
             }
         }
         public void AddView(IView toAdd)
@@ -1009,8 +1012,10 @@ namespace CADability
                     SetAction(new ZoomAction());
                     return true;
                 case "MenuId.Zoom.DetailPlus":
+                    ActiveView.ZoomDelta(1 / mouseWheelZoomFactor);
                     return false;
                 case "MenuId.Zoom.DetailMinus":
+                    ActiveView.ZoomDelta(mouseWheelZoomFactor);
                     return false;
                 case "MenuId.Zoom.Total":
                     ActiveView.ZoomTotal(1.1);
@@ -2374,7 +2379,7 @@ namespace CADability
                         // parallel triangulate all faces with this precision to show a progress bar
                         // then zoom total 
                         ModelView mv = FirstModelView;
-                        // display the firts ModelView
+                        // display the first ModelView
                         if (mv != null)
                         {
                             Projection fromTop = Projection.FromTop;
@@ -2392,7 +2397,7 @@ namespace CADability
                         }
                     }
                 }
-                catch (FileNotFoundException)
+                catch (FileNotFoundException fnf)
                 {
                     UIService.ShowMessageBox(StringTable.GetFormattedString("Error.FileNotFound", fileName), StringTable.GetString("Errormessage.Import"), MessageBoxButtons.OK);
                 }

@@ -14,20 +14,27 @@ namespace CADability.UserInterface
     /// 
     /// </summary>
 
-    public class ColorListProperty : IShowPropertyImpl, ICommandHandler
-        , IPropertyEntry
+    public class ColorListProperty : PropertyEntryImpl, ICommandHandler
     {
-        private ColorList colorList; // das übergeordnete Objekt
-        private int index; // der Index in der ColorList
-        private bool changeStyle;
+        private ColorList colorList; // the ColorList in which it is contained
+        private int index; // index in the ColorList
         public ColorListProperty(ColorList ColorList, int Index)
         {
             colorList = ColorList;
             index = Index;
-            changeStyle = true;
             base.resourceId = "ColorName";
         }
-#region Die Implementierung von IShowProperty
+        #region PropertyEntry
+        public override PropertyEntryType Flags
+        {
+            get
+            {
+                PropertyEntryType flags = PropertyEntryType.Selectable | PropertyEntryType.LabelEditable | PropertyEntryType.ContextMenu | PropertyEntryType.ValueAsButton; // why was there: | PropertyEntryType.DropDown ?
+                if (colorList.CurrentIndex == index)
+                    flags |= PropertyEntryType.Bold;
+                return flags;
+            }
+        }
         public override string LabelText
         {
             get
@@ -42,42 +49,49 @@ namespace CADability.UserInterface
                 return MenuResource.LoadMenuDefinition("MenuId.ColorListEntry", false, this);
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
+        public override void ButtonClicked(PropertyEntryButton button)
+        {
+                    OnClick(null, null);
+        }
+        public override string[] GetDropDownList()
+        {
+            string[] res = new string[colorList.Count];
+            for (int i = 0; i < colorList.Count; i++)
+            {
+                res[i] = "[[ColorBox:" + colorList[i].Color.R.ToString() + ":" + colorList[i].Color.G.ToString() + ":" + colorList[i].Color.B.ToString() + "]]" + colorList[i].Name;
+            }
+            return res;
+        }
+        public override string Value
         {
             get
             {
-                ShowPropertyLabelFlags flags = ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.Editable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu;
-                if (colorList.CurrentIndex == index)
-                    flags |= ShowPropertyLabelFlags.Bold;
-                return flags;
+                if (index < 0) return "";
+                return "[[ColorBox:" + colorList[index].Color.R.ToString() + ":" + colorList[index].Color.G.ToString() + ":" + colorList[index].Color.B.ToString() + "]]" + colorList[index].Name;
             }
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-		public override void LabelChanged(string NewText)
+        public override bool EditTextChanged(string newValue)
         {
-            if (!colorList.IsStatic(index))
-                colorList.SetName(index, NewText);
+            return true;
+        }
+        public override void EndEdit(bool aborted, bool modified, string newValue)
+        {
+            if (!aborted && !colorList.IsStatic(index))
+                colorList.SetName(index, newValue);
         }
         #endregion
-#region ICommandHandler Members
+        #region ICommandHandler Members
         private void OnClick(object sender, EventArgs e)
         {
             if (!colorList.IsStatic(index))
             {
-                changeStyle = false;
                 Color color = colorList.GetColor(index);
-               
+
                 if (Frame.UIService.ShowColorDialog(ref color) == Substitutes.DialogResult.OK)
                 {
                     colorList.SetColor(index, color);
+                    propertyPage.Refresh(colorList);
                 }
-                changeStyle = true;
             }
         }
         bool ICommandHandler.OnCommand(string MenuId)
@@ -86,11 +100,11 @@ namespace CADability.UserInterface
             {
                 case "MenuId.ColorListEntry.Delete":
                     colorList.RemoveAt(index);
-                    propertyTreeView.Refresh(colorList);
+                    propertyPage.Refresh(colorList);
                     return true;
                 case "MenuId.ColorListEntry.Current":
                     colorList.CurrentIndex = index;
-                    propertyTreeView.Refresh(colorList);
+                    propertyPage.Refresh(colorList);
                     return true;
                 case "MenuId.ColorListEntry.ChangeColor":
                     OnClick(null, null);
@@ -123,34 +137,12 @@ namespace CADability.UserInterface
                     break;
             }
             return true;
-            // TODO: betreffende MenueIds behandeln
-            return false;
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
 
-        #region IPropertyEntry
-        protected override bool HasDropDownButton => true;
-        string[] IPropertyEntry.GetDropDownList()
-        {
-            string[] res = new string[colorList.Count];
-            for (int i = 0; i < colorList.Count; i++)
-            {
-                res[i] = "[[ColorBox:" + colorList[i].Color.R.ToString() + ":" + colorList[i].Color.G.ToString() + ":" + colorList[i].Color.B.ToString() + "]]" + colorList[i].Name;
-            }
-            return res;
-        }
-        string IPropertyEntry.Value
-        {
-            get
-            {
-                if (index < 0) return "";
-                return "[[ColorBox:" + colorList[index].Color.R.ToString() + ":" + colorList[index].Color.G.ToString() + ":" + colorList[index].Color.B.ToString() + "]]" + colorList[index].Name;
-            }
-        }
         public override void ListBoxSelected(int selectedIndex)
         {
         }
-#endregion
     }
 }

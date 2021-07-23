@@ -628,22 +628,7 @@ namespace CADability
         }
         public static double LineFit(IEnumerable<GeoPoint> points, double precision, out GeoPoint location, out GeoVector direction)
         {
-            GeoPoint[] pnts = null;
-            if (points is GeoPoint[]) pnts = (GeoPoint[])(points as GeoPoint[]).Clone();
-            else
-            {
-                List<GeoPoint> lpnts = null;
-                if (points is List<GeoPoint>) lpnts = points as List<GeoPoint>;
-                else
-                {
-                    lpnts = new List<GeoPoint>();
-                    foreach (GeoPoint point in points)
-                    {
-                        lpnts.Add(point);
-                    }
-                }
-                pnts = lpnts.ToArray(); // GeoPoint is a struct, this hopefully clones the GeoPoints
-            }
+            GeoPoint[] pnts = points.ToArray();
             Vector<double> observedX = new DenseVector(pnts.Length); // there is no need to set values
             Vector<double> observedY = new DenseVector(pnts.Length); // this is the data we want to achieve, namely 0.0
             LevenbergMarquardtMinimizer lm = new LevenbergMarquardtMinimizer(gradientTolerance: 1e-15, maximumIterations: 20);

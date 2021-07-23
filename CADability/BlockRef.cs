@@ -10,7 +10,7 @@ namespace CADability.GeoObject
     {
         BlockRef blockRef;
         GeoPointProperty positionProp;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         IFrame frame;
         public ShowPropertyBlockRef(BlockRef theBlockRef, IFrame theFrame)
         {
@@ -70,20 +70,13 @@ namespace CADability.GeoObject
             attributeProperties = blockRef.GetAttributeProperties(frame);
             propertyTreeView.Refresh(this);
         }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (positionProp == null)
                     positionProp = new GeoPointProperty("BlockRef.Position", frame, true);
-                return IShowPropertyImpl.Concat(new IShowProperty[] { positionProp }, attributeProperties);
+                return PropertyEntryImpl.Concat(new IPropertyEntry[] { positionProp }, attributeProperties);
             }
         }
 
@@ -299,7 +292,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyBlockRef(this, Frame);
         }

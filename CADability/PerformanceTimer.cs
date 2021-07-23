@@ -3,7 +3,10 @@ using System.Collections.Generic;
 
 namespace CADability
 {
-    internal class PerformanceTick : IDisposable
+    /// <summary>
+    /// Simple class used for performance timing
+    /// </summary>
+    public class PerformanceTick : IDisposable
     {
         private string Name;
         private bool IsRunning;
@@ -54,6 +57,16 @@ namespace CADability
                 string Category = de.Key.ToString();
                 System.Diagnostics.Trace.WriteLine(Category + ": " + de.Value.ToString());
             }
+        }
+        static public string TimersString()
+        {
+            string res = "";
+            foreach (KeyValuePair<string, TimeSpan> de in AllTimers)
+            {
+                string Category = de.Key.ToString();
+                res += Category + ": " + de.Value.ToString() + "\n";
+            }
+            return res;
         }
     }
 }

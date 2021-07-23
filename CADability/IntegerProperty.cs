@@ -8,19 +8,13 @@ using System.Runtime.Serialization;
 namespace CADability.UserInterface
 {
     /// <summary>
-    /// Anzeige einer int Eigenschaft in einem ShowProperty Control. Dieses Objekt
-    /// kann eine int Eigenschaft eines beliebigen anderen Objektes verändern, vorausgesetzt
-    /// das Objekt selbst und der Name der betreffenden Property werden bekanntgegeben.
-    /// Dieses Objekt kann auch in den Settings verwendet werden. Dann hält es den int
-    /// Wert selbst und kann serialisiert werden.
+    /// Display an editable integer value in the property grid. 
     /// </summary>
     [Serializable()]
-    public class IntegerProperty : IShowPropertyImpl, ISerializable, ISettingChanged, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
+    public class IntegerProperty : EditableProperty<int>, ISerializable, ISettingChanged, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
         private object ObjectWithInt;
         private PropertyInfo TheProperty;
-        //private SpinEditbox numericUpDown; // wird abgelöst durch textBox
-        // das numericUpDown machte nur Probleme mit dem Focus und den special Keys...
         private string text;
         private bool readOnly;
         private bool IsSetting;
@@ -28,10 +22,9 @@ namespace CADability.UserInterface
         private bool highlight;
         private int minValue; // Grenzen für die Eingabe
         private int maxValue;
-        private bool IsChanging; // wird nie ausgewertet, oder
         private bool showUpDown; // Pfeil auf und ab Control anzeigen
         private int internalValue; // der interne Wert, wenn nicht auf ein anderes Objekt bezogen
-        private String settingName; // wenn in einem Setting verwendet, so ist hier der Name des Wertes
+        private string settingName; // wenn in einem Setting verwendet, so ist hier der Name des Wertes
         private Dictionary<int, string> specialValues;
         public delegate void SetIntDelegate(IntegerProperty sender, int newValue);
         public delegate int GetIntDelegate(IntegerProperty sender);
@@ -57,12 +50,6 @@ namespace CADability.UserInterface
                     }
                 }
             }
-            //textBox = new ManagedKeysTextbox();
-            //textBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            //textBox.AcceptsReturn = true;
-            //textBox.LostFocus += new EventHandler(OnLostFocus);
-            //textBox.KeyUp += new KeyEventHandler(OnKeyUp);
-            //textBox.KeyPress += new KeyPressEventHandler(OnKeyPress);
             IntChanged();
             settingChanged = false;
         }
@@ -75,12 +62,6 @@ namespace CADability.UserInterface
         {
             IsSetting = false;
             if (resourceId != null) this.resourceId = resourceId;
-            //textBox = new ManagedKeysTextbox();
-            //textBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            //textBox.AcceptsReturn = true;
-            //textBox.LostFocus += new EventHandler(OnLostFocus);
-            //textBox.KeyUp += new KeyEventHandler(OnKeyUp);
-            //textBox.KeyPress += new KeyPressEventHandler(OnKeyPress);
             internalValue = initialValue;
             text = initialValue.ToString();
             NotifyOnLostFocusOnly = false;
@@ -126,10 +107,8 @@ namespace CADability.UserInterface
                 {
                     if (kv.Key == internalValue)
                     {
-                        IsChanging = true;
                         text = StringTable.GetString(kv.Value);
                         if (text.StartsWith("!")) text = text.Substring(1);
-                        IsChanging = false;
                         return;
                     }
                 }
@@ -158,7 +137,7 @@ namespace CADability.UserInterface
             set
             {
                 highlight = value;
-                if (propertyTreeView != null) propertyTreeView.Refresh(this);
+                if (propertyPage != null) propertyPage.Refresh(this);
             }
         }
         public bool UpDownOnly
@@ -176,7 +155,6 @@ namespace CADability.UserInterface
         public static explicit operator int(IntegerProperty ip) { return ip.IntegerValue; }
         private void SetText(int d)
         {
-            IsChanging = true;
             if (specialValues != null && specialValues.TryGetValue(d, out string sv))
             {
                 text = StringTable.GetString(sv);
@@ -185,8 +163,7 @@ namespace CADability.UserInterface
             {
                 text = d.ToString();
             }
-            propertyTreeView?.Refresh(this);
-            IsChanging = false;
+            propertyPage?.Refresh(this);
         }
         public void SetInt(int d)
         {
@@ -251,11 +228,9 @@ namespace CADability.UserInterface
                 {
                     if (kv.Key == d)
                     {
-                        IsChanging = true;
                         text = StringTable.GetString(kv.Value);
                         if (text.StartsWith("!")) text = text.Substring(1);
-                        propertyTreeView?.Refresh(this);
-                        IsChanging = false;
+                        propertyPage?.Refresh(this);
                         return;
                     }
                 }
@@ -265,28 +240,14 @@ namespace CADability.UserInterface
 
         #region IShowPropertyImpl Overrides
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable;
-                if (highlight) res |= ShowPropertyLabelFlags.Highlight;
-                if (specialValues != null && specialValues.Count > 0)
-                    res |= ShowPropertyLabelFlags.ContextMenu;
-                return res & ~flagsToSuppress;
-            }
-        }
-        /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            //propertyTreeView.InfoPopup.Add(numericUpDown,resourceId);
-            //propertyTreeView.InfoPopup.Add(textBox, resourceId);
-            base.Added(propertyTreeView);
+            //propertyPage.InfoPopup.Add(numericUpDown,resourceId);
+            //propertyPage.InfoPopup.Add(textBox, resourceId);
+            base.Added(propertyPage);
         }
         public override PropertyEntryType Flags
         {
@@ -295,6 +256,8 @@ namespace CADability.UserInterface
                 PropertyEntryType res = PropertyEntryType.Selectable | PropertyEntryType.ValueEditable;
                 if (highlight) res |= PropertyEntryType.Highlight;
                 if (showUpDown) res |= PropertyEntryType.HasSpinButton;
+                if (specialValues != null && specialValues.Count > 0)
+                    res |= PropertyEntryType.ContextMenu;
                 return res;
             }
         }
@@ -363,43 +326,29 @@ namespace CADability.UserInterface
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Removed"/>
         /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        /// <param name="propertyPage">the IPropertyTreeView from which it was removed</param>
+        public override void Removed(IPropertyPage propertyPage)
         {
-            base.Removed(propertyTreeView);
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.SetFocus ()"/>
-        /// </summary>
-        public override void SetFocus()
-        {
-            //if (!numericUpDown.Focused) numericUpDown.Focus();
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Selected ()"/>
-        /// </summary>
-        public override void Selected()
-        {
-            base.Selected();
+            base.Removed(propertyPage);
         }
         /// <summary>
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.UnSelected ()"/>
         /// </summary>
-        public override void UnSelected()
-        {
-            if (minValue != maxValue)
-            {   // 0, 0 wenn nicht gesetzt
-                if (internalValue < minValue)
-                {
-                    IntegerValue = minValue;
-                }
-                if (internalValue > maxValue)
-                {
-                    IntegerValue = maxValue;
-                }
-            }
-            base.UnSelected();
-        }
+        //public override void UnSelected()
+        //{
+        //    if (minValue != maxValue)
+        //    {   // 0, 0 wenn nicht gesetzt
+        //        if (internalValue < minValue)
+        //        {
+        //            IntegerValue = minValue;
+        //        }
+        //        if (internalValue > maxValue)
+        //        {
+        //            IntegerValue = maxValue;
+        //        }
+        //    }
+        //    base.UnSelected();
+        //}
         #endregion
 
         #region ISerializable Members
@@ -475,11 +424,6 @@ namespace CADability.UserInterface
 
         #endregion
 
-        //private void OnValueChanged(object sender, EventArgs e)
-        //{
-        //    if( !IsChanging)
-        //        SetInt((int)numericUpDown.Value);
-        //}
         #region ICommandHandler Members
 
         bool ICommandHandler.OnCommand(string MenuId)
@@ -488,13 +432,11 @@ namespace CADability.UserInterface
             {
                 if (kv.Value == MenuId)
                 {
-                    IsChanging = true;
                     text = StringTable.GetString(MenuId);
                     if (text.StartsWith("!")) text = text.Substring(1);
-                    propertyTreeView?.Refresh(this);
+                    propertyPage?.Refresh(this);
                     SetInt(kv.Key);
                     SetText(kv.Key);
-                    IsChanging = false;
                     return true;
                 }
             }
@@ -506,6 +448,16 @@ namespace CADability.UserInterface
             return true;
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
+
+        protected override string ValueToText(int val)
+        {
+            return val.ToString();
+        }
+
+        protected override bool TextToValue(string text, out int val)
+        {
+            return int.TryParse(text, out val);
+        }
 
         #endregion
     }

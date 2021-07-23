@@ -9,13 +9,13 @@ namespace CADability.UserInterface
     /// Shows the properties of a polyline.
     /// </summary>
 
-    public class ShowPropertyPolyline : IShowPropertyImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
+    public class ShowPropertyPolyline : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Polyline polyline;
         private IFrame frame;
         private MultiGeoPointProperty vertexProperty;
-        private IShowProperty[] subEntries; // abhängig von der Form, also Rechteck, Parallelogramm
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries; // abhängig von der Form, also Rechteck, Parallelogramm
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         private GeoPointProperty locationProperty; // wg. hotspot merken 
         private GeoPointProperty locationParallelProperty; // wg. hotspot merken 
         private ShowPropertyHotSpot widthHotSpot;
@@ -25,8 +25,8 @@ namespace CADability.UserInterface
         private GeoVectorHotSpot directionXParallelHotSpot;
         private GeoVectorHotSpot directionYParallelHotSpot;
         private GeoPointHotSpot sizeHotSpot;
-        private IShowProperty rectangleProperty; // nur gesetzt, wenn es ein Rechteck ist, die GroupProperty des Rechtecks
-        private IShowProperty parallelProperty; // nur gesetzt, wenn es ein Rechteck ist, die GroupProperty des Rechtecks
+        private IPropertyEntry rectangleProperty; // nur gesetzt, wenn es ein Rechteck ist, die GroupProperty des Rechtecks
+        private IPropertyEntry parallelProperty; // nur gesetzt, wenn es ein Rechteck ist, die GroupProperty des Rechtecks
         private class VertexIndexedGeoPoint : IIndexedGeoPoint
         {
             ShowPropertyPolyline showPropertyPolyline; // nach außen
@@ -90,7 +90,7 @@ namespace CADability.UserInterface
 
             if (polyline.IsRectangle)
             {
-                subEntries = new IShowProperty[2];
+                subEntries = new IPropertyEntry[2];
                 locationProperty = new GeoPointProperty("Rectangle.Location", frame, true);
                 locationProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetLocation);
                 locationProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetLocation);
@@ -132,7 +132,7 @@ namespace CADability.UserInterface
 
                 if (polyline.IsParallelogram)
             {
-                subEntries = new IShowProperty[2];
+                subEntries = new IPropertyEntry[2];
                 locationParallelProperty = new GeoPointProperty("Rectangle.Location", frame, true);
                 locationParallelProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetParallelLocation);
                 locationParallelProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetParallelLocation);
@@ -169,7 +169,7 @@ namespace CADability.UserInterface
                 directionYParallelHotSpot = new GeoVectorHotSpot(directionYParallel);
                 directionYParallelHotSpot.Position = polyline.ParallelogramLocation + polyline.ParallelogramSecondaryDirection;
 
-                //				parallelProperty = new GroupProperty("Polyline.Parallel", new IShowProperty [] {locationParallelProperty,widthParallel,heightParallel,directionParallel});
+                //				parallelProperty = new GroupProperty("Polyline.Parallel", new IPropertyEntry [] {locationParallelProperty,widthParallel,heightParallel,directionParallel});
 
                 sizeHotSpot = new GeoPointHotSpot(polyline.ParallelogramLocation + polyline.ParallelogramSecondaryDirection + polyline.ParallelogramMainDirection);
                 sizeHotSpot.StartDragHotspotEvent += new GeoPointHotSpot.StartDragHotspotDelegate(OnSizeHotSpotStartDragHotspot);
@@ -184,7 +184,7 @@ namespace CADability.UserInterface
 
             else
             {
-                subEntries = new IShowProperty[1];
+                subEntries = new IPropertyEntry[1];
                 subEntries[0] = vertexProperty;
             }
             attributeProperties = polyline.GetAttributeProperties(frame);
@@ -231,20 +231,20 @@ namespace CADability.UserInterface
             if (rectangleProperty != null && !polyline.IsRectangle)
             {	// die Einträge für das Rechteck wegmachen
                 rectangleProperty = null;
-                subEntries = new IShowProperty[1];
+                subEntries = new IPropertyEntry[1];
                 subEntries[0] = vertexProperty;
                 base.resourceId = "Polyline.Object";
-                base.propertyTreeView.Refresh(this);
-                base.propertyTreeView.OpenSubEntries(vertexProperty, true);
+                base.propertyPage.Refresh(this);
+                base.propertyPage.OpenSubEntries(vertexProperty, true);
             }
             if (parallelProperty != null && !polyline.IsParallelogram)
             {	// die Einträge für das Parallelogramm wegmachen
                 parallelProperty = null;
-                subEntries = new IShowProperty[1];
+                subEntries = new IPropertyEntry[1];
                 subEntries[0] = vertexProperty;
                 base.resourceId = "Polyline.Object";
-                base.propertyTreeView.Refresh(this);
-                base.propertyTreeView.OpenSubEntries(vertexProperty, true);
+                base.propertyPage.Refresh(this);
+                base.propertyPage.OpenSubEntries(vertexProperty, true);
             }
             if (vertexProperty.SubEntries.Length != polyline.Vertices.Length) vertexProperty.Refresh();
             for (int i = 0; i < subEntries.Length; ++i)
@@ -269,20 +269,7 @@ namespace CADability.UserInterface
         }
 
         #region IShowPropertyImpl Overrides
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu;
-            }
-        }
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -293,39 +280,31 @@ namespace CADability.UserInterface
                 return items.ToArray();
             }
         }
-        public override int SubEntriesCount
+        public override IPropertyEntry[] SubItems
         {
             get
             {
-                return subEntries.Length + attributeProperties.Length;
+                return PropertyEntryImpl.Concat(subEntries, attributeProperties);
             }
         }
-
-        public override IShowProperty[] SubEntries
+        public override void Added(IPropertyPage propertyPage)
         {
-            get
-            {
-                return IShowPropertyImpl.Concat(subEntries, attributeProperties);
-            }
-        }
-        public override void Added(IPropertyPage propertyTreeView)
-        {
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
             polyline.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);
             polyline.UserData.UserDataRemovedEvent += new UserData.UserDataRemovedDelegate(OnUserDataAdded);
             polyline.DidChangeEvent += new ChangeDelegate(PolylineDidChange);
         }
-        public override void Removed(IPropertyPage propertyTreeView)
+        public override void Removed(IPropertyPage propertyPage)
         {
             polyline.DidChangeEvent -= new ChangeDelegate(PolylineDidChange);
             polyline.UserData.UserDataAddedEvent -= new UserData.UserDataAddedDelegate(OnUserDataAdded);
             polyline.UserData.UserDataRemovedEvent -= new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
         }
         void OnUserDataAdded(string name, object value)
         {
             attributeProperties = polyline.GetAttributeProperties(frame);
-            propertyTreeView.Refresh(this);
+            propertyPage.Refresh(this);
         }
 
         #endregion
@@ -497,7 +476,7 @@ namespace CADability.UserInterface
             }
         }
 
-        private void ModifyDirectionYParallelWithMouse(IShowProperty sender, bool StartModifying)
+        private void ModifyDirectionYParallelWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, polyline.ParallelogramLocation, polyline);
             frame.SetAction(gva);
@@ -590,8 +569,8 @@ namespace CADability.UserInterface
         {
             if (args.EventState == StateChangedArgs.State.OpenSubEntries)
             {
-                if (rectangleProperty != null && propertyTreeView != null) propertyTreeView.OpenSubEntries(rectangleProperty as IPropertyEntry, false);
-                if (parallelProperty != null && propertyTreeView != null) propertyTreeView.OpenSubEntries(parallelProperty as IPropertyEntry, false);
+                if (rectangleProperty != null && propertyPage != null) propertyPage.OpenSubEntries(rectangleProperty as IPropertyEntry, false);
+                if (parallelProperty != null && propertyPage != null) propertyPage.OpenSubEntries(parallelProperty as IPropertyEntry, false);
             }
             if (HotspotChangedEvent != null)
             {
@@ -618,15 +597,15 @@ namespace CADability.UserInterface
             // das geht komischerweise nicht:
             if (rectangleProperty != null)
             {
-                base.propertyTreeView.OpenSubEntries(rectangleProperty as IPropertyEntry, true);
+                base.propertyPage.OpenSubEntries(rectangleProperty as IPropertyEntry, true);
             }
             else if (parallelProperty != null)
             {
-                base.propertyTreeView.OpenSubEntries(parallelProperty as IPropertyEntry, true);
+                base.propertyPage.OpenSubEntries(parallelProperty as IPropertyEntry, true);
             }
             else
             {
-                base.propertyTreeView.OpenSubEntries(vertexProperty, true);
+                base.propertyPage.OpenSubEntries(vertexProperty, true);
             }
         }
         #region ICommandHandler Members

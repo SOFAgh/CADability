@@ -18,8 +18,8 @@ namespace CADability.UserInterface
         private ColorSelectionProperty multiColorDef; // Layer für mehrere Objekte
         private StyleSelectionProperty multiStyle; // Style für mehrere Objekte
         private IntegerProperty objectCount;
-        private Dictionary<string, IShowProperty> multiAttributes; // Liste aller custom SelectionProperties
-        private Dictionary<string, IShowProperty> multiUserData; // Liste aller Userdata mit IMultiObjectUserData interface
+        private Dictionary<string, IPropertyEntry> multiAttributes; // Liste aller custom SelectionProperties
+        private Dictionary<string, IPropertyEntry> multiUserData; // Liste aller Userdata mit IMultiObjectUserData interface
         public bool isChangingMultipleAttributes; // es werden gerade Attribute der Objekte geändert
         public MultiObjectsProperties(IFrame frame, GeoObjectList selectedObjects)
         {
@@ -76,7 +76,7 @@ namespace CADability.UserInterface
             attributeProperties.Add(multiStyle);
 
             // gemeinsame custom Attribute sammeln und zufügen
-            multiAttributes = new Dictionary<string, IShowProperty>();
+            multiAttributes = new Dictionary<string, IPropertyEntry>();
             for (int i = 0; i < selectedObjects.Count; ++i)
             {
                 string[] nasp = selectedObjects[i].CustomAttributeKeys; // hierrüber den Punkt nach dem Symbol fragen
@@ -85,7 +85,7 @@ namespace CADability.UserInterface
                     if (!multiAttributes.ContainsKey(nasp[j]))
                     {   // es wird nur einmal erzeugt
                         string key = nasp[j];
-                        IShowProperty ina = selectedObjects[i].GetNamedAttribute(key).GetSelectionProperty(key, frame.Project, selectedObjects);
+                        IPropertyEntry ina = selectedObjects[i].GetNamedAttribute(key).GetSelectionProperty(key, frame.Project, selectedObjects);
                         if (ina != null)
                         {
                             multiAttributes[key] = ina;
@@ -93,13 +93,13 @@ namespace CADability.UserInterface
                     }
                 }
             }
-            foreach (IShowProperty sp in multiAttributes.Values)
+            foreach (IPropertyEntry sp in multiAttributes.Values)
             {
                 attributeProperties.Add(sp);
             }
 
             // gemeinsame Userdata mit IMultiObjectUserData interface sammeln und zufügen
-            multiUserData = new Dictionary<string, IShowProperty>();
+            multiUserData = new Dictionary<string, IPropertyEntry>();
             for (int i = 0; i < selectedObjects.Count; ++i)
             {
                 string[] na = selectedObjects[i].UserData.AllItems;
@@ -113,7 +113,7 @@ namespace CADability.UserInterface
                     }
                 }
             }
-            foreach (IShowProperty sp in multiUserData.Values)
+            foreach (IPropertyEntry sp in multiUserData.Values)
             {
                 attributeProperties.Add(sp);
             }
@@ -342,10 +342,10 @@ namespace CADability.UserInterface
         public void Refresh()
         {
             showProperties = null;
-            if (propertyTreeView != null)
+            if (propertyPage != null)
             {
-                propertyTreeView.Refresh(this);
-                if (multiObjectsProperties != null) propertyTreeView.OpenSubEntries(multiObjectsProperties.attributeProperties, true);
+                propertyPage.Refresh(this);
+                if (multiObjectsProperties != null) propertyPage.OpenSubEntries(multiObjectsProperties.attributeProperties, true);
             }
         }
         #region polymorph construction
@@ -391,11 +391,11 @@ namespace CADability.UserInterface
             }
             showProperties = null;
             focusedSelectedObject = null;
-            if (propertyTreeView != null)
+            if (propertyPage != null)
             {
-                propertyTreeView.Refresh(this);
+                propertyPage.Refresh(this);
                 // TODO: muss woanders hin, geht hier nicht!
-                if (multiObjectsProperties != null) propertyTreeView.OpenSubEntries(multiObjectsProperties.attributeProperties, true);
+                if (multiObjectsProperties != null) propertyPage.OpenSubEntries(multiObjectsProperties.attributeProperties, true);
             }
         }
         #region PropertyEntryImpl overrides
@@ -407,11 +407,7 @@ namespace CADability.UserInterface
             }
         }
         #endregion
-        #region IShowPropertyImpl overrides
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
+        #region PropertyEntryImpl overrides
         public override IPropertyEntry[] SubItems
         {
             get
@@ -433,11 +429,11 @@ namespace CADability.UserInterface
                     {   // bei etwa 400 Objekten steigt er sonst aus...
                         for (int i = 0; i < selectedObjects.Count; ++i)
                         {
-                            IShowProperty sp = selectedObjects[i].GetShowProperties(Frame);
+                            IPropertyEntry sp = selectedObjects[i].GetShowProperties(Frame);
                             IDisplayHotSpots hsp = sp as IDisplayHotSpots;
                             if (hsp != null) hsp.HotspotChangedEvent += new HotspotChangedDelegate(OnSubHotspotChanged);
                             items.Add(sp as IPropertyEntry);
-                            sp.StateChangedEvent += new StateChangedDelegate(OnShowPropertyStateChanged);
+                            sp.PropertyEntryChangedStateEvent +=new PropertyEntryChangedStateDelegate(OnShowPropertyStateChanged);
                             IGeoObjectShowProperty gsp = sp as IGeoObjectShowProperty;
                             if (gsp != null)
                             {
@@ -461,7 +457,7 @@ namespace CADability.UserInterface
         /// </summary>
         /// <param name="sender">The ShowProperty that changed its state</param>
         /// <param name="args">The new state</param>
-        protected void OnShowPropertyStateChanged(IShowProperty sender, StateChangedArgs args)
+        protected void OnShowPropertyStateChanged(IPropertyEntry sender, StateChangedArgs args)
         {
             if (sender is IGeoObjectShowProperty)
             {
@@ -498,7 +494,7 @@ namespace CADability.UserInterface
 #endregion
         public void ShowOpen(IShowProperty toShow)
         {
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(toShow as IPropertyEntry, true);
+            if (propertyPage != null) propertyPage.OpenSubEntries(toShow as IPropertyEntry, true);
         }
         protected void OnSubHotspotChanged(IHotSpot sender, HotspotChangeMode mode)
         {
@@ -506,19 +502,19 @@ namespace CADability.UserInterface
         }
         public void ShowSelected(IShowProperty ToSelect)
         {
-            propertyTreeView.SelectEntry(ToSelect as IPropertyEntry);
+            propertyPage.SelectEntry(ToSelect as IPropertyEntry);
         }
         public void OpenSubEntries()
         {   // bei einem Objekt: die Darstellung des Objektes aufklappen,
             // bei mehreren Objekten: die 
-            if (propertyTreeView == null) return; // kein ControlCenter
-            if (showProperties != null && propertyTreeView != null)
+            if (propertyPage == null) return; // kein ControlCenter
+            if (showProperties != null && propertyPage != null)
             {
                 if (selectedObjects.Count == 1)
                 {
                     for (int i = 0; i < showProperties.Length; ++i)
                     {
-                        propertyTreeView.OpenSubEntries(showProperties[i] as IPropertyEntry, true);
+                        propertyPage.OpenSubEntries(showProperties[i] as IPropertyEntry, true);
                     }
                 }
                 else
@@ -527,13 +523,13 @@ namespace CADability.UserInterface
                     {
                         if (multiObjectsProperties != null && multiObjectsProperties.attributeProperties == showProperties[i])
                         {
-                            propertyTreeView.OpenSubEntries(showProperties[i] as IPropertyEntry, true);
+                            propertyPage.OpenSubEntries(showProperties[i] as IPropertyEntry, true);
                         }
                     }
 
                 }
             }
-            propertyTreeView.SelectEntry(this);
+            propertyPage.SelectEntry(this);
         }
         #region IDisplayHotSpots Members
 
@@ -584,7 +580,7 @@ namespace CADability.UserInterface
                 {
                     if ((SubItems[i] as IGeoObjectShowProperty).GetGeoObject() == go)
                     {
-                        propertyTreeView.SelectEntry(SubItems[i]);
+                        propertyPage.SelectEntry(SubItems[i]);
                         break;
                     }
                 }

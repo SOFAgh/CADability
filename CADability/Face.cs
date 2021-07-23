@@ -21,10 +21,10 @@ using Point = System.Drawing.Point;
 
 namespace CADability.GeoObject
 {
-    internal class ShowPropertyFace : IShowPropertyImpl, IGeoObjectShowProperty, ICommandHandler
+    internal class ShowPropertyFace : PropertyEntryImpl, IGeoObjectShowProperty, ICommandHandler
     {
         Face face; // represented;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         public ShowPropertyFace(Face face, IFrame frame)
             : base(frame)
         {
@@ -32,18 +32,11 @@ namespace CADability.GeoObject
             this.face = face;
             attributeProperties = face.GetAttributeProperties(frame);
         }
-        public override ShowPropertyEntryType EntryType
+        public override PropertyEntryType Flags 
         {
             get
             {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
+                return PropertyEntryType.GroupTitle | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.HasSubEntries;
             }
         }
         public override MenuWithHandler[] ContextMenu
@@ -56,7 +49,6 @@ namespace CADability.GeoObject
                 return menuWithHandlers.ToArray();
             }
         }
-        public override int SubEntriesCount => SubItems.Length;
         private IPropertyEntry[] subItems;
         public override IPropertyEntry[] SubItems
         {
@@ -79,7 +71,7 @@ namespace CADability.GeoObject
                     {
                         if (edge.Curve3D != null && edge.Curve3D is IGeoObject)
                         {
-                            IShowProperty sp = (edge.Curve3D as IGeoObject).GetShowProperties(base.Frame);
+                            IPropertyEntry sp = (edge.Curve3D as IGeoObject).GetShowProperties(base.Frame);
                             sp.ReadOnly = true;
                             edgeprops.Add(sp);
                         }
@@ -3827,7 +3819,6 @@ namespace CADability.GeoObject
             // Now we would need a new kind of border, which has no orientation preference and a new class SimpleShape, which has counterclockwise outline and clockwise holes.
             get
             {
-#if USENONPRIODICSURFACES // it has nothing to do with non-periodic surfaces here but is a code cleanup, which is implemented at the same time
                 if (area == null)
                 {   // everything should be correct oriented and thus it is straight forward to construct the SimpleShape
 
@@ -3854,7 +3845,6 @@ namespace CADability.GeoObject
                     if (ok) area = new SimpleShape(soutline, sholes);   // the area has clones of the curves, because the holes are reverse oriented to the 2d curves of the face
                     // it should always be OK here, if not, something went wrong with the construction of the face and should be fixed there
                 }
-#endif
                 if (area == null)
                 {
                     // periodic ist hier bereits erledigt (von wem???)
@@ -3877,8 +3867,8 @@ namespace CADability.GeoObject
                         (surface as ISurfaceImpl).usedArea = ext;
                     }
 #if DEBUG
-                    DebuggerContainer dc = new DebuggerContainer();
-                    dc.Add(segments);
+                    //DebuggerContainer dc = new DebuggerContainer();
+                    //dc.Add(segments);
 #endif
 
                     // kommen null-Linien in den Segments überhaupt vor?
@@ -4925,7 +4915,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyFace(this, Frame);
         }
@@ -5831,7 +5821,7 @@ namespace CADability.GeoObject
             //}
 #endif
 #if DEBUG
-            if (hashCode == 2444)
+            if (hashCode == 11)
             { }
 #endif
             for (int i = 0; i < outline.Length; ++i)
@@ -6652,8 +6642,7 @@ namespace CADability.GeoObject
                 if (trianglePoint != null && precision >= trianglePrecision / 2.0) return;
                 Triangulate(precision);
                 trianglePrecision = precision;
-                // triangleOctTree ist bereits implementiert, wird aber noch nicht verwendet, in HitTest von Face 
-                // wäre die Verwendung sinnvoll
+                // triangleOctTree is implemented but not used. Could maybe used in Face.HitTest
                 //if (trianglePoint != null)
                 //{
                 //    triangleExtent = BoundingCube.EmptyBoundingCube;
@@ -6670,74 +6659,10 @@ namespace CADability.GeoObject
                 return;
             }
 
-            //CndHlp3D.GeoPoint3D[] hpoints;
-            //CndHlp2D.GeoPoint2D[] huvpoints;
-            //if (CndHlp3DBuddy.GetTriangulation(precision, out hpoints, out huvpoints, out triangleIndex))
-            //{
-            //    trianglePoint = GeoPoint.FromCndHlp(hpoints);
-            //    triangleUVPoint = GeoPoint2D.FromCndHlp(huvpoints);
-            //    trianglePrecision = precision;
-            //    CndHlp3DBuddy.ClearTriangulation();
-            //}
-            //else
-            //{   // der vollständige Torus macht ein Problem
-            //    // allerdings ist hier die Gefahr der unendlichen Rekursion gegeben.
-            //    // das Problem OpenCascade betreffend mag weitergehend sein: die Repräsentation des
-            //    // vollständigen Torus als Buddy ist vielleicht nicht richtig. Ich habe aber schon viel
-            //    // versucht. Das könnte bei anderen Methoden von OpenCascade auch fehlschlagen. Die teilung
-            //    // in zwei Stücke arbeitet hier aber gut und könnte ggf. an anderen Stellen auch verwendung finden
-            //    BoundingRect ext = Area.GetExtent();
-            //    if (trianglePrecision == precision || ext.Width == 0.0 || ext.Height == 0.0 || Area.Area < 1e-6)
-            //    {   // der Trick um mehrfachrekursion zu vermeiden
-            //        // liefert ein leeres Ergebnis. 
-            //        trianglePoint = new GeoPoint[0];
-            //        triangleUVPoint = new GeoPoint2D[0];
-            //        triangleIndex = new int[0];
-            //        trianglePrecision = precision;
-            //        return;
-            //    }
-            //    Line2D l2d;
-            //    if (ext.Width > ext.Height)
-            //    {
-            //        GeoPoint2D sp = new GeoPoint2D((ext.Right + ext.Left) / 2.0, ext.Bottom);
-            //        GeoPoint2D ep = new GeoPoint2D(sp.x, ext.Top);
-            //        l2d = new Line2D(sp, ep);
-            //    }
-            //    else
-            //    {
-            //        GeoPoint2D sp = new GeoPoint2D(ext.Left, (ext.Bottom + ext.Top) / 2.0);
-            //        GeoPoint2D ep = new GeoPoint2D(ext.Right, sp.y);
-            //        l2d = new Line2D(sp, ep);
-            //    }
-            //    ICurve c3d = surface.Make3dCurve(l2d);
-            //    Edge e = new Edge(this, c3d, this, l2d, true);
-            //    Face[] splitted = this.Split(new Edge[] { e });
-            //    List<GeoPoint> trp = new List<GeoPoint>();
-            //    List<GeoPoint2D> tuv = new List<GeoPoint2D>();
-            //    List<int> tind = new List<int>();
-            //    for (int i = 0; i < splitted.Length; ++i)
-            //    {
-            //        splitted[i].trianglePrecision = precision; // um Mehrfachrekursion zu vermeiden
-            //        splitted[i].AssureTriangles(precision);
-            //        int[] ind = (int[])splitted[i].triangleIndex.Clone();
-            //        for (int j = 0; j < ind.Length; ++j)
-            //        {
-            //            ind[j] += trp.Count;
-            //        }
-            //        trp.AddRange(splitted[i].trianglePoint);
-            //        tuv.AddRange(splitted[i].triangleUVPoint);
-            //        tind.AddRange(ind);
-            //    }
-            //    trianglePoint = trp.ToArray();
-            //    triangleUVPoint = tuv.ToArray();
-            //    triangleIndex = tind.ToArray();
-            //    trianglePrecision = precision;
-            //}
         }
         internal void PaintFaceTo3D(IPaintTo3D paintTo3D)
         {
-            // wenn DontRecalcTriangulation true ist, dann immer mit bestehender Triangulierung arbeiten
-            // es sei denn es gibt noch keine
+            // if DontRecalcTriangulation is true, then work with the already existing triangulation, as long as there is one
             if (!paintTo3D.DontRecalcTriangulation || trianglePoint == null)
                 TryAssureTriangles(paintTo3D.Precision);
             lock (lockTriangulationData)
@@ -6746,7 +6671,7 @@ namespace CADability.GeoObject
                 {
                     if (paintTo3D.SelectMode)
                     {
-                        //paintTo3D.SetColor(paintTo3D.SelectColor);
+                        paintTo3D.SetColor(paintTo3D.SelectColor); // was disabled, why?
                     }
                     else
                     {
@@ -6766,44 +6691,8 @@ namespace CADability.GeoObject
 
                     }
                     paintTo3D.Triangle(trianglePoint, normals, triangleIndex);
-                    // DEBUG: Triangulierung
-                    //for (int i = 0; i < triangleIndex.Length; i += 3)
-                    //{
-                    //    GeoPoint[] t3 = new GeoPoint[4];
-                    //    t3[0] = trianglePoint[triangleIndex[i]];
-                    //    t3[1] = trianglePoint[triangleIndex[i + 1]];
-                    //    t3[2] = trianglePoint[triangleIndex[i + 2]];
-                    //    t3[3] = trianglePoint[triangleIndex[i]];
-                    //    paintTo3D.Polyline(t3);
-                    //}
                 }
             }
-
-            //if (surface is NurbsSurface)
-            //{
-            //    NurbsSurface ns = surface as NurbsSurface;
-            //    BoundingRect maxext = ns.GetMaximumExtent();
-            //    BoundingRect areaext = Area.GetExtent();
-            //    ModOp2D m = ModOp2D.Scale(maxext.GetCenter(), 0.999);
-            //    SimpleShape a = Area.GetModified(m);
-            //    paintTo3D.Nurbs(ns.Poles, ns.Weights, ns.UKnots, ns.VKnots, ns.UDegree, ns.VDegree, a);
-            //}
-            //else
-            //{
-            //    double umin, umax, vmin, vmax;
-            //    GetUVBounds(out umin, out umax, out vmin, out vmax);
-            //    NurbsSurface ns = surface.Approximate(umin, umax, vmin, vmax, 1e-4);
-
-            //    if (ns != null)
-            //    {
-            //        BoundingRect maxext = ns.GetMaximumExtent();
-            //        BoundingRect areaext = Area.GetExtent();
-            //        ModOp2D m = ModOp2D.Scale(maxext.GetCenter(), 0.999);
-            //        SimpleShape a = Area.GetModified(m);
-
-            //        paintTo3D.Nurbs(ns.Poles, ns.Weights, ns.UKnots, ns.VKnots, ns.UDegree, ns.VDegree, a);
-            //    }
-            //}
         }
         public delegate bool PaintTo3DDelegate(Face toPaint, IPaintTo3D paintTo3D);
         public static PaintTo3DDelegate OnPaintTo3D;
@@ -9982,29 +9871,6 @@ namespace CADability.GeoObject
                 }
             }
             return false;
-        }
-        internal bool IsDegenerated
-        {
-            get
-            {   // wenn alle Kanten paarweise umgekehrt identisch sind, dann ist das Face degeneriert
-                // 1.: Kanten nach Vertex-Paaren sortieren
-                OrderedMultiDictionary<BRepOperationOld.DoubleVertexKey, Edge> dict = new OrderedMultiDictionary<BRepOperationOld.DoubleVertexKey, Edge>(true);
-                foreach (Edge e in outline)
-                {
-                    dict.Add(new BRepOperationOld.DoubleVertexKey(e.Vertex1, e.Vertex2), e);
-                }
-                // 2.: wenn eine Kante einzeln vorkommt oder ein Paar nicht identisch ist, dann ist es nicht degeneriert
-                foreach (KeyValuePair<BRepOperationOld.DoubleVertexKey, ICollection<Edge>> kv in dict)
-                {
-                    if (kv.Value.Count == 2)
-                    {
-                        List<Edge> two = new List<Edge>(kv.Value);
-                        if (!Edge.IsGeometricallyEqual(two[0], two[1], true, false, Precision.eps)) return false;
-                    }
-                    else return false;
-                }
-                return true;
-            }
         }
         internal Face[] SplitAndReplace(SimpleShape ss)
         {   // ss soll von diesem Face abgezogen werden. 

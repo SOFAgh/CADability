@@ -53,7 +53,6 @@ namespace CADability.UserInterface
         }
         #region IPropertyEntry implementation
         protected IPropertyPage propertyPage;
-        protected IPropertyPage propertyTreeView; // is duplicate of propertyPage (for old implementations), remove later
         private bool isOpen;
         public bool IsOpen
         {
@@ -71,12 +70,12 @@ namespace CADability.UserInterface
         {
             get
             {
-                if (labelText != null) return labelText;
+                if (LabelText != null) return LabelText;
                 if (resourceId != null) return StringTable.GetString(resourceId);
                 throw new NotImplementedException("A label text must be provided");
             }
         }
-        public string LabelText
+        public virtual string LabelText
         {
             get
             {
@@ -122,7 +121,6 @@ namespace CADability.UserInterface
         public virtual void Added(IPropertyPage pp)
         {
             propertyPage = pp;
-            propertyTreeView = propertyPage;
         }
 
         /// <summary>
@@ -135,13 +133,13 @@ namespace CADability.UserInterface
         }
 
         /// <summary>
-        /// Must be overridden when Flags contains PropertyEntryType.ValueEditable. See <see cref="IPropertyEntry.EditTextChanged(string)"/>,
+        /// May be overridden when Flags contains PropertyEntryType.ValueEditable. See <see cref="IPropertyEntry.EditTextChanged(string)"/>,
         /// </summary>
         /// <param name="newValue"></param>
         /// <returns></returns>
         public virtual bool EditTextChanged(string newValue)
         {
-            throw new NotImplementedException();
+            return true; // standard: don't care
         }
 
         /// <summary>
@@ -187,6 +185,7 @@ namespace CADability.UserInterface
             {
                 foreach (IPropertyEntry sub in SubItems)
                 {
+                    sub.Parent = this;
                     if (ReadOnly) sub.ReadOnly = true;
                 }
             }
@@ -210,7 +209,6 @@ namespace CADability.UserInterface
         public virtual void Removed(IPropertyPage pp)
         {
             propertyPage = null;
-            propertyTreeView = propertyPage;
         }
 
         public virtual void Select()
@@ -223,7 +221,7 @@ namespace CADability.UserInterface
         }
 
         /// <summary>
-        /// Must be overridden, when Flags contains PropertyEntryType.ValueEditable. See <see cref="IPropertyEntry.StartEdit(bool)"/>
+        /// May be overridden, when Flags contains PropertyEntryType.ValueEditable or PropertyEntryType.LabelEditable to handle which part is being edited
         /// </summary>
         /// <param name="editValue"></param>
         public virtual void StartEdit(bool editValue)
@@ -316,11 +314,11 @@ namespace CADability.UserInterface
         }
         void IShowProperty.LabelChanged(string NewText)
         {
-            ((IShowProperty)dumy).LabelChanged(NewText);
+            // ((IShowProperty)dumy).LabelChanged(NewText);
         }
         void IShowProperty.SetFocus()
         {
-            ((IShowProperty)dumy).SetFocus();
+            // if (dumy is IPropertyEntry pe) pe.SetFocus();
         }
         void IShowProperty.Refresh()
         {

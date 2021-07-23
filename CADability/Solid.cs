@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 
 namespace CADability.GeoObject
 {
-    class ShowPropertySolid : IShowPropertyImpl, IGeoObjectShowProperty, ICommandHandler
+    class ShowPropertySolid : PropertyEntryImpl, IGeoObjectShowProperty, ICommandHandler
     {
         private Solid solid;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         public ShowPropertySolid(Solid solid, IFrame frame)
             : base(frame)
         {
@@ -20,50 +20,15 @@ namespace CADability.GeoObject
             attributeProperties = solid.GetAttributeProperties(frame);
         }
         #region IShowPropertyImpl overrides
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
-        }
-        public override string LabelText
-        {
-            get
-            {
-                //if (solid.Name != null)
-                //{
-                //    return StringTable.GetFormattedString("Solid.NamedObject", solid.Name);
-                //}
-                return base.LabelText;
-            }
-            set
-            {
-                base.LabelText = value;
-            }
-        }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+        private IPropertyEntry[] subEntries;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> se = new List<IShowProperty>();
+                    List<IPropertyEntry> se = new List<IPropertyEntry>();
 #if DEBUG
                     IntegerProperty dbghashcode = new IntegerProperty(solid.UniqueId, "Debug.Hashcode");
                     se.Add(dbghashcode);
@@ -75,7 +40,7 @@ namespace CADability.GeoObject
                     se.Add(vol);
                     foreach (Shell shell in solid.Shells)
                     {
-                        IShowProperty sp = shell.GetShowProperties(base.Frame);
+                        IPropertyEntry sp = shell.GetShowProperties(base.Frame);
                         sp.ReadOnly = true;
                         se.Add(sp);
                     }
@@ -341,7 +306,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertySolid(this, Frame);
         }

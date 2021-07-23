@@ -19,12 +19,12 @@ namespace CADability.GeoObject
         }
     }
 
-    internal class ShowPropertyGeneralCurve : IShowPropertyImpl
+    internal class ShowPropertyGeneralCurve : PropertyEntryImpl
     {
         private GeneralCurve generalCurve;
         private IFrame frame;
-        private IShowProperty[] subEntries;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries;
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         public ShowPropertyGeneralCurve(GeneralCurve GeneralCurve, IFrame Frame)
         {
             this.generalCurve = GeneralCurve;
@@ -32,16 +32,15 @@ namespace CADability.GeoObject
             attributeProperties = generalCurve.GetAttributeProperties(frame);
             base.resourceId = "General.Curve";
         }
-        #region IShowPropertyImpl Overrides
-        public override ShowPropertyEntryType EntryType { get { return ShowPropertyEntryType.GroupTitle; } }
-        public override int SubEntriesCount
+        #region PropertyEntryImpl Overrides
+        public override PropertyEntryType Flags
         {
             get
             {
-                return SubEntries.Length;
+                return PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
             }
         }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
@@ -52,11 +51,11 @@ namespace CADability.GeoObject
                     GeoPointProperty endPointProperty = new GeoPointProperty(this, "EndPoint", "GeneralCurve.EndPoint", frame, false);
                     endPointProperty.ReadOnly = true;
 
-                    IShowProperty[] mainProps = {
+                    IPropertyEntry[] mainProps = {
                                                      startPointProperty,
                                                      endPointProperty
                                                  };
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
             }
@@ -87,7 +86,7 @@ namespace CADability.GeoObject
     public abstract class GeneralCurve : IGeoObjectImpl, IColorDef, ICurve, ILineWidth, ILinePattern
     {
         [Serializable]
-        private class ProjectedCurve : TriangulatedCurve2D, ISerializable
+        private class ProjectedCurve : GeneralCurve2D, ISerializable
         {
             private ICurve curve;
             private Plane plane;
@@ -402,7 +401,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyGeneralCurve(this, Frame);
         }

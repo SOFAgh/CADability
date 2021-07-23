@@ -23,8 +23,7 @@ namespace CADability.Attribute
         private LineWidth lineWidth;
         private LinePattern linePattern;
         private ColorDef colorDef;
-        // für IShowProperty:
-        private IShowProperty[] subEntries;
+        private IPropertyEntry[] subItems;
         internal override void Init(Project pr)
         {
             lineDistance = 1.0;
@@ -227,75 +226,64 @@ namespace CADability.Attribute
         }
         #region IShowProperty Members
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
-                if (subEntries == null)
+                if (subItems == null)
                 {
-                    subEntries = new IShowProperty[9];
-                    AngleProperty ap = new AngleProperty("HatchStyleLines.Angle", base.propertyTreeView.GetFrame(), false);
+                    subItems = new IPropertyEntry[9];
+                    AngleProperty ap = new AngleProperty("HatchStyleLines.Angle", base.propertyPage.GetFrame(), false);
                     ap.GetAngleEvent += new AngleProperty.GetAngleDelegate(OnPropertyGetAngle);
                     ap.SetAngleEvent += new AngleProperty.SetAngleDelegate(OnPropertySetAngle);
                     ap.ShowMouseButton = false;
                     ap.AngleChanged();
-                    subEntries[0] = ap;
-                    LengthProperty lp = new LengthProperty("HatchStyleLines.Distance", base.propertyTreeView.GetFrame(), false);
+                    subItems[0] = ap;
+                    LengthProperty lp = new LengthProperty("HatchStyleLines.Distance", base.propertyPage.GetFrame(), false);
                     lp.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnPropertyGetDistance);
                     lp.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnPropertySetDistance);
                     lp.LengthChanged();
                     lp.ShowMouseButton = false;
-                    subEntries[1] = lp;
-                    LengthProperty mp = new LengthProperty("HatchStyleLines.MarginOffset", base.propertyTreeView.GetFrame(), false);
+                    subItems[1] = lp;
+                    LengthProperty mp = new LengthProperty("HatchStyleLines.MarginOffset", base.propertyPage.GetFrame(), false);
                     mp.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnPropertyGetMarginOffset);
                     mp.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnPropertySetMarginOffset);
                     mp.Refresh();
                     mp.ShowMouseButton = false;
-                    subEntries[2] = mp;
+                    subItems[2] = mp;
                     IntegerProperty on = new IntegerProperty(this, "Number", "HatchStyleLines.OffsetNumber");
-                    subEntries[3] = on;
-                    AngleProperty of = new AngleProperty(this, "AOffset", "HatchStyleLines.Offset", base.propertyTreeView.GetFrame(), false);
-                    subEntries[4] = of;
+                    subItems[3] = on;
+                    AngleProperty of = new AngleProperty(this, "AOffset", "HatchStyleLines.Offset", base.propertyPage.GetFrame(), false);
+                    subItems[4] = of;
                     BooleanProperty al = new BooleanProperty(this, "Alternate", "HatchStyleLines.Alternate");
-                    subEntries[5] = al;
+                    subItems[5] = al;
 
-                    Project pr = base.propertyTreeView.GetFrame().Project;
+                    Project pr = base.propertyPage.GetFrame().Project;
                     LineWidthSelectionProperty lws = new LineWidthSelectionProperty("HatchStyleLines.LineWidth", pr.LineWidthList, this.lineWidth);
                     lws.LineWidthChangedEvent += new CADability.UserInterface.LineWidthSelectionProperty.LineWidthChangedDelegate(OnLineWidthChanged);
-                    subEntries[6] = lws;
+                    subItems[6] = lws;
                     LinePatternSelectionProperty lps = new LinePatternSelectionProperty("HatchStyleLines.LinePattern", pr.LinePatternList, this.linePattern);
                     lps.LinePatternChangedEvent += new CADability.UserInterface.LinePatternSelectionProperty.LinePatternChangedDelegate(OnLinePatternChanged);
-                    subEntries[7] = lps;
+                    subItems[7] = lps;
                     ColorSelectionProperty csp = new ColorSelectionProperty("HatchStyleLines.Color", pr.ColorList, colorDef, ColorList.StaticFlags.allowUndefined);
                     csp.ShowAllowUndefinedGray = false;
                     csp.ColorDefChangedEvent += new ColorSelectionProperty.ColorDefChangedDelegate(OnColorDefChanged);
-                    subEntries[8] = csp;
+                    subItems[8] = csp;
                 }
-                return subEntries;
+                return subItems;
             }
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Removed"/>
         /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        /// <param name="propertyPage">the IPropertyTreeView from which it was removed</param>
+        public override void Removed(IPropertyPage pp)
         {
-            subEntries = null;
-            base.Removed(propertyTreeView);
+            subItems = null;
+            base.Removed(pp);
         }
 
         #endregion

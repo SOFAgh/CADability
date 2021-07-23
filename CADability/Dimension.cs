@@ -2176,7 +2176,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyDimension(this, Frame);
         }
@@ -2195,10 +2195,10 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty[] GetAttributeProperties(IFrame Frame)
+        public override IPropertyEntry[] GetAttributeProperties(IFrame Frame)
         {
-            IShowProperty[] b = base.GetAttributeProperties(Frame);
-            IShowProperty[] res = new IShowProperty[b.Length + 1];
+            IPropertyEntry[] b = base.GetAttributeProperties(Frame);
+            IPropertyEntry[] res = new IPropertyEntry[b.Length + 1];
             Array.Copy(b, 0, res, 0, b.Length);
             res[b.Length] = new DimensionStyleSelectionProperty("DimensionStyle.Selection", Frame.Project.DimensionStyleList, this, dimType, false);
             return res;

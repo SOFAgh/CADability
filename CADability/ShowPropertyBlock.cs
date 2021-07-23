@@ -9,14 +9,14 @@ namespace CADability.UserInterface
     /// <summary>
     /// 
     /// </summary>
-    internal class ShowPropertyBlock : IShowPropertyImpl, ICommandHandler, IGeoObjectShowProperty
+    internal class ShowPropertyBlock : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty
     {
         private Block block;
         private IGeoObject ContextMenuSource;
         MultiObjectsProperties multiObjectsProperties;
-        private IShowProperty[] subEntries;
+        private IPropertyEntry[] subEntries;
         private IFrame frame;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         public ShowPropertyBlock(Block Block, IFrame Frame)
         {
             block = Block;
@@ -28,28 +28,15 @@ namespace CADability.UserInterface
         {
             (subEntries[0] as NameProperty).StartEdit(true);
         }
-        #region IShowPropertyImpl Overrides
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        public override IShowProperty[] SubEntries
+        #region PropertyEntryImpl Overrides
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> prop = new List<IShowProperty>();
+                    List<IPropertyEntry> prop = new List<IPropertyEntry>();
                     prop.Add(new NameProperty(this.block, "Name", "Block.Name"));
                     GeoPointProperty refPointPro = new GeoPointProperty("Block.RefPoint", frame, true);
                     refPointPro.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetRefPoint);
@@ -62,7 +49,7 @@ namespace CADability.UserInterface
                         ShowPropertyGroup spg = new ShowPropertyGroup("Block.Children");
                         for (int i = 0; i < block.Count; ++i)
                         {
-                            IShowProperty sp = block.Item(i).GetShowProperties(frame);
+                            IPropertyEntry sp = block.Item(i).GetShowProperties(frame);
                             if (sp is IGeoObjectShowProperty)
                             {
                                 (sp as IGeoObjectShowProperty).CreateContextMenueEvent += new CreateContextMenueDelegate(OnCreateContextMenueChild);
@@ -71,8 +58,8 @@ namespace CADability.UserInterface
                         }
                         prop.Add(spg);
                     }
-                    IShowProperty[] mainProps = prop.ToArray();
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    IPropertyEntry[] mainProps = prop.ToArray();
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
             }
@@ -84,16 +71,6 @@ namespace CADability.UserInterface
             MenuWithHandler[] toAdd = MenuResource.LoadMenuDefinition("MenuId.SelectedObject", false, frame.CommandHandler);
             toManipulate.AddRange(toAdd);
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
-        }
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -104,24 +81,24 @@ namespace CADability.UserInterface
                 return items.ToArray();
             }
         }
-        public override void Added(IPropertyPage propertyTreeView)
+        public override void Added(IPropertyPage propertyPage)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
             block.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);
             block.UserData.UserDataRemovedEvent += new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
         }
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
             attributeProperties = block.GetAttributeProperties(frame);
-            propertyTreeView.Refresh(this);
+            propertyPage.Refresh(this);
         }
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyPage)
         {
             block.UserData.UserDataAddedEvent -= new UserData.UserDataAddedDelegate(OnUserDataAdded);
             block.UserData.UserDataRemovedEvent -= new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
         }
 #endregion
         private GeoPoint OnGetRefPoint(GeoPointProperty sender)
@@ -163,7 +140,7 @@ namespace CADability.UserInterface
                     {
                         block.MoveToBack(ContextMenuSource);
                         subEntries = null;
-                        if (propertyTreeView != null) propertyTreeView.Refresh(this);
+                        if (propertyPage != null) propertyPage.Refresh(this);
                     }
                     return true;
                 case "MenuId.SelectedObject.ToForeground":
@@ -171,7 +148,7 @@ namespace CADability.UserInterface
                     {
                         block.MoveToFront(ContextMenuSource);
                         subEntries = null;
-                        if (propertyTreeView != null) propertyTreeView.Refresh(this);
+                        if (propertyPage != null) propertyPage.Refresh(this);
                     }
                     return true;
 

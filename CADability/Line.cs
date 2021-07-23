@@ -439,7 +439,7 @@ namespace CADability.GeoObject
         /// <summary>
         /// Liefert die Liste aller anzuzeigenden Properties
         /// </summary>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyLine(this, Frame);
         }

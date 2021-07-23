@@ -2,6 +2,7 @@
 using CADability.UserInterface;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
@@ -18,19 +19,19 @@ namespace CADability.Attribute
     /// List of <see cref="HatchStyle"/> derived objects. Typically a <see cref="Project"/>
     /// or the <see cref="Settings"/> maintain such a list.
     /// The list is serializable and can be shown and modified in the <see cref="ControlCenter"/>.
-    /// There can not be two hatchstyles with the same name.
+    /// There can not be two hatch-styles with the same name.
     /// </summary>
     [Serializable]
-    public class HatchStyleList : IShowPropertyImpl, ISerializable, ICommandHandler, IAttributeList, IDeserializationCallback
+    public class HatchStyleList : PropertyEntryImpl, ISerializable, ICommandHandler, IAttributeList, IDeserializationCallback
     {
         private HatchStyle[] unsortedEntries;
         private SortedList entries;
         private HatchStyle current;
-        private IAttributeListContainer owner; // Besitzer, entweder Projekt oder Settings
+        private IAttributeListContainer owner; // the owner of this list, either the project or the settings
         internal string menuResourceId;
         private bool needsUpdate;
 
-        IShowProperty[] showProperties;
+        IPropertyEntry[] showProperties;
 
         public delegate HatchStyleList CreateHatchStyleListDelegate();
         public static event CreateHatchStyleListDelegate CreateHatchStyleListEvent;
@@ -134,11 +135,11 @@ namespace CADability.Attribute
             }
             if (DidModifyEvent != null) DidModifyEvent(this, null); // ist das ok? der Modelview brauchts
         }
-        private void RemoveAll() // nur intern verwenden, da nicht RemovingItem aufgerufen wird
+        private void RemoveAll() // only use internally, RemovingItem will not be called
         {
             entries.Clear();
             showProperties = null;
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, false); // zuklappen
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, false); // close
         }
         public HatchStyleList Clone()
         {
@@ -181,68 +182,35 @@ namespace CADability.Attribute
         }
         public event RemovingFromListDelegate RemovingFromListEvent;
         public event CADability.DidModifyDelegate DidModifyEvent;
-        #region IShowProperty Members
-        public override void Added(IPropertyPage propertyTreeView)
+        #region IPropertyEntry Members
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
+            base.Added(propertyPage);
         }
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyPage)
         {
-            base.Removed(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
+            base.Removed(propertyPage);
         }
-        //public override string InfoText
-        //{
-        //    get
-        //    {
-        //        return  StringTable.GetString("HatchStyleList.InfoText");
-        //    }
-        //}
-        public override ShowPropertyLabelFlags LabelType
+        public override PropertyEntryType Flags
         {
             get
             {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
+                return PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return entries.Count;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
-        /// returns the subentries in this property view.
-        /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (showProperties == null)
                 {
-                    showProperties = new IShowProperty[entries.Count];
+                    List<IPropertyEntry> list = new List<IPropertyEntry>();
                     for (int i = 0; i < entries.Count; i++)
                     {
                         HatchStyle hst = entries.GetByIndex(i) as HatchStyle;
-                        showProperties[i] = hst;
+                        // HatchStyles that end with "[DimensionStyleFillSolid]" are automatically created HatchStyles by DimensionStyles
+                        if (!hst.Name.EndsWith("[DimensionStyleFillSolid]")) list.Add(hst);
+                        showProperties = list.ToArray();
                     }
                 }
                 return showProperties;
@@ -259,30 +227,15 @@ namespace CADability.Attribute
         }
         public override void Refresh()
         {
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
-        void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
+        public override void UnSelected(IPropertyEntry nowSelected)
         {
-            if (sender.FocusLeft(this, OldFocus, NewFocus))
-            {
-                if (needsUpdate && Settings.GlobalSettings.GetBoolValue("HatchStyle.AutoUpdate", true)) OnUpdateAllHatchs();
-                needsUpdate = false;
-            }
-            else if (sender.FocusEntered(this, OldFocus, NewFocus))
-            {
-            }
+            if (needsUpdate && Settings.GlobalSettings.GetBoolValue("HatchStyle.AutoUpdate", true)) OnUpdateAllHatchs();
+            needsUpdate = false;
         }
-        public override void OnVisibilityChanged(bool isVisible)
-        {
-            base.OnVisibilityChanged(isVisible);
-            if (!isVisible)
-            {
-                if (needsUpdate && Settings.GlobalSettings.GetBoolValue("HatchStyle.AutoUpdate", true)) OnUpdateAllHatchs();
-                needsUpdate = false;
-            }
-        }
-#endregion
-#region ISerializable Members
+        #endregion
+        #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -314,8 +267,8 @@ namespace CADability.Attribute
             info.AddValue("UnsortedEntries", hatchStyleArray);
             info.AddValue("Current", current);
         }
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
             if (unsortedEntries != null)
@@ -337,8 +290,8 @@ namespace CADability.Attribute
                 if (ind >= 0) current = entries.GetByIndex(ind) as HatchStyle;
             }
         }
-#endregion
-#region ICommandHandler Members
+        #endregion
+        #region ICommandHandler Members
         private void OnAddFromGlobal()
         {
             foreach (HatchStyle ds in Settings.GlobalSettings.HatchStyleList.entries.Values)
@@ -479,20 +432,20 @@ namespace CADability.Attribute
                         int nr = int.Parse(Name.Substring(NewHatchStyleName.Length));
                         if (nr > MaxNr) MaxNr = nr;
                     }
-                    catch (ArgumentNullException) { } // hat garkeine Nummer
-                    catch (FormatException) { } // hat was anderes als nur Ziffern
-                    catch (OverflowException) { } // zu viele Ziffern
+                    catch (ArgumentNullException) { } // has no number
+                    catch (FormatException) { } // has something else as extension
+                    catch (OverflowException) { } // too many digits
                 }
             }
-            MaxNr += 1; // nächste freie Nummer
+            MaxNr += 1; // next available number
             NewHatchStyleName += MaxNr.ToString();
             hst.Name = NewHatchStyleName;
             Add(hst);
 
             showProperties = null;
-            propertyTreeView.Refresh(this);
-            propertyTreeView.OpenSubEntries(this, true);
-            propertyTreeView.StartEditLabel(showProperties[entries.IndexOfKey(NewHatchStyleName)] as IPropertyEntry);
+            propertyPage.Refresh(this);
+            propertyPage.OpenSubEntries(this, true);
+            propertyPage.StartEditLabel(showProperties[entries.IndexOfKey(NewHatchStyleName)] as IPropertyEntry);
         }
         bool ICommandHandler.OnCommand(string MenuId)
         {
@@ -617,6 +570,6 @@ namespace CADability.Attribute
                 return current as INamedAttribute;
             }
         }
-#endregion
+        #endregion
     }
 }

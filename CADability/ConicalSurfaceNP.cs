@@ -65,6 +65,15 @@ namespace CADability.GeoObject
         {   // m must be orthogonal
             return new ConicalSurfaceNP(m * location, m * xAxis, m * yAxis, m * zAxis);
         }
+        public override void Modify(ModOp m)
+        {
+            location = m * location;
+            xAxis = m * xAxis;
+            yAxis = m * yAxis;
+            zAxis = m * zAxis;
+            implicitPolynomial = null;
+            boxedSurfaceEx = null;
+        }
         public override ICurve Make3dCurve(ICurve2D curve2d)
         {
             if (curve2d is Line2D l2d)

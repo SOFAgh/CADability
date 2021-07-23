@@ -1,5 +1,7 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
+using MathNet.Numerics.Optimization;
+using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.Shapes;
 using CADability.UserInterface;
@@ -477,6 +479,12 @@ namespace CADability.GeoObject
         /// Gets the IPropertyEntry to display this surface in the property grid (may be null)
         /// </summary>
         IPropertyEntry GetPropertyEntry(IFrame frame);
+        /// <summary>
+        /// Modifies this surface to best approximate the provided points. 
+        /// </summary>
+        /// <param name="toPoints"></param>
+        /// <returns>The sum of the squared errors</returns>
+        double Fit(IEnumerable<GeoPoint> toPoints);
     }
 
     /// <summary>
@@ -3911,7 +3919,514 @@ namespace CADability.GeoObject
             return new MenuWithHandler[0];
         }
         public virtual bool UvChangesWithModification => false;
+        public virtual bool CanStretch => false;
+        public virtual double Fit(IEnumerable<GeoPoint> points)
+        {
+            // we are looking for the best transformation of the points so that the distance to the surface of all points becomes minimal
+            // transformation: orthonormal with scaling and translation
+            GeoPoint[] pnts = points.ToArray();
 
+#if DEBUG
+            {
+                double err = 0.0;
+                for (int i = 0; i < pnts.Length; i++) err += pnts[i] & PointAt(PositionOf(pnts[i])); // squared distance
+                double derr = 0.0;
+                for (int i = 0; i < pnts.Length; i++) derr += this.GetDistance(pnts[i]);
+            }
+            //for (int i = 0; i < pnts.Length; i++)
+            //{
+            //    pnts[i] = new GeoPoint(pnts[i].x, pnts[i].y, pnts[i].z + 1);
+            //}
+#endif
+            Vector<double> observedX = new DenseVector(pnts.Length); // there is no need to set values
+            Vector<double> observedY = new DenseVector(pnts.Length); // this is the data we want to achieve, namely 0.0
+            LevenbergMarquardtMinimizer lm = new LevenbergMarquardtMinimizer(gradientTolerance: 1e-15, maximumIterations: 20);
+            NonlinearMinimizationResult mres;
+            if (CanStretch)
+            {
+                IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                    new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                    {
+                        // 
+                        DenseVector res = new DenseVector(pnts.Length);
+                        double a = vd[0]; // rotation around x-axis
+                        double b = vd[1]; // rotation around y-axis
+                        double c = vd[2]; // rotation around z-axis
+                        double fx = vd[3]; // scaling factor x
+                        double fy = vd[4]; // scaling factor y
+                        double fz = vd[5]; // scaling factor z
+                        double sa = Math.Sin(a);
+                        double ca = Math.Cos(a);
+                        double sb = Math.Sin(b);
+                        double cb = Math.Cos(b);
+                        double sc = Math.Sin(c);
+                        double cc = Math.Cos(c);
+                        GeoVector t = new GeoVector(vd[6], vd[7], vd[8]); // translation 
+                        Matrix m = DenseMatrix.OfArray(new double[,] { { fx, 0, 0 }, { 0, fy, 0 }, { 0, 0, fz } }) *
+                            DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                            DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                            DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                        ModOp trsf = new ModOp(m.ToArray(), t);
+                        for (int i = 0; i < pnts.Length; i++)
+                        {
+                            GeoPoint p = trsf * pnts[i];
+                            GeoPoint2D uv = PositionOf(p);
+                            GeoPoint o = PointAt(uv);
+                            GeoVector n = GetNormal(uv).Normalized;
+                            res[i] = n * (p - o); // (signed) distance from the plane
+                        }
+#if DEBUG
+                        double err = 0.0;
+                        for (int i = 0; i < pnts.Length; i++) err += res[i] * res[i];
+#endif
+                        return res;
+                    }),
+                    new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                    {
+                        var prime = new DenseMatrix(pnts.Length, 9);
+                        double a = vd[0]; // rotation around x-axis
+                        double b = vd[1]; // rotation around y-axis
+                        double c = vd[2]; // rotation around z-axis
+                        double fx = vd[3]; // scaling factor x
+                        double fy = vd[4]; // scaling factor y
+                        double fz = vd[5]; // scaling factor z
+                        double sa = Math.Sin(a);
+                        double ca = Math.Cos(a);
+                        double sb = Math.Sin(b);
+                        double cb = Math.Cos(b);
+                        double sc = Math.Sin(c);
+                        double cc = Math.Cos(c);
+                        GeoVector t = new GeoVector(vd[6], vd[7], vd[8]); // translation 
+                        Matrix m = DenseMatrix.OfArray(new double[,] { { fx, 0, 0 }, { 0, fy, 0 }, { 0, 0, fz } }) *
+                            DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                            DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                            DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                        ModOp trsf = new ModOp(m.ToArray(), t);
+                        for (int i = 0; i < pnts.Length; i++)
+                        {
+                            GeoPoint p = trsf * pnts[i];
+                            GeoPoint2D uv = PositionOf(p);
+                            GeoPoint o = PointAt(uv);
+                            GeoVector n = GetNormal(uv).Normalized;
+
+                            prime[i, 0] = fy * n.y * (sb * sc * (ca * p.y - sa * p.z) + cc * (-ca * p.z - sa * p.y)) + fx * n.x * (sb * cc * (ca * p.y - sa * p.z) - sc * (-ca * p.z - sa * p.y)) + cb * fz * n.z * (ca * p.y - sa * p.z);
+                            prime[i, 1] = fz * n.z * (-sb * (ca * p.z + sa * p.y) - cb * p.x) + sc * fy * n.y * (cb * (ca * p.z + sa * p.y) - sb * p.x) + cc * fx * n.x * (cb * (ca * p.z + sa * p.y) - sb * p.x);
+                            prime[i, 2] = fx * n.x * (-sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - cc * (ca * p.y - sa * p.z)) + fy * n.y * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z));
+                            prime[i, 3] = n.x * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z));
+                            prime[i, 4] = n.y * (sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) + cc * (ca * p.y - sa * p.z));
+                            prime[i, 5] = n.z * (cb * (ca * p.z + sa * p.y) - sb * p.x);
+                            prime[i, 6] = n.x;
+                            prime[i, 7] = n.y;
+                            prime[i, 8] = n.z;
+                        }
+                        return prime;
+                    }), observedX, observedY);
+                mres = lm.FindMinimum(iom, new DenseVector(new double[] { 0, 0, 0, 1, 1, 1, 0, 0, 0 }));
+                if (true)
+                {
+                    double a = mres.MinimizingPoint[0]; // rotation around x-axis
+                    double b = mres.MinimizingPoint[1]; // rotation around y-axis
+                    double c = mres.MinimizingPoint[2]; // rotation around z-axis
+                    double fx = mres.MinimizingPoint[3]; // scaling factor x
+                    double fy = mres.MinimizingPoint[4]; // scaling factor y
+                    double fz = mres.MinimizingPoint[5]; // scaling factor z
+                    double sa = Math.Sin(a);
+                    double ca = Math.Cos(a);
+                    double sb = Math.Sin(b);
+                    double cb = Math.Cos(b);
+                    double sc = Math.Sin(c);
+                    double cc = Math.Cos(c);
+                    GeoVector t = new GeoVector(mres.MinimizingPoint[6], mres.MinimizingPoint[7], mres.MinimizingPoint[8]); // translation 
+                    Matrix m = DenseMatrix.OfArray(new double[,] { { fx, 0, 0 }, { 0, fy, 0 }, { 0, 0, fz } }) *
+                        DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                        DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                        DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                    ModOp trsf = new ModOp(m.ToArray(), t);
+                    Modify(trsf.GetInverse());
+                }
+            }
+            else
+            {
+                IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                    new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                    {
+                        // 
+                        DenseVector res = new DenseVector(pnts.Length);
+                        double a = vd[0]; // rotation around x-axis
+                        double b = vd[1]; // rotation around y-axis
+                        double c = vd[2]; // rotation around z-axis
+                        double f = vd[3]; // scaling factor
+                        double sa = Math.Sin(a);
+                        double ca = Math.Cos(a);
+                        double sb = Math.Sin(b);
+                        double cb = Math.Cos(b);
+                        double sc = Math.Sin(c);
+                        double cc = Math.Cos(c);
+                        GeoVector t = new GeoVector(vd[4], vd[5], vd[6]); // translation 
+                        Matrix m = DenseMatrix.CreateDiagonal(3, 3, f) *
+                            DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                            DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                            DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                        ModOp trsf = new ModOp(m.ToArray(), t);
+                        for (int i = 0; i < pnts.Length; i++)
+                        {
+                            GeoPoint p = trsf * pnts[i];
+                            GeoPoint2D uv = PositionOf(p);
+                            GeoPoint o = PointAt(uv);
+                            res[i] = (p - o) * (p - o); // square distance
+                        }
+#if DEBUG
+                        double err = 0.0;
+                        for (int i = 0; i < pnts.Length; i++) err += res[i];
+#endif
+                        return res;
+                    }),
+                    new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                    {
+                        var prime = new DenseMatrix(pnts.Length, 7);
+
+                        double a = vd[0]; // rotation around x-axis
+                        double b = vd[1]; // rotation around y-axis
+                        double c = vd[2]; // rotation around z-axis
+                        double f = vd[3]; // scaling factor
+                        double sa = Math.Sin(a);
+                        double ca = Math.Cos(a);
+                        double sb = Math.Sin(b);
+                        double cb = Math.Cos(b);
+                        double sc = Math.Sin(c);
+                        double cc = Math.Cos(c);
+                        GeoVector t = new GeoVector(vd[4], vd[5], vd[6]); // translation 
+                        Matrix m = DenseMatrix.CreateDiagonal(3, 3, f) *
+                            DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                            DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                            DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                        ModOp trsf = new ModOp(m.ToArray(), t);
+                        for (int i = 0; i < pnts.Length; i++)
+                        {
+                            GeoPoint p = trsf * pnts[i];
+                            GeoPoint2D uv = PositionOf(p);
+                            GeoPoint o = PointAt(uv);
+
+                            prime[i, 0] = -2 * cb * f * (ca * p.y - sa * p.z) * (-t.z - f * (cb * (ca * p.z + sa * p.y) - sb * p.x) + o.z) - 2 * f * (sb * sc * (ca * p.y - sa * p.z) + cc * (-ca * p.z - sa * p.y)) * (-t.y - f * (sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) + cc * (ca * p.y - sa * p.z)) + o.y) - 2 * f * (sb * cc * (ca * p.y - sa * p.z) - sc * (-ca * p.z - sa * p.y)) * (-t.x - f * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z)) + o.x);
+                            prime[i, 1] = -2 * f * (-sb * (ca * p.z + sa * p.y) - cb * p.x) * (-t.z - f * (cb * (ca * p.z + sa * p.y) - sb * p.x) + o.z) - 2 * sc * f * (cb * (ca * p.z + sa * p.y) - sb * p.x) * (-t.y - f * (sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) + cc * (ca * p.y - sa * p.z)) + o.y) - 2 * cc * f * (cb * (ca * p.z + sa * p.y) - sb * p.x) * (-t.x - f * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z)) + o.x);
+                            prime[i, 2] = -2 * f * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z)) * (-t.y - f * (sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) + cc * (ca * p.y - sa * p.z)) + o.y) - 2 * f * (-sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - cc * (ca * p.y - sa * p.z)) * (-t.x - f * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z)) + o.x);
+                            prime[i, 3] = 2 * (sb * p.x - cb * (ca * p.z + sa * p.y)) * (-t.z - f * (cb * (ca * p.z + sa * p.y) - sb * p.x) + o.z) + 2 * (-sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - cc * (ca * p.y - sa * p.z)) * (-t.y - f * (sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) + cc * (ca * p.y - sa * p.z)) + o.y) + 2 * (sc * (ca * p.y - sa * p.z) - cc * (sb * (ca * p.z + sa * p.y) + cb * p.x)) * (-t.x - f * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z)) + o.x);
+                            prime[i, 4] = -2 * (-t.x - f * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z)) + o.x);
+                            prime[i, 5] = -2 * (-t.y - f * (sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) + cc * (ca * p.y - sa * p.z)) + o.y);
+                            prime[i, 6] = -2 * (-t.z - f * (cb * (ca * p.z + sa * p.y) - sb * p.x) + o.z);
+                        }
+                        return prime;
+                    }), observedX, observedY);
+                mres = lm.FindMinimum(iom, new DenseVector(new double[] { 0, 0, 0, 1, 0, 0, 0 }));
+                if (true)
+                {
+                    double a = mres.MinimizingPoint[0]; // rotation around x-axis
+                    double b = mres.MinimizingPoint[1]; // rotation around y-axis
+                    double c = mres.MinimizingPoint[2]; // rotation around z-axis
+                    double f = mres.MinimizingPoint[3]; // scaling factor
+                    double sa = Math.Sin(a);
+                    double ca = Math.Cos(a);
+                    double sb = Math.Sin(b);
+                    double cb = Math.Cos(b);
+                    double sc = Math.Sin(c);
+                    double cc = Math.Cos(c);
+                    GeoVector t = new GeoVector(mres.MinimizingPoint[4], mres.MinimizingPoint[5], mres.MinimizingPoint[6]); // translation 
+                    Matrix m = DenseMatrix.CreateDiagonal(3, 3, f) *
+                        DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                        DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                        DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                    ModOp trsf = new ModOp(m.ToArray(), t);
+#if DEBUG
+                    double err1 = 0.0;
+                    double derr1 = 0.0;
+                    for (int i = 0; i < pnts.Length; i++)
+                    {
+                        GeoPoint p = trsf * pnts[i];
+                        GeoPoint2D uv = PositionOf(p);
+                        GeoPoint o = PointAt(uv);
+                        double r = (p - o) * (p - o); // (signed) distance from the plane
+                        err1 += r;
+                        derr1 += GetDistance(trsf * pnts[i]);
+                    }
+#endif
+                    Modify(trsf.GetInverse());
+#if DEBUG
+                    double err2 = 0.0;
+                    double derr2 = 0.0;
+                    for (int i = 0; i < pnts.Length; i++)
+                    {
+                        GeoPoint p = pnts[i];
+                        GeoPoint2D uv = PositionOf(p);
+                        GeoPoint o = PointAt(uv);
+                        GeoVector n = GetNormal(uv).Normalized;
+                        double r = n * (p - o); // (signed) distance from the plane
+                        err2 += r;
+                        derr2 += GetDistance(pnts[i]);
+                    }
+#endif
+                }
+            }
+#if DEBUG
+            {
+                double err = 0.0;
+                for (int i = 0; i < pnts.Length; i++) err += pnts[i] & PointAt(PositionOf(pnts[i])); // squared distance
+            }
+#endif
+            return mres.ModelInfoAtMinimum.Value;
+        }
+        public virtual double FitOld(IEnumerable<GeoPoint> points)
+        {
+            // we are looking for the best transformation of the points so that the distance to the surface of all points becomes minimal
+            // transformation: orthonormal with scaling and translation
+            GeoPoint[] pnts = points.ToArray();
+
+#if DEBUG
+            {
+                double err = 0.0;
+                for (int i = 0; i < pnts.Length; i++) err += pnts[i] & PointAt(PositionOf(pnts[i])); // squared distance
+                double derr = 0.0;
+                for (int i = 0; i < pnts.Length; i++) derr += this.GetDistance(pnts[i]);
+            }
+#endif
+            Vector<double> observedX = new DenseVector(pnts.Length); // there is no need to set values
+            Vector<double> observedY = new DenseVector(pnts.Length); // this is the data we want to achieve, namely 0.0
+            LevenbergMarquardtMinimizer lm = new LevenbergMarquardtMinimizer(gradientTolerance: 1e-15, maximumIterations: 20);
+            NonlinearMinimizationResult mres;
+            if (CanStretch)
+            {
+                IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                    new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                    {
+                        // 
+                        DenseVector res = new DenseVector(pnts.Length);
+                        double a = vd[0]; // rotation around x-axis
+                        double b = vd[1]; // rotation around y-axis
+                        double c = vd[2]; // rotation around z-axis
+                        double fx = vd[3]; // scaling factor x
+                        double fy = vd[4]; // scaling factor y
+                        double fz = vd[5]; // scaling factor z
+                        double sa = Math.Sin(a);
+                        double ca = Math.Cos(a);
+                        double sb = Math.Sin(b);
+                        double cb = Math.Cos(b);
+                        double sc = Math.Sin(c);
+                        double cc = Math.Cos(c);
+                        GeoVector t = new GeoVector(vd[6], vd[7], vd[8]); // translation 
+                        Matrix m = DenseMatrix.OfArray(new double[,] { { fx, 0, 0 }, { 0, fy, 0 }, { 0, 0, fz } }) *
+                            DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                            DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                            DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                        ModOp trsf = new ModOp(m.ToArray(), t);
+                        for (int i = 0; i < pnts.Length; i++)
+                        {
+                            GeoPoint p = trsf * pnts[i];
+                            GeoPoint2D uv = PositionOf(p);
+                            GeoPoint o = PointAt(uv);
+                            GeoVector n = GetNormal(uv).Normalized;
+                            res[i] = n * (p - o); // (signed) distance from the plane
+                        }
+#if DEBUG
+                        double err = 0.0;
+                        for (int i = 0; i < pnts.Length; i++) err += res[i] * res[i];
+#endif
+                        return res;
+                    }),
+                    new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                    {
+                        var prime = new DenseMatrix(pnts.Length, 9);
+                        double a = vd[0]; // rotation around x-axis
+                        double b = vd[1]; // rotation around y-axis
+                        double c = vd[2]; // rotation around z-axis
+                        double fx = vd[3]; // scaling factor x
+                        double fy = vd[4]; // scaling factor y
+                        double fz = vd[5]; // scaling factor z
+                        double sa = Math.Sin(a);
+                        double ca = Math.Cos(a);
+                        double sb = Math.Sin(b);
+                        double cb = Math.Cos(b);
+                        double sc = Math.Sin(c);
+                        double cc = Math.Cos(c);
+                        GeoVector t = new GeoVector(vd[6], vd[7], vd[8]); // translation 
+                        Matrix m = DenseMatrix.OfArray(new double[,] { { fx, 0, 0 }, { 0, fy, 0 }, { 0, 0, fz } }) *
+                            DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                            DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                            DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                        ModOp trsf = new ModOp(m.ToArray(), t);
+                        for (int i = 0; i < pnts.Length; i++)
+                        {
+                            GeoPoint p = trsf * pnts[i];
+                            GeoPoint2D uv = PositionOf(p);
+                            GeoPoint o = PointAt(uv);
+                            GeoVector n = GetNormal(uv).Normalized;
+
+                            prime[i, 0] = fy * n.y * (sb * sc * (ca * p.y - sa * p.z) + cc * (-ca * p.z - sa * p.y)) + fx * n.x * (sb * cc * (ca * p.y - sa * p.z) - sc * (-ca * p.z - sa * p.y)) + cb * fz * n.z * (ca * p.y - sa * p.z);
+                            prime[i, 1] = fz * n.z * (-sb * (ca * p.z + sa * p.y) - cb * p.x) + sc * fy * n.y * (cb * (ca * p.z + sa * p.y) - sb * p.x) + cc * fx * n.x * (cb * (ca * p.z + sa * p.y) - sb * p.x);
+                            prime[i, 2] = fx * n.x * (-sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - cc * (ca * p.y - sa * p.z)) + fy * n.y * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z));
+                            prime[i, 3] = n.x * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z));
+                            prime[i, 4] = n.y * (sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) + cc * (ca * p.y - sa * p.z));
+                            prime[i, 5] = n.z * (cb * (ca * p.z + sa * p.y) - sb * p.x);
+                            prime[i, 6] = n.x;
+                            prime[i, 7] = n.y;
+                            prime[i, 8] = n.z;
+                        }
+                        return prime;
+                    }), observedX, observedY);
+                mres = lm.FindMinimum(iom, new DenseVector(new double[] { 0, 0, 0, 1, 1, 1, 0, 0, 0 }));
+                if (true)
+                {
+                    double a = mres.MinimizingPoint[0]; // rotation around x-axis
+                    double b = mres.MinimizingPoint[1]; // rotation around y-axis
+                    double c = mres.MinimizingPoint[2]; // rotation around z-axis
+                    double fx = mres.MinimizingPoint[3]; // scaling factor x
+                    double fy = mres.MinimizingPoint[4]; // scaling factor y
+                    double fz = mres.MinimizingPoint[5]; // scaling factor z
+                    double sa = Math.Sin(a);
+                    double ca = Math.Cos(a);
+                    double sb = Math.Sin(b);
+                    double cb = Math.Cos(b);
+                    double sc = Math.Sin(c);
+                    double cc = Math.Cos(c);
+                    GeoVector t = new GeoVector(mres.MinimizingPoint[6], mres.MinimizingPoint[7], mres.MinimizingPoint[8]); // translation 
+                    Matrix m = DenseMatrix.OfArray(new double[,] { { fx, 0, 0 }, { 0, fy, 0 }, { 0, 0, fz } }) *
+                        DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                        DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                        DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                    ModOp trsf = new ModOp(m.ToArray(), t);
+                    Modify(trsf.GetInverse());
+                }
+            }
+            else
+            {
+                IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                    new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                    {
+                        // 
+                        DenseVector res = new DenseVector(pnts.Length);
+                        double a = vd[0]; // rotation around x-axis
+                        double b = vd[1]; // rotation around y-axis
+                        double c = vd[2]; // rotation around z-axis
+                        double f = vd[3]; // scaling factor
+                        double sa = Math.Sin(a);
+                        double ca = Math.Cos(a);
+                        double sb = Math.Sin(b);
+                        double cb = Math.Cos(b);
+                        double sc = Math.Sin(c);
+                        double cc = Math.Cos(c);
+                        GeoVector t = new GeoVector(vd[4], vd[5], vd[6]); // translation 
+                        Matrix m = DenseMatrix.CreateDiagonal(3, 3, f) *
+                            DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                            DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                            DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                        ModOp trsf = new ModOp(m.ToArray(), t);
+                        for (int i = 0; i < pnts.Length; i++)
+                        {
+                            GeoPoint p = trsf * pnts[i];
+                            GeoPoint2D uv = PositionOf(p);
+                            GeoPoint o = PointAt(uv);
+                            GeoVector n = GetNormal(uv).Normalized;
+                            res[i] = n * (p - o); // (signed) distance from the plane
+                        }
+#if DEBUG
+                        double err = 0.0;
+                        for (int i = 0; i < pnts.Length; i++) err += res[i] * res[i];
+#endif
+                        return res;
+                    }),
+                    new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                    {
+                        var prime = new DenseMatrix(pnts.Length, 7);
+
+                        double a = vd[0]; // rotation around x-axis
+                        double b = vd[1]; // rotation around y-axis
+                        double c = vd[2]; // rotation around z-axis
+                        double f = vd[3]; // scaling factor
+                        double sa = Math.Sin(a);
+                        double ca = Math.Cos(a);
+                        double sb = Math.Sin(b);
+                        double cb = Math.Cos(b);
+                        double sc = Math.Sin(c);
+                        double cc = Math.Cos(c);
+                        GeoVector t = new GeoVector(vd[4], vd[5], vd[6]); // translation 
+                        Matrix m = DenseMatrix.CreateDiagonal(3, 3, f) *
+                            DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                            DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                            DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                        ModOp trsf = new ModOp(m.ToArray(), t);
+                        for (int i = 0; i < pnts.Length; i++)
+                        {
+                            GeoPoint p = trsf * pnts[i];
+                            GeoPoint2D uv = PositionOf(p);
+                            GeoPoint o = PointAt(uv);
+                            GeoVector n = GetNormal(uv).Normalized;
+
+                            prime[i, 0] = f * n.y * (sb * sc * (ca * p.y - sa * p.z) + cc * (-ca * p.z - sa * p.y)) + f * n.x * (sb * cc * (ca * p.y - sa * p.z) - sc * (-ca * p.z - sa * p.y)) + cb * f * n.z * (ca * p.y - sa * p.z);
+                            prime[i, 1] = f * n.z * (-sb * (ca * p.z + sa * p.y) - cb * p.x) + sc * f * n.y * (cb * (ca * p.z + sa * p.y) - sb * p.x) + cc * f * n.x * (cb * (ca * p.z + sa * p.y) - sb * p.x);
+                            prime[i, 2] = f * n.z * (-sb * (ca * p.z + sa * p.y) - cb * p.x) + sc * f * n.y * (cb * (ca * p.z + sa * p.y) - sb * p.x) + cc * f * n.x * (cb * (ca * p.z + sa * p.y) - sb * p.x);
+                            prime[i, 3] = n.y * (sc * (sb * (ca * p.z + sa * p.y) + cb * p.x) + cc * (ca * p.y - sa * p.z)) + n.x * (cc * (sb * (ca * p.z + sa * p.y) + cb * p.x) - sc * (ca * p.y - sa * p.z)) + n.z * (cb * (ca * p.z + sa * p.y) - sb * p.x);
+                            prime[i, 4] = n.x;
+                            prime[i, 5] = n.y;
+                            prime[i, 6] = n.z;
+                        }
+                        return prime;
+                    }), observedX, observedY);
+                mres = lm.FindMinimum(iom, new DenseVector(new double[] { 0, 0, 0, 1, 0, 0, 0 }));
+                if (true)
+                {
+                    double a = mres.MinimizingPoint[0]; // rotation around x-axis
+                    double b = mres.MinimizingPoint[1]; // rotation around y-axis
+                    double c = mres.MinimizingPoint[2]; // rotation around z-axis
+                    double f = mres.MinimizingPoint[3]; // scaling factor
+                    double sa = Math.Sin(a);
+                    double ca = Math.Cos(a);
+                    double sb = Math.Sin(b);
+                    double cb = Math.Cos(b);
+                    double sc = Math.Sin(c);
+                    double cc = Math.Cos(c);
+                    GeoVector t = new GeoVector(mres.MinimizingPoint[4], mres.MinimizingPoint[5], mres.MinimizingPoint[6]); // translation 
+                    Matrix m = DenseMatrix.CreateDiagonal(3, 3, f) *
+                        DenseMatrix.OfArray(new double[,] { { cc, -sc, 0 }, { sc, cc, 0 }, { 0, 0, 1 } }) *
+                        DenseMatrix.OfArray(new double[,] { { cb, 0, sb }, { 0, 1, 0 }, { -sb, 0, cb } }) *
+                        DenseMatrix.OfArray(new double[,] { { 1, 0, 0 }, { 0, ca, -sa }, { 0, sa, ca } });
+                    ModOp trsf = new ModOp(m.ToArray(), t);
+#if DEBUG
+                    double err1 = 0.0;
+                    double derr1 = 0.0;
+                    for (int i = 0; i < pnts.Length; i++)
+                    {
+                        GeoPoint p = trsf * pnts[i];
+                        GeoPoint2D uv = PositionOf(p);
+                        GeoPoint o = PointAt(uv);
+                        GeoVector n = GetNormal(uv).Normalized;
+                        double r = n * (p - o); // (signed) distance from the plane
+                        err1 += r * r;
+                        derr1 += GetDistance(trsf * pnts[i]);
+                    }
+#endif
+                    Modify(trsf.GetInverse());
+#if DEBUG
+                    double err2 = 0.0;
+                    double derr2 = 0.0;
+                    for (int i = 0; i < pnts.Length; i++)
+                    {
+                        GeoPoint p = pnts[i];
+                        GeoPoint2D uv = PositionOf(p);
+                        GeoPoint o = PointAt(uv);
+                        GeoVector n = GetNormal(uv).Normalized;
+                        double r = n * (p - o); // (signed) distance from the plane
+                        err2 += r * r;
+                        derr2 += GetDistance(pnts[i]);
+                    }
+#endif
+                }
+            }
+#if DEBUG
+            {
+                double err = 0.0;
+                for (int i = 0; i < pnts.Length; i++) err += pnts[i] & PointAt(PositionOf(pnts[i])); // squared distance
+            }
+#endif
+            return mres.ModelInfoAtMinimum.Value;
+        }
         public abstract IPropertyEntry GetPropertyEntry(IFrame frame);
 #if DEBUG
         // Starte mit dem Mittelpunkt
@@ -5426,7 +5941,7 @@ namespace CADability.GeoObject
                 Matrix m = DenseMatrix.OfArray(new double[6, 6] { { u1.x, v1.x, -u2.x, -v2.x, 0, 0 }, { u1.y, v1.y, -u2.y, -v2.y, 0, 0 }, { u1.z, v1.z, -u2.z, -v2.z, 0, 0 }, { 0, 0, -u2.x, -v2.x, u3.x, v3.x }, { 0, 0, -u2.y, -v2.y, u3.y, v3.y }, { 0, 0, -u2.z, -v2.z, u3.z, v3.z } });
                 try
                 {
-                    Vector x = (Vector)m.Solve(new DenseVector(new double[] { p2.x - p1.x ,  p2.y - p1.y ,  p2.z - p1.z ,  p2.x - p3.x ,  p2.y - p3.y ,  p2.z - p3.z  }));
+                    Vector x = (Vector)m.Solve(new DenseVector(new double[] { p2.x - p1.x, p2.y - p1.y, p2.z - p1.z, p2.x - p3.x, p2.y - p3.y, p2.z - p3.z }));
                     if (x.IsValid())
                     {
                         if (error < Precision.eps) break; // geht wohl nicht besser
@@ -5695,7 +6210,7 @@ namespace CADability.GeoObject
             bool SplitTestFunction(OctTree<Face>.Node<Face> node, Face objectToAdd)
             {
                 if (found) return false;
-                if (node.list != null && node.list.Count > 0 && node.list[0] != objectToAdd)
+                if (node.list != null && node.list.Count > 0 && !node.list.Contains(objectToAdd))
                 {
                     if (node.size > ext.Size * 1e-3) return true;
                     GeoPoint testPoint = node.center;
@@ -9557,7 +10072,7 @@ namespace CADability.GeoObject
                     b[0] = -du * normal;
                     b[1] = -dv * normal;
                     Vector x;
-                    
+
                     if (m.QR().IsFullRank) x = (Vector)m.QR().Solve(b); // qrd ist stabiler, wenns um sehr kleine Werte geht, oder?
                     else x = (Vector)m.Solve(b);
                     if (x.IsValid())
@@ -14093,6 +14608,5 @@ namespace CADability.GeoObject
                 while (Math.Abs(u - um) > Math.Abs(u + surface.UPeriod - um)) u += surface.UPeriod;
             }
         }
-
     }
 }

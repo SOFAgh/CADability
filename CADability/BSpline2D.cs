@@ -478,7 +478,7 @@ namespace CADability.Curve2D
                 MakeFlat(); // es gibt immer auch die flachen
                 if (nubs != null) nubs.InitDeriv2();
                 else nurbs.InitDeriv2();
-                MakeTriangulation();
+                // MakeTriangulation();
                 if (nubs != null) nubs.ClearDeriv2();
                 else nurbs.ClearDeriv2();
             }
@@ -1035,10 +1035,10 @@ namespace CADability.Curve2D
         }
 #if DEBUG
 #endif
-        internal override int GetMinParts()
-        {
-            return knots.Length;
-        }
+        //internal override int GetMinParts()
+        //{
+        //    return knots.Length;
+        //}
         /// <summary>
         /// Gets a copy of the knots defining the BSpline (NURBS)
         /// </summary>
@@ -1118,25 +1118,43 @@ namespace CADability.Curve2D
                 if (zMax < p.z) zMax = p.z;
             }
         }
-        internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
+        protected override void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters)
         {
-            if (tringulation == null) MakeTriangulation();
-            interpol = this.interpol;
-            interparam = new double[this.interparam.Length];
-            for (int i = 0; i < interparam.Length; ++i)
-            {   // Parameterraum normieren
-                interparam[i] = (this.interparam[i] - startParam) / (endParam - startParam);
+            double[] tknots = knots;
+            if (knots.Length == 2)
+            {   // there are splines with only two knots and degree 14 which represent a full circle. We invent an additional knot
+                tknots = new double[3];
+                tknots[0] = knots[0];
+                tknots[1] = (knots[0] + knots[1]) / 2.0;
+                tknots[2] = knots[1];
             }
-        }
-#if DEBUG
-        internal Nurbs<GeoPoint2DH, GeoPoint2DHPole> Nurbs
-        {
-            get
+            points = new GeoPoint2D[tknots.Length];
+            directions = new GeoVector2D[tknots.Length];
+            parameters = new double[tknots.Length];
+            for (int i = 0; i < tknots.Length; i++)
             {
-                return nurbs;
+                PointDerAt(tknots[i], out points[i], out directions[i]);
+                parameters[i] = (tknots[i] - startParam) / (endParam - startParam);
             }
         }
-#endif
+        internal override void GetTriangulationPoints(out GeoPoint2D[] points, out double[] parameters)
+        {
+            double[] tknots = knots;
+            if (knots.Length == 2)
+            {   // there are splines with only two knots and degree 14 which represent a full circle. We invent an additional knot
+                tknots = new double[3];
+                tknots[0] = knots[0];
+                tknots[1] = (knots[0] + knots[1]) / 2.0;
+                tknots[2] = knots[1];
+            }
+            points = new GeoPoint2D[tknots.Length];
+            parameters = new double[tknots.Length];
+            for (int i = 0; i < tknots.Length; i++)
+            {
+                points[i] = PointAtParam(tknots[i]);
+                parameters[i] = (tknots[i] - startParam) / (endParam - startParam);
+            }
+        }
         #region ICurve2D Members
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Clone ()"/>
@@ -2209,228 +2227,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public override GeoPoint2DWithParameter[] Intersect(ICurve2D IntersectWith)
         {
-            if (IntersectWith is Line2D)
-            {
-                // this.nubs.CurvePointPolynom
-            }
-            TempTriangulatedCurve2D t1 = new TempTriangulatedCurve2D(this);
-            if (IntersectWith.Length > 0.0) // blöd das man die Länge braucht, sollte zu 0 Dreiecken triangulieren
-            {
-                return t1.Intersect(IntersectWith);
-            }
-            else
-            {
-                return new GeoPoint2DWithParameter[0];
-            }
-            // ist robuster als das folgende, Letztlich sollten wir alle 2D Kurven von TriangulatedCurve2D ableiten
-            // und bräuchten hier nicht jedesmal zu triangulieren
-            //if (IntersectWith is Line2D)
-            //{
-            //    Line2D l2d = IntersectWith as Line2D;
-            //    // if (degree == 3) erstmal ausgeklammert, da vermutlich bei Gewichten Probleme  
-            //    if (false)
-            //    {
-            //        if (nubs != null)
-            //        {
-            //        }
-            //        else
-            //        {
-            //            GeoPoint2DH[] hpoles = nurbs.Poles;
-            //            SweepAngle sw = new SweepAngle(-Math.Atan2(l2d.EndPoint.y - l2d.StartPoint.y, l2d.EndPoint.x - l2d.StartPoint.x));
-            //            // ModOp2D mod = ModOp2D.Rotate(sw) * ModOp2D.Translate(-l2d.StartPoint.x, -l2d.StartPoint.y);
-            //            ModOp2D mod = ModOp2D.Fit(new GeoPoint2D[] { l2d.StartPoint, l2d.EndPoint }, new GeoPoint2D[] { GeoPoint2D.Origin, new GeoPoint2D(0.0, 1.0) }, false);
-            //            GeoPoint2D[] modpoles = new GeoPoint2D[hpoles.Length];
-            //            for (int i = 0; i < modpoles.Length; ++i)
-            //            {
-            //                modpoles[i] = mod * (GeoPoint2D)hpoles[i]; // oder wie geht das Gweicht hier ein???
-            //            }
-            //            List<double> ures = new List<double>();
-            //            for (int i = 3; i < nurbs.UKnotNum - 3 - 1; ++i)
-            //            {
-            //                double[] x = { modpoles[i - 3].x, modpoles[i - 2].x, modpoles[i - 1].x, modpoles[i].x };
-            //                ures.AddRange(nurbs.FindXNullDeg3(i, x));
-            //            }
-            //            // HURRA!! es funktioniert, Jetzt noch das gleiche Spielchen für 4. Grad und 2. Grad (1. Grad ist eine Linie)
-            //            // und auch bei ReverseParameter (PositionOf) verwenden
-            //        }
-            //    }
-            //    SortedDictionary<double, GeoPoint2D> list = new SortedDictionary<double, GeoPoint2D>();
-            //    for (int i = 0; i < interpol.Length - 1; ++i)
-            //    {
-            //        bool baselineintersect = Geometry.SegmentIntersection(interpol[i], interpol[i + 1], l2d.StartPoint, l2d.EndPoint);
-            //        if (baselineintersect)
-            //        {
-            //            if (Geometry.SegmentIntersection(interpol[i], tringulation[i], l2d.StartPoint, l2d.EndPoint) &&
-            //                Geometry.SegmentIntersection(tringulation[i], interpol[i+1], l2d.StartPoint, l2d.EndPoint))
-            //            {
-            //                baselineintersect = false;
-            //                // es werden nämlich beide Seiten gescnitten, d.h. der Schnitt geht durch einen Eckpunkt
-            //                // aber auch noch durch einen anderen Punkt
-            //            }
-            //        }
-            //        if (baselineintersect)
-            //        {
-            //            // die Basislinie wird geschnitten. Hier ist die Iteration einfacher und schneller als 
-            //            // im anderen Fall, wo ein tangentialer Schnittpunkt möglich ist (oder sogar zwei).
-            //            // allerdings gelten Schnitte durch einen der Endpunkte der Basislinie nicht
-            //            double startpar = interparam[i];
-            //            double endpar = interparam[i + 1];
-            //            GeoPoint2D sp = interpol[i];
-            //            GeoPoint2D ep = interpol[i + 1];
-            //            try
-            //            {
-            //                GeoPoint2D mp = sp;
-            //                double pos = Geometry.IntersectLLpar(sp, ep, l2d.StartPoint, l2d.EndPoint);
-            //                double middlepar = startpar;
-            //                double poscorrfactor = 2.0;
-            //                int dbgc = 0;
-            //                do
-            //                {
-            //                    // Wie gut ist das Maß pos? Wenn der Schnitt ziemlich senkrecht zur Sehne (sp,ep)
-            //                    // verläuft, dann ist pos gut. Wenn der Schnitt aber recht flach ist, dann kann pos
-            //                    // schlechter sein als die Bisektion (pos==0.5). Es ist aber dieses Verfahren
-            //                    // selbst bei sehr flachen Schnitten immer noch viel schneller als die Bisektion.
-            //                    // Vermutlich weil sich Linie und Kurve sehr annähern
-            //                    if (pos < 0.25) pos *= poscorrfactor;
-            //                    if (pos > 0.75) pos = 1 - (1 - pos) * poscorrfactor;
-            //                    if (dbgc >= 30) pos = 0.5; // Notbremse, auf reine Bisektion umschalten
-            //                    double m = startpar + pos * (endpar - startpar);
-            //                    if (m == middlepar) break; // keine weitere Veränderung mehr
-            //                    middlepar = m;
-            //                    mp = PointAtParam(middlepar);
-            //                    double pos1 = Geometry.IntersectLLpar(sp, mp, l2d.StartPoint, l2d.EndPoint);
-            //                    double pos2 = Geometry.IntersectLLpar(mp, ep, l2d.StartPoint, l2d.EndPoint);
-            //                    // auf welchem Abschnitt liegt der Punkt?
-            //                    double pos1abs = Math.Abs(pos1 - 0.5);
-            //                    double pos2abs = Math.Abs(pos2 - 0.5);
-            //                    if (pos1abs < pos2abs)
-            //                    {
-            //                        if (pos > 0.75 && pos < 1.25)
-            //                        {
-            //                            poscorrfactor *= 2;
-            //                        }
-            //                        else
-            //                        {
-            //                            ep = mp;
-            //                            endpar = middlepar;
-            //                            pos = pos1;
-            //                            poscorrfactor = 2.0;
-            //                        }
-            //                    }
-            //                    else
-            //                    {
-            //                        if (pos < 0.25 && pos > -0.25)
-            //                        {
-            //                            poscorrfactor *= 2;
-            //                        }
-            //                        else
-            //                        {
-            //                            sp = mp;
-            //                            startpar = middlepar;
-            //                            pos = pos2;
-            //                            poscorrfactor = 2.0;
-            //                        }
-            //                    }
-            //                    if (startpar < interparam[i] || endpar > interparam[i + 1])
-            //                    {
-            //                        // aus dem segment rausgelaufen, nochmal von vorne
-            //                        startpar = interparam[i];
-            //                        endpar = interparam[i + 1];
-            //                        dbgc = 30; // ab jetzt bisektion
-            //                    }
-            //                    double dist = Geometry.DistPL(mp, l2d.StartPoint, l2d.EndPoint);
-            //                    if (dist == 0.0) break;
-            //                    ++dbgc;
-            //                    if (dbgc == 30)
-            //                    {   // nochmal von vorne
-            //                        startpar = interparam[i];
-            //                        endpar = interparam[i + 1];
-            //                    }
-            //                }
-            //                while (Math.Abs(endpar - startpar) > parameterEpsilon);
-            //                if (middlepar >= interparam[i] && middlepar <= interparam[i + 1])
-            //                {   // nicht, wenn rausgelaufen
-            //                    list[middlepar] = mp;
-            //                }
-
-            //            }
-            //            catch (ArithmeticException)
-            //            {
-            //                // IntersectLLpar kann das werfen, wenn der Nenner 0 wird, also parallel
-            //            }
-            //        }
-            //        else if (Geometry.SegmentIntersection(l2d.StartPoint, l2d.EndPoint, interpol[i], tringulation[i]) ||
-            //            Geometry.SegmentIntersection(l2d.StartPoint, l2d.EndPoint, tringulation[i], interpol[i + 1]) ||
-            //            PointInsideTriangle(l2d.StartPoint, interpol[i], tringulation[i], interpol[i + 1]))
-            //        {
-            //            // die Bedingung unter der wir hier hereinkommen ist:
-            //            // die Linie schneidet eine der beiden Dreiecksseiten (und nicht die Basislinie)
-            //            // oder die Linie liegt ganz im Dreieck.
-            //            // Das könnte ein tangentialer Schnitt sein oder zwei Schnnitte oder keiner.
-            //            // deshalb arbeiten wir hier rekursiv um die möglichen zwei Schnitte such zu kriegen
-            //            double startpar = interparam[i];
-            //            double endpar = interparam[i + 1];
-            //            double middleparam = (endpar + startpar) / 2.0;
-            //            GeoPoint2D middlepoint;
-            //            GeoVector2D middledir;
-            //            PointDirAt(middleparam, out middlepoint, out middledir);
-            //            IntersectTriangle(interpol[i], interdir[i], interparam[i], middlepoint, middledir, middleparam, l2d, list);
-            //            IntersectTriangle(middlepoint, middledir, middleparam, interpol[i + 1], interdir[i + 1], interparam[i + 1], l2d, list);
-            //        }
-            //    }
-            //    if (!IsClosed)
-            //    {   // Start- und Endpunkte werden leider nicht zuverlässig getroffen, deshalb:
-            //        if (Math.Abs(Geometry.DistPL(StartPoint, l2d.StartPoint, l2d.EndPoint)) < Precision.eps)
-            //        {
-            //            list[startParam] = StartPoint;
-            //        }
-            //        if (Math.Abs(Geometry.DistPL(EndPoint, l2d.StartPoint, l2d.EndPoint)) < Precision.eps)
-            //        {
-            //            list[endParam] = EndPoint;
-            //        }
-            //    }
-            //    List<GeoPoint2DWithParameter> res = new List<GeoPoint2DWithParameter>();
-            //    double lastpar = -1.0;
-            //    GeoPoint2D lastPoint = GeoPoint2D.Origin;
-            //    foreach (KeyValuePair<double, GeoPoint2D> de in list)
-            //    {
-            //        if (lastpar >= 0.0 && (de.Key - lastpar < 2 * parameterEpsilon || (de.Value|lastPoint)<Precision.eps)) continue; // gleiche Punkte verwerfen (Genauigkeit beim Erzeugen ist eps)
-            //        lastpar = de.Key;
-            //        GeoPoint2DWithParameter gpp = new GeoPoint2DWithParameter();
-            //        gpp.p = de.Value;
-            //        gpp.par1 = (de.Key - startParam) / (endParam - startParam);
-            //        gpp.par2 = l2d.PositionOf(de.Value);
-            //        res.Add(gpp);
-            //    }
-            //    return res.ToArray();
-            //}
-            //else if (IntersectWith is BSpline2D)
-            //{
-            //    // bleibt manchmal hängen, auf die Basisklasse verlegt
-            //    //SortedDictionary<double, GeoPoint2DWithParameter> list = new SortedDictionary<double, GeoPoint2DWithParameter>();
-            //    //// nach dem 1. Parameter sortierte Ergebnisliste (umd doppelte Lösungen auszuschlagen)
-            //    //// jetzt wäre es gut einen Quadtree der Dreiecke zu haben, damit nicht doppelt iteriert werden muss
-            //    //BSpline2D b2d = IntersectWith as BSpline2D;
-            //    //for (int i = 0; i < tringulation.Length; ++i)
-            //    //{
-            //    //    for (int j = 0; j < b2d.tringulation.Length; ++j)
-            //    //    {
-            //    //        // der Schnittest für dreiecke findet schon dort statt
-            //    //        Intersect(b2d, interpol[i], interparam[i], interdir[i], interpol[i + 1], interparam[i + 1], interdir[i + 1], tringulation[i],
-            //    //            b2d.interpol[j], b2d.interparam[j], b2d.interdir[j], b2d.interpol[j + 1], b2d.interparam[j + 1], b2d.interdir[j + 1], b2d.tringulation[j], list);
-            //    //    }
-            //    //}
-            //    //List<GeoPoint2DWithParameter> res = new List<GeoPoint2DWithParameter>();
-            //    //double lastpar = -1.0;
-            //    //foreach (KeyValuePair<double, GeoPoint2DWithParameter> de in list)
-            //    //{
-            //    //    if (lastpar >= 0.0 && de.Key - lastpar < 2 * parameterEpsilon) continue; // gleiche Punkte verwerfen (Genauigkeit beim Erzeugen ist eps)
-            //    //    lastpar = de.Key;
-            //    //    res.Add(de.Value);
-            //    //}
-            //    //return res.ToArray();
-            //}
-            //return base.Intersect(IntersectWith);
+            return base.Intersect(IntersectWith);
         }
         private void Intersect(BSpline2D b2d, GeoPoint2D sp1, double spar1, GeoVector2D sdir1, GeoPoint2D ep1, double epar1, GeoVector2D edir1, GeoPoint2D tri1, GeoPoint2D sp2, double spar2, GeoVector2D sdir2, GeoPoint2D ep2, double epar2, GeoVector2D edir2, GeoPoint2D tri2, SortedDictionary<double, GeoPoint2DWithParameter> list)
         {   // zwei Abschnitte von zwei BSplines schneiden, es ist schon getestet dass die Dreiecke sich schneiden
@@ -2761,6 +2558,12 @@ namespace CADability.Curve2D
             bool l3 = Geometry.OnLeftSide(testpoint, startpoint, endpoint - startpoint);
             return (l1 == l2 && l1 != l3);
         }
+        /// <summary>
+        /// Calculate point and direction at a given parameter <paramref name="param"/>, <paramref name="dir"/> will be normalized upon return
+        /// </summary>
+        /// <param name="param"></param>
+        /// <param name="point"></param>
+        /// <param name="dir"></param>
         internal void PointDirAt(double param, out GeoPoint2D point, out GeoVector2D dir)
         {
             if (nubs != null)
@@ -2779,7 +2582,7 @@ namespace CADability.Curve2D
             if (dir.Length > 0.0) dir.Norm();
         }
         /// <summary>
-        /// Wie PointDirAt, jedoch Vector nicht normiert
+        /// Same as <see cref="BSpline2D.PointDirAt(double, out GeoPoint2D, out GeoVector2D)"/> but without normalizing
         /// </summary>
         /// <param name="param"></param>
         /// <param name="point"></param>
@@ -2979,9 +2782,9 @@ namespace CADability.Curve2D
         /// </summary>
         /// <returns></returns>
         public override double[] GetSelfIntersections()
-        {   // entnommen aus Intersect
-            // TODO: kommt nicht dran, es wird nur Path2D.GetSelfIntersections() aufgerufen und der kümmert sich auch nicht um
-            // die Einzelobjekte.
+        {   
+            // this is currently out of order, since the triangulation of the BSpline should not be used any more. Instead use the triangulation of the base class
+            return base.GetSelfIntersections();
             SortedDictionary<double, GeoPoint2DWithParameter> list = new SortedDictionary<double, GeoPoint2DWithParameter>();
             for (int i = 0; i < tringulation.Length; ++i)
             {
@@ -3015,8 +2818,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public override GeoPoint2D[] PerpendicularFoot(GeoPoint2D FromHere)
         {
-            TempTriangulatedCurve2D t1 = new TempTriangulatedCurve2D(this);
-            return t1.PerpendicularFoot(FromHere);
+            return base.PerpendicularFoot(FromHere);
             // es gibt genau dann einen Fußpunkt, wenn der Punkt FromHere zwischen den beiden Normaln am Start- und Endpunkt des
             // Dreiecks liegt.
             List<GeoPoint2D> res = new List<GeoPoint2D>();
@@ -3201,6 +3003,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public override BoundingRect GetExtent()
         {
+            return base.GetExtent();
             if (!extendIsValid)
             {
                 // erstmaliges berechnen:
@@ -3343,6 +3146,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public override bool HitTest(ref BoundingRect Rect, bool IncludeControlPoints)
         {
+            return base.HitTest(ref Rect, IncludeControlPoints);
             if (interpol == null) MakeTriangulation();
             // 1. überprüfen ob ein Punkt drin ist
             for (int i = 0; i < interpol.Length; ++i)

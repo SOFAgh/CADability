@@ -885,9 +885,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public override double[] GetInflectionPoints()
         {
-            TempTriangulatedCurve2D ttc = new TempTriangulatedCurve2D(this);
-            return ttc.GetInflectionPoints(); // es genügen nicht einfach die aufgesammelten Inflectionpoints
-            // auch an den zusammengesetzten Stellen kann es nämlich welche geben
+            return base.GetInflectionPoints();
         }
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.Reverse ()"/>

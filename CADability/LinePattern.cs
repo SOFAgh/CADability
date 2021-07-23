@@ -10,7 +10,7 @@ namespace CADability.Attribute
     /// 
     /// </summary>
     [Serializable()]
-    public class LinePattern : IShowPropertyImpl, INamedAttribute, ISerializable, ICommandHandler
+    public class LinePattern : PropertyEntryImpl, INamedAttribute, ISerializable, ICommandHandler
     {
         private string name;
         private double[] pattern;
@@ -130,29 +130,15 @@ namespace CADability.Attribute
                 (parent as IAttributeList).AttributeChanged(this, change);
             }
         }
-        #region IShowPropertyImpl
-        private IShowProperty[] subEntries;
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.SimpleEntry"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
+        #region PropertyEntryImpl
+        private IPropertyEntry[] subEntries;
+        public override PropertyEntryType Flags
         {
             get
             {
-                return ShowPropertyEntryType.SimpleEntry;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags flags = ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.Editable;
+                PropertyEntryType flags = PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.LabelEditable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
                 if (parent != null && parent.Current == this)
-                    flags |= ShowPropertyLabelFlags.Bold;
+                    flags |= PropertyEntryType.Bold;
                 return flags;
             }
         }
@@ -172,15 +158,15 @@ namespace CADability.Attribute
                 Name = value;
             }
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-		public override void LabelChanged(string NewText)
+        public override bool EditTextChanged(string newValue)
+        {
+            return true;
+        }
+        public override void EndEdit(bool aborted, bool modified, string newValue)
         {
             try
             {
-                Name = NewText;
+                Name = newValue;
             }
             catch (NameAlreadyExistsException)
             {
@@ -194,17 +180,13 @@ namespace CADability.Attribute
                 mcp.ValueChangedEvent -= new ValueChangedDelegate(ScalingChanged);
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
-        /// returns the subentries in this property view.
-        /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    subEntries = new IShowProperty[pattern.Length + 1];
+                    subEntries = new IPropertyEntry[pattern.Length + 1];
                     string[] choices = StringTable.GetSplittedStrings("LinePattern.Scaling");
                     string choice = "";
                     if ((int)scale < choices.Length)
@@ -219,7 +201,7 @@ namespace CADability.Attribute
                         string rid;
                         if (i % 2 == 0) rid = "LinePattern.Stroke";
                         else rid = "LinePattern.Gap";
-                        DoubleProperty dp = new DoubleProperty(rid, propertyTreeView.ActiveView.Canvas.Frame);
+                        DoubleProperty dp = new DoubleProperty(propertyPage.ActiveView.Canvas.Frame, rid);
                         dp.UserData.Add("Index", i);
                         dp.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetPattern);
                         dp.SetDoubleEvent += new CADability.UserInterface.DoubleProperty.SetDoubleDelegate(OnSetPattern);
@@ -228,17 +210,6 @@ namespace CADability.Attribute
                     }
                 }
                 return subEntries;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
             }
         }
         public override MenuWithHandler[] ContextMenu
@@ -296,7 +267,7 @@ namespace CADability.Attribute
                 parent = (LinePatternList)value; // muss so sein
             }
         }
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             return null;
         }
@@ -350,7 +321,7 @@ namespace CADability.Attribute
                     parent.Remove(this);
                     return true;
                 case "MenuId.LinePatternEntry.Edit":
-                    propertyTreeView.StartEditLabel(this); // muss ja offen sein
+                    propertyPage.StartEditLabel(this); // is opened
                     return true;
                 case "MenuId.LinePatternEntry.Current":
                     parent.Current = this;

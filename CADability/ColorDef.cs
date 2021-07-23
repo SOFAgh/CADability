@@ -59,7 +59,7 @@ namespace CADability.Attribute
             get { return parent; }
             set { parent = value as ColorList; }
         }
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             return null;
         }

@@ -171,6 +171,7 @@ namespace CADability.Actions
         {
             base.OnRemoveAction();
             Frame.Project.Undo.ClearContext();
+            lengthProperty.Select();
         }
 
         public override string GetID()

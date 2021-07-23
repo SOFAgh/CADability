@@ -33,7 +33,7 @@ namespace CADability.Attribute
     [ComVisible(true)]
     [GuidAttribute("5FC3B97D-716E-496B-AAB6-2891ABF1F248")]
     [ClassInterface(ClassInterfaceType.AutoDual)]
-    public class Style : IShowPropertyImpl, ICloneable, ISerializable, INamedAttribute, IColorDef, ILayer, ILineWidth, ILinePattern, IHatchStyle, IDimensionStyle, ICommandHandler, IJsonSerialize
+    public class Style : PropertyEntryImpl, ICloneable, ISerializable, INamedAttribute, IColorDef, ILayer, ILineWidth, ILinePattern, IHatchStyle, IDimensionStyle, ICommandHandler, IJsonSerialize
     {
         private StyleList parent;
         private ColorDef colorDef;
@@ -363,14 +363,14 @@ namespace CADability.Attribute
             get { return parent; }
             set { parent = value as StyleList; }
         }
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             return null;
         }
         #endregion
-        #region IShowPropertyImpl Overrides
+        #region PropertyEntryImpl Overrides
         /// <summary>
-        /// Implements <see cref="IShowProperty.LabelText"/>.
+        /// Implements <see cref="PropertyEntryImpl.LabelText"/>.
         /// </summary>
         public override string LabelText
         {
@@ -383,53 +383,28 @@ namespace CADability.Attribute
                 Name = value;
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
+        public override PropertyEntryType Flags
+        { 
             get
             {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Editable | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu;
+                PropertyEntryType flags = PropertyEntryType.LabelEditable | PropertyEntryType.Selectable | PropertyEntryType.ContextMenu | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
                 if ((parent != null) && (parent.Current == this))
-                    res |= ShowPropertyLabelFlags.Bold;
-                return res;
+                    flags |= PropertyEntryType.Bold;
+                return flags;
             }
         }
+        private IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    subEntries = new IShowProperty[6];
+                    subEntries = new IPropertyEntry[6];
                     parent.Owner.LayerList.DidModifyEvent += new DidModifyDelegate(OnListDidModify);
                     subEntries[0] = new LayerSelectionProperty(this, "Style.Layer", parent.Owner.LayerList, true);
                     parent.Owner.ColorList.DidModifyEvent += new DidModifyDelegate(OnListDidModify);
@@ -463,7 +438,7 @@ namespace CADability.Attribute
 
         void OnListDidModify(object sender, EventArgs args)
         {
-            if (propertyTreeView != null)
+            if (propertyPage != null)
             {
                 if (parent.Owner != null)
                 {
@@ -480,37 +455,33 @@ namespace CADability.Attribute
                 if (selectHatchStyle != null)
                     selectHatchStyle.HatchStyleChangedEvent -= new CADability.UserInterface.HatchStyleSelectionProperty.HatchStyleChanged(OnHatchStyleChanged);
                 this.subEntries = null;
-                propertyTreeView.Refresh(this);
+                propertyPage.Refresh(this);
             }
         }
 
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
+        /// Overrides <see cref="PropertyEntryImpl.Added"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
             base.resourceId = "StyleName";
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
+        /// Overrides <see cref="IPropertyEntryImpl.Removed"/>
         /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        /// <param name="propertyPage">the PropertyTreeView from which it was removed</param>
+        public override void Removed(IPropertyPage propertyPage)
         {
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-        public override void LabelChanged(string NewText)
+        public override void EndEdit(bool aborted, bool modified, string newValue)
         {
             try
             {
-                Name = NewText;
-                if (propertyTreeView != null) propertyTreeView.Refresh(this);
+                Name = newValue;
+                if (propertyPage != null) propertyPage.Refresh(this);
             }
             catch (NameAlreadyExistsException) { }
         }
@@ -716,7 +687,7 @@ namespace CADability.Attribute
                     parent.Remove(this);
                     return true;
                 case "MenuId.StyleEntry.Edit":
-                    propertyTreeView.StartEditLabel(this); // muss ja offen sein
+                    propertyPage.StartEditLabel(this); // muss ja offen sein
                     return true;
                 case "MenuId.StyleEntry.DefaultForCurves":
                     if (IsDefaultFor(EDefaultFor.Curves)) RemoveDefaultFor(EDefaultFor.Curves);
@@ -819,26 +790,26 @@ namespace CADability.Attribute
             if (StyleChangedEvent != null) StyleChangedEvent(stl);
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
+        /// Overrides <see cref="PropertyEntryImpl.Added"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
             if (toWatch != null) toWatch.DidChangeEvent += new ChangeDelegate(GeoObjectDidChange);
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
+        /// Overrides <see cref="PropertyEntryImpl.Removed"/>
         /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage">the IPropertyTreeView from which it was removed</param>
+        public override void Removed(IPropertyPage propertyPage)
         {
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
             if (toWatch != null) toWatch.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
         }
         private void GeoObjectDidChange(IGeoObject Sender, GeoObjectChange Change)
         {
-            if (Sender == toWatch && Change.OnlyAttributeChanged && propertyTreeView != null)
+            if (Sender == toWatch && Change.OnlyAttributeChanged && propertyPage != null)
             {
                 if ((toWatch as IStyle).Style != null)
                 {
@@ -852,7 +823,7 @@ namespace CADability.Attribute
                         base.unselectedText = (toWatch as IStyle).Style.Name;
                         base.selectedText = null;
                     }
-                    propertyTreeView.Refresh(this);
+                    propertyPage.Refresh(this);
                 }
             }
         }
@@ -861,7 +832,7 @@ namespace CADability.Attribute
             get { return toWatch; }
             set
             {
-                if (base.propertyTreeView != null)
+                if (base.propertyPage != null)
                 {   // dann ist diese Property schon Added und nicht removed
                     if (toWatch != null) toWatch.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
                 }
@@ -875,13 +846,13 @@ namespace CADability.Attribute
     }
 
     [Serializable()]
-    public class StyleList : IShowPropertyImpl, ICloneable, ISerializable, IAttributeList, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
+    public class StyleList : PropertyEntryImpl, ICloneable, ISerializable, IAttributeList, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
         private Style[] unsortedEntries;
         protected SortedList styles;
         private IAttributeListContainer owner;
         private Style current;
-        private IShowProperty[] showProperties;
+        private IPropertyEntry[] showProperties;
         internal string menuResourceId;
 
         public StyleList()
@@ -947,10 +918,10 @@ namespace CADability.Attribute
                 toRemove.Parent = null;
                 showProperties = null;
                 // if (DidModify!=null) DidModify(null,null);
-                if (propertyTreeView != null)
+                if (propertyPage != null)
                 {
                     showProperties = null;
-                    propertyTreeView.Refresh(this);
+                    propertyPage.Refresh(this);
                 }
             }
         }
@@ -958,7 +929,7 @@ namespace CADability.Attribute
         {
             styles.Clear();
             showProperties = null;
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, false); // zuklappen
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, false); // zuklappen
         }
         /// <summary>
         /// Implements <see cref="CADability.Attribute.IAttributeList.Find (string)"/>
@@ -977,7 +948,7 @@ namespace CADability.Attribute
                 current = value;
                 if (!styles.ContainsKey(value.Name))
                     styles.Add(value.Name, value);
-                if (propertyTreeView != null) propertyTreeView.Refresh(this);
+                if (propertyPage != null) propertyPage.Refresh(this);
             }
         }
         public Style GetDefault(Style.EDefaultFor defaultFor)
@@ -1059,54 +1030,19 @@ namespace CADability.Attribute
         }
 
         #endregion
-        #region IShowPropertyImpl Overrides
+        #region PropertyEntryImpl Overrides
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        //public override string InfoText
-        //{
-        //    get
-        //    {
-        //        return  StringTable.GetString("StyleList.InfoText");
-        //    }
-        //}
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return styles.Count;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (showProperties == null)
                 {
-                    showProperties = new IShowProperty[styles.Count];
+                    showProperties = new IPropertyEntry[styles.Count];
                     for (int i = 0; i < styles.Count; i++)
                     {
                         Style st = styles.GetByIndex(i) as Style;
@@ -1324,20 +1260,20 @@ namespace CADability.Attribute
                         int nr = int.Parse(Name.Substring(NewStyleName.Length));
                         if (nr > MaxNr) MaxNr = nr;
                     }
-                    catch (ArgumentNullException) { } // hat garkeine Nummer
-                    catch (FormatException) { } // hat was anderes als nur Ziffern
-                    catch (OverflowException) { } // zu viele Ziffern
+                    catch (ArgumentNullException) { } // no number
+                    catch (FormatException) { } // something else
+                    catch (OverflowException) { } // to many digits
                 }
             }
-            MaxNr += 1; // nächste freie Nummer
+            MaxNr += 1; // next available number
             NewStyleName += MaxNr.ToString();
             Add(new Style(NewStyleName));
 
             showProperties = null;
-            showProperties = SubEntries; // sicherstellen, dass es sie gibt
-            propertyTreeView.OpenSubEntries(this, true);
-            propertyTreeView.Refresh(this);
-            propertyTreeView.StartEditLabel(showProperties[styles.IndexOfKey(NewStyleName)] as IPropertyEntry);
+            showProperties = SubItems; // to make sure they exist
+            propertyPage.OpenSubEntries(this, true);
+            propertyPage.Refresh(this);
+            propertyPage.StartEditLabel(showProperties[styles.IndexOfKey(NewStyleName)] as IPropertyEntry);
         }
         #region ICommandHandler Members
         private void OnAddFromGlobal()

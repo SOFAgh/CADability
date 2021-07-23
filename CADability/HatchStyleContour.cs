@@ -67,7 +67,7 @@ namespace CADability.Attribute
         private LinePattern linePattern;
         private ColorDef colorDef;
         // für IShowProperty:
-        private IShowProperty[] subEntries;
+        private IPropertyEntry[] subItems;
         // für GenerateContent
         class BorderTree
         {   // von außen nach innen gehender Baum der Äquidistanten, oft nur eine einfache Kette
@@ -857,80 +857,69 @@ namespace CADability.Attribute
             res.inbound = inbound;
             return res;
         }
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
+        #region IPropertyEntry Members
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
-                if (subEntries == null)
+                if (subItems == null)
                 {
-                    subEntries = new IShowProperty[9];
+                    subItems = new IPropertyEntry[9];
 
-                    LengthProperty lp = new LengthProperty("HatchStyleContour.LineDistance", base.propertyTreeView.GetFrame(), false);
+                    LengthProperty lp = new LengthProperty("HatchStyleContour.LineDistance", base.propertyPage.GetFrame(), false);
                     lp.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnPropertyGetLineDistance);
                     lp.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnPropertySetLineDistance);
                     lp.Refresh();
                     lp.ShowMouseButton = false;
-                    subEntries[0] = lp;
+                    subItems[0] = lp;
 
-                    LengthProperty fd = new LengthProperty("HatchStyleContour.FirstDistance", base.propertyTreeView.GetFrame(), false);
+                    LengthProperty fd = new LengthProperty("HatchStyleContour.FirstDistance", base.propertyPage.GetFrame(), false);
                     fd.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnPropertyGetFirstDistance);
                     fd.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnPropertySetFirstDistance);
                     fd.Refresh();
                     fd.ShowMouseButton = false;
-                    subEntries[1] = fd;
+                    subItems[1] = fd;
 
                     MultipleChoiceProperty eh = new MultipleChoiceProperty("HatchStyleContour.ExcludeHoles", (int)holeMode);
                     eh.ValueChangedEvent += new ValueChangedDelegate(ExcludeHolesValueChanged);
-                    subEntries[2] = eh;
+                    subItems[2] = eh;
 
                     MultipleChoiceProperty sm = new MultipleChoiceProperty("HatchStyleContour.SpiralMode", (int)spiralMode);
                     sm.ValueChangedEvent += new ValueChangedDelegate(SpiralModeValueChanged);
-                    subEntries[3] = sm;
+                    subItems[3] = sm;
 
                     BooleanProperty cc = new BooleanProperty("HatchStyleContour.CounterClock", "HatchStyleContour.CounterClock.Values");
                     cc.GetBooleanEvent += new CADability.UserInterface.BooleanProperty.GetBooleanDelegate(OnGetCounterClock);
                     cc.SetBooleanEvent += new CADability.UserInterface.BooleanProperty.SetBooleanDelegate(OnSetCounterClock);
                     cc.Refresh();
-                    subEntries[4] = cc;
+                    subItems[4] = cc;
 
                     BooleanProperty ib = new BooleanProperty("HatchStyleContour.Inbound", "HatchStyleContour.Inbound.Values");
                     ib.GetBooleanEvent += new CADability.UserInterface.BooleanProperty.GetBooleanDelegate(OnGetInbound);
                     ib.SetBooleanEvent += new CADability.UserInterface.BooleanProperty.SetBooleanDelegate(OnSetInbound);
                     ib.Refresh();
-                    subEntries[5] = ib;
+                    subItems[5] = ib;
 
-                    Project pr = base.propertyTreeView.GetFrame().Project;
+                    Project pr = base.propertyPage.GetFrame().Project;
                     LineWidthSelectionProperty lws = new LineWidthSelectionProperty("HatchStyleLines.LineWidth", pr.LineWidthList, this.lineWidth);
                     lws.LineWidthChangedEvent += new CADability.UserInterface.LineWidthSelectionProperty.LineWidthChangedDelegate(OnLineWidthChanged);
-                    subEntries[6] = lws;
+                    subItems[6] = lws;
 
                     LinePatternSelectionProperty lps = new LinePatternSelectionProperty("HatchStyleLines.LinePattern", pr.LinePatternList, this.linePattern);
                     lps.LinePatternChangedEvent += new CADability.UserInterface.LinePatternSelectionProperty.LinePatternChangedDelegate(OnLinePatternChanged);
-                    subEntries[7] = lps;
+                    subItems[7] = lps;
 
                     ColorSelectionProperty csp = new ColorSelectionProperty("HatchStyleLines.Color", pr.ColorList, colorDef, ColorList.StaticFlags.allowUndefined);
                     csp.ShowAllowUndefinedGray = false;
                     csp.ColorDefChangedEvent += new ColorSelectionProperty.ColorDefChangedDelegate(OnColorDefChanged);
-                    subEntries[8] = csp;
+                    subItems[8] = csp;
 
                 }
-                return subEntries;
+                return subItems;
             }
         }
 
@@ -942,15 +931,10 @@ namespace CADability.Attribute
         {
             spiralMode = (ESpiralMode)(sender as MultipleChoiceProperty).CurrentIndex;
         }
-
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
-        /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage pp)
         {
-            subEntries = null;
-            base.Removed(propertyTreeView);
+            subItems = null;
+            base.Removed(pp);
         }
 
         #endregion

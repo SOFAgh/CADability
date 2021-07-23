@@ -282,9 +282,9 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame">see <see cref="IGeoObject.GetAttributeProperties"/></param>
         /// <returns>see <see cref="IGeoObject.GetAttributeProperties"/></returns>
-        public override IShowProperty[] GetAttributeProperties(IFrame Frame)
+        public override IPropertyEntry[] GetAttributeProperties(IFrame Frame)
         {
-            List<IShowProperty> res = new List<IShowProperty>(base.GetAttributeProperties(Frame));
+            List<IPropertyEntry> res = new List<IPropertyEntry>(base.GetAttributeProperties(Frame));
             // die HatchStyleSelectionProperty wird nach der farbe und dem Stil eingefügt, sieht besser aus
             // im Zusammenhang mit PFOCAD
             res.Insert(4, new HatchStyleSelectionProperty("HatchStyle.Selection", Frame.Project.HatchStyleList, this as IHatchStyle, false));
@@ -295,7 +295,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame">see <see cref="IGeoObject.GetShowProperties"/></param>
         /// <returns>see <see cref="IGeoObject.GetShowProperties"/></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyHatch(this, Frame);
         }

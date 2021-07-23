@@ -478,7 +478,7 @@ namespace CADability
         //    //    }
         //    //}
         //}
-        public Model Model { get { return model; } }
+        public Model Model { get { return model; } set { model = value; } }
         public string Name
         {
             get { return name; }

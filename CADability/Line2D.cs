@@ -43,7 +43,7 @@ namespace CADability.Curve2D
         }
         #region ICurve2D Members
         internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
-        {   // für GeneralCurve2D
+        {   // for GeneralCurve2D
             interpol = new GeoPoint2D[] { startPoint, endPoint };
             interparam = new double[] { 0.0, 1.0 };
         }

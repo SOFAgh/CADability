@@ -17,7 +17,7 @@ namespace CADability.Attribute
     /// interior of a <see cref="Hatch"/> object.
     /// </summary>
     [Serializable()]
-    public abstract class HatchStyle : IShowPropertyImpl, ISerializable, INamedAttribute, ICommandHandler
+    public abstract class HatchStyle : PropertyEntryImpl, ISerializable, INamedAttribute, ICommandHandler
     {
         private string name;
         private HatchStyleList parent;
@@ -62,7 +62,7 @@ namespace CADability.Attribute
                 if (parent != null) (parent as IAttributeList).NameChanged(this, OldName);
             }
         }
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             return null;
         }
@@ -95,35 +95,36 @@ namespace CADability.Attribute
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
+        /// Overrides <see cref="PropertyEntryImpl.Added"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
-            //base.resourceId = "HatchStyleName";
+            base.Added(propertyPage);
         }
-        public override ShowPropertyLabelFlags LabelType
+        public override PropertyEntryType Flags
         {
             get
             {
-                // ist dieser der aktuelle? Wenn ja, zusätzlich ShowPropertyLabelFlags.Checked setzen
-                // Parent ist gewöhnlich die HatchStyleList. Eine andere Situation gibt es derzeit nicht.
-                ShowPropertyLabelFlags flags = ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.Editable;
+                PropertyEntryType flags = PropertyEntryType.GroupTitle | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.LabelEditable | PropertyEntryType.HasSubEntries;
                 if ((parent != null) && (parent.Current == this))
-                    flags |= ShowPropertyLabelFlags.Bold;
+                    flags |= PropertyEntryType.Bold;
                 return flags;
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
+        public override bool EditTextChanged(string newValue)
         {
-            get
+            return true;
+        }
+        public override void EndEdit(bool aborted, bool modified, string newValue)
+        {
+            if (!aborted)
             {
-                return ShowPropertyEntryType.GroupTitle;
+                try
+                {
+                    Name = newValue;
+                }
+                catch (NameAlreadyExistsException) { }
             }
         }
         public override MenuWithHandler[] ContextMenu
@@ -132,20 +133,6 @@ namespace CADability.Attribute
             {
                 return MenuResource.LoadMenuDefinition("MenuId.HatchStyleEntry", false, this);
             }
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-		public override void LabelChanged(string NewText)
-        {
-            try
-            {
-                this.Name = NewText;
-                if (propertyTreeView != null) propertyTreeView.Refresh(this);
-            }
-            catch (NameAlreadyExistsException)
-            { }
         }
         #endregion
         #region ISerializable Members
@@ -175,24 +162,25 @@ namespace CADability.Attribute
             {
                 case "MenuId.HatchStyleListEntry.Delete":
                     {
-                        HatchStyleList hsl = propertyTreeView.GetParent(this) as HatchStyleList;
+                        HatchStyleList hsl = parent;
                         if (hsl != null)
                         {
                             hsl.Remove(this);
-                            if (propertyTreeView != null) propertyTreeView.Refresh(hsl);
+                            if (propertyPage != null) propertyPage.Refresh(hsl);
                         }
                         return true;
                     }
                 case "MenuId.HatchStyleListEntry.Edit":
-                    propertyTreeView.StartEditLabel(this);
+                    propertyPage.StartEditLabel(this);
                     return true;
                 case "MenuId.HatchStyleListEntry.Current":
                     {
-                        HatchStyleList hsl = propertyTreeView.GetParent(this) as HatchStyleList;
+                        var dbg = propertyPage.GetParent(this);
+                        HatchStyleList hsl = parent; //  propertyPage.GetParent(this) as HatchStyleList;
                         if (hsl != null)
                         {
                             hsl.Current = this;
-                            propertyTreeView.Refresh(hsl);
+                            propertyPage.Refresh(hsl);
                         }
                         return true;
                     }

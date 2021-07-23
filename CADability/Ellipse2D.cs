@@ -523,8 +523,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public override GeoPoint2D[] PerpendicularFoot(GeoPoint2D FromHere)
         {
-            TempTriangulatedCurve2D t1 = new TempTriangulatedCurve2D(this);
-            return t1.PerpendicularFoot(FromHere);
+            return base.PerpendicularFoot(FromHere);
         }
         protected GeoPoint2D ClosestPerpendicularFoot(GeoPoint2D FromHere)
         {   // hier ein Artikel dazu: http://www.geometrictools.com/Documentation/DistancePointToEllipse2.pdf

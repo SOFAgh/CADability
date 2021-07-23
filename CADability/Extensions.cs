@@ -114,5 +114,14 @@ namespace CADability
         {
             return v.Count > 0 && !double.IsNaN(v[0]) && !double.IsInfinity(v[0]);
         }
+
+        public static T[] ToArray<T>(this IEnumerable<T> e)
+        {
+            if (e is T[] t) return t;
+            if (e is List<T> l) return l.ToArray();
+            List<T> r = new List<T>();
+            foreach (T item in e) r.Add(item);
+            return r.ToArray();
+        }
     }
 }

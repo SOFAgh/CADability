@@ -84,7 +84,6 @@ namespace CADability.Actions
             return false;
         }
 
-
         private bool DistCurve1(CurveInput sender, ICurve[] Curves, bool up)
         {
             if (up)
@@ -168,7 +167,6 @@ namespace CADability.Actions
             return actualLength;
         }
 
-
         /// <summary>
         /// Overrides <see cref="CADability.Actions.ConstructAction.OnSetAction ()"/>
         /// </summary>
@@ -203,6 +201,7 @@ namespace CADability.Actions
         {
             base.OnRemoveAction();
             Frame.Project.Undo.ClearContext();
+            lengthProperty.Select();
         }
 
         /// <summary>

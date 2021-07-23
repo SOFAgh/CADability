@@ -101,7 +101,7 @@ namespace CADability
 #if DEBUG
         [System.Diagnostics.DebuggerVisualizer(typeof(Curve2DVisualizer))]
 #endif
-        internal class ProjectedCurve : TriangulatedCurve2D, ISerializable, IJsonSerialize
+        internal class ProjectedCurve : GeneralCurve2D, ISerializable, IJsonSerialize
         {
             InterpolatedDualSurfaceCurve curve3d;
             bool onSurface1;

@@ -148,7 +148,7 @@ namespace CADability
     /// Describes a movement along a curve (which may be any path or simple curve like a line)
     /// </summary>
     [Serializable]
-    public class CurveDrive : IShowPropertyImpl, IDrive, ISerializable, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
+    public class CurveDrive : PropertyEntryImpl, IDrive, ISerializable, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
         private string name;
         private IDrive dependsOn;
@@ -240,7 +240,7 @@ namespace CADability
             if (item.Actuator == this) item.Actuator = null;
             item.DidChangeEvent -= new ChangeDelegate(OnGeoObjectDidChange);
             subEntries = null;
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
         void OnMovedObjectsAdded(IGeoObject item)
         {
@@ -406,18 +406,8 @@ namespace CADability
             info.AddValue("DependsOn", dependsOn);
         }
         #endregion
-        #region IShowProperty implementation
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Editable;
-                return res;
-            }
-        }
+        #region IPropertyEntry implementation
+        public override PropertyEntryType Flags => PropertyEntryType.Selectable | PropertyEntryType.ContextMenu | PropertyEntryType.LabelEditable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
         public override string LabelText
         {
             get
@@ -436,49 +426,27 @@ namespace CADability
                 return MenuResource.LoadMenuDefinition("MenuId.CurveDrive", false, this);
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        IShowProperty[] subEntries;
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
+        IPropertyEntry[] subEntries;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> res = new List<IShowProperty>();
+                    List<IPropertyEntry> res = new List<IPropertyEntry>();
                     res.Add(new CurveDriveCurveProperty(this));
                     res.Add(new DoubleProperty(this, "NullPosition", "Drive.NullPosition", this.Frame));
                     res.Add(new BooleanProperty(this, "Tangential", "CurveDrive.Tangential"));
                     res.Add(new GeoObjectListProperty(movedObjects, "Drive.MovedObjects", "MenuId.Drive.MovedObjects", this));
                     List<string> selections = new List<string>();
                     selections.Add(StringTable.GetString("CurveDrive.Independent"));
-                    if (propertyTreeView.ActiveView is AnimatedView)
+                    if (propertyPage.ActiveView is AnimatedView)
                     {
-                        AnimatedView av = propertyTreeView.ActiveView as AnimatedView;
+                        AnimatedView av = propertyPage.ActiveView as AnimatedView;
                         foreach (IDrive dv in av.DriveList)
                         {
                             if (dv != this && !DriveList.DependsOn(dv, this))
@@ -499,31 +467,27 @@ namespace CADability
         }
         void OnDriveChanged(object sender, object NewValue)
         {
-            if (propertyTreeView.ActiveView is AnimatedView)
+            if (propertyPage.ActiveView is AnimatedView)
             {
-                AnimatedView av = propertyTreeView.ActiveView as AnimatedView;
+                AnimatedView av = propertyPage.ActiveView as AnimatedView;
                 (this as IDrive).DependsOn = av.DriveList.Find(NewValue as string);
                 foreach (IDrive dv in av.DriveList)
                 {
-                    if (dv is IShowProperty && dv != this)
+                    if (dv is IPropertyEntry && dv != this)
                     {
-                        (dv as IShowProperty).Refresh();
+                        propertyPage.Refresh(dv as IPropertyEntry);
                     }
                 }
             }
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-        public override void LabelChanged(string NewText)
+        public override void EndEdit(bool aborted, bool modified, string newValue)
         {
-            ShowPropertyDrives spd = propertyTreeView.GetParent(this) as ShowPropertyDrives;
+            ShowPropertyDrives spd = propertyPage.GetParent(this) as ShowPropertyDrives;
             if (spd != null)
             {
-                if (spd.MayChangeName(this, NewText))
+                if (spd.MayChangeName(this, newValue))
                 {
-                    (this as IDrive).Name = NewText;
+                    (this as IDrive).Name = newValue;
                 }
             }
         }
@@ -533,7 +497,7 @@ namespace CADability
         public override void Refresh()
         {
             subEntries = null;
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, false);
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, false);
         }
         #endregion
         #region IJsonSerialize Members
@@ -578,7 +542,7 @@ namespace CADability
             switch (MenuId)
             {
                 case "MenuId.CurveDrive.Remove":
-                    ShowPropertyDrives spd = propertyTreeView.GetParent(this) as ShowPropertyDrives;
+                    ShowPropertyDrives spd = propertyPage.GetParent(this) as ShowPropertyDrives;
                     if (spd != null) spd.Remove(this);
                     return true;
                 case "MenuId.CurveDrive.Rename":
@@ -605,8 +569,8 @@ namespace CADability
                             }
                         }
                         subEntries = null;
-                        propertyTreeView.Refresh(this);
-                        propertyTreeView.OpenSubEntries(this, true);
+                        propertyPage.Refresh(this);
+                        propertyPage.OpenSubEntries(this, true);
                     }
                     return true;
             }
@@ -656,7 +620,7 @@ namespace CADability
     }
 
     [Serializable]
-    public class DualCurveDrive : IShowPropertyImpl, IDrive, ICommandHandler, ISerializable, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
+    public class DualCurveDrive : PropertyEntryImpl, IDrive, ICommandHandler, ISerializable, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
         private string name;
         private CurveDrive drive1;
@@ -704,7 +668,7 @@ namespace CADability
             if (item.Actuator == this) item.Actuator = null;
             item.DidChangeEvent -= new ChangeDelegate(OnGeoObjectDidChange);
             subEntries = null;
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
         void OnMovedObjectsAdded(IGeoObject item)
         {
@@ -780,18 +744,11 @@ namespace CADability
             }
         }
         #endregion
-        #region IShowProperty implementation
+        #region IPropertyEntry implementation
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
         /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Editable;
-                return res;
-            }
-        }
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.LabelEditable;
         public override string LabelText
         {
             get
@@ -810,45 +767,23 @@ namespace CADability
                 return MenuResource.LoadMenuDefinition("MenuId.CurveDrive", false, this);
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        IShowProperty[] subEntries;
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
+        IPropertyEntry[] subEntries;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> res = new List<IShowProperty>();
+                    List<IPropertyEntry> res = new List<IPropertyEntry>();
                     res.Add(new GeoObjectListProperty(movedObjects, "Drive.MovedObjects"));
                     List<string> selections = new List<string>();
-                    if (propertyTreeView.ActiveView is AnimatedView)
+                    if (propertyPage.ActiveView is AnimatedView)
                     {
-                        AnimatedView av = propertyTreeView.ActiveView as AnimatedView;
+                        AnimatedView av = propertyPage.ActiveView as AnimatedView;
                         foreach (IDrive dv in av.DriveList)
                         {
                             if (dv is CurveDrive)
@@ -876,7 +811,7 @@ namespace CADability
         }
         void OnDrive1Changed(object sender, object NewValue)
         {
-            AnimatedView av = propertyTreeView.ActiveView as AnimatedView;
+            AnimatedView av = propertyPage.ActiveView as AnimatedView;
             string newName = NewValue as string;
             foreach (IDrive dv in av.DriveList)
             {
@@ -890,7 +825,7 @@ namespace CADability
         }
         void OnDrive2Changed(object sender, object NewValue)
         {
-            AnimatedView av = propertyTreeView.ActiveView as AnimatedView;
+            AnimatedView av = propertyPage.ActiveView as AnimatedView;
             string newName = NewValue as string;
             foreach (IDrive dv in av.DriveList)
             {
@@ -902,18 +837,14 @@ namespace CADability
                 }
             }
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-        public override void LabelChanged(string NewText)
+        public override void EndEdit(bool aborted, bool modified, string newValue)
         {
-            ShowPropertyDrives spd = propertyTreeView.GetParent(this) as ShowPropertyDrives;
+            ShowPropertyDrives spd = propertyPage.GetParent(this) as ShowPropertyDrives;
             if (spd != null)
             {
-                if (spd.MayChangeName(this, NewText))
+                if (spd.MayChangeName(this, newValue))
                 {
-                    (this as IDrive).Name = NewText;
+                    (this as IDrive).Name = newValue;
                 }
             }
         }
@@ -923,7 +854,7 @@ namespace CADability
         public override void Refresh()
         {
             subEntries = null;
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, false);
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, false);
         }
         #endregion
         #region ICommandHandler Members
@@ -1019,7 +950,7 @@ namespace CADability
     /// Describes a rotation around an axis.
     /// </summary>
     [Serializable]
-    public class AxisDrive : IShowPropertyImpl, IDrive, ICommandHandler, IDeserializationCallback, ISerializable, IJsonSerialize, IJsonSerializeDone
+    public class AxisDrive : PropertyEntryImpl, IDrive, ICommandHandler, IDeserializationCallback, ISerializable, IJsonSerialize, IJsonSerializeDone
     {
         string name;
         GeoPoint location;
@@ -1099,7 +1030,7 @@ namespace CADability
             if (item.Actuator == this) item.Actuator = null;
             item.DidChangeEvent -= new ChangeDelegate(OnGeoObjectDidChange);
             subEntries = null;
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
         void OnMovedObjectsAdded(IGeoObject item)
         {
@@ -1120,7 +1051,7 @@ namespace CADability
             switch (MenuId)
             {
                 case "MenuId.CurveDrive.Remove":
-                    ShowPropertyDrives spd = propertyTreeView.GetParent(this) as ShowPropertyDrives;
+                    ShowPropertyDrives spd = propertyPage.GetParent(this) as ShowPropertyDrives;
                     if (spd != null) spd.Remove(this);
                     return true;
                 case "MenuId.CurveDrive.Rename":
@@ -1147,8 +1078,8 @@ namespace CADability
                             }
                         }
                         subEntries = null;
-                        propertyTreeView.Refresh(this);
-                        propertyTreeView.OpenSubEntries(this, true);
+                        propertyPage.Refresh(this);
+                        propertyPage.OpenSubEntries(this, true);
                     }
                     return true;
             }
@@ -1181,18 +1112,11 @@ namespace CADability
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
         #endregion
-        #region IShowProperty implementation
+        #region IPropertyEntry implementation
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
         /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Editable;
-                return res;
-            }
-        }
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.LabelEditable;
         public override string LabelText
         {
             get
@@ -1215,44 +1139,26 @@ namespace CADability
         /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        IShowProperty[] subEntries;
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
+        IPropertyEntry[] subEntries;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> res = new List<IShowProperty>();
+                    List<IPropertyEntry> res = new List<IPropertyEntry>();
                     res.Add(new AxisDriveCurveProperty(this));
                     // res.Add(new DoubleProperty(this, "NullPosition", "Drive.NullPosition", this.Frame));
                     res.Add(new GeoObjectListProperty(movedObjects, "Drive.MovedObjects", "MenuId.Drive.MovedObjects", this));
                     List<string> selections = new List<string>();
                     selections.Add(StringTable.GetString("CurveDrive.Independent"));
-                    if (propertyTreeView.ActiveView is AnimatedView)
+                    if (propertyPage.ActiveView is AnimatedView)
                     {
-                        AnimatedView av = propertyTreeView.ActiveView as AnimatedView;
+                        AnimatedView av = propertyPage.ActiveView as AnimatedView;
                         foreach (IDrive dv in av.DriveList)
                         {
                             if (dv != this && !DriveList.DependsOn(dv, this))
@@ -1273,31 +1179,27 @@ namespace CADability
         }
         void OnDriveChanged(object sender, object NewValue)
         {
-            if (propertyTreeView.ActiveView is AnimatedView)
+            if (propertyPage.ActiveView is AnimatedView)
             {
-                AnimatedView av = propertyTreeView.ActiveView as AnimatedView;
+                AnimatedView av = propertyPage.ActiveView as AnimatedView;
                 (this as IDrive).DependsOn = av.DriveList.Find(NewValue as string);
                 foreach (IDrive dv in av.DriveList)
                 {
-                    if (dv is IShowProperty && dv != this)
+                    if (dv is IPropertyEntry && dv != this)
                     {
-                        (dv as IShowProperty).Refresh();
+                        propertyPage.Refresh(dv as IPropertyEntry);
                     }
                 }
             }
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-        public override void LabelChanged(string NewText)
+        public override void EndEdit(bool aborted, bool modified, string newValue)
         {
-            ShowPropertyDrives spd = propertyTreeView.GetParent(this) as ShowPropertyDrives;
+            ShowPropertyDrives spd = propertyPage.GetParent(this) as ShowPropertyDrives;
             if (spd != null)
             {
-                if (spd.MayChangeName(this, NewText))
+                if (spd.MayChangeName(this, newValue))
                 {
-                    (this as IDrive).Name = NewText;
+                    (this as IDrive).Name = newValue;
                 }
             }
         }
@@ -1307,7 +1209,7 @@ namespace CADability
         public override void Refresh()
         {
             subEntries = null;
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, false);
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, false);
         }
         #endregion
         #region ISerializable Members
@@ -1387,7 +1289,7 @@ namespace CADability
 
     }
 
-    class ShowPropertyDrives : IShowPropertyImpl, ICommandHandler
+    class ShowPropertyDrives : PropertyEntryImpl, ICommandHandler
     {
         DriveList driveList;
         public ShowPropertyDrives(DriveList driveList)
@@ -1395,18 +1297,8 @@ namespace CADability
             this.driveList = driveList;
             base.resourceId = "DriveList";
         }
-        #region IShowProperty implementation
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
-                return res;
-            }
-        }
+        #region IPropertyEntry implementation
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -1414,41 +1306,23 @@ namespace CADability
                 return MenuResource.LoadMenuDefinition("MenuId.DriveList", false, this);
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        IShowProperty[] subEntries;
+        IPropertyEntry[] subEntries;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
         /// returns the number of subentries in this property view.
         /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> res = new List<IShowProperty>();
-                    foreach (IShowProperty sp in driveList)
+                    List<IPropertyEntry> res = new List<IPropertyEntry>();
+                    foreach (IPropertyEntry sp in driveList)
                     {
                         res.Add(sp);
                     }
@@ -1489,8 +1363,8 @@ namespace CADability
                         (cd as IDrive).Name = NewDriveName;
                         driveList.Add(cd);
                         subEntries = null;
-                        propertyTreeView.Refresh(this);
-                        propertyTreeView.OpenSubEntries(this, true);
+                        propertyPage.Refresh(this);
+                        propertyPage.OpenSubEntries(this, true);
                         for (int i = 0; i < subEntries.Length; ++i)
                         {
                             if ((subEntries[i] as IDrive).Name == NewDriveName)
@@ -1528,8 +1402,8 @@ namespace CADability
                         (cd as IDrive).Name = NewDriveName;
                         driveList.Add(cd);
                         subEntries = null;
-                        propertyTreeView.Refresh(this);
-                        propertyTreeView.OpenSubEntries(this, true);
+                        propertyPage.Refresh(this);
+                        propertyPage.OpenSubEntries(this, true);
                         for (int i = 0; i < subEntries.Length; ++i)
                         {
                             if ((subEntries[i] as IDrive).Name == NewDriveName)
@@ -1562,8 +1436,8 @@ namespace CADability
         {
             driveList.Remove(drive);
             subEntries = null;
-            propertyTreeView.Refresh(this);
-            propertyTreeView.OpenSubEntries(this, true);
+            propertyPage.Refresh(this);
+            propertyPage.OpenSubEntries(this, true);
         }
         internal bool MayChangeName(IDrive drive, string newName)
         {
@@ -1578,7 +1452,7 @@ namespace CADability
         }
     }
 
-    internal class CurveDriveCurveProperty : IShowPropertyImpl, ICommandHandler
+    internal class CurveDriveCurveProperty : PropertyEntryImpl, ICommandHandler
     {
         CurveDrive curveDrive;
         bool isDragging;
@@ -1587,18 +1461,8 @@ namespace CADability
             this.curveDrive = curveDrive;
             base.resourceId = "CurveDrive.Curve";
         }
-        #region IShowProperty implementation
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.AllowDrag;
-                return res;
-            }
-        }
+        #region IPropertyEntry implementation
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.AllowDrag;
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -1606,40 +1470,18 @@ namespace CADability
                 return MenuResource.LoadMenuDefinition("MenuId.CurveDriveCurve", false, this);
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        IShowProperty[] subEntries;
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
+        IPropertyEntry[] subEntries;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> res = new List<IShowProperty>();
+                    List<IPropertyEntry> res = new List<IPropertyEntry>();
                     if (curveDrive.MoveAlong != null)
                     {
                         res.Add((curveDrive.MoveAlong as IGeoObject).GetShowProperties(Frame));
@@ -1652,34 +1494,20 @@ namespace CADability
         /// <summary>
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
+            base.Added(propertyPage);
+            //propertyPage.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
         }
         /// <summary>
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Removed (IPropertyTreeView)"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Removed(IPropertyPage propertyPage)
         {
-            base.Removed(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
-        }
-        void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
-        {
-            if (sender.FocusLeft(this, OldFocus, NewFocus))
-            {
-            }
-            else if (sender.FocusEntered(this, OldFocus, NewFocus))
-            {
-                if (Frame.ActiveView is AnimatedView)
-                {
-                    AnimatedView av = Frame.ActiveView as AnimatedView;
-                    av.SetSelectedObject(curveDrive.MoveAlong as IGeoObject);
-                }
-            }
+            base.Removed(propertyPage);
+            //propertyPage.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
         }
         #endregion
         #region ICommandHandler Members
@@ -1704,8 +1532,8 @@ namespace CADability
                             curveDrive.MoveAlong = list[0].Clone() as ICurve;
                         }
                         subEntries = null;
-                        propertyTreeView.Refresh(this);
-                        propertyTreeView.OpenSubEntries(this, true);
+                        propertyPage.Refresh(this);
+                        propertyPage.OpenSubEntries(this, true);
                     }
                     return true;
             }
@@ -1735,7 +1563,7 @@ namespace CADability
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
-    internal class AxisDriveCurveProperty : IShowPropertyImpl, ICommandHandler
+    internal class AxisDriveCurveProperty : PropertyEntryImpl, ICommandHandler
     {
         AxisDrive AxisDrive;
         bool isDragging;
@@ -1744,18 +1572,8 @@ namespace CADability
             this.AxisDrive = AxisDrive;
             base.resourceId = "AxisDrive.Curve";
         }
-        #region IShowProperty implementation
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags res = ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.AllowDrag;
-                return res;
-            }
-        }
+        #region IPropertyEntry implementation
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.AllowDrag;
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -1763,40 +1581,18 @@ namespace CADability
                 return MenuResource.LoadMenuDefinition("MenuId.AxisDriveCurve", false, this);
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        IShowProperty[] subEntries;
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
+        IPropertyEntry[] subEntries;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> res = new List<IShowProperty>();
+                    List<IPropertyEntry> res = new List<IPropertyEntry>();
                     subEntries = res.ToArray();
                 }
                 return subEntries;
@@ -1805,34 +1601,34 @@ namespace CADability
         /// <summary>
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
+            base.Added(propertyPage);
+            //propertyPage.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
         }
         /// <summary>
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Removed (IPropertyTreeView)"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Removed(IPropertyPage propertyPage)
         {
-            base.Removed(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
+            base.Removed(propertyPage);
+            //propertyPage.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
         }
-        void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
-        {
-            if (sender.FocusLeft(this, OldFocus, NewFocus))
-            {
-            }
-            else if (sender.FocusEntered(this, OldFocus, NewFocus))
-            {
-                if (Frame.ActiveView is AnimatedView)
-                {
-                    AnimatedView av = Frame.ActiveView as AnimatedView;
-                }
-            }
-        }
+        //void OnFocusChanged(IPropertyPage sender, IPropertyEntry NewFocus, IPropertyEntry OldFocus)
+        //{
+        //    if (sender.FocusLeft(this, OldFocus, NewFocus))
+        //    {
+        //    }
+        //    else if (sender.FocusEntered(this, OldFocus, NewFocus))
+        //    {
+        //        if (Frame.ActiveView is AnimatedView)
+        //        {
+        //            AnimatedView av = Frame.ActiveView as AnimatedView;
+        //        }
+        //    }
+        //}
         #endregion
         #region ICommandHandler Members
         bool ICommandHandler.OnCommand(string MenuId)
@@ -1851,8 +1647,8 @@ namespace CADability
                         AnimatedView av = Frame.ActiveView as AnimatedView;
                         GeoObjectList list = av.GetSelectedObjects();
                         subEntries = null;
-                        propertyTreeView.Refresh(this);
-                        propertyTreeView.OpenSubEntries(this, true);
+                        propertyPage.Refresh(this);
+                        propertyPage.OpenSubEntries(this, true);
                     }
                     return true;
             }

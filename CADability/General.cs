@@ -118,7 +118,7 @@ namespace CADability
         /// <param name="project">The project that contains the attributeList</param>
         /// <param name="geoObject">The object that keeps the attribute</param>
         /// <returns></returns>
-        IShowProperty GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList);
+        IPropertyEntry GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList);
     }
 
 }

@@ -810,57 +810,36 @@ namespace CADability.UserInterface
     /// for this group entry. All subentries must be added before this group entry is displayed.
     /// </summary>
 
-    public class ShowPropertyGroup : IShowPropertyImpl
+    public class ShowPropertyGroup : PropertyEntryImpl
     {
         public ShowPropertyGroup(string resourceId)
         {
             base.resourceId = resourceId;
-            subEntries = new IShowProperty[0];
+            subEntries = new IPropertyEntry[0];
         }
-        protected IShowProperty[] subEntries;
+        protected IPropertyEntry[] subEntries;
         public void ClearSubEntries()
         {
-            subEntries = new IShowProperty[0];
+            subEntries = new IPropertyEntry[0];
         }
-        public void AddSubEntry(IShowProperty ToAdd)
+        public void AddSubEntry(IPropertyEntry ToAdd)
         {
             ArrayList al = new ArrayList(subEntries);
             al.Add(ToAdd);
-            subEntries = (IShowProperty[])al.ToArray(typeof(IShowProperty));
+            subEntries = (IPropertyEntry[])al.ToArray(typeof(IPropertyEntry));
         }
-        public void AddSubEntries(params IShowProperty[] ToAdd)
+        public void AddSubEntries(params IPropertyEntry[] ToAdd)
         {
             ArrayList al = new ArrayList(subEntries);
             al.AddRange(ToAdd);
-            subEntries = (IShowProperty[])al.ToArray(typeof(IShowProperty));
+            subEntries = (IPropertyEntry[])al.ToArray(typeof(IPropertyEntry));
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return subEntries.Length;
-            }
-        }
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {

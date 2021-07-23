@@ -658,6 +658,7 @@ namespace CADability.GeoObject
             }
             return null;
         }
+        public override bool CanStretch => true;
 #if DEBUG
         public override GeoObjectList DebugGrid
         {

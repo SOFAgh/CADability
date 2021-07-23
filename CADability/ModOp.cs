@@ -404,7 +404,7 @@ namespace CADability
                 double[] b = { Dst[0].x, Dst[0].y, Dst[1].x, Dst[1].y };
 
                 Vector x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
-                if (!x.IsValid())
+                if (x.IsValid())
                 {
                     return new ModOp2D(x[0], x[1], x[2], -x[1], x[0], x[3]);
                 }

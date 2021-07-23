@@ -11,7 +11,7 @@ namespace CADability.UserInterface
     /// Shows the properties of a circle.
     /// </summary>
 
-    public class ShowPropertyCircle : IShowPropertyImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
+    public class ShowPropertyCircle : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Ellipse circle;
         private IFrame frame;
@@ -27,20 +27,8 @@ namespace CADability.UserInterface
         private BooleanProperty directionProperty;
         private AngleHotSpot startAngleHotSpot;
         private AngleHotSpot endAngleHotSpot;
-        private IShowProperty[] subEntries;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-
-        // kommen alle weg!
-        public Angle StartAngle
-        {
-            get { return new Angle(circle.StartParameter); }
-            set { circle.StartParameter = value; }
-        }
-        public Angle EndAngle
-        {
-            get { return new Angle(circle.StartParameter + circle.SweepParameter); }
-            set { circle.SweepParameter = value - (Angle)circle.StartParameter; }
-        }
+        private IPropertyEntry[] subEntries;
+        private IPropertyEntry[] attributeProperties; 
 
         public ShowPropertyCircle(Ellipse circle, IFrame frame)
         {
@@ -50,13 +38,13 @@ namespace CADability.UserInterface
             centerProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetCenter);
             centerProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetCenter);
             centerProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyCenterWithMouse);
-            centerProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+            centerProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
 
             radiusProperty = new LengthProperty("Circle.Radius", frame, true);
             radiusProperty.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnGetRadius);
             radiusProperty.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnSetRadius);
             radiusProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyRadiusWithMouse);
-            radiusProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+            radiusProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
             radiusHotSpots = new LengthHotSpot[4];
             for (int i = 0; i < 4; ++i)
             {
@@ -82,7 +70,7 @@ namespace CADability.UserInterface
             diameterProperty.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnGetDiameter);
             diameterProperty.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnSetDiameter);
             diameterProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyRadiusWithMouse);
-            diameterProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+            diameterProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
 
             if (circle.IsArc)
             {
@@ -90,7 +78,7 @@ namespace CADability.UserInterface
                 startAngleProperty.GetAngleEvent += new AngleProperty.GetAngleDelegate(OnGetStartAngle);
                 startAngleProperty.SetAngleEvent += new AngleProperty.SetAngleDelegate(OnSetStartAngle);
                 startAngleProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyStartAngleWithMouse);
-                startAngleProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+                startAngleProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
                 startAngleHotSpot = new AngleHotSpot(startAngleProperty);
                 startAngleHotSpot.Position = circle.StartPoint;
 
@@ -98,7 +86,7 @@ namespace CADability.UserInterface
                 endAngleProperty.GetAngleEvent += new AngleProperty.GetAngleDelegate(OnGetEndAngle);
                 endAngleProperty.SetAngleEvent += new AngleProperty.SetAngleDelegate(OnSetEndAngle);
                 endAngleProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyEndAngleWithMouse);
-                endAngleProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+                endAngleProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
                 endAngleHotSpot = new AngleHotSpot(endAngleProperty);
                 endAngleHotSpot.Position = circle.EndPoint;
                 base.resourceId = "CircleArc.Object";
@@ -111,11 +99,11 @@ namespace CADability.UserInterface
                 startPointProperty = new GeoPointProperty("Arc.StartPoint", frame, false);
                 startPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetStartPoint);
                 startPointProperty.ReadOnly = true;
-                startPointProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+                startPointProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
                 endPointProperty = new GeoPointProperty("Arc.EndPoint", frame, false);
                 endPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetEndPoint);
                 endPointProperty.ReadOnly = true;
-                endPointProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+                endPointProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
             }
             else
             {
@@ -125,7 +113,7 @@ namespace CADability.UserInterface
                     startAngleProperty.GetAngleEvent += new AngleProperty.GetAngleDelegate(OnGetStartAngle);
                     startAngleProperty.SetAngleEvent += new AngleProperty.SetAngleDelegate(OnSetStartAngle);
                     startAngleProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyStartAngleWithMouse);
-                    startAngleProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+                    startAngleProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
                     startAngleHotSpot = new AngleHotSpot(startAngleProperty);
                     startAngleHotSpot.Position = circle.StartPoint;
 
@@ -137,7 +125,7 @@ namespace CADability.UserInterface
                     startPointProperty = new GeoPointProperty("Arc.StartPoint", frame, false);
                     startPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetStartPoint);
                     startPointProperty.ReadOnly = true;
-                    startPointProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+                    startPointProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
                 }
                 base.resourceId = "Circle.Object";
             }
@@ -190,19 +178,10 @@ namespace CADability.UserInterface
 
         }
 
-        #region IShowPropertyImpl Overrides
+        #region PropertyEntryImpl Overrides
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
 
-        public override ShowPropertyEntryType EntryType { get { return ShowPropertyEntryType.GroupTitle; } }
-
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
@@ -229,8 +208,8 @@ namespace CADability.UserInterface
                         prop.Add(directionProperty);
                     }
                     prop.Add(arcLengthProperty);
-                    IShowProperty[] mainProps = (IShowProperty[])prop.ToArray(typeof(IShowProperty));
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    IPropertyEntry[] mainProps = (IPropertyEntry[])prop.ToArray(typeof(IPropertyEntry));
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
             }
@@ -260,7 +239,7 @@ namespace CADability.UserInterface
             base.Opened(IsOpen);
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
+        /// Overrides <see cref="PropertyEntryImpl.Removed"/>
         /// </summary>
         /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
         public override void Removed(IPropertyPage propertyTreeView)
@@ -281,17 +260,7 @@ namespace CADability.UserInterface
         {
             this.subEntries = null;
             attributeProperties = circle.GetAttributeProperties(frame);
-            propertyTreeView.Refresh(this);
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu;
-            }
+            propertyPage.Refresh(this);
         }
 
         public override MenuWithHandler[] ContextMenu
@@ -408,7 +377,7 @@ namespace CADability.UserInterface
             GeneralAngleAction gaa = new GeneralAngleAction(endAngleProperty, circle.Plane);
             frame.SetAction(gaa);
         }
-        private void OnStateChanged(IShowProperty sender, StateChangedArgs args)
+        private void OnStateChanged(IPropertyEntry sender, StateChangedArgs args)
         {
             if (HotspotChangedEvent != null)
             {

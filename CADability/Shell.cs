@@ -21,10 +21,10 @@ using Point = System.Drawing.Point;
 
 namespace CADability.GeoObject
 {
-    internal class ShowPropertyShell : IShowPropertyImpl, ICommandHandler, IGeoObjectShowProperty
+    internal class ShowPropertyShell : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty
     {
         Shell shell;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         public ShowPropertyShell(Shell shell, IFrame frame)
             : base(frame)
         {
@@ -32,33 +32,19 @@ namespace CADability.GeoObject
             this.shell = shell;
             attributeProperties = shell.GetAttributeProperties(frame);
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                if (subEntries == null) return attributeProperties.Length + shell.Faces.Length;
-                else return subEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
+        private IPropertyEntry[] subEntries;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> se = new List<IShowProperty>();
+                    List<IPropertyEntry> se = new List<IPropertyEntry>();
                     se.Add(new NameProperty(this.shell, "Name", "Solid.Name"));
                     foreach (Face face in shell.Faces)
                     {
-                        IShowProperty sp = face.GetShowProperties(base.Frame);
+                        IPropertyEntry sp = face.GetShowProperties(base.Frame);
                         sp.ReadOnly = true;
                         se.Add(sp);
                     }
@@ -69,7 +55,7 @@ namespace CADability.GeoObject
             }
         }
         /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Opened (bool)"/>
+        /// Overrides <see cref="PropertyEntryImpl.Opened (bool)"/>
         /// </summary>
         /// <param name="IsOpen"></param>
         public override void Opened(bool IsOpen)
@@ -82,13 +68,6 @@ namespace CADability.GeoObject
                 //{
                 //    subEntries[i].ReadOnly = true;
                 //}
-            }
-        }
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
             }
         }
         public override MenuWithHandler[] ContextMenu
@@ -836,7 +815,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override CADability.UserInterface.IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyShell(this, Frame);
         }
@@ -4432,13 +4411,13 @@ namespace CADability.GeoObject
             Set<Face> facesset = new Set<Face>(faces); // die Faces ändern sich ggf.
                                                        // zuerst mal degenerierte Edges entfernen:
             Edge[] alledges = this.Edges;
-            OrderedMultiDictionary<BRepOperationOld.DoubleVertexKey, Edge> dict = new OrderedMultiDictionary<BRepOperationOld.DoubleVertexKey, Edge>(true);
+            OrderedMultiDictionary<DoubleVertexKey, Edge> dict = new OrderedMultiDictionary<DoubleVertexKey, Edge>(true);
             foreach (Edge e in alledges)
             {
-                dict.Add(new BRepOperationOld.DoubleVertexKey(e.Vertex1, e.Vertex2), e);
+                dict.Add(new DoubleVertexKey(e.Vertex1, e.Vertex2), e);
             }
             // Wenn eine Verbindung zweier Vertices öfter vorkommt, dann testen, ob geometrisch identisch
-            foreach (KeyValuePair<BRepOperationOld.DoubleVertexKey, ICollection<Edge>> kv in dict)
+            foreach (KeyValuePair<DoubleVertexKey, ICollection<Edge>> kv in dict)
             {
                 if (kv.Value.Count > 1)
                 {

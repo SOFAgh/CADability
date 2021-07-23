@@ -1624,6 +1624,7 @@ namespace CADability.Forms
             if (paintThisList == null) return;
             if (currentList != null) currentList.SetHasContents();
             if ((paintThisList as OpenGlList).ListNumber != 0) Gl.glCallList((paintThisList as OpenGlList).ListNumber);
+            //System.Diagnostics.Trace.WriteLine("display list: " + (paintThisList as OpenGlList).ListNumber.ToString());
             CheckError();
         }
         private void PaintListWithOffset(IPaintTo3DList paintThisList, int offsetX, int offsetY)
@@ -1801,6 +1802,7 @@ namespace CADability.Forms
             if (currentList != null) throw new PaintToOpenGLException("IPaintTo3DList: nested lists not allowed");
             currentList = new OpenGlList();
             currentList.Open();
+            //System.Diagnostics.Trace.WriteLine("open list: " + currentList.ListNumber.ToString());
             CheckError();
         }
         IPaintTo3DList IPaintTo3D.CloseList()
@@ -1809,6 +1811,7 @@ namespace CADability.Forms
             OpenGlList res = currentList;
             currentList = null;
             CheckError();
+            //System.Diagnostics.Trace.WriteLine("close list: " + res.ListNumber.ToString());
             if (res != null && res.HasContents()) return res;
             else
             {
@@ -1830,6 +1833,7 @@ namespace CADability.Forms
             res.Close();
             (res as IPaintTo3DList).containedSubLists = sublists;
             CheckError();
+            //System.Diagnostics.Trace.WriteLine("make list: " + res.ListNumber.ToString());
             return res;
         }
         void IPaintTo3D.OpenPath()
@@ -2091,7 +2095,7 @@ namespace CADability.Forms
                 {
                     for (int i = 0; i < toDelete.Count; ++i)
                     {
-                        // System.Diagnostics.Trace.WriteLine("Deleting OpenGl List Nr.: " + toDelete[i].ToString());
+                        //System.Diagnostics.Trace.WriteLine("Deleting OpenGl List Nr.: " + toDelete[i].ToString());
                         try
                         {
                             Gl.glDeleteLists(toDelete[i], 1);
@@ -2145,7 +2149,7 @@ namespace CADability.Forms
         }
         public void Delete()
         {
-            // System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + listNumber.ToString());
+            //System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + ListNumber.ToString());
             isDeleted = true;
             Gl.glDeleteLists(ListNumber, 1);
         }

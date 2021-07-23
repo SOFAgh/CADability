@@ -606,7 +606,7 @@ namespace CADability
     /// exact for of the curve than we get, when we approximate the curve in 2d.
     /// </summary>
     [Serializable()]
-    public class ProjectedCurve : TriangulatedCurve2D, ISerializable
+    public class ProjectedCurve : GeneralCurve2D, ISerializable
     {
         private double startParam; // start parameter on the 3d curve, together wit endParam also specifies the orientation
         private double endParam; // on the 3d curve
@@ -751,6 +751,10 @@ namespace CADability
             this.startParam = startParam;
             this.endParam = endParam;
             periodicDomain = domain;
+        }
+        internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
+        {
+            GetTriangulationBasis(out interpol, out _, out interparam);
         }
         protected override void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters)
         {

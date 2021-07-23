@@ -4,13 +4,13 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <BuildDocFx Condition=" '$(Configuration)'!='RelWithDoc' ">false</BuildDocFx>
     <Configurations>Debug;Release;RelWithDoc;WebDebug</Configurations>
-    <SignAssembly>true</SignAssembly>
+    <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>CADabilityKey.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, USENONPRIODICSURFACES</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;xPARALLEL, TESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WebDebug|AnyCPU'">
@@ -51,10 +51,13 @@
 
   <ItemGroup>
     <Compile Remove="CADability.DXF\**" />
+    <Compile Remove="DXF\**" />
     <Compile Remove="_site\**" />
     <EmbeddedResource Remove="CADability.DXF\**" />
+    <EmbeddedResource Remove="DXF\**" />
     <EmbeddedResource Remove="_site\**" />
     <None Remove="CADability.DXF\**" />
+    <None Remove="DXF\**" />
     <None Remove="_site\**" />
   </ItemGroup>
 

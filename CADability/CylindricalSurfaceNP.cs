@@ -237,7 +237,15 @@ namespace CADability.GeoObject
         {
             return new CylindricalSurfaceNP(m * location, m * xAxis, m * yAxis, m * zAxis);
         }
-
+        public override void Modify(ModOp m)
+        {
+            boxedSurfaceEx = null;
+            implicitPolynomial = null;
+            location = m * location;
+            xAxis = m * xAxis;
+            yAxis = m * yAxis;
+            zAxis = m * zAxis;
+        }
         public override GeoPoint PointAt(GeoPoint2D uv)
         {
             double l = Math.Sqrt(uv.x * uv.x + uv.y * uv.y);

@@ -9,7 +9,7 @@ namespace CADability.Attribute
     /// 
     /// </summary>
     [Serializable]
-    public class DimensionStyle : IShowPropertyImpl, ISerializable, INamedAttribute, ICommandHandler
+    public class DimensionStyle : PropertyEntryImpl, ISerializable, INamedAttribute, ICommandHandler
     {
         // die Einstellungen so aus CONDOR Version 4 übernommen:
         [Flags]
@@ -120,7 +120,7 @@ namespace CADability.Attribute
             get { return parent; }
             set { parent = value as DimensionStyleList; }
         }
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             return null;
         }
@@ -1485,40 +1485,28 @@ namespace CADability.Attribute
             }
         }
         #endregion
-        #region IShowProperty Members
+        #region IPropertyEntry Members
         private CheckProperty checkDimTxtRotate90;
         private CheckProperty checkDimTxtRotate60;
         private CheckProperty checkDimTxtRotateAutomatic;
-        private IShowProperty[] subEntries;
+        private IPropertyEntry[] subEntries;
+        public override PropertyEntryType Flags
+        {
+            get
+            {
+                PropertyEntryType flags = PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.LabelEditable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+                if (parent.Current == this) flags |= PropertyEntryType.Bold;
+                return flags;
+            }
+        }
         public override string LabelText
         {
             get { return name; }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags flags = ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.Editable;
-                if (parent.Current == this)
-                    flags |= ShowPropertyLabelFlags.Bold;
-                return flags;
-
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.EntryType"/>, 
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -1527,18 +1515,10 @@ namespace CADability.Attribute
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get { return SubEntries.Length; }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
@@ -1552,7 +1532,7 @@ namespace CADability.Attribute
                     if (Parent != null) lineWidthList = Parent.Owner.LineWidthList;
                     if (lineWidthList == null) lineWidthList = base.Frame.Project.LineWidthList; // im Notfall
 
-                    subEntries = new IShowProperty[9];
+                    subEntries = new IPropertyEntry[9];
 
                     ShowPropertyGroup geometry = new ShowPropertyGroup("DimensionStyle.Geometry");
                     geometry.AddSubEntry(new DoubleProperty(this, "DimLineExtension", "DimensionStyle.DimLineExtension", base.Frame));
@@ -1676,7 +1656,7 @@ namespace CADability.Attribute
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
+        /// Overrides <see cref="PropertyEntryImpl.Added"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
         public override void Added(IPropertyPage propertyTreeView)
@@ -1686,10 +1666,10 @@ namespace CADability.Attribute
 
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
+        /// Overrides <see cref="PropertyEntryImpl.Removed"/>
         /// </summary>
         /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyTreeView)
         {
             subEntries = null; // invers zu Added
             checkDimTxtRotate90 = null;
@@ -1697,20 +1677,19 @@ namespace CADability.Attribute
             checkDimTxtRotateAutomatic = null;
             base.Removed(propertyTreeView);
         }
-
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-        public override void LabelChanged(string NewText)
+        public override bool EditTextChanged(string newValue)
+        {
+            return true;
+        }
+        public override void EndEdit(bool aborted, bool modified, string newValue)
         {
             try
             {
-                Name = NewText;
+                Name = newValue;
             }
             catch (NameAlreadyExistsException)
             {
-                propertyTreeView.Refresh(this);
+                propertyPage.Refresh(this);
             }
         }
 
@@ -1980,7 +1959,7 @@ namespace CADability.Attribute
                     if (Parent != null)
                     {
                         Parent.Remove(this);
-                        if (propertyTreeView != null) propertyTreeView.Refresh(parent);
+                        if (propertyPage != null) propertyPage.Refresh(parent);
                     }
                     return true;
                 case "MenuId.DimStyleEntry.Edit":
@@ -1990,7 +1969,7 @@ namespace CADability.Attribute
                     if (Parent != null)
                     {
                         parent.Current = this;
-                        if (propertyTreeView != null) propertyTreeView.Refresh(parent);
+                        if (propertyPage != null) propertyPage.Refresh(parent);
                     }
                     return true;
             }

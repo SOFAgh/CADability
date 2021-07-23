@@ -3488,7 +3488,7 @@ namespace CADability
 #endif
         }
 
-        internal bool IsTangentialEdge()
+        public bool IsTangentialEdge()
         {
             if (secondaryFace == null) return false;
             if (primaryFace.Surface.SameGeometry(primaryFace.Domain, secondaryFace.Surface, secondaryFace.Domain, Precision.eps, out _)) return true;

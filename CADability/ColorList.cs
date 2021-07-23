@@ -20,14 +20,14 @@ namespace CADability.Attribute
     /// interaktiv manipuliert werden.
     /// </summary>
     [Serializable()]
-    public class ColorList : IShowPropertyImpl, ISerializable,
+    public class ColorList : PropertyEntryImpl, ISerializable,
         INotifyModification, ICollection, IAttributeList, ICommandHandler, IDeserializationCallback
     {
         // die Implementierung als ArrayListe von einem gewissen Typ ist wichtig, um eine
         // (auch nicht-alphabetische) Reihenfolge beizubehalten.
         private ArrayList namedColors;
         private IAttributeListContainer owner; // Besitzer, entweder Projekt oder Settings
-        private IShowProperty[] ShowProperties;
+        private IPropertyEntry[] subItems;
         internal string menuResourceId;
 
         private ColorDef current;
@@ -134,8 +134,8 @@ namespace CADability.Attribute
         private void RemoveAll() // nur intern verwenden, da nicht RemovingItem aufgerufen wird
         {
             namedColors.Clear();
-            ShowProperties = null;
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, false); // zuklappen
+            subItems = null;
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, false); // zuklappen
         }
 
         public void Add(ColorDef cd)
@@ -414,7 +414,7 @@ namespace CADability.Attribute
             }
         }
 
-        public StaticFlags Flags
+        public new StaticFlags Usage
         {
             get
             {
@@ -476,74 +476,52 @@ namespace CADability.Attribute
         {
             string NewColorName = GetNewName();
             AddColor(NewColorName, Color.Black);
-            propertyTreeView.Refresh(this);
-            propertyTreeView.OpenSubEntries(this, true);
-            (ShowProperties[ShowProperties.Length - 1] as IPropertyEntry).StartEdit(false);
+            subItems = null;
+            propertyPage.Refresh(this);
+            propertyPage.OpenSubEntries(this, true);
+            propertyPage.StartEditLabel(SubItems[SubItems.Length - 1]);
         }
 
 
-#region IShowProperty Members
+        #region PropertyEntry Members
 
-        //public override string InfoText { get { return StringTable.GetString("ColorList.InfoText.Global"); } }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
+        public override PropertyEntryType Flags
         {
             get
             {
-                return ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return namedColors.Count;
+                return PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
             }
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
-                ShowProperties = new IShowProperty[namedColors.Count];
-                for (int i = 0; i < namedColors.Count; ++i)
+                if (subItems == null)
                 {
-                    ShowProperties[i] = new ColorListProperty(this, i);
+                    subItems = new IPropertyEntry[namedColors.Count];
+                    for (int i = 0; i < namedColors.Count; ++i)
+                    {
+                        subItems[i] = new ColorListProperty(this, i);
+                    }
                 }
-                return ShowProperties;
+                return subItems;
             }
         }
         public override MenuWithHandler[] ContextMenu
         {
             get
             {
-                if (menuResourceId != null)return MenuResource.LoadMenuDefinition(menuResourceId, false, this);
+                if (menuResourceId != null) return MenuResource.LoadMenuDefinition(menuResourceId, false, this);
                 else return MenuResource.LoadMenuDefinition("MenuId.ColorList", false, this);
             }
         }
-#endregion
+        #endregion
 
-#region ISerializable Members
+        #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -565,8 +543,8 @@ namespace CADability.Attribute
             info.AddValue("NamedColors", namedColors, namedColors.GetType());
             info.AddValue("Current", current, typeof(ColorDef));
         }
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
             foreach (ColorDef cd in namedColors)
@@ -574,16 +552,16 @@ namespace CADability.Attribute
                 cd.Parent = this;
             }
         }
-#endregion
+        #endregion
 
 
-#region INotifyModification Members
+        #region INotifyModification Members
 
         public event CADability.DidModifyDelegate DidModifyEvent;
 
-#endregion
+        #endregion
 
-#region ICollection Members
+        #region ICollection Members
 
         public bool IsSynchronized
         {
@@ -614,19 +592,19 @@ namespace CADability.Attribute
             }
         }
 
-#endregion
+        #endregion
 
-#region IEnumerable Members
+        #region IEnumerable Members
 
         public IEnumerator GetEnumerator()
         {
             return namedColors.GetEnumerator();
         }
 
-#endregion
+        #endregion
 
 
-#region IAttributeList Members
+        #region IAttributeList Members
 
         void IAttributeList.Add(INamedAttribute toAdd)
         {
@@ -712,9 +690,9 @@ namespace CADability.Attribute
                 return this[CurrentIndex] as INamedAttribute;
             }
         }
-#endregion
+        #endregion
 
-#region ICommandHandler Members
+        #region ICommandHandler Members
         private void OnAddFromGlobal()
         {
             foreach (ColorDef ds in Settings.GlobalSettings.ColorList.namedColors)
@@ -724,7 +702,7 @@ namespace CADability.Attribute
                     this.Add(ds.Clone());
                 }
             }
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
         private void OnMakeGlobal()
         {
@@ -744,7 +722,7 @@ namespace CADability.Attribute
                     this.Add(ds);
                 }
             }
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
         private void OnRemoveUnused()
         {
@@ -766,13 +744,13 @@ namespace CADability.Attribute
                     }
                 }
             } while (found);
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
         private void GetAllColorDefs(Hashtable collect, IGeoObject go)
         {
-            if (go is IColorDef cd && cd.ColorDef!=null)
+            if (go is IColorDef cd && cd.ColorDef != null)
             {
-                collect[cd.ColorDef] = null; // Hastable wird als set verwendet
+                collect[cd.ColorDef] = null; // Hashtable wird als set verwendet
             }
             else if (go is Block)
             {

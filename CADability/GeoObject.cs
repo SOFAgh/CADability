@@ -311,7 +311,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame">IFrame reference used to check settings</param>
         /// <returns>properties</returns>
-        IShowProperty GetShowProperties(IFrame Frame);
+        IPropertyEntry GetShowProperties(IFrame Frame);
         /// <summary>
         /// Gets a list of <see cref="IShowProperty"/> objects that represent the non geometric
         /// properties of this geoobject. This list will be used during construct actions (e.g.
@@ -319,7 +319,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame">IFrame reference used to check settings</param>
         /// <returns>list of properties</returns>
-        IShowProperty[] GetAttributeProperties(IFrame Frame);
+        IPropertyEntry[] GetAttributeProperties(IFrame Frame);
         /// <summary>
         /// Returns a bounding cube of the object. The object must fir into this cube. 
         /// There may be a smaller cube that contains the object if it is to expensive to
@@ -1373,11 +1373,11 @@ namespace CADability.GeoObject
             info.AddValue("Actuator", actuator);
         }
         /// <summary>
-        /// Should be overridden and return a <see cref="IShowProperty"/> derived object
+        /// Should be overridden and return a <see cref="IPropertyEntry"/> derived object
         /// that handles the display and modification of the properties of the IGeoObject derived object.
         /// Default implementation return null.
         /// </summary>
-        public virtual IShowProperty GetShowProperties(IFrame Frame)
+        public virtual IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return null;
         }
@@ -1386,10 +1386,10 @@ namespace CADability.GeoObject
         /// ShowProperties for all CADability attributes.
         /// </summary>
         /// <param name="Frame">the frame of the view</param>
-        /// <returns>list of showproperties</returns>
-        public virtual IShowProperty[] GetAttributeProperties(IFrame Frame)
+        /// <returns>list of IPropertyEntry</returns>
+        public virtual IPropertyEntry[] GetAttributeProperties(IFrame Frame)
         {
-            List<IShowProperty> res = new List<IShowProperty>();
+            List<IPropertyEntry> res = new List<IPropertyEntry>();
             // zuerst seperator, evtl. durch boolen steuern?
             res.Add(new SeperatorProperty("GeoObject.Attributes"));
             res.Add(new StyleSelectionProperty(this, "StyleSelection", Frame.Project.StyleList));
@@ -1412,7 +1412,7 @@ namespace CADability.GeoObject
             {
                 foreach (DictionaryEntry de in userAttributes)
                 {
-                    IShowProperty sp = (de.Value as INamedAttribute).GetSelectionProperty(de.Key as string, Frame.Project, new GeoObjectList(this));
+                    IPropertyEntry sp = (de.Value as INamedAttribute).GetSelectionProperty(de.Key as string, Frame.Project, new GeoObjectList(this));
                     if (sp != null) res.Add(sp);
                 }
             }
@@ -1422,9 +1422,9 @@ namespace CADability.GeoObject
                 for (int i = 0; i < entries.Length; ++i)
                 {
                     object data = userData[entries[i]];
-                    if (data is IShowProperty)
+                    if (data is IPropertyEntry)
                     {
-                        res.Add(data as IShowProperty);
+                        res.Add(data as IPropertyEntry);
                     }
                 }
             }

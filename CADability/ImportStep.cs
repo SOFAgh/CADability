@@ -1485,6 +1485,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 found = face;
                             }
                         }
+                        GeoPoint[] vtxs = new GeoPoint[face.Vertices.Length];
+                        for (int ii = 0; ii < vtxs.Length; ii++)
+                        {
+                            vtxs[ii] = face.Vertices[ii].Position;
+                        }
+                        //double err1 = face.Surface.Fit(vtxs); // implement Modify in surfaces!
                     }
                 }
             }
@@ -2341,7 +2347,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (740 == item.definingIndex || 108344 == item.definingIndex)
+                            if (205 == item.definingIndex)
                             {
                             }
 #endif
@@ -2360,7 +2366,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 {
                                     System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
                                     stopWatch.Start();
-                                    item.val = Face.MakeFacesFromStepAdvancedFace(surface, bounds, item.parameter["same_sense"].bval, precision);
+                                    // we need to clone th surface here, because the same surface might be used by two independent faces
+                                    // and MakeFacesFromStepAdvancedFace may modify the surface (e.g. rotate a cylinder around its axis to better fit the 2d curves)
+                                    item.val = Face.MakeFacesFromStepAdvancedFace(surface.Clone(), bounds, item.parameter["same_sense"].bval, precision);
                                     stopWatch.Stop();
                                     if (stopWatch.ElapsedMilliseconds > elapsedMs)
                                     {
@@ -2368,10 +2376,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         defIndex = item.definingIndex;
                                     }
 #if DEBUG
-                                    if (2421 == item.definingIndex)
+                                    if (15515 == item.definingIndex)
                                     {
                                         Face dbgfc = (item.val as Face[])[0];
-                                        dbgfc.AssureTriangles(0.2);
+                                        dbgfc.AssureTriangles(0.12);
                                     }
 #endif
 

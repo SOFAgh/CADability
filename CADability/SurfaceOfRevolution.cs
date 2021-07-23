@@ -738,6 +738,12 @@ namespace CADability.GeoObject
                 this.ymin = ymin;
                 this.ymax = ymax;
             }
+            public override void Reverse()
+            {
+                double tmp = tmin;
+                tmin = tmax;
+                tmax = tmp;
+            }
         }
         public class Hyperbola : GeneralCurve2D
         {
@@ -799,6 +805,13 @@ namespace CADability.GeoObject
                 double help = yoffset / b;
                 return h.DirectionAt(Position + Math.Log(help + Math.Sqrt(help * help + 1)));
             }
+            public override void Reverse()
+            {
+                double tmp = tmin;
+                tmin = tmax;
+                tmax = tmp;
+            }
+
             public Hyperbola(GeoPoint sp, GeoVector dir, double ymin, double ymax)
             {   // sp & dir must be in the unit system, ymin & ymax the extent of the curve in the unit system
                 h = new HyperbolaHelp(sp, dir, ymin, ymax);

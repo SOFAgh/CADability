@@ -116,13 +116,16 @@ namespace CADability.Forms
             if (index == selected)
             {
                 graphics.FillRectangle(SystemBrushes.Highlight, labelRect);
-                graphics.DrawString(entries[index].Label, Font, SystemBrushes.HighlightText, labelRect, stringFormat);
+                if (entries[index].Flags.HasFlag(PropertyEntryType.Bold))
+                    graphics.DrawString(entries[index].Label, new Font(Font, FontStyle.Bold), SystemBrushes.HighlightText, labelRect, stringFormat);
+                else
+                    graphics.DrawString(entries[index].Label, Font, SystemBrushes.HighlightText, labelRect, stringFormat);
             }
             else if (entries[index].Flags.HasFlag(PropertyEntryType.Seperator))
             {
                 int ym = (labelRect.Top + labelRect.Bottom) / 2;
                 labelRect.Width -= buttonWidth;
-                graphics.DrawLine(SystemPens.ControlLight, labelRect.Left, ym, labelRect.Right, ym); // the horizontal seperator line
+                graphics.DrawLine(SystemPens.ControlLight, labelRect.Left, ym, labelRect.Right, ym); // the horizontal separator line
                 StringFormat seperatorFormat = stringFormat.Clone() as StringFormat;
                 seperatorFormat.Alignment = StringAlignment.Center;
                 graphics.DrawString(entries[index].Label, Font, SystemBrushes.ControlText, labelRect, seperatorFormat);
@@ -558,7 +561,7 @@ namespace CADability.Forms
         {
             if (rootProperties.Count > toRemove.Index)
             {
-                if (selected >= 0) (Parent.Parent as PropertiesExplorer).UnSelected(entries[selected]); // to close the textbox (if any) and call EndEdit
+                if (selected >= 0 && selected<entries.Length) (Parent.Parent as PropertiesExplorer).UnSelected(entries[selected]); // to close the textbox (if any) and call EndEdit
                 rootProperties.RemoveAt(toRemove.Index);
                 RefreshEntries(-1, 0);
                 Invalidate();
@@ -586,7 +589,7 @@ namespace CADability.Forms
             if (pe.IsOpen && pe.Flags.HasFlag(PropertyEntryType.HasSubEntries))
             {
                 for (int i = 0; i < pe.SubItems.Length; i++)
-                
+
                 {
                     pe.SubItems[i].IndentLevel = level + 1;
                     res.Add(pe.SubItems[i]);
@@ -610,7 +613,7 @@ namespace CADability.Forms
                 }
             }
             List<IPropertyEntry> lentries = new List<IPropertyEntry>(entries);
-            for (int i = lentries.Count-1; i>=0 ; --i)
+            for (int i = lentries.Count - 1; i >= 0; --i)
             {
                 if ((Parent.Parent as PropertiesExplorer).isHidden(lentries[i].ResourceId)) lentries.RemoveAt(i);
             }
@@ -632,12 +635,13 @@ namespace CADability.Forms
             if (index >= 0)
             {
                 Refresh(index);
+                // maybe the number of subentries has changed: then we simply close and open the subentries again
+                // so the entries list will be recalculated. If some subentries have also subentries and are open or closed, this 
+                // state will be preserved.
                 if (entries[index].Flags.HasFlag(PropertyEntryType.HasSubEntries) && entries[index].IsOpen)
                 {
-                    for (int i = 0; i < entries[index].SubItems.Length; i++)
-                    {
-                        Refresh(index + i + 1);
-                    }
+                    OpenSubEntries(toRefresh, false);
+                    OpenSubEntries(toRefresh, true);
                 }
             }
             // System.Diagnostics.Trace.WriteLine("Refresh: " + index.ToString());
@@ -791,6 +795,8 @@ namespace CADability.Forms
         public void SelectEntry(IPropertyEntry toSelect)
         {
             if (toSelect == null) return;
+            PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
+            if (pe!=null) pe.ShowPropertyPage(this.TitleId);
             (this as IPropertyPage).Selected = toSelect;
             // the following is not needed, it is part of ".Selected = toSelect"
             //if (toSelect == (this as IPropertyPage).Selected && !toSelect.Flags.HasFlag(PropertyEntryType.LabelEditable))

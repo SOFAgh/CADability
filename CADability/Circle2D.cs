@@ -127,6 +127,32 @@ namespace CADability.Curve2D
             if (counterClock) return r.ToLeft();
             else return r.ToRight();
         }
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            double par = position * 2.0 * Math.PI;
+            if (counterClock)
+            {
+                point = new GeoPoint2D(center.x + radius * Math.Cos(par), center.y + radius * Math.Sin(par));
+                deriv = new GeoVector2D(-radius * Math.Sin(par), radius * Math.Cos(par));
+                deriv2 = new GeoVector2D(-radius * Math.Cos(par), -radius * Math.Sin(par));
+            }
+            else
+            {
+                point = new GeoPoint2D(center.x + radius * Math.Cos(-par), center.y + radius * Math.Sin(-par));
+                deriv = new GeoVector2D(radius * Math.Sin(-par), -radius * Math.Cos(-par));
+                deriv2 = new GeoVector2D(-radius * Math.Cos(-par), -radius * Math.Sin(-par));
+            }
+            return true;
+        }
+        internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
+        {
+            interpol = new GeoPoint2D[4];
+            interparam = new double[] { 0, 0.25, 0.5, 0.75 };
+            for (int i = 0; i < interparam.Length; i++)
+            {
+                interpol[i] = PointAt(interparam[i]);
+            }
+        }
         public override GeoPoint2D StartPoint
         {
             get
