@@ -156,12 +156,12 @@ namespace CADability.Curve2D
                 while ((startWith = quadtree.SomeObject) != null)
                 {
                     quadtree.RemoveObject(startWith);
-                    BoundingRect swext = startWith.GetExtent();
-                    swext.Inflate(Precision);
                     bool didFuse;
                     do
                     {
                         didFuse = false;
+                        BoundingRect swext = startWith.GetExtent();
+                        swext.Inflate(Precision);
                         ICurve2D[] close = quadtree.GetObjectsFromRect(swext);
                         foreach (ICurve2D c2d in close)
                         {

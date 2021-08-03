@@ -39,107 +39,25 @@ namespace CADability.Forms
         {
             if (MenuId == "DebuggerPlayground.Debug")
             {
-                string[] allFiles = Directory.GetFiles("C:/Zeichnungen/DxfDwg");
-                for (int i = 0; i < allFiles.Length; i++)
-                {
-                    if (allFiles[i].EndsWith(".dxf") || allFiles[i].EndsWith(".DXF"))
-                    {
-                        try
-                        {
-                            Project read = Project.ReadFromFile(allFiles[i], "dxf");
-                        } catch (Exception e)
-                        {
-                            System.Diagnostics.Trace.WriteLine("Read dxf exception: " + e.Message);
-                        }
-                    }
-                }
-                //Model model = frame.Project.GetActiveModel();
-                //if (model[0] is Solid sld)
+                //string[] allFiles = Directory.GetFiles("C:/Zeichnungen/DxfDwg");
+                //for (int i = 0; i < allFiles.Length; i++)
                 //{
-                //    Unrolling(sld);
-                //    //using (new PerformanceTick("Modify"))
-                //    //{
-                //    //    sld.Modify(ModOp.Rotate(GeoVector.ZAxis, SweepAngle.ToLeft));
-                //    //}
-                //    //using (new PerformanceTick("ModifyRemove"))
-                //    //{
-                //    //    model.Remove(sld);
-                //    //    sld.Modify(ModOp.Rotate(GeoVector.ZAxis, SweepAngle.ToLeft));
-                //    //    model.Add(sld); // 2400
-                //    //}
-                //    //using (new PerformanceTick("ModifyClone"))
-                //    //{
-                //    //    Solid sldclone = sld.Clone() as Solid;
-                //    //    sldclone.Modify(ModOp.Rotate(GeoVector.ZAxis, SweepAngle.ToLeft));
-                //    //}
-                //    //PerformanceTimer.Print();
-                //    //System.Windows.Forms.MessageBox.Show(PerformanceTimer.TimersString(), "PerformanceTimer", System.Windows.Forms.MessageBoxButtons.OK);
-
+                //    if (allFiles[i].EndsWith(".dxf") || allFiles[i].EndsWith(".DXF"))
+                //    {
+                //        try
+                //        {
+                //            Project read = Project.ReadFromFile(allFiles[i], "dxf");
+                //        } catch (Exception e)
+                //        {
+                //            System.Diagnostics.Trace.WriteLine("Read dxf exception: " + e.Message);
+                //        }
+                //    }
                 //}
+                Unfold u = new Unfold(frame.Project);
+                GeoObjectList result = u.GetResult();
                 return true;
             }
             return false;
-        }
-
-        void Unrolling(Solid sld)
-        {
-            Face maxPlaneFace = null;
-            double maxarea = 0.0;
-            foreach (Face face in sld.Shells[0].Faces)
-            {
-                if (face.Surface is PlaneSurface ps)
-                {
-                    Plane pln = ps.Plane; // plane has normalized axis
-                    List<ICurve2D> outline = new List<ICurve2D>();
-                    for (int i = 0; i < face.OutlineEdges.Length; i++)
-                    {
-                        ICurve2D projected = face.OutlineEdges[i].Curve3D.GetProjectedCurve(pln);
-                        if (!face.OutlineEdges[i].Forward(face)) projected.Reverse();
-                        outline.Add(projected);
-                    }
-                    Border bdr = new Border(outline.ToArray(), true);
-                    if (bdr.Area > maxarea)
-                    {
-                        maxarea = bdr.Area;
-                        maxPlaneFace = face;
-                    }
-                }
-            }
-            foreach (Edge edg in maxPlaneFace.OutlineEdges)
-            {
-                if (edg.IsTangentialEdge())
-                {
-                    if (edg.OtherFace(maxPlaneFace).Surface is CylindricalSurface)
-                    {
-                        SimpleShape found = Unroll(edg.OtherFace(maxPlaneFace), edg, edg.Curve2D(maxPlaneFace));
-                    }
-                }
-            }
-        }
-
-        SimpleShape Unroll(Face toUnroll, Edge connectWith, ICurve2D edgeInPlane)
-        {
-            if (toUnroll.Surface is CylindricalSurface cyl)
-            {
-                SimpleShape ss = toUnroll.Area;
-                double mindist = double.MaxValue;
-                int connectingCurve = -1;
-                for (int i = 0; i < ss.Outline.Count; i++)
-                {
-                    double d = (ss.Outline[i].StartPoint | connectWith.Curve2D(toUnroll).StartPoint) + (ss.Outline[i].EndPoint | connectWith.Curve2D(toUnroll).EndPoint);
-                    if (d < mindist)
-                    {
-                        mindist = d;
-                        connectingCurve = i;
-                    }
-                }
-                double scalex = cyl.RadiusX;
-                double scaley = cyl.ZAxis.Length;
-                SimpleShape sscaled = ss.GetModified(ModOp2D.Scale(scalex, scaley));
-                ModOp2D fit = ModOp2D.Fit(new GeoPoint2D[] { sscaled.Outline[connectingCurve].StartPoint, sscaled.Outline[connectingCurve].EndPoint }, new GeoPoint2D[] { edgeInPlane.EndPoint, edgeInPlane.StartPoint }, false);
-                return sscaled.GetModified(fit);
-            }
-            return null;
         }
         private void TestCylinderNP()
         {

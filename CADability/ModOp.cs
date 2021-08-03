@@ -1078,9 +1078,6 @@ namespace CADability
             f.mode = ModificationMode.CompoundTrsf;
             GeoPoint p = f * Src.Location;
             return Translate(Dst.Location - p) * f;
-            // CndOCas.HomMat3dClass ohm = new CndOCas.HomMat3dClass();
-            // ohm.SetTransformation(Src.OCasBuddy,Dst.OCasBuddy);
-            // return new ModOp(ohm);
         }
         /// <summary>
         /// Constructs a ModOp, that performs a translation by the given offsets

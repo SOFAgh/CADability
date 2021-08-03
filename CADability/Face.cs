@@ -4110,7 +4110,7 @@ namespace CADability.GeoObject
                 return res.ToArray();
             }
         }
-        internal IEnumerable<Edge> AllEdgesIterated()
+        public IEnumerable<Edge> AllEdgesIterated()
         {
             for (int i = 0; i < outline.Length; ++i)
             {

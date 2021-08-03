@@ -19,7 +19,7 @@ namespace CADability.GeoObject
     /// degenerate to lines in 2d.
     /// </summary>
     [Serializable]
-    public class CylindricalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable, IRestrictedDomain
+    public class CylindricalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable, IRestrictedDomain, ICylinder
     {
         GeoPoint location; // the location at the lowest (in the direction of zAxis) usable position of the cylinder
         GeoVector xAxis, yAxis, zAxis; // the system at the "bottom" of the cylinder. Should all have the same length
@@ -177,7 +177,7 @@ namespace CADability.GeoObject
         public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
         {
 #if DEBUG
-            if (id == 135 || id==414)
+            if (id == 135 || id == 414)
             { }
 #endif
             if (curve is Line line)
@@ -186,7 +186,8 @@ namespace CADability.GeoObject
                 // if it is an extremely small line not parallel to the axis, the result will also be a line, which
                 // in reverse projection will give a very short ellipse
                 return new Line2D(PositionOf(line.StartPoint), PositionOf(line.EndPoint));
-            } else if (curve is Ellipse elli)
+            }
+            else if (curve is Ellipse elli)
             {
                 double d = Geometry.DistPL(elli.Center, location, zAxis);
                 double prec = (elli.MajorRadius + elli.MinorRadius) * 1e-6;
@@ -503,32 +504,40 @@ namespace CADability.GeoObject
             }
         }
         public override bool UvChangesWithModification => true;
+
+        Axis ICylinder.Axis => new Axis(location, zAxis);
+
+        double ICylinder.Radius => xAxis.Length;
+
+        public bool OutwardOriented => (xAxis ^ yAxis) * zAxis > 0; // left handed system
+
         public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-                List<IPropertyEntry> se = new List<IPropertyEntry>();
-                GeoPointProperty location = new GeoPointProperty("CylindricalSurface.Location", frame, false);
-                location.ReadOnly = true;
-                location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return this.location; };
-                se.Add(location);
-                GeoVectorProperty dirx = new GeoVectorProperty("CylindricalSurface.DirectionX", frame, false);
-                dirx.ReadOnly = true;
-                dirx.IsAngle = false;
-                dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return xAxis; };
-                se.Add(dirx);
-                GeoVectorProperty diry = new GeoVectorProperty("CylindricalSurface.DirectionY", frame, false);
-                diry.ReadOnly = true;
-                diry.IsAngle = false;
-                diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return yAxis; };
-                se.Add(diry);
-                if (Precision.IsEqual(xAxis.Length, yAxis.Length))
-                {
-                    DoubleProperty radius = new DoubleProperty("CylindricalSurface.Radius", frame);
-                    radius.ReadOnly = true;
-                    radius.DoubleValue = xAxis.Length;
-                    radius.GetDoubleEvent += delegate (DoubleProperty sender) { return xAxis.Length; };
-                    se.Add(radius);
-                }
-                return new GroupProperty("CylindricalSurface", se.ToArray());
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty location = new GeoPointProperty("CylindricalSurface.Location", frame, false);
+            location.ReadOnly = true;
+            location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return this.location; };
+            se.Add(location);
+            GeoVectorProperty dirx = new GeoVectorProperty("CylindricalSurface.DirectionX", frame, false);
+            dirx.ReadOnly = true;
+            dirx.IsAngle = false;
+            dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return xAxis; };
+            se.Add(dirx);
+            GeoVectorProperty diry = new GeoVectorProperty("CylindricalSurface.DirectionY", frame, false);
+            diry.ReadOnly = true;
+            diry.IsAngle = false;
+            diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return yAxis; };
+            se.Add(diry);
+            if (Precision.IsEqual(xAxis.Length, yAxis.Length))
+            {
+                DoubleProperty radius = new DoubleProperty("CylindricalSurface.Radius", frame);
+                radius.ReadOnly = true;
+                radius.DoubleValue = xAxis.Length;
+                radius.GetDoubleEvent += delegate (DoubleProperty sender) { return xAxis.Length; };
+                se.Add(radius);
+            }
+            return new GroupProperty("CylindricalSurface", se.ToArray());
         }
+
     }
 }

@@ -9,11 +9,20 @@ using Wintellect.PowerCollections;
 namespace CADability.GeoObject
 {
     /// <summary>
+    /// Interface to handle both CylindricalSurface and CylindricalSurfaceNP
+    /// </summary>
+    public interface ICylinder
+    {
+        Axis Axis { get; }
+        double Radius { get; }
+        bool OutwardOriented { get; }
+    }
+    /// <summary>
     /// A cylindrical surface which implements <see cref="ISurface"/>. The surface represents a circular or elliptical
     /// cylinder. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
     [Serializable()]
-    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfArcExtrusion
+    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfArcExtrusion, ICylinder
     {
         // Der Zylinder ist so beschaffen, dass er lediglich durch eine ModOp definiert ist.
         // Der Einheitszylinder steht im Ursprung mit Radius 1, u beschreibt einen Kreis, v eine Mantellinie
@@ -2298,6 +2307,11 @@ namespace CADability.GeoObject
         bool ISurfaceOfExtrusion.ExtrusionDirectionIsV => true;
         #endregion
         public bool OutwardOriented => toCylinder.Determinant > 0;
+
+        Axis ICylinder.Axis => new Axis(Location, ZAxis);
+
+        double ICylinder.Radius => RadiusX;
+
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             //CYLINDRICAL_SURFACE

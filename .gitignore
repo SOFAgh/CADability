@@ -339,3 +339,7 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# private
+Unfold.cs
+DebuggerPlayground.cs
