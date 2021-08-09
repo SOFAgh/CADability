@@ -53,9 +53,9 @@ namespace CADability.Forms
                 //        }
                 //    }
                 //}
-                Unfold u = new Unfold(frame.Project);
-                GeoObjectList result = u.GetResult();
-                return true;
+                //Unfold u = new Unfold(frame.Project);
+                //GeoObjectList result = u.GetResult();
+                //return true;
             }
             return false;
         }
