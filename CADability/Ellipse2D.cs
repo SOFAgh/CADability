@@ -1,6 +1,10 @@
 ﻿using CADability.GeoObject;
+using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
+using MathNet.Numerics.Optimization;
+using MathNet.Numerics.Optimization.TrustRegion;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.Serialization;
 using System.Threading;
@@ -135,7 +139,7 @@ namespace CADability.Curve2D
         public static Ellipse2D FromFivePoints(GeoPoint2D[] p, bool isFull)
         {
             Ellipse2D res = FromFivePoints(p);
-            if (res!=null)
+            if (res != null)
             {
                 double mindist = double.MaxValue;
                 double p0 = res.PositionOf(p[0]);
@@ -230,6 +234,85 @@ namespace CADability.Curve2D
             Angle MinorAngle = MajorAngle + SweepAngle.ToLeft;
             Ellipse2D res = new Ellipse2D(new GeoPoint2D(mp[0], mp[1]), MajorRadius * new GeoVector2D(MajorAngle), MinorRadius * new GeoVector2D(MinorAngle));
             return res;
+        }
+        public static Ellipse2D FromPoints(IEnumerable<GeoPoint2D> points)
+        {
+            GeoPoint2D[] pnts = null;
+            if (points is GeoPoint2D[] a) pnts = a;
+            else if (points is List<GeoPoint2D> l) pnts = l.ToArray();
+            else
+            {
+                List<GeoPoint2D> lp = new List<GeoPoint2D>();
+                foreach (GeoPoint2D point2D in points)
+                {
+                    lp.Add(point2D);
+                }
+                pnts = lp.ToArray();
+            }
+            Vector<double> observedX = new DenseVector(pnts.Length + 1); // there is no need to set values
+            Vector<double> observedY = new DenseVector(pnts.Length + 1); // this is the data we want to achieve, namely 1.0, points on the unit circle distance to origin
+            for (int i = 0; i < observedY.Count; i++)
+            {
+                observedY[i] = 1;
+            }
+            observedY[pnts.Length] = 0; // the scalar product of minor and major axis
+            LevenbergMarquardtMinimizer lm = new LevenbergMarquardtMinimizer(gradientTolerance: 1e-12, maximumIterations: 20);
+            IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                {
+                    // parameters: the homogeneous matrix that projects the ellipse to the unit circle
+                    ModOp2D m = new ModOp2D(vd[0], vd[1], vd[2], vd[3], vd[4], vd[5]);
+                    DenseVector res = new DenseVector(pnts.Length + 1);
+                    for (int i = 0; i < pnts.Length; i++)
+                    {
+                        GeoPoint2D pp = m * pnts[i];
+                        res[i] = pp.x * pp.x + pp.y * pp.y;
+                    }
+                    res[pnts.Length] = m[0, 0] * m[0, 1] + m[1, 0] * m[1, 1]; // the axis should be perpendicular
+#if DEBUG
+                    double err = 0.0;
+                    for (int i = 0; i < pnts.Length; i++) err += (res[i] - 1) * (res[i] - 1);
+                    err += res[pnts.Length] * res[pnts.Length];
+#endif
+                    return res;
+                }),
+                new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                {
+                    // parameters: the homogeneous matrix that projects the ellipse to the unit circle
+                    ModOp2D m = new ModOp2D(vd[0], vd[1], vd[2], vd[3], vd[4], vd[5]);
+                    var prime = new DenseMatrix(pnts.Length + 1, 6);
+                    for (int i = 0; i < pnts.Length; i++)
+                    {
+                        GeoPoint2D pp = m * pnts[i];
+                        prime[i, 0] = 2 * pnts[i].x * pp.x;
+                        prime[i, 1] = 2 * pnts[i].y * pp.x;
+                        prime[i, 2] = 2 * pp.x;
+                        prime[i, 3] = 2 * pnts[i].x * pp.y;
+                        prime[i, 4] = 2 * pnts[i].y * pp.y;
+                        prime[i, 5] = 2 * pp.y;
+                    }
+                    prime[pnts.Length, 0] = m[0, 1];
+                    prime[pnts.Length, 1] = m[0, 0];
+                    prime[pnts.Length, 2] = 0;
+                    prime[pnts.Length, 3] = m[1, 1];
+                    prime[pnts.Length, 4] = m[1, 0];
+                    prime[pnts.Length, 5] = 0;
+                    return prime;
+                }), observedX, observedY);
+
+            BoundingRect ext = new BoundingRect(pnts);
+            NonlinearMinimizationResult mres = lm.FindMinimum(iom, new DenseVector(new double[] { 2.0 / ext.Width, 0, -ext.GetCenter().x, 0, 2.0 / ext.Height, -ext.GetCenter().y }));
+            if (mres.ReasonForExit == ExitCondition.Converged || mres.ReasonForExit == ExitCondition.RelativeGradient)
+            {
+                Vector<double> vd = mres.MinimizingPoint;
+                ModOp2D m = new ModOp2D(vd[0], vd[1], vd[2], vd[3], vd[4], vd[5]);
+                m = m.GetInverse();
+                return new Ellipse2D(m * GeoPoint2D.Origin, m * GeoVector2D.XAxis, m * GeoVector2D.YAxis);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         #region ICurve2D Members
@@ -493,51 +576,50 @@ namespace CADability.Curve2D
             double maj, min;
             GetAxisAlignedEllipse(out maj, out min, out to, out from);
             return from * new GeoVector2D(-maj * Math.Sin(a), min * Math.Cos(a));
-
-            //Angle a = Position;
-            //GeoVector2D res = Math.Cos(a)*MinorAxis - Math.Sin(a)*MajorAxis;
-            //// Achtung, wir brauchen eine Ableitung mit echter Länge
-            //// sonst funktionieren die Newton Algorithmen nicht, z.B. bei RuledSurface!
-            //// Wie weit das für die echte Ellipse stimmt, ist noch nicht geklärt
-            //// res.Norm();
-            //return res;
-
-            //double a = Position;
-            //if (!counterClock) a = 2.0 * Math.PI - a;
-            //GeoVector2D res;
-            //if (counterClock)
-            //{
-            //    res = fromUnitCircle * new GeoVector2D(-Math.Sin(a), Math.Cos(a));
-            //}
-            //else
-            //{
-            //    res = fromUnitCircle * new GeoVector2D(Math.Sin(a), -Math.Cos(a));
-            //}
-            //res.Norm(); // sollte nicht genormt werden, oder?
-            //return res;
         }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.PerpendicularFoot (GeoPoint2D)"/>
         /// </summary>
         /// <param name="FromHere"></param>
         /// <returns></returns>
-        public override GeoPoint2D[] PerpendicularFoot(GeoPoint2D FromHere)
+        public override GeoPoint2D[] PerpendicularFoot(GeoPoint2D fromHere)
         {
-            return base.PerpendicularFoot(FromHere);
+            return base.PerpendicularFoot(fromHere);
         }
-        protected GeoPoint2D ClosestPerpendicularFoot(GeoPoint2D FromHere)
-        {   // hier ein Artikel dazu: http://www.geometrictools.com/Documentation/DistancePointToEllipse2.pdf
-            // aber auch dort scheint man Newton zu bevorzugen, sonst Gleichung 4. Grades
+        protected GeoPoint2D ClosestPerpendicularFoot(GeoPoint2D fromHere)
+        {
+            //GeoPoint2D p0 = toUnitCircle * fromHere;
+            //double a = Math.Atan2(p0.y, p0.x);
+            //if (a < 0.0) a += 2.0 * Math.PI;
+            //if (!counterClock) a = 2.0 * Math.PI - a;
+            //double u = a / (2 * Math.PI);
+            //GeoPoint2D[] res = new GeoPoint2D[2];
+            //return PointAt(NewtonPerpendicular(fromHere, u));
+            GeoPoint2D[] pf = PerpendicularFoot(fromHere);
+            double mindist = double.MaxValue;
+            int ind = -1;
+            for (int i = 0; i < pf.Length; i++)
+            {
+                double dist = pf[i] | fromHere;
+                if (dist < mindist)
+                {
+                    mindist = dist;
+                    ind = i;
+                }
+            }
+            if (ind >= 0) return pf[ind];
+            // the following will probably never be called:
+            // see: http://www.geometrictools.com/Documentation/DistancePointToEllipse2.pdf
+            // they seem to prefer Newton too, otherwise solve an equation of degree 4.
             double a, b;
             ModOp2D to, from;
             GetAxisAlignedEllipse(out a, out b, out to, out from);
-            GeoPoint2D p = to * FromHere;
+            GeoPoint2D p = to * fromHere;
             double x = 0.0, y = 0.0;
             int iter = 0;
             double d = Geometry.DistancePointEllipse(p.x, p.y, a, b, Precision.eps, 16, ref iter, ref x, ref y);
             p = from * new GeoPoint2D(x, y);
             double par = ParamOf(p);
-            // das ist leider nur der eine Punkt, der zweite wird von DistancePointEllipse nicht gefunden
             return PointAtParam(par);
         }
         /// <summary>
@@ -578,7 +660,7 @@ namespace CADability.Curve2D
         public override GeoPoint2D PointAt(double Position)
         {
             double a = Position * 2.0 * Math.PI;
-            if (counterClock == fromUnitCircle.Determinant<0) a = 2.0 * Math.PI - a; // a reflecting matrix also reverses the ellipse, we only need to reverse it once
+            if (counterClock == fromUnitCircle.Determinant < 0) a = 2.0 * Math.PI - a; // a reflecting matrix also reverses the ellipse, we only need to reverse it once
             GeoVector2D dbgx = fromUnitCircle * GeoVector2D.XAxis;
             GeoVector2D dbgy = fromUnitCircle * GeoVector2D.YAxis;
             return fromUnitCircle * new GeoPoint2D(Math.Cos(a), Math.Sin(a));
@@ -597,7 +679,8 @@ namespace CADability.Curve2D
             ModOp2D to, from;
             double maj, min;
             GetAxisAlignedEllipse(out maj, out min, out to, out from);
-            return (2.0 * Math.PI) * (from * new GeoVector2D(-maj * Math.Sin(a), min * Math.Cos(a)));
+            if (counterClock) return (2.0 * Math.PI) * (from * new GeoVector2D(-maj * Math.Sin(a), min * Math.Cos(a)));
+            else return -(2.0 * Math.PI) * (from * new GeoVector2D(-maj * Math.Sin(a), min * Math.Cos(a)));
 
             //double a = Position * 2.0 * Math.PI;
             //if (!counterClock) a = 2.0 * Math.PI - a;
@@ -612,6 +695,71 @@ namespace CADability.Curve2D
             //}
             //// res.Norm(); // sollte nicht genormt werden, oder?
             //return res;
+        }
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2)
+        {
+            double sweepParameter;
+            if (counterClock) sweepParameter = 2.0 * Math.PI;
+            else sweepParameter = -2.0 * Math.PI;
+            double u = position * sweepParameter;
+            double su = Math.Sin(u);
+            double cu = Math.Cos(u);
+            point = fromUnitCircle * new GeoPoint2D(cu, su);
+            double pp = 2 * Math.PI;
+            double ppp = 4 * Math.PI * Math.PI;
+            if (!counterClock) pp = -pp;
+            deriv1 = pp * new GeoVector2D(fromUnitCircle[0, 1] * cu - fromUnitCircle[0, 0] * su, fromUnitCircle[1, 1] * cu - fromUnitCircle[1, 0] * su);
+            deriv2 = ppp * new GeoVector2D(-fromUnitCircle[0, 1] * su - fromUnitCircle[0, 0] * cu, -fromUnitCircle[1, 1] * su - fromUnitCircle[1, 0] * cu);
+            return true;
+        }
+        public override bool TryPointDeriv3At(double position, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2, out GeoVector2D deriv3)
+        {
+            double sweepParameter;
+            if (counterClock) sweepParameter = 2.0 * Math.PI;
+            else sweepParameter = -2.0 * Math.PI;
+            double u = position * sweepParameter;
+            double su = Math.Sin(u);
+            double cu = Math.Cos(u);
+            point = fromUnitCircle * new GeoPoint2D(cu, su);
+            double pp = 2 * Math.PI;
+            double ppp = 4 * Math.PI * Math.PI;
+            double pppp = 8 * Math.PI * Math.PI * Math.PI;
+            if (!counterClock)
+            {
+                pp = -pp;
+                pppp = -pppp;
+            }
+            deriv1 = pp * new GeoVector2D(fromUnitCircle[0, 1] * cu - fromUnitCircle[0, 0] * su, fromUnitCircle[1, 1] * cu - fromUnitCircle[1, 0] * su);
+            deriv2 = ppp * new GeoVector2D(-fromUnitCircle[0, 1] * su - fromUnitCircle[0, 0] * cu, -fromUnitCircle[1, 1] * su - fromUnitCircle[1, 0] * cu);
+            deriv3 = pppp * new GeoVector2D(fromUnitCircle[0, 0] * su - fromUnitCircle[0, 1] * cu, fromUnitCircle[1, 0] * su - fromUnitCircle[1, 1] * cu);
+            return true;
+        }
+        public double NewtonPerpendicular(GeoPoint2D fromHere, double position)
+        {
+            NewtonMinimizer nm = new NewtonMinimizer(1e-6, 10);
+            IObjectiveFunction iof = ObjectiveFunction.GradientHessian(
+                new Func<Vector<double>, Tuple<double, Vector<double>, Matrix<double>>>(delegate (Vector<double> vd)
+                {
+                    // vd[0] is the 0..1 parameter of the curve
+                    TryPointDeriv3At(vd[0], out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2, out GeoVector2D deriv3);
+                    GeoVector2D toPoint = fromHere - point;
+                    double s1 = toPoint * deriv1;
+                    double s2 = (toPoint * deriv2 - deriv1 * deriv1);
+                    double val = sqr(s1);
+                    Vector<double> gradient = new DenseVector(new double[] { 2 * s1 * s2 });
+                    Matrix<double> hessian = new DenseMatrix(1, 1);
+                    hessian[0, 0] = 2 * s1 * (toPoint * deriv3 - 3 * deriv1 * deriv2) + 2 * sqr(s2);
+                    return new Tuple<double, Vector<double>, Matrix<double>>(val, gradient, hessian);
+                }));
+            try
+            {
+                MinimizationResult mres = nm.FindMinimum(iof, new DenseVector(new double[] { position }));
+                return mres.MinimizingPoint[0];
+            }
+            catch (Exception ex)
+            {
+                return iof.Point[0];
+            }
         }
         public override double Length
         {

@@ -427,6 +427,8 @@ namespace CADability.DXF
             e.StartParameter = sp;
             e.SweepParameter = ep - sp;
             if (e.SweepParameter == 0.0) e.SweepParameter = Math.PI * 2.0;
+            if (e.SweepParameter < 0.0) e.SweepParameter += Math.PI * 2.0; // seems it is always counterclockwise
+            // it looks like clockwise 2d ellipses are defined with normal vector (0, 0, -1)
             return e;
         }
         private IGeoObject CreateSpline(netDxf.Entities.Spline spline)

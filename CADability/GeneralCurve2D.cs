@@ -1567,6 +1567,9 @@ namespace CADability.Curve2D
     //}
 
     [Serializable()]
+#if DEBUG
+    [System.Diagnostics.DebuggerVisualizer(typeof(Curve2DVisualizer))]
+#endif
     public abstract class GeneralCurve2D : ICurve2D, ISerializable
     {
         // This was called TriangulatedCurve2D in earlier versions
@@ -1578,6 +1581,7 @@ namespace CADability.Curve2D
         protected GeneralCurve2D()
         {
         }
+        protected double sqr(double d) => d * d;
         protected virtual void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters)
         {
             GetTriangulationPoints(out points, out parameters);
@@ -1911,6 +1915,14 @@ namespace CADability.Curve2D
             deriv2 = GeoVector2D.NullVector;
             return false;
         }
+        public virtual bool TryPointDeriv3At(double position, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2, out GeoVector2D deriv3)
+        {
+            point = PointAt(position);
+            deriv1 = DirectionAt(position);
+            deriv2 = GeoVector2D.NullVector;
+            deriv3 = GeoVector2D.NullVector;
+            return false;
+        }
         public virtual double Length
         {
             get
@@ -1983,10 +1995,9 @@ namespace CADability.Curve2D
         /// <param name="Other"></param>
         /// <returns></returns>
         public virtual double MinDistance(ICurve2D Other)
-        {
-            throw new Exception("The method or operation is not implemented.");
+        {   // we should use the triangulation here!
+            return Curves2D.SimpleMinimumDistance(this, Other);
         }
-
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.MinDistance (GeoPoint2D)"/>
         /// </summary>
@@ -2012,7 +2023,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual ICurve2D Trim(double StartPos, double EndPos)
         {
-            // mal hier nix machen zum Test, muss aber überschrieben werden
+            // this must be overridden!
             return this;
         }
 
@@ -2648,9 +2659,9 @@ namespace CADability.Curve2D
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.PerpendicularFoot (GeoPoint2D)"/>
         /// </summary>
-        /// <param name="FromHere"></param>
+        /// <param name="fromHere"></param>
         /// <returns></returns>
-        public virtual GeoPoint2D[] PerpendicularFoot(GeoPoint2D FromHere)
+        public virtual GeoPoint2D[] PerpendicularFoot(GeoPoint2D fromHere)
         {
             List<GeoPoint2D> res = new List<GeoPoint2D>();
             if (interpol == null) MakeTringulation();
@@ -2658,14 +2669,14 @@ namespace CADability.Curve2D
             {
                 GeoVector2D snorm = interdir[i].ToRight();
                 GeoVector2D enorm = interdir[i + 1].ToRight();
-                bool l1 = Geometry.OnLeftSide(FromHere, interpol[i], snorm);
-                bool l2 = Geometry.OnLeftSide(FromHere, interpol[i + 1], enorm);
-                // die Normalen in den beiden Punkten müssen den Punkt auf verschiedenen Seiten haben, dann kann es einen Lotfußpunkt geben
-                // geometrisch bedeutet das, dass die Normale auf der Kurve den Punkt überstreicht
+                bool l1 = Geometry.OnLeftSide(fromHere, interpol[i], snorm);
+                bool l2 = Geometry.OnLeftSide(fromHere, interpol[i + 1], enorm);
+                // tho point "fromHere" must be on different sides of the normals at the two endpoints of this segment
+                // it means the normal on the curve wipes over the point "fromHere" when it moves along this segment
                 if (l1 != l2)
                 {
                     double par;
-                    if (FindPerpendicularFoot(FromHere, interparam[i], interparam[i + 1], interpol[i], interpol[i + 1], snorm, enorm, out par))
+                    if (FindPerpendicularFoot(fromHere, interparam[i], interparam[i + 1], interpol[i], interpol[i + 1], snorm, enorm, out par))
                     {
                         res.Add(PointAt(par));
                     }
@@ -2674,25 +2685,41 @@ namespace CADability.Curve2D
             return res.ToArray();
         }
 
-        private bool FindPerpendicularFoot(GeoPoint2D FromHere, double spar, double epar, GeoPoint2D sp, GeoPoint2D ep, GeoVector2D snorm, GeoVector2D enorm, out double par)
+        private bool FindPerpendicularFoot(GeoPoint2D fromHere, double spar, double epar, GeoPoint2D sp, GeoPoint2D ep, GeoVector2D snorm, GeoVector2D enorm, out double par)
         {
-            double pos = Geometry.LinePar(sp, ep, Geometry.DropPL(FromHere, sp, ep));
+            double pos = Geometry.LinePar(sp, ep, Geometry.DropPL(fromHere, sp, ep));
             if (-1e-6 <= pos && pos <= 1.0 + 1e-6)
-            {   // hier kann mans mit Newton versuchen
+            {   // here we are close enough to try with newton
                 par = (spar + epar) / 2.0;
-                if (NewtonPerpendicular(FromHere, ref par))
+                int iterations = 20;
+                if (TryPointDeriv2At(par, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2))
+                {
+                    double stepTolerance = (epar - spar) * 1e-8;
+                    double functionTolerance = (point | fromHere) * deriv1.Length * 1e-18;
+                    if (Geometry.SimpleNewtonApproximation(delegate (double w, out double x, out double dx)
+                    {
+                        TryPointDeriv2At(w, out point, out deriv1, out deriv2);
+                        x = (fromHere - point) * deriv1;
+                        dx = (fromHere - point) * deriv2 - deriv1 * deriv1;
+
+                    }, ref par, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance))
+                    {
+                        return true;
+                    }
+                }
+                else if (NewtonPerpendicular(fromHere, ref par))
                 {
                     return true;
                 }
             }
             double mpar = (spar + epar) / 2.0;
             par = mpar;
-            bool l1 = Geometry.OnLeftSide(FromHere, sp, snorm);
-            bool l2 = Geometry.OnLeftSide(FromHere, ep, enorm);
+            bool l1 = Geometry.OnLeftSide(fromHere, sp, snorm);
+            bool l2 = Geometry.OnLeftSide(fromHere, ep, enorm);
             GeoPoint2D mp = PointAt(mpar);
             GeoVector2D mnorm = DirectionAt(mpar).ToRight();
-            bool lm = Geometry.OnLeftSide(FromHere, mp, mnorm);
-            if (Math.Abs(Geometry.DistPL(FromHere, mp, mnorm)) < Precision.eps || (epar - spar) < 1e-6)
+            bool lm = Geometry.OnLeftSide(fromHere, mp, mnorm);
+            if (Math.Abs(Geometry.DistPL(fromHere, mp, mnorm)) < Precision.eps || (epar - spar) < 1e-6)
             {   // Abbruchbedingung mit Abstand von der Normalen ist bei starker Krümmung natürlich schwer zu erreichen
                 // deshalb zusätzlich die Parametergrenze
                 return true;
@@ -2701,14 +2728,14 @@ namespace CADability.Curve2D
             // geometrisch bedeutet das, dass die Normale auf der Kurve den Punkt überstreicht
             if (l1 != lm)
             {
-                if (FindPerpendicularFoot(FromHere, spar, mpar, sp, mp, snorm, mnorm, out par))
+                if (FindPerpendicularFoot(fromHere, spar, mpar, sp, mp, snorm, mnorm, out par))
                 {
                     return true;
                 }
             }
             else if (lm != l2)
             {
-                if (FindPerpendicularFoot(FromHere, mpar, epar, mp, ep, mnorm, enorm, out par))
+                if (FindPerpendicularFoot(fromHere, mpar, epar, mp, ep, mnorm, enorm, out par))
                 {
                     return true;
                 }
@@ -2808,6 +2835,7 @@ namespace CADability.Curve2D
         public virtual double[] GetInflectionPoints()
         {
             List<double> res = new List<double>();
+            if (interpol == null) MakeTringulation();
             for (int i = 0; i < interpol.Length - 2; ++i)
             {
                 if (Precision.IsPointOnLine(tringulation[i], interpol[i], interpol[i + 1])) continue;
@@ -3260,7 +3288,7 @@ namespace CADability.Curve2D
             }
             return ext;
         }
-        private bool NewtonMaximum(double p1, double  p2, bool horizontal, out double par)
+        private bool NewtonMaximum(double p1, double p2, bool horizontal, out double par)
         {
             double u = (p1 + p2) / 2.0;
             TryPointDeriv2At(u, out GeoPoint2D p, out GeoVector2D deriv1, out GeoVector2D deriv2);
@@ -3560,7 +3588,7 @@ namespace CADability.Curve2D
 
         public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
         {
-            if (original.TryPointDeriv2At(position, out point, out deriv,out deriv2))
+            if (original.TryPointDeriv2At(position, out point, out deriv, out deriv2))
             {
                 point = transformation2D.TransformPoint(original, position);
                 deriv = transformation2D.TransformDeriv1(original, position);

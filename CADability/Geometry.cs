@@ -545,6 +545,40 @@ namespace CADability
             }
         }
 
+        internal static bool SimpleNewtonApproximation(FunctionAndDerivation f, ref double parameter, ref int maxIterations, double lowerBound, double upperBound, double functionTolerance, double stepTolerance)
+        {
+            double x = parameter;
+            double diff = double.MaxValue;
+            int cnt = 0;
+            double fx = 0.0;
+            while (diff > stepTolerance && cnt < maxIterations)
+            {
+                f(x, out fx, out double dfx);
+                if (dfx != 0.0)
+                {
+                    double xn = x - fx / dfx;
+                    double ndiff = Math.Abs(x - xn);
+                    if (ndiff >= diff) break; // no convergence
+                    diff = ndiff;
+                    x = xn;
+                    if (x < lowerBound || x > upperBound || Math.Abs(fx) < functionTolerance) break;
+                }
+                else break;
+                ++cnt;
+            }
+            if (diff <= stepTolerance || Math.Abs(fx) < functionTolerance)
+            {
+                parameter = x;
+                maxIterations = cnt;
+                return true;
+            }
+            else
+            {
+                parameter = x;
+                maxIterations = cnt;
+                return false;
+            }
+        }
         internal static double SimpleNewtonApproximation(SimpleFunction f, SimpleFunction df, double start)
         {
             double x = start;
@@ -3156,6 +3190,7 @@ namespace CADability
             }
         }
         internal delegate double SimpleFunction(double parameter);
+        internal delegate void FunctionAndDerivation(double parameter, out double val, out double deriv);
         internal static double GetMinimum(double parstart, double parend, int startProbes, SimpleFunction func)
         {   // eine einfache Minimum Funktion, die das Minimum einer unbekannten Funktion von R->R bestimmt.
             // Ausgehend von einem Parameterintervall werden anfänglich "startProbes" Stellen der Funktion berechnet.

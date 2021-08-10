@@ -721,5 +721,115 @@ namespace CADability
             return double.MaxValue;
 
         }
+
+        /*
+        class ScalarObjectiveFunction : IScalarObjectiveFunction
+        {
+            class ScalarObjectiveFunctionEvaluation: IScalarObjectiveFunctionEvaluation
+            {
+                double point;
+                ScalarObjectiveFunction scalarObjectiveFunction;
+                public ScalarObjectiveFunctionEvaluation(ScalarObjectiveFunction scalarObjectiveFunction, double point)
+                {
+                    this.point = point;
+                    this.scalarObjectiveFunction = scalarObjectiveFunction;
+                }
+
+                public double Point => point;
+
+                public double Value => scalarObjectiveFunction.Objective(point);
+
+                public double Derivative => scalarObjectiveFunction.Derivative(point);
+
+                public double SecondDerivative => scalarObjectiveFunction.SecondDerivative(point);
+            }
+            public Func<double, double> Objective { get; private set; }
+            public Func<double, double> Derivative { get; private set; }
+            public Func<double, double> SecondDerivative { get; private set; }
+
+            public ScalarObjectiveFunction(Func<double, double> objective)
+            {
+                Objective = objective;
+                Derivative = null;
+                SecondDerivative = null;
+            }
+
+            public ScalarObjectiveFunction(Func<double, double> objective, Func<double, double> derivative)
+            {
+                Objective = objective;
+                Derivative = derivative;
+                SecondDerivative = null;
+            }
+
+            public ScalarObjectiveFunction(Func<double, double> objective, Func<double, double> derivative, Func<double, double> secondDerivative)
+            {
+                Objective = objective;
+                Derivative = derivative;
+                SecondDerivative = secondDerivative;
+            }
+
+            public bool IsDerivativeSupported
+            {
+                get { return Derivative != null; }
+            }
+
+            public bool IsSecondDerivativeSupported
+            {
+                get { return SecondDerivative != null; }
+            }
+
+            public IScalarObjectiveFunctionEvaluation Evaluate(double point)
+            {
+                return new ScalarObjectiveFunctionEvaluation(this, point);
+            }
+        }
+
+        public void TryPerpFoot(GeoPoint2D fromHere)
+        {
+            GeoPoint2D p0 = toUnitCircle * fromHere;
+            double a = Math.Atan2(p0.y, p0.x);
+            if (a < 0.0) a += 2.0 * Math.PI;
+            if (!counterClock) a = 2.0 * Math.PI - a;
+            double u = a / (2 * Math.PI);
+            GoldenSectionMinimizer nm = new GoldenSectionMinimizer();
+            IScalarObjectiveFunction isof = new ScalarObjectiveFunction(
+                new Func<double, double>(delegate (double u0)
+                {
+                    TryPointDeriv3At(u0, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2, out GeoVector2D deriv3);
+                    GeoVector2D toPoint = fromHere - point;
+                    double s1 = toPoint * deriv1;
+                    double s2 = (toPoint * deriv2 - deriv1 * deriv1);
+                    double val = sqr(s1);
+                    return val;
+                }),
+                new Func<double, double>(delegate (double u0)
+                {
+                    TryPointDeriv3At(u0, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2, out GeoVector2D deriv3);
+                    GeoVector2D toPoint = fromHere - point;
+                    double s1 = toPoint * deriv1;
+                    double s2 = (toPoint * deriv2 - deriv1 * deriv1);
+                    double val = sqr(s1);
+                    return 2 * s1 * s2;
+                }),
+                new Func<double, double>(delegate (double u0)
+                {
+                    TryPointDeriv3At(u0, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2, out GeoVector2D deriv3);
+                    GeoVector2D toPoint = fromHere - point;
+                    double s1 = toPoint * deriv1;
+                    double s2 = (toPoint * deriv2 - deriv1 * deriv1);
+                    double val = sqr(s1);
+                    return 2 * s1 * (toPoint * deriv3 - 3 * deriv1 * deriv2) + 2 * sqr(s2);
+                })
+                );
+            try
+            {
+                ScalarMinimizationResult mres = nm.FindMinimum(isof, u - 0.5, u + 0.5);
+                double u0 = mres.MinimizingPoint;
+            }
+            catch
+            {
+            }
+        }
+         */
     }
 }

@@ -200,6 +200,15 @@ namespace CADability.GeoObject
                     fp2d[i] = PositionOf(elli.PointAt(i / n));
                 }
                 Ellipse2D elli2d = Ellipse2D.FromFivePoints(fp2d, !elli.IsArc); // returns both full ellipse and ellipse arc
+#if DEBUG
+                Ellipse2D elli2dn = Ellipse2D.FromPoints(fp2d);
+                double e1 = 0.0, e2 = 0.0;
+                for (int i = 0; i < fp2d.Length; i++)
+                {
+                    e1 += Math.Abs(elli2d.Distance(fp2d[i]));
+                    e2 += Math.Abs(elli2dn.Distance(fp2d[i]));
+                }
+#endif
                 if (elli2d == null)
                 {
                     BoundingRect ext = new BoundingRect(fp2d);
