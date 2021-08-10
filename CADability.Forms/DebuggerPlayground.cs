@@ -53,23 +53,8 @@ namespace CADability.Forms
                 //        }
                 //    }
                 //}
-
-                //Unfold u = new Unfold(frame.Project);
-                //GeoObjectList result = u.GetResult();
-
-                Model model = frame.Project.GetActiveModel();
-                if (model[0] is Ellipse elli && model[1] is Point pnt)
-                {
-                    Ellipse2D elli2D = elli.GetProjectedCurve(Plane.XYPlane) as Ellipse2D;
-                    GeoPoint2D pnt2D = new GeoPoint2D(pnt.Location.x, pnt.Location.y);
-                    GeoPoint2D[] ppf = elli2D.PerpendicularFoot(pnt2D);
-                    GeoPoint2D[] pnts = new GeoPoint2D[20];
-                    for (int i = 0; i < 20; i++)
-                    {
-                        pnts[i] = elli2D.PointAt(i / 20.0);
-                    }
-                    Ellipse2D approx = Ellipse2D.FromPoints(pnts);
-                }
+                Unfold u = new Unfold(frame.Project);
+                GeoObjectList result = u.GetResult();
                 return true;
             }
             return false;

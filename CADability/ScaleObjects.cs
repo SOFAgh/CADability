@@ -371,7 +371,7 @@ namespace CADability.Actions
             feedBackLine = Line.Construct();
             Color backColor = base.Frame.GetColorSetting("Colors.Feedback", Color.DarkGray);
             feedBackLine.ColorDef = new ColorDef("", backColor);
-            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "Size.cur");
+            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "Size");
             clickandPress = false;
 
             GeoPointInput fixPoint = new GeoPointInput("Objects.FixPoint", base.BasePoint);
