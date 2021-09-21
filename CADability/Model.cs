@@ -381,7 +381,7 @@ namespace CADability
         private void AddOctreeObjects(IGeoObject go, OctTree<IGeoObject> octTree)
         {   // hier werden die EInzelteile eingehängt, damit das Picken von Face oder Edge
             // schnell geht. Oft hat man ja nur ein einziges solid mit vielen Faces
-            if (octTree == null || go==null) return;
+            if (octTree == null || go == null) return;
             IGeoObject[] subEntities = go.OwnedItems;
             if (subEntities != null && subEntities.Length > 0)
             {
@@ -707,6 +707,14 @@ namespace CADability
                 }
             }
         }
+
+        /// <summary>
+        /// Enable or Disable the Undo/Redo System.
+        /// If Disabled no more new Steps will be added
+        /// If Enabled new Steps will continue to be added
+        /// </summary>
+        public bool IsUndoRedoSystemEnabled { get; set; }
+
         /// <summary>
         /// Access to the <see cref="OctTree"/> containing all geometrical objects of the model. Do not modify the octtree to avoid inconsitencies
         /// between model and octtree. Use the octtree for fast access to the objects in the model from geometrical constraints.
@@ -859,7 +867,7 @@ namespace CADability
                     }
                 }
             }
-            Undo.AddUndoStep(new ReversibleChange(this, "Remove", ObjectToAdd));
+            if (IsUndoRedoSystemEnabled) Undo.AddUndoStep(new ReversibleChange(this, "Remove", ObjectToAdd));
             if (ObjectToAdd.Owner != null) ObjectToAdd.Owner.Remove(ObjectToAdd);
             geoObjects.Add(ObjectToAdd);
             ObjectToAdd.Owner = this;
@@ -898,7 +906,7 @@ namespace CADability
                     }
                 }
             }
-            Undo.AddUndoStep(new ReversibleChange(this, "Remove", new object[] { ListToAdd.Clone() }));
+            if (IsUndoRedoSystemEnabled) Undo.AddUndoStep(new ReversibleChange(this, "Remove", new object[] { ListToAdd.Clone() }));
             if (AddingGeoObjectsEvent != null) AddingGeoObjectsEvent(ListToAdd);
             if (octTree != null && octTree.IsEmpty && extent != null) octTree = new OctTree<IGeoObject>(extent.Value, displayListPrecision);
             for (int i = 0; i < ListToAdd.Count; ++i)
@@ -983,7 +991,7 @@ namespace CADability
             // den Aufruf von RemovingGeoObjectsEvent an den Anfang gesetzt, damit man darin einen UndoFrame machen kann
             // den man bei GeoObjectsRemovedEvent wieder zu macht. Ob das stört?
             if (RemovingGeoObjectsEvent != null) RemovingGeoObjectsEvent(ToRemove);
-            Undo.AddUndoStep(new ReversibleChange(this, "Add", new object[] { ToRemove.Clone() }));
+            if (IsUndoRedoSystemEnabled) Undo.AddUndoStep(new ReversibleChange(this, "Add", new object[] { ToRemove.Clone() }));
             // kein Undoframe, denn Remove wird selbst von Undo aufgerufen
             for (int i = ToRemove.Count - 1; i >= 0; i--)
             {
@@ -1002,7 +1010,7 @@ namespace CADability
                     lToRemove.Add(go);
                 }
                 GeoObjectList ToRemove = new GeoObjectList(lToRemove);
-                Undo.AddUndoStep(new ReversibleChange(this, "Add", ToRemove));
+                if (IsUndoRedoSystemEnabled) Undo.AddUndoStep(new ReversibleChange(this, "Add", ToRemove));
                 if (RemovingGeoObjectsEvent != null) RemovingGeoObjectsEvent(ToRemove);
                 for (int i = geoObjects.Count - 1; i >= 0; --i)
                 {
@@ -1032,7 +1040,7 @@ namespace CADability
             bool cancel = false;
             if (RemovingGeoObjectEvent != null) RemovingGeoObjectEvent(ToRemove, ref cancel);
             if (cancel) return;
-            Undo.AddUndoStep(new ReversibleChange(this, "Add", ToRemove));
+            if (IsUndoRedoSystemEnabled) Undo.AddUndoStep(new ReversibleChange(this, "Add", ToRemove));
             int ind = geoObjects.IndexOf(ToRemove);
             if (ind >= 0)
             {
@@ -1499,7 +1507,7 @@ namespace CADability
             if (manageBackgroundRecalc != null) manageBackgroundRecalc.Abort(); // wenn gerade im Hintergrund was läüft, abbrechen
             // man könnte hier differenzierter arbeiten, also nur genau dieses Objekt aus der Liste nehmen
             // und bei didChange wieder reintun, aber das scheint mir vorläufig zu unübersichtlich
-            if (!Change.NoUndoNecessary) Undo.AddUndoStep(Change);
+            if (!Change.NoUndoNecessary && IsUndoRedoSystemEnabled) Undo.AddUndoStep(Change);
             if (GeoObjectWillChangeEvent != null) GeoObjectWillChangeEvent(Sender, Change);
             if (continousChanges != null)
             {
@@ -2063,7 +2071,7 @@ namespace CADability
                         if (go.HitTest(area, false))
                         {
                             double z = go.Position(area.FrontCenter, area.Direction, displayListPrecision);
-                            if (z <= zmin+Precision.eps)
+                            if (z <= zmin + Precision.eps)
                             {
                                 IGeoObject toInsert = go;
                                 while (toInsert.Owner is IGeoObject) toInsert = (toInsert.Owner as IGeoObject);
@@ -2072,7 +2080,7 @@ namespace CADability
                                 // jedoch die einzelnen Objekte schon. Deshalb wurde in der Abfrage
                                 // "|| filterList.Accept(go) " ergänzt
                                 if ((filterList == null || filterList.Accept(toInsert) || filterList.Accept(go)) &&
-                                    (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.Contains(toInsert.Layer) || visibleLayers.Contains(go.Layer)) )
+                                    (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.Contains(toInsert.Layer) || visibleLayers.Contains(go.Layer)))
                                 {
                                     if (toInsert.Owner is Model)
                                     {   // sonst werden auch edges gefunden, was hier bei single click nicht gewünscht
