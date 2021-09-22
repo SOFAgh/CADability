@@ -713,7 +713,7 @@ namespace CADability
         /// If Disabled no more new Steps will be added
         /// If Enabled new Steps will continue to be added
         /// </summary>
-        public bool IsUndoRedoSystemEnabled { get; set; }
+        public bool IsUndoRedoSystemEnabled { get; set; } = true;
 
         /// <summary>
         /// Access to the <see cref="OctTree"/> containing all geometrical objects of the model. Do not modify the octtree to avoid inconsitencies
