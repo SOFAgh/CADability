@@ -25,6 +25,7 @@ namespace CADability
             vertexDict = new Dictionary<Vertex, Vertex>();
             clonedShell = shell.Clone(edgeDict, vertexDict, faceDict);
             clonedShell.Layer = shell.Layer;
+            // clonedShell.CombineConnectedFaces(); clonedShell must have the same topology as shell (a face in clonedShell for each face in shell)
             edgesToRecalculate = new HashSet<Edge>();
             modifiedFaces = new HashSet<Face>();
             constrainedFaces = new HashSet<Face>();
@@ -393,6 +394,68 @@ namespace CADability
                         }
                     }
                 }
+                if (faceToModify.Surface is CylindricalSurfaceNP cyl)
+                {   // this is similar to ISurfaceOfArcExtrusion, but it isn't an extrusion in u or v
+                    ICurve axis = (cyl as ICylinder).Axis.Clip(faceToModify.GetExtent(0.0)); // the axis as a clipped line
+                    HashSet<Face> lengthwayTangential = new HashSet<Face>(); // the two faces that this fillet rounds
+                    HashSet<Edge> crosswayTangential = new HashSet<Edge>(); // the following or previous fillet
+                    foreach (Edge edge in faceToModify.AllEdgesIterated())
+                    {
+                        Face otherFace = edge.OtherFace(faceToModify);
+                        if (edge.IsTangentialEdge())
+                        {
+                            if (edge.Curve2D(faceToModify) is Line2D) lengthwayTangential.Add(otherFace);
+                            else crosswayTangential.Add(edge);
+                        }
+                    }
+                    // this cylinder may or may not have length-way tangential curves 
+                    CylindricalSurfaceNP modifiedSurface = faceToModify.Surface.Clone() as CylindricalSurfaceNP;
+                    (modifiedSurface as ICylinder).Radius = newRadius;
+                    faceToModify.Surface = modifiedSurface as ISurface;
+                    verticesToRecalculate.UnionWith(faceToModify.Vertices);
+                    foreach (Vertex vtx in verticesToRecalculate)
+                    {
+                        edgesToRecalculate.UnionWith(vtx.AllEdges);
+                    }
+                    modifiedFaces.Add(faceToModify);
+
+                    // this modified face is tangential to the lengthwayTangential faces (if any). These need to be recalculated
+                    // in order to have a curve for recalculating the vertices in Result()
+                    foreach (Face t in lengthwayTangential)
+                    {
+                        foreach (Edge edg in faceToModify.AllEdgesIterated())
+                        {
+                            if (edg.OtherFace(faceToModify) == t)
+                            {
+                                if (toModifySet.Contains(t))
+                                {   // a tangential line connecting this cylinder with another face, that is also to modify
+                                    // the u/v system of this cylinder has changed
+                                    ICurve crv = Line.TwoPoints(modifiedSurface.PointAt(modifiedSurface.PositionOf(edg.Curve3D.StartPoint)), modifiedSurface.PointAt(modifiedSurface.PositionOf(edg.Curve3D.EndPoint)));
+                                    edg.Curve3D = crv;
+                                    tangentialEdgesModified[edg] = crv;
+                                }
+                                else
+                                {
+                                    ICurve[] crvs = faceToModify.Surface.Intersect(faceToModify.Domain, t.Surface, t.Domain);
+                                    ICurve crv = Hlp.GetClosest(crvs, c => c.DistanceTo(edg.Vertex1.Position) + c.DistanceTo(edg.Vertex2.Position));
+                                    if (crv != null) // which must be the case, because the surfaces are tangential
+                                    {
+                                        edg.Curve3D = crv;
+                                        tangentialEdgesModified[edg] = crv;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    foreach (Edge edg in crosswayTangential)
+                    {
+                        if (toModifySet.Contains(edg.OtherFace(faceToModify)) && edg.IsTangentialEdge() && !tangentialEdgesModified.ContainsKey(edg))
+                        {   // this is a tangential edge between two adjacent parts of the fillet
+                            ICurve crv = faceToModify.Surface.Make3dCurve(edg.Curve2D(faceToModify));
+                            tangentialEdgesModified[edg] = crv;
+                        }
+                    }
+                }
                 else if (faceToModify.Surface is SphericalSurface sph)
                 {
                     // there must be 3 tangential faces with ISurfaceOfArcExtrusion surfaces
@@ -431,6 +494,7 @@ namespace CADability
         {
             ModifyConstrainedFaces();
             involvedFaces = new HashSet<Face>();
+            HashSet<Vertex> irrelevantVertices = new HashSet<Vertex>();
             foreach (Vertex vertex in verticesToRecalculate)
             {
                 bool done = false;
@@ -518,13 +582,20 @@ namespace CADability
                         }
                     }
                 }
+                if (!done && faces.Length == 2)
+                {
+                    // here the vertex position is not relevant: a vertex on only two faces may reside anywhere on the edges
+                    irrelevantVertices.Add(vertex);
+                    // need to implement the edge creation of edges with only two surfaces (open or closed, but open can be removed)
+                    done = true;
+                }
                 if (!done) return null; // position of vertex could not be calculated
             }
             foreach (Edge edge in edgesToRecalculate)
             {
                 List<GeoPoint> seeds = new List<GeoPoint>(); // for the intersection
-                seeds.Add(edge.Vertex1.Position); // the vertices have already their new positions, the edges must start and end here
-                seeds.Add(edge.Vertex2.Position);
+                if (!irrelevantVertices.Contains(edge.Vertex1)) seeds.Add(edge.Vertex1.Position); // the vertices have already their new positions, the edges must start and end here
+                if (!irrelevantVertices.Contains(edge.Vertex2)) seeds.Add(edge.Vertex2.Position);
                 ICurve crv = null;
                 if (edge.PrimaryFace.Surface.SameGeometry(edge.PrimaryFace.Domain, edge.SecondaryFace.Surface, edge.SecondaryFace.Domain, Precision.eps, out ModOp2D firstToSecond))
                 {   // this is probably a seam of two periodic parts with the same surface

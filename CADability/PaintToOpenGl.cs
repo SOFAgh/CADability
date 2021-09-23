@@ -299,7 +299,7 @@ namespace CADability
         /// <see cref="Points"/>, <see cref="Triangle"/>, <see cref="RectangularBitmap"/>, <see cref="Text"/>,
         /// <see cref="DisplayIcon"/>, <see cref="DisplayBitmap"/>, <see cref="List"/>
         /// </summary>
-        void OpenList();
+        void OpenList(string name = null);
         /// <summary>
         /// Close the display list <see cref="OpenList"/>.
         /// </summary>

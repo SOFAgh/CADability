@@ -733,6 +733,75 @@ namespace CADability
                     sp.psurface2 = sp.PointOnSurface(surface2, bounds2);
                 points.Add(sp);
             }
+            if (points.Count==2)
+            {   // sometimes we have an ambiguous curve here: a half circle on a rotational surface, which could be either way around.
+                // since "ApproximatePosition" doesn't care about the u/v bounds, we try a different approach here: choose a fixed u or v curve
+                // in the bounds of such a surface and intersect with the other surface
+                if (!(surface1 is PlaneSurface))
+                {
+                    ICurve fixedCurve;
+                    GeoPoint2D uv0 = points[0].psurface1;
+                    GeoPoint2D uv1 = points[1].psurface1;
+                    double du = Math.Abs(uv0.x - uv1.x);
+                    double dv = Math.Abs(uv0.y - uv1.y);
+                    if (du > dv) fixedCurve = surface1.FixedU((uv0.x + uv1.x) / 2.0, bounds1.Bottom, bounds1.Top);
+                    else fixedCurve = surface1.FixedV((uv0.y + uv1.y) / 2.0, bounds1.Left, bounds1.Right);
+                    surface2.Intersect(fixedCurve, bounds2, out GeoPoint[] ips, out GeoPoint2D[] uvOn2, out double[] uOnCurve3Ds);
+                    double mind = double.MaxValue;
+                    GeoPoint2D cnt = bounds1.GetCenter();
+                    int indFound = -1;
+                    for (int i = 0; i < ips.Length; i++)
+                    {   // find the best intersection point
+                        GeoPoint2D uv = surface1.PositionOf(ips[i]);
+                        double d = Math.Abs(uv.x - cnt.x) / bounds1.Width + Math.Abs(uv.y - cnt.y) / bounds1.Height;
+                        if (d<mind)
+                        {
+                            indFound = i;
+                            mind = d;
+                        }
+                    }
+                    if (indFound>=0)
+                    {
+                        SurfacePoint sp = new SurfacePoint();
+                        sp.p3d = ips[indFound];
+                        sp.psurface1 = surface1.PositionOf(sp.p3d);
+                        sp.psurface2 = uvOn2[indFound];
+                        points.Insert(1, sp);
+                    }
+                }
+                else if (!(surface2 is PlaneSurface))
+                {
+                    ICurve fixedCurve;
+                    GeoPoint2D uv0 = points[0].psurface2;
+                    GeoPoint2D uv1 = points[1].psurface2;
+                    double du = Math.Abs(uv0.x - uv1.x);
+                    double dv = Math.Abs(uv0.y - uv1.y);
+                    if (du > dv) fixedCurve = surface2.FixedU((uv0.x + uv1.x) / 2.0, bounds2.Bottom, bounds2.Top);
+                    else fixedCurve = surface2.FixedV((uv0.y + uv1.y) / 2.0, bounds2.Left, bounds2.Right);
+                    surface1.Intersect(fixedCurve, bounds1, out GeoPoint[] ips, out GeoPoint2D[] uvOn1, out double[] uOnCurve3Ds);
+                    double mind = double.MaxValue;
+                    GeoPoint2D cnt = bounds2.GetCenter();
+                    int indFound = -1;
+                    for (int i = 0; i < ips.Length; i++)
+                    {   // find the best intersection point
+                        GeoPoint2D uv = surface2.PositionOf(ips[i]);
+                        double d = Math.Abs(uv.x - cnt.x) / bounds2.Width + Math.Abs(uv.y - cnt.y) / bounds2.Height;
+                        if (d < mind)
+                        {
+                            indFound = i;
+                            mind = d;
+                        }
+                    }
+                    if (indFound >= 0)
+                    {
+                        SurfacePoint sp = new SurfacePoint();
+                        sp.p3d = ips[indFound];
+                        sp.psurface2 = surface2.PositionOf(sp.p3d);
+                        sp.psurface1 = uvOn1[indFound];
+                        points.Insert(1, sp);
+                    }
+                }
+            }
             basePoints = points.ToArray();
             // wierum orientiert?
             // manchmal am Anfang oder Ende tangetial, deshalb besser in der mitte testen
@@ -776,6 +845,10 @@ namespace CADability
                 //GeoPoint p = new GeoPoint(points[ind].p3d, points[ind + 1].p3d);
                 points.Insert(ind + 1, new SurfacePoint(p, uv1, uv2));
                 basePoints = points.ToArray(); // damit basePoints für die nächste Runde zu Verfügung steht
+                v = surface1.GetNormal(basePoints[ind+1].psurface1) ^ surface2.GetNormal(basePoints[ind+1].psurface2);
+                v0 = basePoints[ind + 2].p3d - basePoints[ind].p3d;
+                a = new Angle(v, v0);
+                forwardOriented = (a.Radian < Math.PI / 2.0); // recalculate, because for exactly half circles the first result is ambiguous
             }
             double baseLength = 0.0;
             double minLength = double.MaxValue;

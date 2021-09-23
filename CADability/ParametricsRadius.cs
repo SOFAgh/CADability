@@ -125,7 +125,7 @@ namespace CADability
 
         private double RadiusInput_GetLength()
         {
-            if (facesWithRadius[0].Surface is ISurfaceOfArcExtrusion sae) return sae.Radius; // we only have round cylinders here
+            if (facesWithRadius[0].Surface is ICylinder cyl) return cyl.Radius; // we only have round cylinders here
             else return 0.0;
         }
         private bool DiameterInput_SetLength(double length)

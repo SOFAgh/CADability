@@ -62,6 +62,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="OpenGlList.cs" />
     <Compile Remove="Scripting.cs" />
     <Compile Remove="Tangulation.cs" />
   </ItemGroup>

@@ -128,7 +128,7 @@ namespace CADability.GeoObject
             paintTo3D.PaintFaces(PaintTo3D.PaintMode.FacesOnly);
             foreach (KeyValuePair<Layer, List<IGeoObject>> kv in layerFaceObjects)
             {
-                paintTo3D.OpenList();
+                paintTo3D.OpenList("layerFaceObjects");
                 foreach (IGeoObject go in kv.Value)
                 {
                     go.PaintTo3D(paintTo3D);
@@ -137,7 +137,7 @@ namespace CADability.GeoObject
             }
             foreach (KeyValuePair<Layer, List<IGeoObject>> kv in layerTransparentObjects)
             {
-                paintTo3D.OpenList();
+                paintTo3D.OpenList("layerTransparentObjects");
                 foreach (IGeoObject go in kv.Value)
                 {
                     go.PaintTo3D(paintTo3D);
@@ -147,7 +147,7 @@ namespace CADability.GeoObject
             paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly);
             foreach (KeyValuePair<Layer, List<IGeoObject>> kv in layerCurveObjects)
             {
-                paintTo3D.OpenList();
+                paintTo3D.OpenList("layerCurveObjects");
                 foreach (IGeoObject go in kv.Value)
                 {
                     go.PaintTo3D(paintTo3D);

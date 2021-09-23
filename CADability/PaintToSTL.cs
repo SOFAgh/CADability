@@ -306,7 +306,7 @@ namespace CADability
 
         }
 
-        void IPaintTo3D.OpenList()
+        void IPaintTo3D.OpenList(string name)
         {
 
         }

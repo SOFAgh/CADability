@@ -32,7 +32,7 @@ namespace CADability.GeoObject
             this.face = face;
             attributeProperties = face.GetAttributeProperties(frame);
         }
-        public override PropertyEntryType Flags 
+        public override PropertyEntryType Flags
         {
             get
             {
@@ -333,21 +333,52 @@ namespace CADability.GeoObject
                         }
                     }
                     if (seamFound)
-                    {   // we assume, there is only one seam, I never had a case with multiple seams in one loop
-                        List<StepEdgeDescriptor>[] newLoops = new List<StepEdgeDescriptor>[] { new List<StepEdgeDescriptor>(), new List<StepEdgeDescriptor>() };
-                        int ind = 0;
+                    {   // we cannot assume, there is only one seam, see "Pos 3.stp"
+                        //List<StepEdgeDescriptor>[] newLoops = new List<StepEdgeDescriptor>[] { new List<StepEdgeDescriptor>(), new List<StepEdgeDescriptor>() };
+                        //int ind = 0;
+                        //for (int j = 0; j < loops[i].Count; j++)
+                        //{
+                        //    if (loops[i][j].isSeam)
+                        //    {
+                        //        ind = 1 - ind;
+                        //        continue;
+                        //    }
+                        //    newLoops[ind].Add(loops[i][j]);
+                        //}
+                        //loops.RemoveAt(i);
+                        //if (newLoops[0].Count > 0) loops.Add(newLoops[0]);
+                        //if (newLoops[1].Count > 0) loops.Add(newLoops[1]);
+                        List<List<StepEdgeDescriptor>> newLoops = new List<List<StepEdgeDescriptor>>();
                         for (int j = 0; j < loops[i].Count; j++)
                         {
-                            if (loops[i][j].isSeam)
-                            {
-                                ind = 1 - ind;
-                                continue;
+                            if (!loops[i][j].isSeam)
+                            {   // find a loop to connect this edge to, or create a new loop
+                                bool added = false;
+                                for (int k = 0; k < newLoops.Count; k++)
+                                {
+                                    if (newLoops[k][newLoops[k].Count - 1].vertex2 == loops[i][j].vertex1)
+                                    {
+                                        newLoops[k].Add(loops[i][j]);
+                                        added = true;
+                                        break;
+                                    }
+                                    else if (newLoops[k][0].vertex1 == loops[i][j].vertex2)
+                                    {
+                                        newLoops[k].Insert(0, loops[i][j]);
+                                        added = true;
+                                        break;
+                                    }
+                                }
+                                if (!added)
+                                {
+                                    List<StepEdgeDescriptor> lse = new List<StepEdgeDescriptor>();
+                                    lse.Add(loops[i][j]);
+                                    newLoops.Add(lse);
+                                }
                             }
-                            newLoops[ind].Add(loops[i][j]);
                         }
                         loops.RemoveAt(i);
-                        if (newLoops[0].Count > 0) loops.Add(newLoops[0]);
-                        if (newLoops[1].Count > 0) loops.Add(newLoops[1]);
+                        loops.AddRange(newLoops);
                     }
                 }
                 if (loops.Count == 0) return null; // there is only a seam (in some cases a very narrow face, which is smaller than precision)
@@ -9392,6 +9423,7 @@ namespace CADability.GeoObject
             {
                 int j = i + 1;
                 if (j >= outline.Length) j = 0;
+                if (i == j) continue;
                 if (((outline[i].PrimaryFace == outline[j].PrimaryFace) && (outline[i].SecondaryFace == outline[j].SecondaryFace)) ||
                     ((outline[i].SecondaryFace == outline[j].PrimaryFace) && (outline[i].PrimaryFace == outline[j].SecondaryFace)))
                 {
@@ -9404,6 +9436,7 @@ namespace CADability.GeoObject
                 {
                     int j = i + 1;
                     if (j >= holes[k].Length) j = 0;
+                    if (i == j) continue;
                     if (((holes[k][i].PrimaryFace == holes[k][j].PrimaryFace) && (holes[k][i].SecondaryFace == holes[k][j].SecondaryFace)) ||
                         ((holes[k][i].SecondaryFace == holes[k][j].PrimaryFace) && (holes[k][i].PrimaryFace == holes[k][j].SecondaryFace)))
                     {
@@ -9425,16 +9458,12 @@ namespace CADability.GeoObject
             if (edg1.EndVertex(this) != edg2.StartVertex(this)) return false; // edg2 must be the follower of edg1
             if (!edg1.Forward(this)) edg1.ReverseCurve3D();
             if (!edg2.Forward(this)) edg2.ReverseCurve3D();
-            // the following should not be necessary, since edg2 follows edg1
-            //if (edg1.EndVertex(this) != edg2.StartVertex(this))
-            //{
-            //    if (edg1.StartVertex(this) != edg2.EndVertex(this)) return false; // hängen nicht zusammen
-            //    Edge tmp = edg1;
-            //    edg1 = edg2;
-            //    edg2 = tmp;
-            //}
-            if ((edg1.EndVertex(this) == edg2.StartVertex(this)) && (edg1.StartVertex(this) == edg2.EndVertex(this))) return false; // do not create closed edges
-                                                                                                                                    // now edg1 and edg2 are both forward oriented on this face and edg1 precedes edg2
+            // do single closed edges make problems? For parametric operations we would prefer them
+            // not sure, how BRepOperation can deal with it
+            // if ((edg1.EndVertex(this) == edg2.StartVertex(this)) && (edg1.StartVertex(this) == edg2.EndVertex(this))) return false; // do not create closed edges
+            if ((edg1.EndVertex(this) == edg2.StartVertex(this)) && (edg1.StartVertex(this) == edg2.EndVertex(this))) { }
+
+            // now edg1 and edg2 are both forward oriented on this face and edg1 precedes edg2
             ICurve combined = Curves.Combine(edg1.Curve3D, edg2.Curve3D, Precision.eps);
             if (combined == null && edg1.Curve3D is BSpline && edg2.Curve3D is BSpline) return false; // BSplines need to be implemented in Curves.Combine, but make problems in the else case
             if (combined != null)
@@ -9999,7 +10028,12 @@ namespace CADability.GeoObject
             }
             return res.ToArray();
         }
-
+        /// <summary>
+        /// Combine this face with the provided other face. The faces must have geometrical identical surfaces.
+        /// </summary>
+        /// <param name="other">the other face</param>
+        /// <param name="toOtherSurface">the ModOp2D, which transforms the 2d system of this surface to the other surface when appropriate, otherwise ModOp2D.Null</param>
+        /// <returns>the removed edges</returns>
         internal Set<Edge> CombineWith(Face other, ModOp2D toOtherSurface)
         {
             this.vertices = null;
@@ -10007,12 +10041,36 @@ namespace CADability.GeoObject
             Vertex[] dbg1 = this.Vertices;
             Vertex[] dbg2 = other.Vertices;
 
-            ModOp2D toThisSurface = toOtherSurface.GetInverse();
             Set<Edge> onThis = new Set<Edge>(AllEdgesIterated());
             Set<Edge> onOther = new Set<Edge>(other.AllEdgesIterated());
-            Set<Edge> usableEdges = onThis.SymmetricDifference(onOther); // das sind alle Ergebnisedges: alle, die nur in einem aber nicht in beiden vorkommen
-            Set<Edge> commonEdges = onThis.Intersection(onOther); // diese werden entfernt
-            List<List<Edge>> loops = new List<List<Edge>>(); // alle Schleifen, später noch feststellen, ob Outline oder Hole
+            Set<Edge> usableEdges = onThis.SymmetricDifference(onOther); // all edges of the resulting face, which belong to one of the faces but not to both
+            Set<Edge> commonEdges = onThis.Intersection(onOther); // these will be removed
+            List<List<Edge>> loops = new List<List<Edge>>(); // the loops, one of them is the outline, the others are holes
+            if (this.surface is IRestrictedDomain rd)
+            {
+                List<ICurve> curves = new List<ICurve>();
+                foreach (Edge edg in usableEdges)
+                {
+                    curves.Add(edg.Curve3D);
+                }
+                surface = rd.AdaptToCurves(curves); // makes a new surface, which can handle the edges of both faces (e.g. for CylindricalSurfaceNP)
+                foreach (Edge edg in onThis)
+                {   // adapt the 2d curves on this (new) surface
+                    if (!commonEdges.Contains(edg))
+                    {
+                        if (edg.PrimaryFace == this)
+                        {
+                            edg.PrimaryCurve2D = surface.GetProjectedCurve(edg.Curve3D, 0.0);
+                            if (!edg.Forward(this)) edg.PrimaryCurve2D.Reverse();
+                        }
+                        else
+                        {
+                            edg.SecondaryCurve2D = surface.GetProjectedCurve(edg.Curve3D, 0.0);
+                            if (!edg.Forward(this)) edg.SecondaryCurve2D.Reverse();
+                        }
+                    }
+                }
+            }
             while (usableEdges.Count > 0)
             {
                 Edge startWith = usableEdges.GetAny();
@@ -10027,17 +10085,16 @@ namespace CADability.GeoObject
                     Face onFace;
                     if (startWith.PrimaryFace == this || startWith.SecondaryFace == this) onFace = this;
                     else onFace = other;
-                    // onFace ist eindeutig: keine hier betrachtete Kante ist auf beiden faces
+                    // onFace is unique, we only use edges which are not on both faces here
                     Vertex endVertex = startWith.EndVertex(onFace);
-                    if (endVertex == startVertex) break; // fertig, Folge von Kanten ist geschlossen
+                    if (endVertex == startVertex) break; // done, the loop is closed
                     Edge next = null;
-                    // Womit geht es weiter? Das ist u.U. nicht eindeutig, nämlich wenn beide Faces sich zusätzlich in einem Vertex berühren.
-                    // Dann wird hier willkürlich weitergegangen. Das sollte aber nichts machen, denn es ist auch willkürlich, ob ein Loch oder zwei Löcher
-                    // entstehen, wenn das Loch eine Einschnürung hat, bei der sich vier Kanten in einem Punkt berühren
+                    // how to proceed? this is maybe not well defined when four edges meet in a single vertex. In this case we choose an arbitrary path and get ether a single hole
+                    // which touches itself in a vertex or two holes with a common vertex. Both should be ok
                     foreach (Edge e in endVertex.AllEdges)
                     {
                         if (usableEdges.Contains(e))
-                        {   // nur die unverbrauchten nehmen. Damit ist sichergestellt, dass keine Endlosschleife entsteht
+                        {   // use only the unused edges to avoid infinite loops
                             if (e.PrimaryFace == this || e.SecondaryFace == this)
                             {
                                 if (e.StartVertex(this) == endVertex)
@@ -10056,13 +10113,15 @@ namespace CADability.GeoObject
                             }
                         }
                     }
-                    if (next == null) return new Set<CADability.Edge>(); // sollte nicht vorkommen
+                    if (next == null) return new Set<CADability.Edge>(); // should never happen
                     startWith = next;
                 }
                 loops.Add(loop);
             }
             double maxArea = 0;
             int outerLoop = -1;
+            ModOp2D toThisSurface = ModOp2D.Null;
+            if (!toOtherSurface.IsNull) toThisSurface = toOtherSurface.GetInverse();
             for (int i = 0; i < loops.Count; i++)
             {
                 List<ICurve2D> segments = new List<ICurve2D>();

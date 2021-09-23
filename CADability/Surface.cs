@@ -6348,6 +6348,21 @@ namespace CADability.GeoObject
 
             return null;
         }
+        /// <summary>
+        /// Find intersection curves of two cylinders. Result may be 0, 1 or 2 curves. Infinite lines (parallel or tangential cylinders) are returned as finite Lines.
+        /// The other cases result in closed curves (ellipses or BSplines) with arbitrary start/end points
+        /// </summary>
+        /// <param name="cylinder1"></param>
+        /// <param name="cylinder2"></param>
+        /// <returns></returns>
+        internal static ICurve[] Intersect(ICylinder cylinder1, ICylinder cylinder2)
+        {
+            if (Precision.SameDirection(cylinder1.Axis.Direction, cylinder2.Axis.Direction,false))
+            {
+
+            }
+            throw new NotImplementedException();
+        }
     }
     internal class FindTangentCurves
     {   // während der Kurvenfindung braucht es einige Daten die global bleiben, damit nicht so viel über

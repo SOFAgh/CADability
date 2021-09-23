@@ -1078,6 +1078,15 @@ namespace CADability.Shapes
                 res.AddRange(cc);
             }
             res.Sort();
+            for (int i = res.Count-1; i >0; --i)
+            {
+                if (res[i]==res[i-1])
+                {
+                    res.RemoveAt(i);
+                    res.RemoveAt(i - 1);
+                    --i;
+                }
+            }
             return res.ToArray();
         }
         #region ISerializable Members

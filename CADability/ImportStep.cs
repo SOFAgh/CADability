@@ -2175,6 +2175,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             Shell.connectFaces(faces.ToArray(), Precision.eps);
                             Shell shell = Shell.MakeShell(faces.ToArray());
                             shell.Name = item.SubString(0);
+                            if (Settings.GlobalSettings.GetBoolValue("StepImport.CombineFaces", true)) shell.CombineConnectedFaces();
 #if DEBUG
                             shell.UserData["StepImport.ItemNumber"] = new UserInterface.IntegerProperty(item.definingIndex, "StepImport.ItemNumber");
 #endif
@@ -2267,6 +2268,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             Shell.connectFaces(faces.ToArray(), Precision.eps);
                             Shell shell = Shell.MakeShell(faces.ToArray());
                             shell.Name = item.SubString(0);
+                            if (Settings.GlobalSettings.GetBoolValue("StepImport.CombineFaces", true)) shell.CombineConnectedFaces();
                             item.val = shell;
                         }
                         break;
@@ -2347,7 +2349,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (36275 == item.definingIndex || 41089 == item.definingIndex)
+                            if (291 == item.definingIndex || 41089 == item.definingIndex)
                             {
                             }
 #endif

@@ -2696,16 +2696,14 @@ namespace CADability.Curve2D
                 {
                     double stepTolerance = (epar - spar) * 1e-8;
                     double functionTolerance = (point | fromHere) * deriv1.Length * 1e-18;
-                    if (Geometry.SimpleNewtonApproximation(delegate (double w, out double x, out double dx)
+                    par = Geometry.SimpleNewtonApproximation(delegate (double w, out double x, out double dx)
                     {
                         TryPointDeriv2At(w, out point, out deriv1, out deriv2);
                         x = (fromHere - point) * deriv1;
                         dx = (fromHere - point) * deriv2 - deriv1 * deriv1;
 
-                    }, ref par, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance))
-                    {
-                        return true;
-                    }
+                    }, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance);
+                    if (par!=double.MaxValue) return true;
                 }
                 else if (NewtonPerpendicular(fromHere, ref par))
                 {
@@ -2805,7 +2803,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual GeoPoint2D[] TangentPoints(GeoPoint2D FromHere, GeoPoint2D CloseTo)
         {
-            throw new Exception("The method or operation is not implemented.");
+            return new GeoPoint2D[] { };
         }
 
         /// <summary>
@@ -2816,7 +2814,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual GeoPoint2D[] TangentPointsToAngle(Angle ang, GeoPoint2D CloseTo)
         {
-            throw new Exception("The method or operation is not implemented.");
+            return new GeoPoint2D[] { };
         }
 
         /// <summary>
@@ -2825,8 +2823,8 @@ namespace CADability.Curve2D
         /// <param name="direction"></param>
         /// <returns></returns>
         public virtual double[] TangentPointsToAngle(GeoVector2D direction)
-        {
-            throw new Exception("The method or operation is not implemented.");
+        {   // need to implement a general solution!
+            return new double[] { };
         }
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.GetInflectionPoints ()"/>

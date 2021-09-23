@@ -341,5 +341,5 @@ ASALocalRun/
 healthchecksdb
 
 # private
-Unfold.cs
-DebuggerPlayground.cs
+CADability.Forms/Unfold.cs
+CADability.Forms/DebuggerPlayground.cs

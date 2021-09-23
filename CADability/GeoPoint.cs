@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Runtime.Serialization;
+using CADability.GeoObject;
 using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability
@@ -1067,6 +1068,16 @@ namespace CADability
 
         void IJsonSerialize.SetObjectData(IJsonReadData data)
         {
+        }
+
+        internal Line Clip(BoundingCube ext)
+        {
+            Line res = Line.Construct();
+            if (ext.ClipAxis(this, out GeoPoint startPoint, out GeoPoint endPoint))
+            {
+                res.SetTwoPoints(startPoint, endPoint);
+            }
+            return res;
         }
         #endregion
     }

@@ -3124,6 +3124,12 @@ namespace CADability
                 {
                     UpdateInterpolatedDualSurfaceCurve();
                 }
+                else if (m.IsNull)
+                {
+                    PrimaryCurve2D = from.Surface.GetProjectedCurve(Curve3D, 0.0);
+                    if (!forwardOnPrimaryFace) PrimaryCurve2D.Reverse();
+                    this.owner = primaryFace;
+                }
                 else
                 {
                     PrimaryCurve2D = PrimaryCurve2D.GetModified(m);
@@ -3138,6 +3144,11 @@ namespace CADability
                 if (Curve3D is InterpolatedDualSurfaceCurve)
                 {
                     UpdateInterpolatedDualSurfaceCurve();
+                }
+                else if (m.IsNull)
+                {
+                    SecondaryCurve2D = from.Surface.GetProjectedCurve(Curve3D, 0.0);
+                    if (!forwardOnSecondaryFace) SecondaryCurve2D.Reverse();
                 }
                 else
                 {

@@ -415,6 +415,7 @@ namespace CADability.GeoObject
                 SimpleShape ss = face.Area;
             }
         }
+
         /// <summary>
         /// Returns a SimpleShape with the outline and holes of the shadow of the projection of the shell perpendicular on the provided plane.
         /// </summary>
@@ -2402,7 +2403,7 @@ namespace CADability.GeoObject
             {
                 return null;
             }
-            if (sortedEdges.Count==1 && sortedEdges[0].Vertex1== sortedEdges[0].Vertex2 && sortedEdges[0].Curve3D.Length<Precision.eps)
+            if (sortedEdges.Count == 1 && sortedEdges[0].Vertex1 == sortedEdges[0].Vertex2 && sortedEdges[0].Curve3D.Length < Precision.eps)
             {
                 sortedEdges[0].PrimaryFace.RemoveEdge(sortedEdges[0]);
                 return null;
@@ -2415,9 +2416,9 @@ namespace CADability.GeoObject
             }
             if (sortedEdges.Count == 2 && sortedEdges[0].Curve3D != null && sortedEdges[1].Curve3D != null)
             {
-                if (sortedEdges[0].StartVertex(sortedEdges[0].PrimaryFace)== sortedEdges[1].EndVertex(sortedEdges[1].PrimaryFace)
+                if (sortedEdges[0].StartVertex(sortedEdges[0].PrimaryFace) == sortedEdges[1].EndVertex(sortedEdges[1].PrimaryFace)
                     && sortedEdges[0].EndVertex(sortedEdges[0].PrimaryFace) == sortedEdges[1].StartVertex(sortedEdges[1].PrimaryFace)
-                    && Curves.SameGeometry(sortedEdges[0].Curve3D, sortedEdges[1].Curve3D,Precision.eps,out bool reversed))
+                    && Curves.SameGeometry(sortedEdges[0].Curve3D, sortedEdges[1].Curve3D, Precision.eps, out bool reversed))
                 {
                     sortedEdges[1].PrimaryFace.ReplaceEdge(sortedEdges[1], sortedEdges[0]);
                     return null;
@@ -4859,32 +4860,16 @@ namespace CADability.GeoObject
                                 }
                             }
 #endif
-
-                            Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse muss sein, das ist überprüft
-                                                                                                                         // ABER: firstToSecond kann um eine Periode verschoben sein, so dass das Ergebnis nicht zusammenpasst
-                                                                                                                         // es müsste noch eine Art AdjustPeriodic für firstToSecond geben
-                            BoundingRect ext = firstoutline.Extent;
-                            ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
-                            if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
-                            if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
-                            //bool skip = false;
-                            //foreach (Edge edg in edge.SecondaryFace.AllEdgesIterated())
-                            //{
-                            //    if (edg.Curve3D is InterpolatedDualSurfaceCurve)
-                            //    {
-                            //        skip = true;
-                            //        break;
-                            //    }
-                            //}
-                            //if (!skip) foreach (Edge edg in edge.PrimaryFace.AllEdgesIterated())
-                            //    {
-                            //        if (edg.Curve3D is InterpolatedDualSurfaceCurve)
-                            //        {
-                            //            skip = true;
-                            //            break;
-                            //        }
-                            //    }
-                            //if (skip) continue; // zu kompliziert mit InterpolatedDualSurfaceCurve
+                            if (edge.PrimaryFace.Surface.IsUPeriodic || edge.PrimaryFace.Surface.IsVPeriodic)
+                            {   // do not combine two faces, which are periodic and in the combination fill the whole period
+                                // these faces are explicitly kept separate
+                                // firstToSecond may move by a whole period. This is not respected here. but with the non periodic surfaces we want to get rid of periodic surfaces anyhow.
+                                Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
+                                BoundingRect ext = firstoutline.Extent;
+                                ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
+                                if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
+                                if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
+                            }
                             toRemove = edge.SecondaryFace.CombineWith(edge.PrimaryFace, firstToSecond);
                             // isolate the face, which will no longer be used:
                             Face faceToRemove = edge.PrimaryFace;

@@ -325,16 +325,22 @@ namespace CADability
             for (int i = 0; i < faces.Count; i++)
             {
                 IEnumerable<Face> connected = faces[i].GetSameSurfaceConnected();
-                if (connected.Any())
+                
+                // if (connected.Any())
                 {
                     List<Face> lconnected = new List<Face>(connected);
                     lconnected.Add(faces[i]);
+                    BoundingCube ext = BoundingCube.EmptyBoundingCube;
+                    foreach (Face fc in connected)
+                    {
+                        ext.MinMax(fc.GetExtent(0.0));
+                    }
                     // maybe a full sphere, cone, cylinder or torus:
                     // except for the sphere: position axis
                     // except for the cone: change radius or diameter
                     // for the cone: smaller and larger diameter
                     // for cone and cylinder: total length
-                    if (faces[i].Surface is CylindricalSurface || faces[i].Surface is ToroidalSurface)
+                    if (faces[i].Surface is CylindricalSurface || faces[i].Surface is CylindricalSurfaceNP || faces[i].Surface is ToroidalSurface)
                     {
                         MenuWithHandler mh = new MenuWithHandler("MenuId.FeatureDiameter");
                         mh.OnCommand = (menuId) =>
@@ -345,10 +351,11 @@ namespace CADability
                         };
                         res.Add(mh);
                     }
-                    if (faces[i].Surface is CylindricalSurface || faces[i].Surface is ConicalSurface)
+                    if (faces[i].Surface is CylindricalSurface || faces[i].Surface is CylindricalSurfaceNP || faces[i].Surface is ConicalSurface)
                     {
                         Line axis = null;
-                        if (faces[i].Surface is CylindricalSurface cyl) axis = cyl.AxisLine(faces[i].Domain.Bottom, faces[i].Domain.Top);
+
+                        if (faces[i].Surface is ICylinder cyl) axis = cyl.Axis.Clip(ext);
                         if (faces[i].Surface is ConicalSurface cone) axis = cone.AxisLine(faces[i].Domain.Bottom, faces[i].Domain.Top);
                         MenuWithHandler mh = new MenuWithHandler("MenuId.AxisPosition");
                         mh.OnCommand = (menuId) =>
@@ -459,7 +466,7 @@ namespace CADability
             int wobbleWidth = 3;
             if ((PaintToSelect.Capabilities & PaintCapabilities.ZoomIndependentDisplayList) != 0)
             {
-                PaintToSelect.OpenList();
+                PaintToSelect.OpenList("select-context");
                 foreach (IGeoObject go in currentMenuSelection)
                 {
                     go.PaintTo3D(PaintToSelect);

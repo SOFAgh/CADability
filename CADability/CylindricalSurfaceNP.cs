@@ -97,6 +97,13 @@ namespace CADability.GeoObject
 
         public override ICurve FixedV(double v, double umin, double umax)
         {
+            Line2D l2d = new Line2D(new GeoPoint2D(umin, v), new GeoPoint2D(umax, v));
+            double[] cl = Clip(l2d);
+            if (cl.Length==2)
+            {
+                umin = l2d.PointAt(cl[0]).x;
+                umax = l2d.PointAt(cl[1]).x;
+            }
             if (Math.Abs(v) < xAxis.Length * 1e-8)
             {
                 GeoPoint sp = PointAt(new GeoPoint2D(umin, v));
@@ -200,24 +207,25 @@ namespace CADability.GeoObject
                     fp2d[i] = PositionOf(elli.PointAt(i / n));
                 }
                 Ellipse2D elli2d = Ellipse2D.FromFivePoints(fp2d, !elli.IsArc); // returns both full ellipse and ellipse arc
-#if DEBUG
-                Ellipse2D elli2dn = Ellipse2D.FromPoints(fp2d);
-                double e1 = 0.0, e2 = 0.0;
-                for (int i = 0; i < fp2d.Length; i++)
-                {
-                    e1 += Math.Abs(elli2d.Distance(fp2d[i]));
-                    e2 += Math.Abs(elli2dn.Distance(fp2d[i]));
-                }
-#endif
-                if (elli2d == null)
-                {
-                    BoundingRect ext = new BoundingRect(fp2d);
-                    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(fp2d), ext.GetCenter(), ext.Size / 2.0, ext.Size / 3.0, 0.0, prec, out elli2d);
-                }
-                else
-                {
-                    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(fp2d), elli2d.center, elli2d.majrad, elli2d.minrad, elli2d.majorAxis.Angle, prec, out elli2d);
-                }
+                //#if DEBUG
+                //                Ellipse2D elli2dn = Ellipse2D.FromPoints(fp2d);
+                //                double e1 = 0.0, e2 = 0.0;
+                //                for (int i = 0; i < fp2d.Length; i++)
+                //                {
+                //                    e1 += Math.Abs(elli2d.Distance(fp2d[i]));
+                //                    e2 += Math.Abs(elli2dn.Distance(fp2d[i]));
+                //                }
+                //#endif
+                // the following was intended to make the ellipse more precise, but doesn't work 
+                //if (elli2d == null)
+                //{
+                //    BoundingRect ext = new BoundingRect(fp2d);
+                //    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(fp2d), ext.GetCenter(), ext.Size / 2.0, ext.Size / 3.0, 0.0, prec, out elli2d);
+                //}
+                //else
+                //{
+                //    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(fp2d), elli2d.center, elli2d.majrad, elli2d.minrad, elli2d.majorAxis.Angle, prec, out elli2d);
+                //}
                 if (elli2d != null)
                 {
                     if (elli.IsArc)
@@ -263,8 +271,8 @@ namespace CADability.GeoObject
             double r = xAxis.Length;
             // l must be between r/2 and r
             // trying to clip here:
-            if (l < r / 2) l = r / 2;
-            if (l > r) l = r;
+            //if (l < r / 2) l = r / 2;
+            //if (l > r) l = r;
             double z = (r - l) / l;
             double a = Math.Atan2(uv.y, uv.x);
             return location + Math.Cos(a) * xAxis + Math.Sin(a) * yAxis + z * zAxis;
@@ -478,6 +486,10 @@ namespace CADability.GeoObject
             }
             return res.ToArray();
         }
+        public ISurface AdaptToCurves(IEnumerable<ICurve> curves)
+        {
+            return new CylindricalSurfaceNP(this.location, xAxis.Length, zAxis, this.OutwardOriented, curves.ToArray());
+        }
 
         public bool IsInside(GeoPoint2D uv)
         {
@@ -513,10 +525,38 @@ namespace CADability.GeoObject
             }
         }
         public override bool UvChangesWithModification => true;
-
+        public override ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {
+            if (other is PlaneSurface ps)
+            {
+                IDualSurfaceCurve[] dsc = GetPlaneIntersection(ps, otherBounds.Left, otherBounds.Right, otherBounds.Bottom, otherBounds.Top, 0.0);
+                List<ICurve> res = new List<ICurve>();
+                for (int i = 0; i < dsc.Length; i++)
+                {
+                    if (dsc[i].Curve2D2 is Ellipse2D e2d)
+                    {
+                    }
+                }
+            }
+            if (other is ICylinder cylo)
+            {
+                ICurve[] res = Surfaces.Intersect(this as ICylinder, other as ICylinder);
+            }
+            return base.Intersect(thisBounds, other, otherBounds);
+        }
         Axis ICylinder.Axis => new Axis(location, zAxis);
 
-        double ICylinder.Radius => xAxis.Length;
+        double ICylinder.Radius
+        {
+            get => xAxis.Length;
+            set
+            {
+                xAxis.Length = value;
+                yAxis.Length = value;
+                // don't change the zAxis: it is the overall length of the cylinder, and this should not change here
+                // still it is not well defined what it means when the radius changes for the usable part of the cylinder
+            }
+        }
 
         public bool OutwardOriented => (xAxis ^ yAxis) * zAxis > 0; // left handed system
 

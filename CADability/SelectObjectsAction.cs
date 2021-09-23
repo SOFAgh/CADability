@@ -494,7 +494,7 @@ namespace CADability.Actions
                 {
                     if (displayList == null)
                     {
-                        PaintToSelect.OpenList();
+                        PaintToSelect.OpenList("selected");
                         foreach (IGeoObject go in selectedObjects)
                         {
                             if (go.IsVisible && mv != null && mv.IsLayerVisible(go.Layer)) visible = true;
@@ -509,7 +509,7 @@ namespace CADability.Actions
                     {
                         PaintToSelect.SelectColor = Color.FromArgb(selectTransparency, focusColor);
                         IPaintTo3DList list = null;
-                        PaintToSelect.OpenList();
+                        PaintToSelect.OpenList("focus-selected");
                         if (selectedObjectsProperty.focusedSelectedObject.IsVisible) selectedObjectsProperty.focusedSelectedObject.PaintTo3D(PaintToSelect);
                         list = PaintToSelect.CloseList();
                         if (list != null && visible) PaintToSelect.SelectedList(list, wobbleWIdth);
@@ -517,7 +517,7 @@ namespace CADability.Actions
                     if (directFeedback && objectsUnderCursorFeedback.Count > 0)
                     {
                         PaintToSelect.SelectColor = Color.FromArgb(selectTransparency, feedbackColor); // transparent machen
-                        PaintToSelect.OpenList();
+                        PaintToSelect.OpenList("underCursor");
                         foreach (IGeoObject go in objectsUnderCursorFeedback)
                         {
                             go.PaintTo3D(PaintToSelect);

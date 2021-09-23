@@ -545,6 +545,76 @@ namespace CADability
             }
         }
 
+        internal static double SimpleNewtonApproximation(FunctionAndDerivation f, ref int maxIterations, double lowerBound, double upperBound, double functionTolerance, double stepTolerance)
+        {
+            double l = lowerBound;
+            double u = upperBound;
+            double x = (l + u) / 2.0;
+            f(l, out double fl, out double dfl);
+            f(u, out double fu, out double dfu);
+            if (Math.Sign(fl) == Math.Sign(fu)) return double.MaxValue; // no result, the sign of the function on the lower bound and upper bound must be different
+            double diff = double.MaxValue;
+            int cnt = 0;
+            int bisectCount = 0;
+            double fx = 0.0;
+            while (diff > stepTolerance && cnt < maxIterations)
+            {
+                f(x, out fx, out double dfx);
+                double xn = (dfx == 0.0) ? x : x - fx / dfx;
+                double ndiff = Math.Abs(x - xn);
+                x = xn;
+                if (ndiff >= diff || x < l || x > u || dfx == 0.0) // outside the bounds or no convergence
+                {   // fall-back to bisection algorithm
+                    // bisect the interval and use the part where the function value has different signs
+                    ++bisectCount;
+                    double m = (l + u) / 2.0;
+                    f(m, out double fm, out double dfm);
+                    if (fm == 0.0)
+                    {
+                        x = m; // this is the solution!
+                        fx = fm;
+                        break;
+                    }
+                    if ((u - l) / 2.0 < stepTolerance)
+                    {   // result found by bisection
+                        x = (u - l) / 2.0;
+                        f(x, out fx, out dfx);
+                        diff = (u - l) / 2.0; // which is less than stepTolerance
+                        break; // done
+                    }
+                    else if (Math.Sign(fu) != Math.Sign(fm))
+                    {
+                        l = m;
+                        fl = fm;
+                    }
+                    else // if (Math.Sign(fl) != Math.Sign(fm)) this is always the case
+                    {
+                        u = m;
+                        fu = fm;
+                    }
+                    x = m;
+                    fx = fm;
+                    cnt = 0; // start new counting of iteration steps
+                    diff = double.MaxValue;
+                    continue;
+                }
+                diff = ndiff;
+                if (Math.Abs(fx) < functionTolerance) break;
+                ++cnt;
+            }
+
+
+            if (diff <= stepTolerance || Math.Abs(fx) < functionTolerance)
+            {
+                maxIterations = cnt + bisectCount;
+                return x;
+            }
+            else
+            {
+                maxIterations = cnt + bisectCount;
+                return double.MaxValue;
+            }
+        }
         internal static bool SimpleNewtonApproximation(FunctionAndDerivation f, ref double parameter, ref int maxIterations, double lowerBound, double upperBound, double functionTolerance, double stepTolerance)
         {
             double x = parameter;

@@ -76,7 +76,7 @@ namespace CADability.Actions
                     if (go != null)
                     {
                         paintTo3D.SelectColor = selectColor;
-                        paintTo3D.OpenList();
+                        paintTo3D.OpenList("feedback");
                         go.PaintTo3D(paintTo3D);
                         IPaintTo3DList list = paintTo3D.CloseList();
                         if (list != null) paintTo3D.SelectedList(list, selectWidth);
@@ -87,7 +87,7 @@ namespace CADability.Actions
 
             if (paintAsTransparent.Count > 0)
             {
-                paintTo3D.OpenList();
+                paintTo3D.OpenList("feedback-transparent");
 
                 foreach (IGeoObject go in paintAsTransparent)
                 {

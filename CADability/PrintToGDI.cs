@@ -2639,7 +2639,7 @@ namespace CADability
             throw new NotImplementedException("The method or operation is not implemented.");
         }
 
-        void IPaintTo3D.OpenList()
+        void IPaintTo3D.OpenList(string name)
         {
             throw new NotImplementedException("The method or operation is not implemented.");
         }

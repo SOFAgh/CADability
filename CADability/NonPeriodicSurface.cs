@@ -26,6 +26,7 @@ namespace CADability.GeoObject
         /// <param name="curve"></param>
         /// <returns></returns>
         double[] Clip(ICurve2D curve);
+        ISurface AdaptToCurves(IEnumerable<ICurve> curves);
     }
     /// <summary>
     /// Non-periodic surface made from an underlying periodic surface. The underlying periodic surface must be periodic in u or in v and may have a pole 
@@ -625,6 +626,21 @@ namespace CADability.GeoObject
             }
             Init(uperiodic);
         }
+        public ISurface AdaptToCurves(IEnumerable<ICurve> curves)
+        {
+            BoundingRect domain = BoundingRect.EmptyBoundingRect;
+            foreach (ICurve curve in curves)
+            {
+                ICurve2D c2d = periodicSurface.GetProjectedCurve(curve, 0.0);
+                if (domain.IsEmpty()) domain = c2d.GetExtent();
+                else
+                {
+                    SurfaceHelper.AdjustPeriodic(periodicSurface, domain, c2d);
+                    domain.MinMax(c2d.GetExtent());
+                }
+            }
+            return new NonPeriodicSurface(periodicSurface, domain);
+        }
         public bool IsInside(GeoPoint2D uv)
         {
             double l = (uv - GeoPoint2D.Origin).Length;
@@ -681,5 +697,6 @@ namespace CADability.GeoObject
             }
             Init(uperiodic);
         }
+
     }
 }

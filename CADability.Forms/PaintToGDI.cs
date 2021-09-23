@@ -760,7 +760,7 @@ namespace CADability.Forms
             throw new Exception("The method or operation is not implemented.");
         }
 
-        void IPaintTo3D.OpenList()
+        void IPaintTo3D.OpenList(string name)
         {
             displayList = new DisplayList(projection.Width, projection.Height);
             oldGraphics = graphics;

@@ -995,7 +995,7 @@ namespace CADability.GeoObject
             return res;
         }
         public IPaintTo3DList Get(string font, int fontStyle, char c, out double width, IPaintTo3D paintTo3D)
-        {   
+        {
             bool useLists = true;
             if (paintTo3D != null) useLists = !paintTo3D.IsBitmap;
             DictVal found;
@@ -1015,7 +1015,7 @@ namespace CADability.GeoObject
                 {
                     oldSelectMode = paintTo3D.SelectMode;
                     // paintTo3D.SelectMode = true; // no, all Text will be in select color if we set SelectMode
-                    paintTo3D.OpenList();
+                    paintTo3D.OpenList(font + ":" + c);
                 }
                 found = new DictVal();
                 Path2D[] paths = GetOutline2D(font, fontStyle, c, out width);
@@ -3059,8 +3059,8 @@ namespace CADability.GeoObject
             //return new QuadTreeText(this, t2d, projection);
             return null;
         }
-#endregion
-#region IOctTreeInsertable members
+        #endregion
+        #region IOctTreeInsertable members
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetExtent (double)"/>
         /// </summary>
@@ -3154,8 +3154,8 @@ namespace CADability.GeoObject
             GeoPoint p = plane.Intersect(fromHere, direction);
             return Geometry.LinePar(fromHere, direction, p); // nicht getestet ob innerhalb des Textes
         }
-#endregion
-#region IColorDef Members
+        #endregion
+        #region IColorDef Members
         public ColorDef ColorDef
         {
             get
@@ -3176,8 +3176,8 @@ namespace CADability.GeoObject
         {
             (this as IColorDef).SetTopLevel(newValue);
         }
-#endregion
-#region ISerializable Members
+        #endregion
+        #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -3262,7 +3262,7 @@ namespace CADability.GeoObject
             lineAlignment = data.GetProperty<LineAlignMode>("LineAlignment");
             isReflected = data.GetProperty<bool>("IsReflected");
         }
-#endregion
+        #endregion
         internal void InvalidateSecondaryData()
         {
             isValidExtent = false;

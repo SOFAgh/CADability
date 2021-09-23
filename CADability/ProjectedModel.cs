@@ -1468,7 +1468,7 @@ namespace CADability
             if (dirty || recalcVisibility || paintTo3D.PixelToWorld != currentUnscaledScale)
             {
                 currentUnscaledScale = paintTo3D.PixelToWorld;
-                paintTo3D.OpenList();
+                paintTo3D.OpenList("unscaled");
                 foreach (KeyValuePair<Layer, GeoObjectList> kv in model.layerUnscaledObjects)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)

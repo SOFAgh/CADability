@@ -1274,6 +1274,13 @@ namespace CADability
                     && (Ymin <= bc.Ymin && Ymax >= bc.Ymin || Ymin > bc.Ymin && Ymin <= bc.Ymax)
                     && (Zmin <= bc.Zmin && Zmax >= bc.Zmin || Zmin > bc.Zmin && Zmin <= bc.Zmax));
         }
+        public bool ClipAxis(Axis axis, out GeoPoint startPoint, out GeoPoint endPoint)
+        {
+            GeoPoint cnt = Geometry.DropPL(this.GetCenter(), axis.Location, axis.Direction);
+            startPoint = cnt - this.Size * axis.Direction.Normalized;
+            endPoint = cnt + this.Size * axis.Direction.Normalized;
+            return ClipLine(ref startPoint, ref endPoint);
+        }
         /// <summary>
         /// Clips the provided line (defined by <paramref name="start"/> and <paramref name="end"/>) by this cube.
         /// Returns true if the line interferes with this boundingcube, modifies the start and endpoint in the parameters if clipping occures
