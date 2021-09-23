@@ -812,7 +812,7 @@ namespace CADability.Actions
                     return null;
                 }
             }
-#region IInputObject Helper
+            #region IInputObject Helper
             /// <summary>
             /// Internal!
             /// </summary>
@@ -879,7 +879,7 @@ namespace CADability.Actions
                     return GeoPoint.Origin;
                 }
             }
-#endregion
+            #endregion
         }
         public class SeparatorInput : InputObject, IInputObject
         {
@@ -887,7 +887,7 @@ namespace CADability.Actions
                 : base(resourceId)
             {
             }
-#region IInputObject Members
+            #region IInputObject Members
 
             void IInputObject.Init(ConstructAction a)
             {
@@ -955,7 +955,7 @@ namespace CADability.Actions
             {
             }
 
-#endregion
+            #endregion
         }
         public class InputContainer : InputObject, IInputObject
         /// <summary>
@@ -1003,7 +1003,7 @@ namespace CADability.Actions
                     return simplePropertyGroup.SubItems;
                 }
             }
-#region IInputObject Members
+            #region IInputObject Members
 
             void IInputObject.Init(ConstructAction a)
             {
@@ -1079,7 +1079,7 @@ namespace CADability.Actions
             {
             }
 
-#endregion
+            #endregion
         }
         public class AngleInput : InputObject, IInputObject
         {
@@ -1100,10 +1100,26 @@ namespace CADability.Actions
             public AngleInput(string resourceId, Angle StartValue)
                 : this(resourceId)
             {
-                angle = StartValue;
+                Angle = StartValue;
             }
             private AngleProperty angleProperty; // die Anzeige desselben
+
             private Angle angle;
+            public Angle Angle
+            {
+                get
+                {
+                    return angle;
+                }
+                private set
+                {
+                    if (angle == value)
+                        return;
+
+                    angle = value;
+                    InputValueChangedEvent?.Invoke(value);
+                }
+            }
             private enum CalculationModes { FromBasePoint, FromPlane, FromLine, FromCallback }
             private CalculationModes calculationMode; // wie wird der Abstand berechnet
             private Plane angleFromPlane; // Winkel bezüglich X-Achse dieser Ebene
@@ -1183,7 +1199,7 @@ namespace CADability.Actions
                 if (SetAngleEvent == null) return;
                 if (SetAngleEvent(a))
                 {
-                    angle = a;
+                    Angle = a;
                 }
             }
             private void OnModifyWithMouse(IPropertyEntry sender, bool StartModifying)
@@ -1226,6 +1242,15 @@ namespace CADability.Actions
             /// Event that is fired when a mousclick happens and this AngleInput has the focus.
             /// </summary>
             public event MouseClickDelegate MouseClickEvent;
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="length">New length value</param>
+            public delegate void InputValueChangedDelegate(Angle angle);
+            /// <summary>
+            /// Event will be rasied if the Angle property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
             /// <summary>
             /// true: this input field does not accept user input, 
             /// false: normal input field that requires user input
@@ -1270,7 +1295,8 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject
+
+            #region IInputObject
             void IInputObject.Init(ConstructAction a)
             {
                 base.Init(a);
@@ -1279,14 +1305,14 @@ namespace CADability.Actions
                     defaultAngle.SetAction(a);
                     InternalSetAngle(defaultAngle);
                 }
-                if (GetAngleEvent != null) angle = GetAngleEvent();
+                if (GetAngleEvent != null) Angle = GetAngleEvent();
                 if (angleProperty != null) angleProperty.AngleChanged();
             }
             void IInputObject.Refresh()
             {
                 if (GetAngleEvent != null)
                 {
-                    angle = GetAngleEvent();
+                    Angle = GetAngleEvent();
                     if (angleProperty != null) angleProperty.AngleChanged();
                 }
             }
@@ -1399,6 +1425,7 @@ namespace CADability.Actions
                 }
             }
             Image IInputObject.HotSpotIcon { get { return null; } }
+
             void IInputObject.OnActionDone()
             {
             }
@@ -1414,10 +1441,10 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
             private Angle AnglePropertyOnGetAngle()
             {
-                return angle;
+                return Angle;
             }
             private void AnglePropertyOnSetAngle(Angle a)
             {
@@ -1528,7 +1555,7 @@ namespace CADability.Actions
             public LengthInput(string resourceId, double StartValue)
                 : this(resourceId)
             {
-                length = StartValue;
+                Length = StartValue;
             }
             private double CalcLength(GeoPoint p)
             {
@@ -1579,6 +1606,16 @@ namespace CADability.Actions
             /// from point, line or plane is not appropriate to your needs.
             /// </summary>
             public event CalculateLengthDelegate CalculateLengthEvent;
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="length">New length value</param>
+            public delegate void InputValueChangedDelegate(double length);
+            /// <summary>
+            /// Event will be rasied if the Length property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
+
             private double length;
             public double Length
             {
@@ -1586,9 +1623,17 @@ namespace CADability.Actions
                 {
                     return length;
                 }
+                private set
+                {
+                    if (length == value)
+                        return;
+
+                    length = value;
+                    InputValueChangedEvent?.Invoke(value);
+                }
             }
             /// <summary>
-            /// Forces the input object to the specified value. The input filed is updated accordingly.
+            /// Forces the input object to the specified value. The input field is updated accordingly.
             /// </summary>
             /// <param name="val">the value to set</param>
             public void ForceValue(double val)
@@ -1602,12 +1647,12 @@ namespace CADability.Actions
                 if (ReadOnly) return;
                 if (SetLengthEvent == null)
                 {
-                    length = Length; // Wert auch übernehemen wenn kein SetLengthEvent gesetzt ist
+                    this.Length = Length; // Wert auch übernehemen wenn kein SetLengthEvent gesetzt ist
                     return;
                 }
                 if (SetLengthEvent(Length))
                 {
-                    length = Length; // Wert auch übernehemen wenn kein SetLengthEvent gesetzt ist
+                    this.Length = Length; // Wert auch übernehemen wenn kein SetLengthEvent gesetzt ist
                 }
             }
             private void OnModifyWithMouse(IPropertyEntry sender, bool StartModifying)
@@ -1663,7 +1708,7 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject
+            #region IInputObject
             void IInputObject.Init(ConstructAction a)
             {
                 base.Init(a);
@@ -1672,14 +1717,14 @@ namespace CADability.Actions
                     defaultLength.SetAction(a);
                     InternalSetLength(defaultLength);
                 }
-                if (GetLengthEvent != null) length = GetLengthEvent();
+                if (GetLengthEvent != null) Length = GetLengthEvent();
                 if (lengthProperty != null) lengthProperty.LengthChanged();
             }
             void IInputObject.Refresh()
             {
                 if (GetLengthEvent != null)
                 {
-                    length = GetLengthEvent();
+                    this.Length = GetLengthEvent();
                     if (lengthProperty != null) lengthProperty.LengthChanged();
                 }
             }
@@ -1793,7 +1838,7 @@ namespace CADability.Actions
             void IInputObject.OnActionDone()
             {	// versuchsweise defaultLength setzen, wenn die Aktion zu ende geht
                 // das müsste noch in den anderen Fällen berücksichtigt werden
-                if (defaultLength != null) defaultLength.Length = length;
+                if (defaultLength != null) defaultLength.Length = Length;
             }
             IPropertyEntry IInputObject.GetShowProperty()
             {
@@ -1821,10 +1866,10 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
             private double LengthPropertyOnGetLength(LengthProperty sender)
             {
-                return length;
+                return Length;
             }
             private void LengthPropertyOnSetLength(LengthProperty sender, double l)
             {
@@ -1885,7 +1930,7 @@ namespace CADability.Actions
             public DoubleInput(string resourceId, double startValue)
                 : this(resourceId)
             {
-                val = startValue;
+                DoubleValue = startValue;
             }
             private double CalcDouble(GeoPoint p)
             {
@@ -1923,7 +1968,25 @@ namespace CADability.Actions
             /// from point, line or plane is not appropriate to your needs.
             /// </summary>
             public event CalculateDoubleDelegate CalculateDoubleEvent;
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="length">New length value</param>
+            public delegate void InputValueChangedDelegate(double newValue);
+            /// <summary>
+            /// Event will be rasied if the Length property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
             private double val;
+            public double DoubleValue
+            {
+                get => val;
+                private set
+                {
+                    val = value;
+                    InputValueChangedEvent?.Invoke(value);
+                }
+            }
             /// <summary>
             /// Forces the input object to the specified value. The input filed is updated accordingly.
             /// </summary>
@@ -1940,7 +2003,7 @@ namespace CADability.Actions
                 if (SetDoubleEvent == null) return;
                 if (SetDoubleEvent(val))
                 {
-                    this.val = val;
+                    this.DoubleValue = val;
                 }
             }
             private void OnModifyWithMouse(IShowProperty sender, bool StartModifying)
@@ -1996,18 +2059,18 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject
+            #region IInputObject
             void IInputObject.Init(ConstructAction a)
             {
                 base.Init(a);
-                if (GetDoubleEvent != null) val = GetDoubleEvent();
+                if (GetDoubleEvent != null) DoubleValue = GetDoubleEvent();
                 if (doubleProperty != null) doubleProperty.DoubleChanged();
             }
             void IInputObject.Refresh()
             {
                 if (GetDoubleEvent != null)
                 {
-                    val = GetDoubleEvent();
+                    DoubleValue = GetDoubleEvent();
                     if (doubleProperty != null) doubleProperty.DoubleChanged();
                 }
             }
@@ -2103,6 +2166,7 @@ namespace CADability.Actions
                 }
             }
             Image IInputObject.HotSpotIcon { get { return null; } }
+
             void IInputObject.OnActionDone()
             {
             }
@@ -2132,10 +2196,10 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
             private double DoublePropertyOnGetDouble(DoubleProperty sender)
             {
-                return val;
+                return DoubleValue;
             }
             private void DoublePropertyOnSetDouble(DoubleProperty sender, double l)
             {
@@ -2193,7 +2257,7 @@ namespace CADability.Actions
             public GeoPointInput(string resourceId, GeoPoint StartValue)
                 : this(resourceId)
             {
-                point = StartValue;
+                Point = StartValue;
             }
             private DefaultGeoPoint defaultGeoPoint;
             /// <summary>
@@ -2240,12 +2304,30 @@ namespace CADability.Actions
             /// This is necessary if this point is also modified by other means, not only by this input field.
             /// </summary>
             public event GetGeoPointDelegate GetGeoPointEvent;
+            /// <summary>
+            /// Delegate definition for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="point">New point value</param>
+            public delegate void InputValueChangedDelegate(GeoPoint point);
+            /// <summary>
+            /// This event will be raised if the Point property was changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
+
             private GeoPoint point; // der aktuelle Wert des Punktes
             public GeoPoint Point
             {
                 get
                 {
                     return point;
+                }
+                private set
+                {
+                    if (point == value)
+                        return;
+
+                    point = value;
+                    InputValueChangedEvent?.Invoke(value);
                 }
             }
             private int partiallyFixed; // Teile des Punktes (z.B. X_-Komponente) sind schon gefixed
@@ -2273,7 +2355,7 @@ namespace CADability.Actions
                         if (vw is IActionInputView)
                         {
                             PointF pf1 = vw.Projection.ProjectF(p);
-                            PointF pf2 = vw.Projection.ProjectF(point);
+                            PointF pf2 = vw.Projection.ProjectF(Point);
                             int xmin = (int)Math.Min(pf1.X, pf2.X) - 8;
                             int xmax = (int)Math.Max(pf1.X, pf2.X) + 8;
                             int ymin = (int)Math.Min(pf1.Y, pf2.Y) - 8;
@@ -2284,7 +2366,7 @@ namespace CADability.Actions
                     }
                 }
                 if (ReadOnly) return;
-                point = p;
+                Point = p;
                 if (SetGeoPointEvent != null)
                 {
                     SetGeoPointEvent(p);
@@ -2294,7 +2376,7 @@ namespace CADability.Actions
             {
                 if (GetGeoPointEvent != null)
                 {
-                    point = GetGeoPointEvent();
+                    Point = GetGeoPointEvent();
                     return true;
                 }
                 return false;
@@ -2353,7 +2435,7 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject
+            #region IInputObject
             void IInputObject.Init(ConstructAction a)
             {
                 constructAction = a;
@@ -2471,7 +2553,7 @@ namespace CADability.Actions
                     {
                         if (vw is IActionInputView)
                         {
-                            PointF pf = vw.Projection.ProjectF(point);
+                            PointF pf = vw.Projection.ProjectF(Point);
                             int xmin = (int)pf.X - 8;
                             int xmax = (int)pf.X + 8;
                             int ymin = (int)pf.Y - 8;
@@ -2540,7 +2622,7 @@ namespace CADability.Actions
             {
                 get
                 {
-                    return point;
+                    return Point;
                 }
             }
             Image IInputObject.HotSpotIcon
@@ -2567,10 +2649,10 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
             private GeoPoint ShowPropertyOnGetGeoPoint(GeoPointProperty sender)
             {	// die geoPointProperty möchten den Punkt wissen
-                return point;
+                return Point;
             }
             private void ShowPropertyOnSetGeoPoint(GeoPointProperty sender, GeoPoint p)
             {	// this is beeing called by the controlcenter, either when the value is edited or subentries are beeing edited or a subaction changed the point
@@ -2682,7 +2764,7 @@ namespace CADability.Actions
             public GeoVectorInput(string resourceId, GeoVector StartValue)
                 : this(resourceId)
             {
-                vector = StartValue;
+                Vector = StartValue;
             }
             private GeoVector CalcVector(GeoPoint p)
             {
@@ -2729,7 +2811,30 @@ namespace CADability.Actions
             /// from point, line or plane is not appropriate to your needs.
             /// </summary>
             public event CalculateGeoVectorDelegate CalculateGeoVectorEvent;
+            /// <summary>
+            /// Delegate definition for <see cref="InputValueChangedEvent"/>.
+            /// </summary>
+            /// <param name="vector">New value of vector</param>
+            public delegate void InputValueChangedDelegate(GeoVector vector);
+            /// <summary>
+            /// This event is raised if the Vector property is changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
+
             private GeoVector vector;
+            public GeoVector Vector
+            {
+                get => vector;
+                private set
+                {
+                    if (vector == value)
+                        return;
+
+                    vector = value;
+                    InputValueChangedEvent?.Invoke(value);
+                }
+            }
+
             /// <summary>
             /// Forces the input object to the specified value. The input filed is updated accordingly.
             /// </summary>
@@ -2746,7 +2851,7 @@ namespace CADability.Actions
                 if (SetGeoVectorEvent == null) return;
                 if (SetGeoVectorEvent(v))
                 {
-                    vector = v;
+                    Vector = v;
                 }
             }
             private void OnModifyWithMouse(IPropertyEntry sender, bool StartModifying)
@@ -2802,7 +2907,7 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject
+            #region IInputObject
             void IInputObject.Init(ConstructAction a)
             {
                 base.Init(a);
@@ -2811,14 +2916,14 @@ namespace CADability.Actions
                     defaultGeoVector.SetAction(a);
                     InternalSetGeoVector(defaultGeoVector);
                 }
-                if (GetGeoVectorEvent != null) vector = GetGeoVectorEvent();
+                if (GetGeoVectorEvent != null) Vector = GetGeoVectorEvent();
                 if (geoVectorProperty != null) geoVectorProperty.GeoVectorChanged();
             }
             void IInputObject.Refresh()
             {
                 if (GetGeoVectorEvent != null)
                 {
-                    vector = GetGeoVectorEvent();
+                    Vector = GetGeoVectorEvent();
                     if (geoVectorProperty != null) geoVectorProperty.GeoVectorChanged();
                 }
             }
@@ -2954,6 +3059,7 @@ namespace CADability.Actions
                 }
             }
             Image IInputObject.HotSpotIcon { get { return null; } }
+
             void IInputObject.OnActionDone() { }
             IPropertyEntry IInputObject.GetShowProperty()
             {
@@ -3014,10 +3120,10 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
             private GeoVector GeoVectorPropertyOnGetGeoVector(GeoVectorProperty sender)
             {
-                return vector;
+                return Vector;
             }
             private void GeoVectorPropertyOnSetGeoVector(GeoVectorProperty sender, GeoVector v)
             {
@@ -3169,7 +3275,7 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject
+            #region IInputObject
             void IInputObject.Init(ConstructAction a)
             {
                 base.Init(a);
@@ -3329,9 +3435,9 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
 
-#region ICommandHandler Members
+            #region ICommandHandler Members
             bool ICommandHandler.OnCommand(string MenuId)
             {
                 switch (MenuId)
@@ -3462,6 +3568,15 @@ namespace CADability.Actions
             /// modified by other means.
             /// </summary>
             public event GetBooleanDelegate GetBooleanEvent;
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="length">New length value</param>
+            public delegate void InputValueChangedDelegate(bool newValue);
+            /// <summary>
+            /// Event will be rasied if the Length property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
             bool boolval;
             public bool Value
             {
@@ -3469,7 +3584,30 @@ namespace CADability.Actions
                 {
                     return boolval;
                 }
+                private set
+                {
+                    if (boolval == value)
+                        return;
+
+                    boolval = value;
+                    InputValueChangedEvent?.Invoke(value);
+                }
             }
+
+            /// <summary>
+            /// Forces the input object to the specified value.
+            /// </summary>
+            /// <param name="val">the value to set</param>
+            public void ForceValue(bool val)
+            {
+                //No InternalSetBoolean implemented                
+                if (ReadOnly) return;
+                SetBooleanEvent(val);
+                Value = val;
+                constructAction.RefreshDependantProperties();
+                BooleanChanged(this, val);                
+            }
+
             /// <summary>
             /// Constructs a BooleanInput object with no initial value
             /// </summary>
@@ -3499,7 +3637,7 @@ namespace CADability.Actions
             public BooleanInput(string resourceId, string resourceIdValues, bool StartValue)
                 : this(resourceId, resourceIdValues)
             {
-                boolval = StartValue;
+                Value = StartValue;
             }
             private IInputObject[] forwardMouseInputTo;
             /// <summary>
@@ -3534,15 +3672,15 @@ namespace CADability.Actions
                 base.Init(a);
                 if (defaultBoolean != null)
                 {
-                    boolval = defaultBoolean;
+                    Value = defaultBoolean;
                 }
-                if (GetBooleanEvent != null) boolval = GetBooleanEvent();
+                if (GetBooleanEvent != null) Value = GetBooleanEvent();
             }
             void IInputObject.Refresh()
             {
                 if (GetBooleanEvent != null)
                 {
-                    boolval = GetBooleanEvent();
+                    Value = GetBooleanEvent();
                     if (booleanProperty != null) booleanProperty.BooleanValue = boolval;
                 }
             }
@@ -3636,7 +3774,7 @@ namespace CADability.Actions
             private void PropertyOnSetBoolean(bool val)
             {
                 if (defaultBoolean != null) defaultBoolean.Boolean = val;
-                boolval = val;
+                Value = val;
                 if (SetBooleanEvent != null) SetBooleanEvent(val);
                 constructAction.RefreshDependantProperties(this);
             }
@@ -3676,7 +3814,40 @@ namespace CADability.Actions
             /// modified by other means.
             /// </summary>
             public event GetChoiceDelegate GetChoiceEvent;
-            int Choice;
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="length">New length value</param>
+            public delegate void InputValueChangedDelegate(int newValue);
+            /// <summary>
+            /// Event will be rasied if the Length property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
+            int choice;
+            public int Choice
+            {
+                get
+                {
+                    return choice;
+                }
+                private set
+                {
+                    if (choice == value)
+                        return;
+
+                    choice = value;
+                    InputValueChangedEvent?.Invoke(value);
+                }
+            }
+
+            public void ForceValue(int val)
+            {
+                if (ReadOnly) return;
+                SetChoiceEvent(val);
+                Choice = val;
+                constructAction.RefreshDependantProperties();                
+            }
+
             /// <summary>
             /// Constructs a MultipleChoiceInput object with no initial value
             /// </summary>
@@ -3895,7 +4066,28 @@ namespace CADability.Actions
             /// Event that is fired when a mousclick happens and this input has the focus.
             /// </summary>
             public event MouseClickDelegate MouseClickEvent;
-#region IInputObject
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="index">Index of the element that was changed</param>
+            /// <param name="thePoint">The point that was added or modified. In case of remove the point will be invalid as this point does not exist anymore</param>
+            /// <param name="changeType">What kind of change was performed</param>
+            public delegate void InputValueChangedDelegate(int index, GeoPoint thePoint, ChangeType changeType);
+            /// <summary>
+            /// Event will be rasied if the Length property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
+            /// <summary>
+            /// What kind of change was performed in the <see cref="InputValueChangedDelegate"/>
+            /// </summary>
+            public enum ChangeType
+            {
+                Insert = 0,
+                Remove = 1,
+                Modify = 3
+            }
+
+            #region IInputObject
             void IInputObject.Refresh()
             {
             }
@@ -4041,8 +4233,8 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
-#region IIndexedGeoPoint Members
+            #endregion
+            #region IIndexedGeoPoint Members
             void IIndexedGeoPoint.SetGeoPoint(int Index, GeoPoint ThePoint)
             {
                 if (lastPointIsHidden && Index == forwardTo.GetGeoPointCount())
@@ -4050,10 +4242,12 @@ namespace CADability.Actions
                     // die Fläche verlassen hat
                     forwardTo.InsertGeoPoint(-1, ThePoint);
                     lastPointIsHidden = false;
+                    InputValueChangedEvent?.Invoke(Index, ThePoint, ChangeType.Insert);
                 }
                 else
                 {
                     forwardTo.SetGeoPoint(Index, ThePoint);
+                    InputValueChangedEvent?.Invoke(Index, ThePoint, ChangeType.Modify);
                 }
                 activeIndexIsNewPoint = false;
             }
@@ -4064,10 +4258,12 @@ namespace CADability.Actions
             void IIndexedGeoPoint.InsertGeoPoint(int Index, GeoPoint ThePoint)
             {
                 forwardTo.InsertGeoPoint(Index, ThePoint);
+                InputValueChangedEvent?.Invoke(Index, ThePoint, ChangeType.Insert);
             }
             void IIndexedGeoPoint.RemoveGeoPoint(int Index)
             {
                 forwardTo.RemoveGeoPoint(Index);
+                InputValueChangedEvent?.Invoke(Index, GeoPoint.Invalid, ChangeType.Remove);
             }
             int IIndexedGeoPoint.GetGeoPointCount()
             {
@@ -4081,7 +4277,7 @@ namespace CADability.Actions
             {
                 return forwardTo.MayDelete(Index);
             }
-#endregion
+            #endregion
             private bool OnModifyWithMouse(IPropertyEntry sender, int index)
             {
                 activeIndex = index;
@@ -4168,8 +4364,34 @@ namespace CADability.Actions
             /// false: any kind of curves curves are yielded
             /// </summary>
             public bool ModifiableOnly;
+
             private ICurve[] curves;
+            public ICurve[] Curves
+            {
+                get => curves;
+                private set
+                {
+                    if (curves == value)
+                        return;
+
+                    curves = value;
+                    InputValueCurvesChangedEvent?.Invoke(value);
+                }
+            }
+
             private ICurve selectedCurve;
+            public ICurve SelectedCurve
+            {
+                get => selectedCurve;
+                private set
+                {
+                    if (selectedCurve == value)
+                        return;
+
+                    selectedCurve = value;
+                    InputValueSelectedCurveChangedEvent?.Invoke(value);
+                }
+            }
             /// <summary>
             /// Forces the given curves to be displayed
             /// </summary>
@@ -4177,10 +4399,10 @@ namespace CADability.Actions
             /// <param name="selectedCurve">currently selected curve</param>
             public void SetCurves(ICurve[] curves, ICurve selectedCurve)
             {
-                if (this.selectedCurve != null) constructAction.feedBack.RemoveSelected(this.selectedCurve as IGeoObject);
-                this.curves = curves;
-                this.selectedCurve = selectedCurve;
-                if (this.selectedCurve != null) constructAction.feedBack.AddSelected(this.selectedCurve as IGeoObject);
+                if (this.SelectedCurve != null) constructAction.feedBack.RemoveSelected(this.SelectedCurve as IGeoObject);
+                this.Curves = curves;
+                this.SelectedCurve = selectedCurve;
+                if (this.SelectedCurve != null) constructAction.feedBack.AddSelected(this.SelectedCurve as IGeoObject);
                 if (curvesProperty != null)
                 {
                     curvesProperty.SetCurves(curves, selectedCurve);
@@ -4200,11 +4422,11 @@ namespace CADability.Actions
             /// <returns></returns>
             public ICurve[] GetCurves()
             {
-                return curves;
+                return Curves;
             }
             public ICurve GetSelectedCurve()
             {
-                return selectedCurve;
+                return SelectedCurve;
             }
             /// <summary>
             /// Delegate definition for <see cref="MouseOverCurvesEvent"/>
@@ -4228,6 +4450,24 @@ namespace CADability.Actions
             /// Provide a method here to react on the user selecting a different curve
             /// </summary>
             public event CurveSelectionChangedDelegate CurveSelectionChangedEvent;
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueCurvesChangedEvent"/>
+            /// </summary>
+            /// <param name="curves">New Curves</param>            
+            public delegate void InputValueCurvesChangedDelegate(ICurve[] curves);
+            /// <summary>
+            /// Event will be rasied if the Curves changed
+            /// </summary>
+            public event InputValueCurvesChangedDelegate InputValueCurvesChangedEvent;
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueSelectedCurveChangedEvent"/>
+            /// </summary>            
+            /// <param name="selectedCurve">New selected Curve</param>
+            public delegate void InputValueSelectedCurveChangedDelegate(ICurve selectedCurve);
+            /// <summary>
+            /// Event will be rasied if the SelectedCurve changed
+            /// </summary>
+            public event InputValueSelectedCurveChangedDelegate InputValueSelectedCurveChangedEvent;
             /// <summary>
             /// Returns two curves (Path), that represent the given curve, splitted at the vertex
             /// which is closest to the mouse position. The endpoint of the first curve is the
@@ -4337,7 +4577,7 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject implementation
+            #region IInputObject implementation
             void IInputObject.Init(ConstructAction a)
             {
                 constructAction = a;
@@ -4350,7 +4590,7 @@ namespace CADability.Actions
                 curvesProperty = new CurvesProperty(ResourceId, constructAction.Frame);
                 curvesProperty.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(constructAction.ShowPropertyStateChanged);
                 curvesProperty.SelectionChangedEvent += new CADability.UserInterface.CurvesProperty.SelectionChangedDelegate(OnSelectedCurveChanged);
-                if (curves != null) curvesProperty.SetCurves(curves, selectedCurve);
+                if (Curves != null) curvesProperty.SetCurves(Curves, SelectedCurve);
                 if (!Optional && !Fixed)
                 {
                     curvesProperty.Highlight = true;
@@ -4468,9 +4708,10 @@ namespace CADability.Actions
                 }
             }
             Image IInputObject.HotSpotIcon { get { return null; } }
+
             void IInputObject.OnActionDone()
             {
-                if (this.selectedCurve != null) constructAction.feedBack.RemoveSelected(this.selectedCurve as IGeoObject);
+                if (this.SelectedCurve != null) constructAction.feedBack.RemoveSelected(this.SelectedCurve as IGeoObject);
             }
             IPropertyEntry IInputObject.GetShowProperty()
             {
@@ -4480,8 +4721,8 @@ namespace CADability.Actions
             {
                 if (MouseOverCurvesEvent != null)
                 {
-                    if (curves == null) curves = new ICurve[0];
-                    return MouseOverCurvesEvent(this, curves, true);
+                    if (Curves == null) Curves = new ICurve[0];
+                    return MouseOverCurvesEvent(this, Curves, true);
                 }
                 return false;
             }
@@ -4497,13 +4738,13 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
             private void OnSelectedCurveChanged(CurvesProperty cp, ICurve selectedCurve)
             {
                 if (CurveSelectionChangedEvent != null) CurveSelectionChangedEvent(this, selectedCurve);
-                if (this.selectedCurve != null) constructAction.feedBack.RemoveSelected(this.selectedCurve as IGeoObject);
-                this.selectedCurve = selectedCurve;
-                if (this.selectedCurve != null) constructAction.feedBack.AddSelected(this.selectedCurve as IGeoObject);
+                if (this.SelectedCurve != null) constructAction.feedBack.RemoveSelected(this.SelectedCurve as IGeoObject);
+                this.SelectedCurve = selectedCurve;
+                if (this.SelectedCurve != null) constructAction.feedBack.AddSelected(this.SelectedCurve as IGeoObject);
                 constructAction.RefreshDependantProperties();
             }
             public void SetContextMenu(string menuId, ICommandHandler handler)
@@ -4658,7 +4899,7 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject implementation
+            #region IInputObject implementation
             void IInputObject.Init(ConstructAction a)
             {
                 constructAction = a;
@@ -4694,9 +4935,9 @@ namespace CADability.Actions
                 Point MousePoint = new Point(e.X, e.Y);
                 currentMousePoint = MousePoint;
                 GeoObjectList l = new GeoObjectList();
-                if (EdgesOnly) l.AddRange (constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleEdge));
+                if (EdgesOnly) l.AddRange(constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleEdge));
                 if (FacesOnly) l.AddRange(constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleFace));
-                if (!FacesOnly&&!EdgesOnly) l = constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.normal);
+                if (!FacesOnly && !EdgesOnly) l = constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.normal);
                 ArrayList c = new ArrayList();
                 for (int i = 0; i < l.Count; ++i)
                 {
@@ -4795,7 +5036,7 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
             private void OnSelectedGeoObjectChanged(GeoObjectProperty cp, IGeoObject selectedGeoObject)
             {
                 if (GeoObjectSelectionChangedEvent != null) GeoObjectSelectionChangedEvent(this, selectedGeoObject);
@@ -4831,6 +5072,15 @@ namespace CADability.Actions
             /// Provide a method here when the string also changes by other means than user input.
             /// </summary>
             public event GetStringDelegate GetStringEvent;
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="length">New length value</param>
+            public delegate void InputValueChangedDelegate(string newValue);
+            /// <summary>
+            /// Event will be rasied if the Length property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
             /// <summary>
             /// Connects this input filed with a <see cref="Text"/> object.
             /// The Text object displays the carret in the view so you can edit the text
@@ -4876,12 +5126,24 @@ namespace CADability.Actions
                 {
                     return stringval;
                 }
-                set
+                private set
                 {
                     stringval = value;
                     if (stringProperty != null) stringProperty.Refresh();
+                    InputValueChangedEvent?.Invoke(value);
                 }
             }
+
+            public void ForceValue(string val)
+            {
+                //No InternalSetString implemented
+                //StringInput does not support bool SetStringEvent(string) pattern
+                if (ReadOnly) return;
+                Content = val;
+                constructAction.RefreshDependantProperties();
+                //StringInput does not support stringProperty.StringChanged()
+            }
+
             private IInputObject[] forwardMouseInputTo;
             /// <summary>
             /// Mouse input should be forwarded to another input object and only processed
@@ -4910,7 +5172,7 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject Members
+            #region IInputObject Members
 
             void IInputObject.Init(ConstructAction a)
             {
@@ -4920,15 +5182,12 @@ namespace CADability.Actions
             void IInputObject.Refresh()
             {
                 if (GetStringEvent != null)
-                {
-                    stringval = GetStringEvent();
-                    if (stringProperty != null) stringProperty.Refresh();
-                }
+                    Content = GetStringEvent();
             }
 
             IPropertyEntry IInputObject.BuildShowProperty()
             {
-                stringProperty = new StringProperty(stringval, ResourceId);
+                stringProperty = new StringProperty(Content, ResourceId);
                 stringProperty.GetStringEvent += new CADability.UserInterface.StringProperty.GetStringDelegate(OnGetInputString);
                 stringProperty.SetStringEvent += new CADability.UserInterface.StringProperty.SetStringDelegate(OnSetInputString);
                 stringProperty.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
@@ -5025,7 +5284,7 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
             private string OnGetInputString(StringProperty sender)
             {
                 if (GetStringEvent != null) return GetStringEvent();
@@ -5047,7 +5306,7 @@ namespace CADability.Actions
                     }
                 }
             }
-#region ICommandHandler Members
+            #region ICommandHandler Members
 
             bool ICommandHandler.OnCommand(string MenuId)
             {
@@ -5055,7 +5314,7 @@ namespace CADability.Actions
                 {
                     case "MenuId.OpenFileDialog.Show":
                         int filterIndex = 0;
-                        if (constructAction.Frame.UIService.ShowOpenFileDlg(this.ResourceId,StringTable.GetString(ResourceId), FileNameFilter,ref filterIndex,out string fileName)==Substitutes.DialogResult.OK)
+                        if (constructAction.Frame.UIService.ShowOpenFileDlg(this.ResourceId, StringTable.GetString(ResourceId), FileNameFilter, ref filterIndex, out string fileName) == Substitutes.DialogResult.OK)
                         {
                             try
                             {
@@ -5100,22 +5359,39 @@ namespace CADability.Actions
         /// is connected to a Text object to provide wysiwyg editing.
         /// Pressing enter or TAB or clicking the mouse proceeds to the next input object. 
         /// </summary>
-        public class EditInput : IInputObject
+        public class EditInput : InputObject, IInputObject
         {
             //private TextEditor editor;
             private StringProperty editBox;
             private Text text;
             private bool isfixed;
             private ConstructAction action;
+
             /// <summary>
             /// Creates a EditInput object
             /// </summary>
             /// <param name="theText">the Text object it is connected with</param>
-            public EditInput(Text theText)
+            public EditInput(Text theText) : base("Text.TextString")
             {
                 text = theText;
                 isfixed = false;
             }
+
+            public string Value
+            {
+                get { return text.TextString; }
+            }
+
+            public void ForceValue(string val)
+            {
+                //No InternalSetEdit implemented
+                //Editinput does not support string SetEditEvent(string) pattern
+                if (ReadOnly) return;
+                text.TextString = val;
+                //constructAction is always null can not call RefreshDependantProperties();
+                //EditInput does not support editProperty.EditChanged()                
+            }
+
             private IInputObject[] forwardMouseInputTo;
             /// <summary>
             /// Mouse input should be forwarded to another input object and only processed
@@ -5144,7 +5420,17 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject Members
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="length">New length value</param>
+            public delegate void InputValueChangedDelegate(string newValue);
+            /// <summary>
+            /// Event will be rasied if the Length property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
+
+            #region IInputObject Members
 
             void IInputObject.Init(ConstructAction a)
             {
@@ -5160,7 +5446,7 @@ namespace CADability.Actions
             {
                 if (editBox == null)
                 {
-                    editBox = new StringProperty(text.TextString, "Text.TextString");
+                    editBox = new StringProperty(text.TextString, ResourceId);
                     editBox.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnEditboxStateChanged);
                     editBox.OnSetValue = OnEditBoxStringChanged;
                     editBox.OnGetValue = delegate () { return text.TextString; };
@@ -5175,6 +5461,7 @@ namespace CADability.Actions
             {
                 text.TextString = val;
                 (this as IInputObject).SetFixed(true);
+                InputValueChangedEvent?.Invoke(val);
             }
             void IInputObject.OnMouse(MouseEventArgs e, CADability.Actions.ConstructAction.MouseState mouseState, IView vw)
             {
@@ -5272,7 +5559,7 @@ namespace CADability.Actions
                 isfixed = isFixed;
                 editBox.Highlight = !isFixed;
             }
-#endregion
+            #endregion
             private void OnEditboxStateChanged(IPropertyEntry sender, StateChangedArgs args)
             {
                 switch (args.EventState)
@@ -5337,6 +5624,16 @@ namespace CADability.Actions
                 showUpDown = showupdown;
                 if (intProperty != null) intProperty.SetMinMax(min, max, showupdown);
             }
+            /// <summary>
+            /// Delegate definiation for <see cref="InputValueChangedEvent"/>
+            /// </summary>
+            /// <param name="length">New length value</param>
+            public delegate void InputValueChangedDelegate(int intValue);
+            /// <summary>
+            /// Event will be rasied if the Angle property changed
+            /// </summary>
+            public event InputValueChangedDelegate InputValueChangedEvent;
+
             int intval;
             public int IntValue
             {
@@ -5346,13 +5643,31 @@ namespace CADability.Actions
                 }
                 set
                 {
+                    if (intval == value)
+                        return;
+
                     intval = value;
                     if (intProperty != null)
-                    {
                         intProperty.Refresh();
-                    }
+
+                    InputValueChangedEvent?.Invoke(value);
                 }
             }
+
+            /// <summary>
+            /// Forces the input object to the specified value. The input filed is updated accordingly.
+            /// </summary>
+            /// <param name="val">the value to set</param>
+            public void ForceValue(int val)
+            {
+                //No InternalSetInt implemented
+                //IntInput does not support SetIntEvent(int) patttern
+                if (ReadOnly) return;
+                intval = val;
+                constructAction.RefreshDependantProperties();
+                intProperty.IntChanged();
+            }
+
             /// <summary>
             /// Creates a IntInput field with no initial value
             /// </summary>
@@ -5408,7 +5723,7 @@ namespace CADability.Actions
                     return forwardMouseInputTo;
                 }
             }
-#region IInputObject Members
+            #region IInputObject Members
             void IInputObject.Init(ConstructAction a)
             {
                 base.Init(a);
@@ -5530,7 +5845,7 @@ namespace CADability.Actions
             {
                 Fixed = isFixed;
             }
-#endregion
+            #endregion
 
             //			private void OnStateChanged(IShowProperty sender, StateChangedArgs args)
             //			{
@@ -5562,8 +5877,17 @@ namespace CADability.Actions
                 constructAction.RefreshDependantProperties();
             }
         }
-#endregion
+        #endregion
         private IInputObject[] InputDefinitions; // das sind die Eingabemöglichkeiten der Aktion (IInputObject)
+        public List<InputObject> GetInputObjects()
+        {
+            List<InputObject> listInputObjectsInternal = new List<InputObject>(InputDefinitions.Length);
+            foreach (InputObject item in InputDefinitions)
+                listInputObjectsInternal.Add(item);
+
+            return listInputObjectsInternal;
+        }
+
         private IPropertyPage propertyTreeView;
         private IPropertyEntry[] SubProperties;
         // Für ShowProperty
@@ -5913,7 +6237,7 @@ namespace CADability.Actions
             IInputObject io = InputObject as IInputObject;
             if (io != null) SetCurrentInputIndex(io, ActivateMouse);
         }
-#region von der Anwenderklasse zu überschreibende Methoden
+        #region von der Anwenderklasse zu überschreibende Methoden
         /// <summary>
         /// Called, when the ConstructAction is done, i.e. all non-optional inputs
         /// have been fixed. The default implementation adds the active object (if it exists)
@@ -6008,7 +6332,7 @@ namespace CADability.Actions
         /// </summary>
         /// <param name="solutionNumber">the 0-based number of solution</param>
         public virtual void OnSolution(int solutionNumber) { }
-#endregion
+        #endregion
         private void OnMouse(MouseEventArgs e, MouseState mouseState, IView vw)
         {
             if (currentInputIndex >= 0)
@@ -6299,8 +6623,8 @@ namespace CADability.Actions
             return ci != currentInputIndex; // true (handled), if the input field changed to the next input
         }
 
-#region Implementierung von IShowProperty
-#endregion
+        #region Implementierung von IShowProperty
+        #endregion
         private IInputObject GetCurrentInputObject()
         {
             if (currentInputIndex >= 0) return InputDefinitions[currentInputIndex];
@@ -6343,7 +6667,7 @@ namespace CADability.Actions
         private void SetCurrentInputIndex(int Index, bool ActivateMouse)
         {
             // diese Abfrage ist wichtig, sonst gibt es eine Endlosschleife
-            if (currentInputIndex == Index) return;
+            if (currentInputIndex == Index) return;            
             currentInputIndex = Index;
             for (int i = 0; i < InputDefinitions.Length; ++i)
             {
@@ -6748,7 +7072,7 @@ namespace CADability.Actions
             OnDone();
         }
 
-#region Background Task
+        #region Background Task
         /*  Aufgabe und Funktionsweise:
          * eine Aktion möchte etwas im Hintergrund berechnen (z.B. ein neues aktives Objekt) und wenn die Berechnung
          * fertig ist dieses Objekt auch darstellen. Das Darstellen selbst darf aber nur im thread context der eigentlichen Aktion stattfinden.
@@ -6839,7 +7163,7 @@ namespace CADability.Actions
             }
             //System.Diagnostics.Trace.WriteLine("WaitForBackgroundTask-Done");
         }
-#endregion
+        #endregion
 
         bool IPropertyEntry.IsOpen { get; set; }
         public event PropertyEntryChangedStateDelegate StateChangedEvent;
