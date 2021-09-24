@@ -99,7 +99,7 @@ namespace CADability.Shapes
             }
             if (flattened)
             {
-                segment = (ICurve2D[])al.ToArray(typeof(ICurve2D));
+                Segments = (ICurve2D[])al.ToArray(typeof(ICurve2D));
                 // hier davon ausgehend, dass nur einstufig verschachtelt war, ansonsten müsste es 
                 // hier rekursiv gehen
             }
@@ -119,7 +119,7 @@ namespace CADability.Shapes
             : this()
         {
             isClosed = IsClosed;
-            segment = (ICurve2D[])SegemntsToAdd.ToArray(typeof(ICurve2D));
+            Segments = (ICurve2D[])SegemntsToAdd.ToArray(typeof(ICurve2D));
             flatten();
             quadTree = new QuadTree(ext);
             quadTree.MaxDeepth = -1; //d.h. dynamisch
@@ -167,7 +167,7 @@ namespace CADability.Shapes
         public Border(ICurve2D[] segments)
             : this()
         {
-            segment = (ICurve2D[])segments.Clone();
+            Segments = (ICurve2D[])segments.Clone();
             flatten();
             bool reversed;
             Recalc(out reversed);
@@ -175,7 +175,7 @@ namespace CADability.Shapes
         public Border(out bool reversed, ICurve2D[] segments)
             : this()
         {
-            segment = (ICurve2D[])segments.Clone();
+            Segments = (ICurve2D[])segments.Clone();
             flatten();
             Recalc(out reversed);
         }
@@ -188,7 +188,7 @@ namespace CADability.Shapes
         public Border(ICurve2D[] segments, bool forceConnected, bool flatten = true)
             : this()
         {
-            segment = (ICurve2D[])segments.Clone();
+            Segments = (ICurve2D[])segments.Clone();
             if (flatten) this.flatten();
             if (forceConnected) forceConnect();
             bool reversed;
@@ -197,7 +197,7 @@ namespace CADability.Shapes
         public Border(ICurve2D onlySegment)
             : this()
         {
-            segment = new ICurve2D[] { onlySegment };
+            Segments = new ICurve2D[] { onlySegment };
             flatten();
             bool reversed;
             Recalc(out reversed);
@@ -209,7 +209,7 @@ namespace CADability.Shapes
             Array.Copy(polyline, closed, polyline.Length);
             closed[polyline.Length] = polyline[0];
             Polyline2D p2d = new Polyline2D(closed);
-            segment = new ICurve2D[] { p2d };
+            Segments = new ICurve2D[] { p2d };
             flatten();
             bool reversed;
             Recalc(out reversed);
@@ -689,7 +689,7 @@ namespace CADability.Shapes
         {
             if (segments.Length == 0) return null;
             Border res = new Border();
-            res.segment = (ICurve2D[])segments.Clone();
+            res.Segments = (ICurve2D[])segments.Clone();
             res.orientation = Orientation.unknown;
             res.isClosed = Precision.IsEqual(res.segment[res.segment.Length - 1].EndPoint, res.segment[0].StartPoint);
 
@@ -735,6 +735,16 @@ namespace CADability.Shapes
             get
             {
                 return segment;
+            }
+            private set
+            {
+                if (segment == value)
+                    return;
+
+                segment = value;
+
+                //Reset UnsplittedOutline to null if the segments changed
+                UnsplittedOutline = null;
             }
         }
         internal GeoPoint2D[] Vertices
@@ -786,7 +796,7 @@ namespace CADability.Shapes
             }
             if (s.Count < segment.Length)
             {
-                segment = s.ToArray();
+                Segments = s.ToArray();
                 bool reversed;
                 Recalc(out reversed);
             }
@@ -826,7 +836,7 @@ namespace CADability.Shapes
                 ICurve2D[] ns = new ICurve2D[endAt - startAt + 1];
                 Array.Copy(segment, startAt, ns, 0, ns.Length);
                 bool reversed;
-                segment = ns;
+                Segments = ns;
                 Recalc(out reversed);
                 return true;
             }
@@ -969,7 +979,7 @@ namespace CADability.Shapes
             ICurve2D[] newsegment = new ICurve2D[segment.Length];
             Array.Copy(segment, newStartIndex, newsegment, 0, segment.Length - newStartIndex);
             Array.Copy(segment, 0, newsegment, segment.Length - newStartIndex, newStartIndex);
-            segment = newsegment;
+            Segments = newsegment;
             segmentToIndex.Clear();
             for (int i = 0; i < segment.Length; ++i)
             {
@@ -1060,7 +1070,7 @@ namespace CADability.Shapes
                 }
             }
             bool wasClosed = isClosed;
-            segment = red.ToArray();
+            Segments = red.ToArray();
             if (wasClosed) forceClosed();
             bool dumy;
             Recalc(out dumy);
@@ -1126,7 +1136,7 @@ namespace CADability.Shapes
                     }
                 }
             }
-            segment = red.ToArray();
+            Segments = red.ToArray();
             if (segment.Length == 0)
             {
                 area = 0.0;
@@ -1141,18 +1151,17 @@ namespace CADability.Shapes
             // they make problems in BorderOperation since the position of the start/endpoint 0.0 ad 1.0 is ambiguous
             if (segment.Length == 1)
             {
-                UnsplittedOutline = segment[0].Clone();
-                segment = segment[0].Split(0.5);
+                ICurve2D orgSegment = segment[0].Clone();                
+                Segments = segment[0].Split(0.5);
 
                 //Save the userdata to the splitted
                 foreach (var item in segment)
-                    item.UserData.Add(UnsplittedOutline.UserData);
+                    item.UserData.Add(orgSegment.UserData);
 
                 bool dumy;
                 Recalc(out dumy);
+                UnsplittedOutline = orgSegment;
             }
-            else
-                UnsplittedOutline = null;
         }
 
         /// <summary>
@@ -3209,7 +3218,7 @@ namespace CADability.Shapes
             }
             if (res.Count > 0)
             {   // also extrem kleine Borders nicht killen
-                segment = res.ToArray();
+                Segments = res.ToArray();
                 bool reversed;
                 Recalc(out reversed);
             }
@@ -3433,7 +3442,7 @@ namespace CADability.Shapes
         {
             ICurve2D[] newsegments = new ICurve2D[lastIndex - firstIndex + 1];
             Array.Copy(segment, firstIndex, newsegments, 0, lastIndex - firstIndex + 1);
-            segment = newsegments;
+            Segments = newsegments;
             bool dumy;
             Recalc(out dumy);
         }
@@ -3631,7 +3640,7 @@ namespace CADability.Shapes
         {   // an der Naht ist dieses Border möglicherweise spitz. Gehe soweit zurück, bis mindestens eine Breite von precision erreicht wird
             if (Area < precision * precision)
             {
-                this.segment = new ICurve2D[0];
+                Segments = new ICurve2D[0];
                 bool rev;
                 Recalc(out rev);
                 return true;
@@ -3643,7 +3652,7 @@ namespace CADability.Shapes
                     double d1 = Math.Abs(segment[0].MinDistance(segment[1].PointAt(0.5)));
                     if (d1 < precision)
                     {
-                        this.segment = new ICurve2D[0];
+                        Segments = new ICurve2D[0];
                         bool rev;
                         Recalc(out rev);
                         return true;
@@ -3676,7 +3685,7 @@ namespace CADability.Shapes
                         {   // aufhören noch genauer zu suchen und hier abschneiden
                             double endpos = (int)(segmentToIndex[mincurve]) + mincurve.PositionOf(segment[0].PointAt(pos));
                             Border[] parts = Split(new double[] { pos, endpos });
-                            this.segment = parts[1].Segments;
+                            Segments = parts[1].Segments;
                             forceClosed();
                             bool reversed;
                             Recalc(out reversed);
@@ -3892,7 +3901,7 @@ namespace CADability.Shapes
         /// <param name="context">StreamingContext</param>
         protected Border(SerializationInfo info, StreamingContext context)
         {
-            segment = (ICurve2D[])InfoReader.Read(info, "Segments", typeof(ICurve2D[]));
+            Segments = (ICurve2D[])InfoReader.Read(info, "Segments", typeof(ICurve2D[]));
         }
         /// <summary>
         /// Implements <see cref="ISerializable.GetObjectData"/>
