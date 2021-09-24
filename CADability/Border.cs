@@ -1155,11 +1155,10 @@ namespace CADability.Shapes
                 Segments = segment[0].Split(0.5);
 
                 //Save the userdata to the splitted
-                foreach (var item in segment)
+                foreach (ICurve2D item in Segments)
                     item.UserData.Add(orgSegment.UserData);
-
-                bool dumy;
-                Recalc(out dumy);
+                                
+                Recalc(out _);
                 UnsplittedOutline = orgSegment;
             }
         }
