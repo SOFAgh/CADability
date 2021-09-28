@@ -2657,7 +2657,9 @@ namespace netDxf.IO
             if (isShapeStyle)
             {
                 // file cannot be null or empty
+#if DEBUG
                 Debug.Assert(!string.IsNullOrEmpty(file), "File path is null or empty.");
+#endif
                 if (string.IsNullOrEmpty(file))
                 {
                     file = FileNotValid + ".SHX";
@@ -2717,7 +2719,9 @@ namespace netDxf.IO
             // the information stored in the extended data takes precedence before the font file (this is only applicable for true type fonts)
             if (string.IsNullOrEmpty(fontFamily))
             {
+#if DEBUG
                 Debug.Assert(!string.IsNullOrEmpty(file), "File path is null or empty.");
+#endif
                 if (string.IsNullOrEmpty(file))
                 {
                     file = "simplex.SHX";
@@ -3024,9 +3028,9 @@ namespace netDxf.IO
             return vport;
         }
 
-        #endregion
+#endregion
 
-        #region block methods
+#region block methods
 
         private Block ReadBlock()
         {
@@ -3155,7 +3159,9 @@ namespace netDxf.IO
 
             if (type.HasFlag(BlockTypeFlags.XRef))
             {
+#if DEBUG
                 Debug.Assert(!string.IsNullOrEmpty(xrefFile), "File path is null or empty.");
+#endif
                 if (string.IsNullOrEmpty(xrefFile))
                 {
                     xrefFile = FileNotValid;
@@ -3649,9 +3655,9 @@ namespace netDxf.IO
             return attribute;
         }
 
-        #endregion
+#endregion
 
-        #region entity methods
+#region entity methods
 
         private DxfObject ReadEntity(bool isBlockEntity)
         {
@@ -9516,9 +9522,9 @@ namespace netDxf.IO
             return lineDefinitions;
         }
 
-        #endregion
+#endregion
 
-        #region object methods
+#region object methods
 
         private void CreateObjectCollection(DictionaryObject namedDict)
         {
@@ -9780,8 +9786,9 @@ namespace netDxf.IO
                         break;
                 }
             }
-
+#if DEBUG
             Debug.Assert(!string.IsNullOrEmpty(file), "File path is null or empty.");
+#endif
             if (string.IsNullOrEmpty(file))
             {
                 file = FileNotValid + ".JPG";
@@ -10546,8 +10553,9 @@ namespace netDxf.IO
                         break;
                 }
             }
-
+#if DEBUG
             Debug.Assert(!string.IsNullOrEmpty(file), "File path is null or empty.");
+#endif
             if (string.IsNullOrEmpty(file))
             {
                 file = FileNotValid;
@@ -10696,9 +10704,9 @@ namespace netDxf.IO
             return entries;
         }
 
-        #endregion
+#endregion
 
-        #region private methods
+#region private methods
 
         private void ReadUnknowData()
         {
@@ -11551,6 +11559,6 @@ namespace netDxf.IO
             return this.doc.MlineStyles.Add(new MLineStyle(name));
         }
 
-        #endregion
+#endregion
     }
 }
