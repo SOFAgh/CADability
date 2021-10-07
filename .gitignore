@@ -343,3 +343,4 @@ healthchecksdb
 # private
 CADability.Forms/Unfold.cs
 CADability.Forms/DebuggerPlayground.cs
+CADability.Forms/LaserParameter.cs

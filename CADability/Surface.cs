@@ -2235,7 +2235,7 @@ namespace CADability.GeoObject
                     }
                     else if (this is NonPeriodicSurface)
                     {
-                        // do not expand extent
+                        if (!usedArea.IsEmpty() && (ext.IsInfinite || ext.IsEmpty() || ext.IsInvalid())) ext = usedArea;
                     }
                     else if (usedArea != BoundingRect.EmptyBoundingRect)
                     {
@@ -3315,6 +3315,7 @@ namespace CADability.GeoObject
         }
         public virtual ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)
         {
+            if (usedArea.IsEmpty()) usedArea = thisBounds;
             ICurve[] sol = BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, new List<GeoPoint>(new GeoPoint[] { seed }));
             if (sol == null || sol.Length == 0) sol = Intersect(thisBounds, other, otherBounds);
             for (int i = 0; i < sol.Length; i++)
@@ -5343,53 +5344,76 @@ namespace CADability.GeoObject
                 return cvs[0].Curve3D; // no good constraint
             }
             return null;
-            // don't know why there was the following test
-            //for (int i = 0; i < cvs.Length; ++i)
-            //{
-            //    ICurve c3d = cvs[i].Curve3D;
-            //    double spar = c3d.PositionOf(points[0]);
-            //    double epar = c3d.PositionOf(points[points.Count - 1]);
-            //    if (c3d is Ellipse)
-            //    {   // es gibt zwei Situationen, in denen ein Kreis entsteht: 
-            //        // der Schnitt senkrecht zur Achse (großer Kreis) und der Schnitt einer Ebene durch die Achse
-            //        // (kleiner Kreis). Der 3. mögliche Fall ist zu selten.
-            //        Ellipse elli = c3d as Ellipse;
-            //        elli.StartParameter = 0.0;
-            //        elli.SweepParameter = Math.PI * 2.0; // damit klare Verhältnisse vorliegen
-            //        elli.StartParameter = elli.ParameterOf(points[0]);
-            //        epar = elli.PositionOf(points[points.Count - 1]); // zwischen 0 und 1
-            //        elli.SweepParameter = epar * Math.PI * 2.0;
-            //        if (points.Count > 2)
-            //        {   // einfacher Fall, Zwischenpunkte prüfen
-            //            int j = points.Count / 2; // mittlerer Punkt
-            //            double pos = elli.PositionOf(points[j]);
-            //            if (pos < 0.0 || pos > 1.0)
-            //            {
-            //                elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
-            //            }
-            //            double dbg = elli.PositionOf(points[points.Count - 1]);
-            //        }
-            //        else
-            //        {   // kein Zwischenpunkt, eigentlich Lage in bounds2 überprüfen
-            //            GeoPoint2D tst = surface2.PositionOf(elli.PointAt(0.5));
-            //            SurfaceHelper.AdjustPeriodic(surface2, bounds2, ref tst);
-            //            if (!bounds2.Contains(tst))
-            //            //if (elli.SweepParameter > Math.PI)
-            //            {
-            //                elli.SweepParameter = elli.SweepParameter - 2.0 * Math.PI;
-            //            }
-            //        }
-            //        return elli;
-            //    }
-            //}
-            //if (cvs.Length == 0)
-            //{  
-            //}
-            //return null;
+        }
+        /// <summary>
+        /// Intersect two surfaces where we can calculate exact intersection curves without approximation. this should be implemented for plane, cylinder, cone, sphere and torus.
+        /// The resulting intersection curves are either infinite or closed.
+        /// </summary>
+        /// <param name="surface1"></param>
+        /// <param name="surface2"></param>
+        /// <returns>null, if not implemented for the provided surfaces, otherwise the intersection curves, which also may be none (empty array)</returns>
+        internal static ICurve[] Intersect(ISurface surface1, ISurface surface2)
+        {   // this should be used for intersections, where no seed points can be calculated. It must be implemented for many combinations, 
+            // this is only a start here.
+            if (surface1 is PlaneSurface ps1 && surface2 is PlaneSurface ps2)
+            {   // the simplest case
+                if (ps1.Plane.Intersect(ps2.Plane, out GeoPoint loc, out GeoVector dir))
+                {
+                    return new ICurve[] { Line.TwoPoints(loc, loc + dir) };
+                }
+                else return new ICurve[0];
+            }
+            if (surface2 is PlaneSurface)
+            {   // swap surfaces to need less checks
+                ISurface tmp = surface1;
+                surface1 = surface2;
+                surface2 = tmp;
+            }
+            if (surface1 is PlaneSurface ps && surface2 is ICylinder cy)
+            {   // a plane and a cylinder
+                if (Precision.IsPerpendicular(cy.Axis.Direction,ps.Normal,false))
+                {   // two lines, tangential or no result
+                    Plane lower = new Plane(cy.Axis.Location, cy.Axis.Direction);
+                    GeoPoint2D sp2d = lower.Project(ps.Location);
+                    GeoVector2D dir2d = lower.Project(ps.Normal).ToLeft();
+                    GeoPoint2D[] ips = Geometry.IntersectLC(sp2d, dir2d, GeoPoint2D.Origin, cy.Radius);
+                    ICurve[] res = new ICurve[ips.Length];
+                    for (int i = 0; i < ips.Length; i++)
+                    {
+                        GeoPoint p = lower.ToGlobal(ips[i]);
+                        res[i] = Line.TwoPoints(p, p + cy.Axis.Direction);
+                    }
+                    return res;
+                }
+                // otherwise we have a circle or an ellipse
+                GeoPoint cnt = ps.Plane.Intersect(cy.Axis.Location, cy.Axis.Direction);
+                Ellipse elli = Ellipse.Construct();
+                if (Precision.SameDirection(ps.Plane.Normal, cy.Axis.Direction, false))
+                {   // this is a perpendicular intersection, the result will be a circle
+                    cy.Axis.Direction.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+                    dirx.Length = cy.Radius;
+                    diry.Length = cy.Radius;
+                    elli.SetEllipseArcCenterAxis(cnt, dirx, diry, 0, Math.PI * 2.0);
+                    return new ICurve[] { elli };
+                }
+                else if (!Precision.IsPerpendicular(cy.Axis.Direction, ps.Plane.Normal, false))
+                {
+                    GeoVector minAx = cy.Axis.Direction ^ ps.Plane.Normal;
+                    minAx.Length = cy.Radius;
+                    GeoPoint2D[] ips = surface2.GetLineIntersection(cnt, minAx ^ ps.Plane.Normal);
+                    if (ips != null && ips.Length > 0)
+                    {
+                        GeoVector majAx = surface2.PointAt(ips[0]) - cnt;
+                        elli.SetEllipseCenterAxis(cnt, majAx, minAx);
+                        return new ICurve[] { elli };
+                    }
+                }
+            }
+            return null;
         }
         internal static ICurve Intersect(ISurface surface1, BoundingRect bounds1, ISurface surface2, BoundingRect bounds2, List<GeoPoint> points)
         {   // es muss einen Schnitt geben, sonst wird das hier garnicht aufgerufen, schließlich gibt es ja auch schon Punkte
-            if (surface1 is PlaneSurface && surface2 is PlaneSurface)
+            if (surface1 is PlaneSurface && surface2 is PlaneSurface && points.Count==2)
             {   // hier sind die beiden Punkte schon bekannt und richtig
                 Line line = Line.Construct();
                 line.SetTwoPoints(points[0], points[points.Count - 1]);
@@ -6357,7 +6381,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         internal static ICurve[] Intersect(ICylinder cylinder1, ICylinder cylinder2)
         {
-            if (Precision.SameDirection(cylinder1.Axis.Direction, cylinder2.Axis.Direction,false))
+            if (Precision.SameDirection(cylinder1.Axis.Direction, cylinder2.Axis.Direction, false))
             {
 
             }
@@ -12661,6 +12685,7 @@ namespace CADability.GeoObject
             SortedSet<double> vVal1 = new SortedSet<double>();
             SortedSet<double> uVal2 = new SortedSet<double>();
             SortedSet<double> vVal2 = new SortedSet<double>();
+            if ((other as ISurfaceImpl).usedArea.IsEmpty()) (other as ISurfaceImpl).usedArea = otherBounds;
             BoxedSurfaceEx otherBS = (other as ISurfaceImpl).BoxedSurfaceEx;
             foreach (ParEpi pe in octtree.GetAllObjects())
             {

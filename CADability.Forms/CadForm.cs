@@ -101,13 +101,17 @@ namespace CADability.Forms
             preProcess = preProcess || (nmKeyData == Keys.Tab) || (nmKeyData == Keys.Enter);
             preProcess = preProcess || keyData.HasFlag(Keys.Control) || keyData.HasFlag(Keys.Alt); // menu shortcut
             if (propertiesExplorer.EntryWithTextBox == null) preProcess |= (nmKeyData == Keys.Delete); // the delete key is preferred by the textbox, if there is one 
+            Substitutes.KeyEventArgs e = new Substitutes.KeyEventArgs((Substitutes.Keys)keyData);
             if (preProcess)
             {
-                Substitutes.KeyEventArgs e = new Substitutes.KeyEventArgs((Substitutes.Keys)keyData);
                 e.Handled = false;
                 cadFrame.PreProcessKeyDown(e);
                 if (e.Handled) return true;
             }
+            CadFrame.PreProcessKeyDown(e);
+            if (e.Handled) return true;
+            //if (msg.Msg== 0x0101) // WM_KEYUP 
+            //{ }
             return base.ProcessCmdKey(ref msg, keyData);
         }
 

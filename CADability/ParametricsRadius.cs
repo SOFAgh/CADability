@@ -104,7 +104,10 @@ namespace CADability
             if (shell != null && length > 0.0)
             {
                 Parametrics pm = new Parametrics(shell);
-                if (pm.ModifyFilletRadius(facesWithRadius, length))
+                bool ok = false;
+                if (facesWithRadius.Length == 1) ok = pm.ModifyRadius(facesWithRadius[0], length);
+                else ok = pm.ModifyFilletRadius(facesWithRadius, length);
+                if (ok)
                 {
                     Shell sh = pm.Result(out HashSet<Face> involvedFaces);
                     if (sh != null)

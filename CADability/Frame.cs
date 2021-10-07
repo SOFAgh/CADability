@@ -762,8 +762,8 @@ namespace CADability
         public virtual void PreProcessKeyDown(KeyEventArgs e)
         {
             // it is difficult to find an order of processing: 
-            // the constructaction processes the enter key, no chance to use it in a listbox for the selection
-            // the propertypage processes the tab key, no chance to use it in the action for "next modal input field"
+            // the construct-action processes the enter key, no chance to use it in a list-box for the selection
+            // the property page processes the tab key, no chance to use it in the action for "next modal input field"
             // we need to replace the KeyEventArgs class by a CADability class anyhow, we could introduce a first-pass, second-pass member
             // to solve this problem
             if (e.Handled) return;

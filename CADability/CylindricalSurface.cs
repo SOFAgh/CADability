@@ -13,7 +13,7 @@ namespace CADability.GeoObject
     /// </summary>
     public interface ICylinder
     {
-        Axis Axis { get; }
+        Axis Axis { get; set;  }
         double Radius { get; set; }
         bool OutwardOriented { get; }
     }
@@ -2308,7 +2308,14 @@ namespace CADability.GeoObject
         #endregion
         public bool OutwardOriented => toCylinder.Determinant > 0;
 
-        Axis ICylinder.Axis => new Axis(Location, ZAxis);
+        Axis ICylinder.Axis
+        {
+            get => new Axis(Location, ZAxis);
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
 
         double ICylinder.Radius
         {

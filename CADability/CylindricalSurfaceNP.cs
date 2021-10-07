@@ -533,10 +533,9 @@ namespace CADability.GeoObject
                 List<ICurve> res = new List<ICurve>();
                 for (int i = 0; i < dsc.Length; i++)
                 {
-                    if (dsc[i].Curve2D2 is Ellipse2D e2d)
-                    {
-                    }
+                    res.Add(dsc[i].Curve3D);
                 }
+                return res.ToArray();
             }
             if (other is ICylinder cylo)
             {
@@ -544,7 +543,22 @@ namespace CADability.GeoObject
             }
             return base.Intersect(thisBounds, other, otherBounds);
         }
-        Axis ICylinder.Axis => new Axis(location, zAxis);
+        Axis ICylinder.Axis
+        {
+            get => new Axis(location, zAxis);
+            set
+            {
+                double r = xAxis.Length;
+                yAxis = value.Direction ^ xAxis;
+                yAxis.Length = r;
+                xAxis = yAxis ^ value.Direction;
+                xAxis.Length = r;
+                r = zAxis.Length;
+                zAxis = value.Direction;
+                zAxis.Length = r;
+                location = value.Location;
+            }
+        }
 
         double ICylinder.Radius
         {
