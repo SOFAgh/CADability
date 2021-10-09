@@ -1733,7 +1733,8 @@ namespace CADability
     /// OpenGL wrapper methods and constants. See OpenGL documentation for more information.
     /// </summary>
 
-    public class Gl
+    [CLSCompliant(false)]
+    public static class Gl
     {
         public const int GL_MATRIX4_ARB = 0x000088c4;
         public const int GL_COMPRESSED_RGBA_S3TC_DXT3_EXT = 0x000083f2;
@@ -51878,7 +51879,7 @@ namespace CADability
         */
     }
 
-    public class Glu
+    public static class Glu
     {
         private const CallingConvention CALLING_CONVENTION = CallingConvention.Winapi;
         [StructLayout(LayoutKind.Sequential)]
@@ -51908,7 +51909,7 @@ namespace CADability
         public static extern void gluPickMatrix(double x, double y, double width, double height, [In] int[] viewport);
     }
 
-    public class User
+    public static class User
     {
         private const CallingConvention CALLING_CONVENTION = CallingConvention.StdCall;
         private const string USER_NATIVE_LIBRARY = "user32.dll";
@@ -51918,7 +51919,7 @@ namespace CADability
         public static extern IntPtr GetDC(IntPtr windowHandle);
     }
 
-    public class Gdi
+    public static class Gdi
     {
         private const CallingConvention CALLING_CONVENTION = CallingConvention.StdCall;
         private const string GDI_NATIVE_LIBRARY = "gdi32.dll";
@@ -52203,12 +52204,12 @@ namespace CADability
             ///					256-color mode only. For such systems to use hardware acceleration, the hardware palette must be in
             ///					a fixed order (for example, 3-3-2) when in RGBA mode or must match the logical palette when in
             ///					color-index mode.
-            ///					
+            ///
             ///					When this flag is set, you must call SetSystemPaletteUse in your program to force a one-to-one
             ///					mapping of the logical palette and the system palette. If your OpenGL hardware supports multiple
             ///					hardware palettes and the device driver can allocate spare hardware palettes for OpenGL, this
             ///					flag is typically clear.
-            ///					
+            ///
             ///					This flag is not set in the generic pixel formats.
             ///				</description>
             ///			</item>
@@ -52504,9 +52505,9 @@ namespace CADability
             public uint abcB;
             public int abcC;
         }
-        [DllImport(GDI_NATIVE_LIBRARY, SetLastError = true, EntryPoint = "GetCharABCWidthsW"), SuppressUnmanagedCodeSecurity]
+        [DllImport(GDI_NATIVE_LIBRARY, SetLastError = true, EntryPoint = "GetCharABCWidthsW"), SuppressUnmanagedCodeSecurity, CLSCompliant(false)]
         public static extern bool GetCharABCWidths(IntPtr hdc, uint uFirstChar, uint uLastChar, [Out] ABC[] lpabc);
-        [DllImport(GDI_NATIVE_LIBRARY, SetLastError = true, EntryPoint = "GetCharWidth32W"), SuppressUnmanagedCodeSecurity]
+        [DllImport(GDI_NATIVE_LIBRARY, SetLastError = true, EntryPoint = "GetCharWidth32W"), SuppressUnmanagedCodeSecurity, CLSCompliant(false)]
         public static extern bool GetCharWidth32(IntPtr hdc, uint uFirstChar, uint uLastChar, [Out] int[] lpwidth);
         [DllImport(GDI_NATIVE_LIBRARY, SetLastError = true), SuppressUnmanagedCodeSecurity]
         public static extern bool DeleteDC(IntPtr hdc);
