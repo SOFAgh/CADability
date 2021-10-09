@@ -2458,6 +2458,7 @@ namespace CADability.GeoObject
                 for (int i = 0; i < 4; i++)
                 {
                     edges[i].ReverseOrientation(res);
+                    edges[i].Curve2D(res).Reverse();
                 }
                 Array.Reverse(edges);
             }

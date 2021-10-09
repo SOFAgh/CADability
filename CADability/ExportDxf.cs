@@ -54,7 +54,7 @@ namespace CADability.DXF
                 case GeoObject.Text text: entity = ExportText(text); break;
                 case GeoObject.Block block: entity = ExportBlock(block); break;
             }
-            if (entity!=null) SetAttributes(entity, geoObject);
+            if (entity != null) SetAttributes(entity, geoObject);
             return entity;
         }
 
@@ -79,7 +79,7 @@ namespace CADability.DXF
                 if (entity != null) entities.Add(entity);
             }
             string name = blk.Name;
-            if (name==null || doc.Blocks.Contains(name) || !TableObject.IsValidName(name)) name = GetNextAnonymousBlockName();
+            if (name == null || doc.Blocks.Contains(name) || !TableObject.IsValidName(name)) name = GetNextAnonymousBlockName();
             netDxf.Blocks.Block block = new netDxf.Blocks.Block(name, entities);
             doc.Blocks.Add(block);
             return new netDxf.Entities.Insert(block);
@@ -155,10 +155,18 @@ namespace CADability.DXF
                     Plane cdbplane = elli.Plane;
                     GeoVector2D dir = dxfPlane.Project(cdbplane.DirectionX);
                     SweepAngle rot = new SweepAngle(GeoVector2D.XAxis, dir);
-                    expelli.Rotation = rot.Degree;
-                    expelli.StartParameter = elli.StartParameter;
-                    expelli.EndParameter = elli.StartParameter + elli.SweepParameter;
-                    // SetEllipseParameters(expelli, elli.StartParameter, elli.StartParameter + elli.SweepParameter);
+                    if (elli.SweepParameter < 0)
+                    {   // there are no clockwise oriented ellipse arcs in dxf
+                        expelli.Rotation = -rot.Degree;
+                        expelli.StartParameter = elli.StartParameter + elli.SweepParameter + Math.PI;
+                        expelli.EndParameter = elli.StartParameter + Math.PI;
+                    }
+                    else
+                    {
+                        expelli.Rotation = rot.Degree;
+                        expelli.StartParameter = elli.StartParameter;
+                        expelli.EndParameter = elli.StartParameter + elli.SweepParameter;
+                    }
                 }
             }
             else

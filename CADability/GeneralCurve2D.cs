@@ -2574,9 +2574,24 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual GeoPoint2DWithParameter[] Intersect(ICurve2D IntersectWith)
         {
-            // Einen QuadTree aufbauen, der die Dreiecke dieser Kurve enthält und adaptiv bei feinerer Auflösung
-            // mitgeht könnte auch nützlich sein
-            if (IntersectWith is GeneralCurve2D)
+            ICurve2D[] sc = null;
+            if (IntersectWith is Path2D pth2d) sc = pth2d.SubCurves;
+            else if (IntersectWith is Polyline2D pl2d) sc = pl2d.GetSubCurves();
+            if (sc != null)
+            {
+                List<GeoPoint2DWithParameter> res = new List<GeoPoint2DWithParameter>();
+                for (int i = 0; i < sc.Length; i++)
+                {
+                    GeoPoint2DWithParameter[] p2ds = Intersect(sc[i]);
+                    for (int j = 0; j < p2ds.Length; j++)
+                    {
+                        p2ds[j].par2 = IntersectWith.PositionOf(p2ds[j].p);
+                    }
+                    res.AddRange(p2ds);
+                }
+                return res.ToArray();
+            }
+            else if (IntersectWith is GeneralCurve2D)
             {
                 return Intersect(this, IntersectWith as GeneralCurve2D);
             }
@@ -2703,7 +2718,7 @@ namespace CADability.Curve2D
                         dx = (fromHere - point) * deriv2 - deriv1 * deriv1;
 
                     }, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance);
-                    if (par!=double.MaxValue) return true;
+                    if (par != double.MaxValue) return true;
                 }
                 else if (NewtonPerpendicular(fromHere, ref par))
                 {
