@@ -3138,6 +3138,9 @@ namespace CADability.GeoObject
             for (int i = 0; i < outline.NumHoles; ++i)
             {
                 p2d = outline.Holes[i].AsPath();
+                // this 2d path is counterclockwise, because all borders are counterclockwise. It is a design error, that in a SimpleShape the holes are counterclockwise
+                // this is why we must reverse it here
+                p2d = p2d.CloneReverse(true) as Path2D;
                 res.holes[i] = new Edge[p2d.SubCurvesCount];
                 for (int j = 0; j < p2d.SubCurvesCount; ++j)
                 {
@@ -9461,7 +9464,6 @@ namespace CADability.GeoObject
             // do single closed edges make problems? For parametric operations we would prefer them
             // not sure, how BRepOperation can deal with it
             // if ((edg1.EndVertex(this) == edg2.StartVertex(this)) && (edg1.StartVertex(this) == edg2.EndVertex(this))) return false; // do not create closed edges
-            if ((edg1.EndVertex(this) == edg2.StartVertex(this)) && (edg1.StartVertex(this) == edg2.EndVertex(this))) { }
 
             // now edg1 and edg2 are both forward oriented on this face and edg1 precedes edg2
             ICurve combined = Curves.Combine(edg1.Curve3D, edg2.Curve3D, Precision.eps);
@@ -10372,6 +10374,19 @@ namespace CADability.GeoObject
                     {
                         if (outline[i].Curve2D(this).DirectionAt(0.5).IsMoreHorizontal != sae.ExtrusionDirectionIsV)
                             tangentialFaces.Add(outline[i].OtherFace(this)); // OK, this is not necessarily the case
+                    }
+                }
+                if (tangentialFaces.Count == 2) return true;
+            }
+            else if (Surface is ICylinder cy)
+            {
+                HashSet<Face> tangentialFaces = new HashSet<Face>();
+                for (int i = 0; i < outline.Length; i++)
+                {
+                    if (outline[i].IsTangentialEdge())
+                    {
+                        if (Precision.SameDirection(outline[i].Curve3D.DirectionAt(0.5), cy.Axis.Direction, false))
+                            tangentialFaces.Add(outline[i].OtherFace(this));
                     }
                 }
                 if (tangentialFaces.Count == 2) return true;
