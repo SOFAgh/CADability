@@ -52524,7 +52524,7 @@ namespace CADability
 
     }
 
-    public class Wgl
+    public static class Wgl
     {
         private const CallingConvention CALLING_CONVENTION = CallingConvention.StdCall;
         private const string WGL_NATIVE_LIBRARY = "opengl32.dll";
