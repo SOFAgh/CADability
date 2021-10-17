@@ -152,23 +152,6 @@ namespace CADability
         }
 #region IShowPropertyImpl
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
-        {
-            base.Added(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
-        /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
-        {
-            base.Removed(propertyTreeView);
-        }
-        /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
         /// </summary>
         public override ShowPropertyLabelFlags LabelType
@@ -200,7 +183,7 @@ namespace CADability
         }
         IShowProperty[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -388,7 +371,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
