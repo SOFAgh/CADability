@@ -1,21 +1,30 @@
 ﻿using CADability.Actions;
 using CADability.Attribute;
 using CADability.Curve2D;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.Shapes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Wintellect.PowerCollections;
+using MathNet.Numerics.LinearAlgebra.Factorization;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.GeoObject
 {
-    internal class ShowPropertyShell : IShowPropertyImpl, ICommandHandler, IGeoObjectShowProperty
+    internal class ShowPropertyShell : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty
     {
         Shell shell;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         public ShowPropertyShell(Shell shell, IFrame frame)
             : base(frame)
         {
@@ -23,33 +32,19 @@ namespace CADability.GeoObject
             this.shell = shell;
             attributeProperties = shell.GetAttributeProperties(frame);
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                if (subEntries == null) return attributeProperties.Length + shell.Faces.Length;
-                else return subEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
+        private IPropertyEntry[] subEntries;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> se = new List<IShowProperty>();
+                    List<IPropertyEntry> se = new List<IPropertyEntry>();
                     se.Add(new NameProperty(this.shell, "Name", "Solid.Name"));
                     foreach (Face face in shell.Faces)
                     {
-                        IShowProperty sp = face.GetShowProperties(base.Frame);
+                        IPropertyEntry sp = face.GetShowProperties(base.Frame);
                         sp.ReadOnly = true;
                         se.Add(sp);
                     }
@@ -60,7 +55,7 @@ namespace CADability.GeoObject
             }
         }
         /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Opened (bool)"/>
+        /// Overrides <see cref="PropertyEntryImpl.Opened (bool)"/>
         /// </summary>
         /// <param name="IsOpen"></param>
         public override void Opened(bool IsOpen)
@@ -73,13 +68,6 @@ namespace CADability.GeoObject
                 //{
                 //    subEntries[i].ReadOnly = true;
                 //}
-            }
-        }
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
             }
         }
         public override MenuWithHandler[] ContextMenu
@@ -174,7 +162,7 @@ namespace CADability.GeoObject
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
         #endregion
     }
@@ -186,6 +174,7 @@ namespace CADability.GeoObject
         private Edge[] edges; // sekundär: alle gesammelten edges
         private string name; // aus STEP oder IGES kommen benannte solids (Shells, Faces?)
         private bool orientedAndSeamless; // soll bedeuten, dass alle Faces "outwardoriented" sind und es keine Säume gibt (Kanten, die ein Face mit sich verbinden)
+        private GeoObjectList featureAxis;
         #region polymorph construction
         public delegate Shell ConstructionDelegate();
         public static ConstructionDelegate Constructor;
@@ -231,6 +220,26 @@ namespace CADability.GeoObject
                 return edges;
             }
         }
+
+        internal bool ShowFeatureAxis
+        {
+            get
+            {
+                if (FeatureAxis.Count > 0) return FeatureAxis[0].IsVisible;
+                return false;
+            }
+            set
+            {
+                using (new ChangingAttribute(this, "ShowFeatureAxis", !value))
+                {
+                    for (int i = 0; i < FeatureAxis.Count; i++)
+                    {
+                        FeatureAxis[i].IsVisible = value;
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Returns all <see cref="Face">Faces</see> of this shell. Do not modify the returned array since it is
         /// (for better performance) the original array contained in this Shell.
@@ -246,14 +255,52 @@ namespace CADability.GeoObject
         {
             get
             {
-                Set<Vertex> res = new Set<Vertex>();
+                HashSet<Vertex> res = new HashSet<Vertex>();
                 foreach (Face fc in Faces)
                 {
-                    res.AddMany(fc.Vertices);
+                    res.UnionWith(fc.Vertices);
                 }
                 return res.ToArray();
             }
         }
+        public double Volume(double precision)
+        {
+            double sum = 0.0;
+            double corr = 0.0;
+            foreach (Face fc in Faces)
+            {
+                fc.GetTriangulation(precision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
+                // tried to use normals for correction, but the distance from plane had better results
+                //GeoVector[] triangleNormals = new GeoVector[triangleUVPoint.Length];
+                //for (int i = 0; i < triangleUVPoint.Length; i++)
+                //{
+                //    triangleNormals[i] = fc.Surface.GetNormal(triangleUVPoint[i]).Normalized;
+                //}
+                for (int i = 0; i < triangleIndex.Length; i += 3)
+                {
+                    // use the signed volume of the tetrahedron from the origin to the triangle 
+                    sum += trianglePoint[triangleIndex[i]].x * trianglePoint[triangleIndex[i + 1]].y * trianglePoint[triangleIndex[i + 2]].z -
+                           trianglePoint[triangleIndex[i]].x * trianglePoint[triangleIndex[i + 1]].z * trianglePoint[triangleIndex[i + 2]].y -
+                           trianglePoint[triangleIndex[i]].y * trianglePoint[triangleIndex[i + 1]].x * trianglePoint[triangleIndex[i + 2]].z +
+                           trianglePoint[triangleIndex[i]].y * trianglePoint[triangleIndex[i + 1]].z * trianglePoint[triangleIndex[i + 2]].x +
+                           trianglePoint[triangleIndex[i]].z * trianglePoint[triangleIndex[i + 1]].x * trianglePoint[triangleIndex[i + 2]].y -
+                           trianglePoint[triangleIndex[i]].z * trianglePoint[triangleIndex[i + 1]].y * trianglePoint[triangleIndex[i + 2]].x;
+                    // if the triangle is not planar (a point in the middle has some distance to the triangle) then we use a correction value
+                    // which was experimentally set to 3/4 of the "thick triangle". The calculation can certainly be made easier 
+                    try
+                    {
+                        Plane pln = new Plane(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
+                        double d = pln.Distance(fc.Surface.PointAt(new GeoPoint2D(triangleUVPoint[triangleIndex[i]], triangleUVPoint[triangleIndex[i + 1]], triangleUVPoint[triangleIndex[i + 2]])));
+                        GeoVector cp = (trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]]) ^ (trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
+                        double a = cp.Length / 2.0; // area of the triangle
+                        corr += a * d * 3 / 4; // 3/4 is a good value for spheres and cylinders
+                    }
+                    catch (PlaneException pe) { }
+                }
+            }
+            return sum / 6 + corr;
+        }
+
         /// <summary>
         /// The name of the shell. 
         /// </summary>
@@ -347,7 +394,7 @@ namespace CADability.GeoObject
             for (int i = 0; i < faces.Length; i++)
             {   // nicht sicher ob das notwendig ist
                 faces[i].CheckPeriodic(); // macht wie Area
-                //SimpleShape forceArea = faces[i].Area;
+                                          //SimpleShape forceArea = faces[i].Area;
                 faces[i].ForceTriangulation(-1.0);
             }
         }
@@ -368,6 +415,7 @@ namespace CADability.GeoObject
                 SimpleShape ss = face.Area;
             }
         }
+
         /// <summary>
         /// Returns a SimpleShape with the outline and holes of the shadow of the projection of the shell perpendicular on the provided plane.
         /// </summary>
@@ -377,12 +425,13 @@ namespace CADability.GeoObject
         {
 #if DEBUG
             GeoObjectList dbg = new GeoObjectList();
-            ColorDef cd1 = new Attribute.ColorDef("cd1", System.Drawing.Color.Red);
-            ColorDef cd2 = new Attribute.ColorDef("cd2", System.Drawing.Color.Blue);
+            ColorDef cd1 = new Attribute.ColorDef("cd1", Color.Red);
+            ColorDef cd2 = new Attribute.ColorDef("cd2", Color.Blue);
             Dictionary<SimpleShape, Face> dict = new Dictionary<SimpleShape, Face>();
 #endif
             BoundingRect ext = BoundingRect.EmptyBoundingRect;
             List<SimpleShape> sortedShapes = new List<SimpleShape>();
+            double prec = 0.0;
             for (int i = 0; i < faces.Length; i++)
             {
                 SimpleShape sh = faces[i].GetShadow(onThisPlane);
@@ -397,9 +446,10 @@ namespace CADability.GeoObject
 #endif
                     sortedShapes.Add(sh); // einfachste Art das größte zuesrt zu haben
                     ext.MinMax(sh.GetExtent());
+                    prec = Math.Max(prec, ext.Size);
                 }
             }
-            double prec = ext.Size * 1e-4;
+            prec *= 1e-6; // to remove extremely small shapes
             for (int i = sortedShapes.Count - 1; i >= 0; --i)
             {
                 SimpleShape sh = sortedShapes[i];
@@ -536,8 +586,8 @@ namespace CADability.GeoObject
         {
 #if DEBUG
             GeoObjectList dbg = new GeoObjectList();
-            ColorDef cd1 = new Attribute.ColorDef("cd1", System.Drawing.Color.Red);
-            ColorDef cd2 = new Attribute.ColorDef("cd2", System.Drawing.Color.Blue);
+            ColorDef cd1 = new Attribute.ColorDef("cd1", Color.Red);
+            ColorDef cd2 = new Attribute.ColorDef("cd2", Color.Blue);
             Dictionary<SimpleShape, Face> dict = new Dictionary<SimpleShape, Face>();
 #endif
             BoundingRect ext = BoundingRect.EmptyBoundingRect;
@@ -766,7 +816,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override CADability.UserInterface.IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyShell(this, Frame);
         }
@@ -830,25 +880,25 @@ namespace CADability.GeoObject
             // typically there is one side of the triangles, which is parallel to the axis. So let us try to find parallel triengla edges
             throw new NotImplementedException();
             int nTriple = points.Length / 3;
-            Matrix m = new Matrix(nTriple + 1, 3);
-            Matrix b = new Matrix(nTriple + 1, 1);
+            Matrix m = new DenseMatrix(nTriple + 1, 3);
+            Vector b = new DenseVector(nTriple + 1);
             for (int i = 0; i < points.Length; i += 3)
             {
                 GeoVector n = ((points[i + 1] - points[i]) ^ (points[i + 2] - points[i])).Normalized;
                 m[i, 0] = n.x;
                 m[i, 1] = n.y;
                 m[i, 2] = n.z;
-                b[i, 0] = 0;
+                b[i] = 0;
             }
             m[nTriple, 0] = m[nTriple, 0] = m[nTriple, 0] = 1;
-            b[nTriple, 0] = 1;
-            QRDecomposition qrd = m.QRD();
-            if (qrd.FullRank)
+            b[nTriple] = 1;
+            QR<double> qrd = m.QR();
+            if (qrd.IsFullRank)
             {
-                Matrix x = qrd.Solve(b);
-                if (x != null)
+                Vector x = (Vector)qrd.Solve(b);
+                if (x.IsValid())
                 {
-                    axisDir = new GeoVector(x[0, 0], x[0, 1], x[0, 2]);
+                    axisDir = new GeoVector(x[0], x[1], x[2]);
                     Plane pln = new Plane(GeoPoint.Origin, axisDir);
                     GeoPoint2D[] points2d = new GeoPoint2D[points.Length];
                     for (int i = 0; i < points.Length; i++)
@@ -896,7 +946,7 @@ namespace CADability.GeoObject
                 Set<Face> c = CollectFaces(fc, allFaces, maxbend);
                 connected.Add(c);
 
-                System.Drawing.Color clr = System.Drawing.Color.FromArgb((int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255));
+                Color clr = Color.FromArgb((int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255));
                 clrdbg += 1;
                 ColorDef cd = new ColorDef(clr.ToString(), clr);
                 foreach (Face fcc in c)
@@ -1047,8 +1097,8 @@ namespace CADability.GeoObject
             Dictionary<Edge, Edge> newEdges = new Dictionary<Edge, Edge>();
             List<Face> res = new List<Face>();
             OctTree<VectorInOctTree> normals = new OctTree<VectorInOctTree>(new BoundingCube(new GeoPoint(1e-5, 1e-5, 1e-5), 1.1), 1e-6); // octtree around the unit cube, 
-            // to collect the normals of all faces. This help to classify the faces
-            // a little bit excentric to collect vetors close to the unit (axis, e.g.: (0,0,1)) in a single OctTree box.
+                                                                                                                                          // to collect the normals of all faces. This help to classify the faces
+                                                                                                                                          // a little bit excentric to collect vetors close to the unit (axis, e.g.: (0,0,1)) in a single OctTree box.
             List<GeoPoint> ndirs = new List<GeoPoint>(); // all normals (on the unit sphere) to check, whether there is a cylinder or cone
             BoundingCube next = BoundingCube.EmptyBoundingCube;
             foreach (Face fc in subsetForTest)
@@ -1097,12 +1147,12 @@ namespace CADability.GeoObject
                         cylPoints.Add(cylConeTest.Project(vtx.Position));
                     }
                     double prec = Geometry.CircleFitLs(cylPoints.ToArray(), out GeoPoint2D cnt2d, out double r);
-                    double maxError = GaussNewtonMinimizer.CylinderFit(new ListToIArray<GeoPoint>(allPoints), cylConeTest.ToGlobal(cnt2d), cylConeTest.Normal, r, precision*100, out CylindricalSurface gncs);
+                    double maxError = GaussNewtonMinimizer.CylinderFit(new ListToIArray<GeoPoint>(allPoints), cylConeTest.ToGlobal(cnt2d), cylConeTest.Normal, r, precision * 100, out CylindricalSurface gncs);
                     maxError = GaussNewtonMinimizer.QuadricFit(new ListToIArray<GeoPoint>(allPoints));
                     if (prec < extent.Size * 1e-3)
                     {
                         prec = Geometry.LineFit(cylPoints.ToArray(), out GeoPoint2D mloc, out GeoVector2D mdir); // this line is the main direction of the cylinder points
-                        // if prec is in the size of r, we have a full cylinder, if it is less than a half circle, all faces are on one side
+                                                                                                                 // if prec is in the size of r, we have a full cylinder, if it is less than a half circle, all faces are on one side
                         GeoPoint center = cylConeTest.ToGlobal(cnt2d);
                         CylindricalSurface cs = new CylindricalSurface(center, r * cylConeTest.DirectionX, r * cylConeTest.DirectionY, cylConeTest.Normal);
                         // split the faces into two parts to make sure, there will be no seam
@@ -1378,7 +1428,7 @@ namespace CADability.GeoObject
                 Random rnd = new Random();
                 foreach (List<int> item in circleCluster)
                 {
-                    System.Drawing.Color clr = System.Drawing.Color.FromArgb((int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255));
+                    Color clr = Color.FromArgb((int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255), (int)(rnd.NextDouble() * 255));
                     ColorDef cd = new ColorDef(clr.ToString(), clr);
                     for (int i = 0; i < item.Count; i++)
                     {
@@ -1759,7 +1809,7 @@ namespace CADability.GeoObject
             if (Layer != null && Layer.Transparency > 0)
                 lists.Add(Layer, false, false, this); // in PaintTo3D wirds dann richtig gemacht
             else lists.Add(Layer, true, true, this); // in PaintTo3D wirds dann richtig gemacht
-            // paintTo3D.PaintSurfaces und paintTo3D.PaintEdges muss richtig eingestellt und zweimal aufgerufen werden
+                                                     // paintTo3D.PaintSurfaces und paintTo3D.PaintEdges muss richtig eingestellt und zweimal aufgerufen werden
         }
         public delegate bool PaintTo3DDelegate(Shell toPaint, IPaintTo3D paintTo3D);
         public static PaintTo3DDelegate OnPaintTo3D;
@@ -1770,14 +1820,11 @@ namespace CADability.GeoObject
         public override void PaintTo3D(IPaintTo3D paintTo3D)
         {
             if (OnPaintTo3D != null && OnPaintTo3D(this, paintTo3D)) return;
-#if DEBUG
-            // CheckConsistency();
-#endif
             if (paintTo3D.PaintSurfaces)
             {
                 for (int i = 0; i < faces.Length; ++i)
                 {
-                    faces[i].PaintFaceTo3D(paintTo3D); // keine edges
+                    faces[i].PaintFaceTo3D(paintTo3D); // does not paint edges
                 }
             }
             if (paintTo3D.PaintEdges && paintTo3D.PaintSurfaceEdges)
@@ -1794,16 +1841,12 @@ namespace CADability.GeoObject
                 paintTo3D.SetLineWidth(null);
                 for (int i = 0; i < Edges.Length; ++i)
                 {
-                    if (!edges[i].IsSeam())
-                    {
-                        IGeoObjectImpl go = edges[i].Curve3D as IGeoObjectImpl;
-                        if (go != null)
-                        {
-                            paintTo3D.SetColor(System.Drawing.Color.Black);
-                            go.PaintTo3D(paintTo3D);
-                        }
-                    }
+                    edges[i].PaintTo3D(paintTo3D);
                 }
+            }
+            for (int i = 0; i < FeatureAxis.Count; i++)
+            {
+                if (FeatureAxis[i].IsVisible) FeatureAxis[i].PaintTo3D(paintTo3D);
             }
         }
         /// <summary>
@@ -1905,7 +1948,11 @@ namespace CADability.GeoObject
                 }
                 for (int i = 0; i < edges.Length; ++i)
                 {
-                    if (edges[i].Curve3D as IGeoObject != null) res.Add(edges[i].Curve3D as IGeoObject);
+                    if (edges[i].Curve3D is IGeoObject go) res.Add(go);
+                }
+                for (int i = 0; i < FeatureAxis.Count; i++)
+                {
+                    res.Add(FeatureAxis[i]);
                 }
                 return res.ToArray();
             }
@@ -2194,6 +2241,10 @@ namespace CADability.GeoObject
                 return true;
             }
         }
+        /// <summary>
+        /// Returns all edges, which have only a <see cref="Edge.PrimaryFace"/>. If there are edges with references to faces, which do not belong to this shell,
+        /// these references are removed and the edges are treated as open edges.
+        /// </summary>
         public Edge[] OpenEdges
         {
             get
@@ -2208,9 +2259,7 @@ namespace CADability.GeoObject
                 foreach (Edge e in edgeset)
                 {
                     if (e.SecondaryFace == null) res.Add(e);
-                    // Achtung: wenn eine Kante auf ein Face außerhalb dieser Shell verweist
-                    // dann wird dieser verweis gelöscht und die Kante als offen betrachtet. Das ist von 
-                    // BRepOperation so gewünscht.
+                    // remove references to faces not contained in this shell. this is explicitly requested by BRepOperation
                     if (!facesset.Contains(e.SecondaryFace))
                     {
                         e.RemoveSecondaryFace();
@@ -2223,6 +2272,42 @@ namespace CADability.GeoObject
                     }
                 }
                 return res.ToArray();
+            }
+        }
+        public GeoObjectList FeatureAxis
+        {
+            get
+            {
+                if (featureAxis == null)
+                {
+                    featureAxis = new GeoObjectList();
+                    HashSet<Face> usedFaces = new HashSet<Face>();
+                    foreach (Face face in Faces)
+                    {
+                        if (usedFaces.Contains(face)) continue; // already used
+                        HashSet<Face> other = face.GetCylindricalConnected();
+                        if (other.Any())
+                        {
+                            if (face.Surface is CylindricalSurface cyl)
+                            {
+                                GeoPoint ll = cyl.PointAt(face.Domain.GetLowerLeft());
+                                GeoPoint ur = cyl.PointAt(face.Domain.GetUpperRight());
+                                GeoPoint sp = Geometry.DropPL(ll, cyl.Location, cyl.ZAxis);
+                                GeoPoint ep = Geometry.DropPL(ur, cyl.Location, cyl.ZAxis);
+                                Line ax = Line.TwoPoints(sp, ep);
+                                ax.Length *= 1.1;
+                                (ax as ICurve).Reverse();
+                                ax.Length *= 1.1;
+                                ax.UserData.Add("CADability.AxisOf", face);
+                                featureAxis.Add(ax);
+                                ax.IsVisible = false;
+                                ax.Owner = this;
+                            }
+                            usedFaces.UnionWith(other);
+                        }
+                    }
+                }
+                return featureAxis;
             }
         }
         public bool HasOpenEdgesExceptPoles()
@@ -2245,7 +2330,7 @@ namespace CADability.GeoObject
             {
                 List<Edge> open = new List<Edge>(OpenEdges);
                 bool ok = true;
-                for (int i = open.Count-1; i >=0; --i)
+                for (int i = open.Count - 1; i >= 0; --i)
                 {
                     if (open[i].Vertex1 == open[i].Vertex2)
                     {
@@ -2255,7 +2340,247 @@ namespace CADability.GeoObject
                 return open.ToArray();
             }
         }
+        /// <summary>
+        /// Close all open edges by adding new faces
+        /// </summary>
+        /// <returns>true, if the Shell is now closed, false otherwise</returns>
+        public bool CloseOpenEdges(Dictionary<Edge, ISurface> proposedSurfaces = null)
+        {
+            using (new Changing(this, "SetFaces", faces.Clone()))
+            {
+                HashSet<Edge> openEdges = new HashSet<Edge>(OpenEdges);
+                if (!openEdges.Any()) return true; // there are no open edges
+                while (openEdges.Any())
+                {
+                    List<Edge> sortedEdges = new List<Edge>();
+                    Edge startWith = openEdges.First();
+                    sortedEdges.Add(startWith);
+                    openEdges.Remove(startWith);
+                    Vertex startVertex = startWith.StartVertex(startWith.PrimaryFace);
+                    Vertex currentVertex = startWith.EndVertex(startWith.PrimaryFace);
+                    do
+                    {
+                        List<Edge> toFollow = currentVertex.ConditionalEdges(delegate (Edge e)
+                        {
+                            return openEdges.Contains(e) && currentVertex == e.StartVertex(e.PrimaryFace);
+                        });
+                        if (toFollow.Count == 1)
+                        {
+                            sortedEdges.Add(toFollow[0]);
+                            currentVertex = toFollow[0].EndVertex(toFollow[0].PrimaryFace);
+                            openEdges.Remove(toFollow[0]);
+                            if (currentVertex == startVertex) break;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    } while (openEdges.Any());
+                    if (startVertex == currentVertex)
+                    {
+                        HashSet<Face> closed = CloseEdgeLoop(sortedEdges, true);
+                        if (closed != null)
+                        {
+                            closed.UnionWith(faces);
+                            faces = closed.ToArray();
+                            edges = null;
+                        }
+                    }
+                }
+                // CombineConnectedFaces(); still problems in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp !!!
+            }
+            return OpenEdges.Length == 0;
+        }
+        /// <summary>
+        /// Takes a (closed) loop of edges of this shell as parameter <paramref name="sortedEdges"/> and tries to create a shell, which connects the edges.
+        /// It heals the hole, described by <paramref name="sortedEdges"/>. The edges are sorted so that following the edges they go clockwise around the hole to fix.
+        /// </summary>
+        /// <param name="sortedEdges">Edges, which only have the <see cref="Edge.PrimaryFace"/> set (the <see cref="Edge.SecondaryFace"/> must be null)</param>
+        /// <returns></returns>
+        public HashSet<Face> CloseEdgeLoop(List<Edge> sortedEdges, bool addToShell)
+        {
+            if (sortedEdges.Count == 1 && sortedEdges[0].Curve3D == null)
+            {
+                return null;
+            }
+            if (sortedEdges.Count == 1 && sortedEdges[0].Vertex1 == sortedEdges[0].Vertex2 && sortedEdges[0].Curve3D.Length < Precision.eps)
+            {
+                sortedEdges[0].PrimaryFace.RemoveEdge(sortedEdges[0]);
+                return null;
+            }
+            if (sortedEdges.Count == 2 && sortedEdges[0].Curve3D == null && sortedEdges[1].Curve3D == null)
+            {
+                // this is a pole: connect the two edges
+                sortedEdges[1].PrimaryFace.ReplaceEdge(sortedEdges[1], sortedEdges[0]);
+                return null;
+            }
+            if (sortedEdges.Count == 2 && sortedEdges[0].Curve3D != null && sortedEdges[1].Curve3D != null)
+            {
+                if (sortedEdges[0].StartVertex(sortedEdges[0].PrimaryFace) == sortedEdges[1].EndVertex(sortedEdges[1].PrimaryFace)
+                    && sortedEdges[0].EndVertex(sortedEdges[0].PrimaryFace) == sortedEdges[1].StartVertex(sortedEdges[1].PrimaryFace)
+                    && Curves.SameGeometry(sortedEdges[0].Curve3D, sortedEdges[1].Curve3D, Precision.eps, out bool reversed))
+                {
+                    sortedEdges[1].PrimaryFace.ReplaceEdge(sortedEdges[1], sortedEdges[0]);
+                    return null;
+                }
+            }
+            // test for simplest case: all edges share a common surface
+            ISurface surface = null;
+            BoundingRect firstDomain = BoundingRect.EmptyBoundingRect;
+            foreach (Edge edge in sortedEdges)
+            {
+                if (surface == null)
+                {
+                    surface = edge.PrimaryFace.Surface;
+                    firstDomain = edge.PrimaryFace.Domain;
+                }
+                else
+                {
+                    if (!surface.SameGeometry(firstDomain, edge.PrimaryFace.Surface, edge.PrimaryFace.Domain, Precision.eps, out ModOp2D dumy))
+                    {
+                        surface = null;
+                        break;
+                    }
+                }
+            }
+            if (surface != null)
+            {
+                // there is a common surface to all open edges
+                sortedEdges.Reverse();
+                Face newFace = Face.Construct();
+                newFace.Surface = surface.Clone();
+                for (int i = 0; i < sortedEdges.Count; i++)
+                {
+                    if (addToShell)
+                    {
+                        sortedEdges[i].SetSecondary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
+                    }
+                    else
+                    {
+                        Edge newEdge = new Edge(newFace, sortedEdges[i].Curve3D); // do we need a clone of Curve3D?
+                        newEdge.SetPrimary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
+                        sortedEdges[i] = newEdge;
+                    }
+                }
+                newFace.Set(surface.Clone(), sortedEdges, new List<List<Edge>>());
+                return new HashSet<Face>(new Face[] { newFace });
+            }
+            ISurface surfaceOfEdges = null; // we look for a surface that all edges share
+            ICurve[] crvs = new ICurve[sortedEdges.Count];
+            List<int> arcs = new List<int>();
+            List<int> ellipticArcs = new List<int>();
+            List<int> lines = new List<int>();
+            List<GeoPoint> pointsForGaussNewton = new List<GeoPoint>();
+            for (int i = 0; i < sortedEdges.Count; i++)
+            {
+                crvs[i] = sortedEdges[i].Curve3D;
+                if (sortedEdges[i].Curve3D is Ellipse elli)
+                {
+                    if (elli.IsCircle) arcs.Add(i);
+                    else ellipticArcs.Add(i);
+                }
+                else if (sortedEdges[i].Curve3D is Line) lines.Add(i);
+                pointsForGaussNewton.Add(sortedEdges[i].Curve3D.StartPoint);
+                pointsForGaussNewton.Add(sortedEdges[i].Curve3D.PointAt(0.333));
+                pointsForGaussNewton.Add(sortedEdges[i].Curve3D.PointAt(0.666));
+            }
+            if (Curves.GetCommonPlane(crvs, out Plane commonPlane))
+            {
+                surfaceOfEdges = new PlaneSurface(commonPlane);
+            }
+            else
+            {
+                GeoPoint cnt = new GeoPoint(pointsForGaussNewton.ToArray());
+                BoundingCube ext = new BoundingCube(pointsForGaussNewton.ToArray());
+                double bestPrecision = double.MaxValue;
+                double error = GaussNewtonMinimizer.CylinderFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.XAxis, ext.Size, Precision.eps, out CylindricalSurface cyx);
+                if (error < Precision.eps && error < bestPrecision)
+                {
+                    surfaceOfEdges = cyx;
+                    bestPrecision = error;
+                }
+                error = GaussNewtonMinimizer.CylinderFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.YAxis, ext.Size, Precision.eps, out CylindricalSurface cyy);
+                if (error < Precision.eps && error < bestPrecision)
+                {
+                    surfaceOfEdges = cyy;
+                    bestPrecision = error;
+                }
+                double dz = GaussNewtonMinimizer.CylinderFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.ZAxis, ext.Size, Precision.eps, out CylindricalSurface cyz);
+                if (dz < Precision.eps && dz < bestPrecision)
+                {
+                    surfaceOfEdges = cyz;
+                    bestPrecision = dz;
+                }
+                error = GaussNewtonMinimizer.SphereFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, ext.Size, Precision.eps, out SphericalSurface ss);
+                if (error < Precision.eps && error < bestPrecision)
+                {
+                    surfaceOfEdges = ss;
+                    bestPrecision = error;
+                }
+                error = GaussNewtonMinimizer.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.XAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csx);
+                if (error < Precision.eps && error < bestPrecision)
+                {
+                    surfaceOfEdges = csx;
+                    bestPrecision = error;
+                }
+                error = GaussNewtonMinimizer.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.YAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csy);
+                if (error < Precision.eps && error < bestPrecision)
+                {
+                    surfaceOfEdges = csy;
+                    bestPrecision = error;
+                }
+                error = GaussNewtonMinimizer.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.ZAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csz);
+                if (error < Precision.eps && error < bestPrecision)
+                {
+                    surfaceOfEdges = csz;
+                    bestPrecision = error;
+                }
+            }
+            // following crashes with 04_PN_1013_S_1205_2_I06_A06_AS_P806_E1_E10.stp
+            //if (surfaceOfEdges != null)
+            //{   // there is a single surface which contains all the edges
+            //    sortedEdges.Reverse();
+            //    Face newFace = Face.Construct();
+            //    newFace.Surface = surfaceOfEdges;
+            //    BoundingRect domain = BoundingRect.EmptyBoundingRect;
+            //    for (int i = 0; i < sortedEdges.Count; i++)
+            //    {
+            //        if (addToShell)
+            //        {
+            //            sortedEdges[i].SetSecondary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
+            //        }
+            //        else
+            //        {
+            //            Edge newEdge = new Edge(newFace, sortedEdges[i].Curve3D); // do we need a clone of Curve3D?
+            //            newEdge.SetPrimary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
+            //            sortedEdges[i] = newEdge;
+            //        }
+            //        if (!domain.IsEmpty()) SurfaceHelper.AdjustPeriodic(surfaceOfEdges, domain, sortedEdges[i].Curve2D(newFace));
+            //        domain.MinMax(sortedEdges[i].Curve2D(newFace).GetExtent());
+            //    }
+            //    ICurve2D[] testOrientation = new ICurve2D[sortedEdges.Count];
+            //    for (int i = 0; i < sortedEdges.Count; i++)
+            //    {
+            //        testOrientation[i] = sortedEdges[i].Curve2D(newFace);
+            //    }
+            //    if (!Border.CounterClockwise(testOrientation))
+            //    {
+            //        ModOp2D reverse = newFace.Surface.ReverseOrientation();
+            //        for (int i = 0; i < testOrientation.Length; i++)
+            //        {
+            //            ICurve2D reversed = testOrientation[i].GetModified(reverse);
+            //            if (sortedEdges[i].PrimaryFace == newFace) sortedEdges[i].PrimaryCurve2D = reversed;
+            //            else sortedEdges[i].SecondaryCurve2D = reversed;
+            //        }
+            //    }
+            //    newFace.Set(newFace.Surface, sortedEdges, new List<List<Edge>>());
+            //    return new HashSet<Face>(new Face[] { newFace });
+            //}
+            // now we have to check whether there are only two or three adjacent surfaces and we can extend them to fill the open edges loop
 
+            // if nothing works: "ear clipping" and adding ruled surfaces
+            return null;
+        }
         public void ReverseOrientation()
         {
             foreach (Face fc in faces)
@@ -2268,7 +2593,7 @@ namespace CADability.GeoObject
 #if DEBUG
             double ll = this.GetExtent(0.0).Size * 0.01;
             DebuggerContainer dc = new DebuggerContainer();
-            ColorDef cd = new ColorDef("debug", System.Drawing.Color.Red);
+            ColorDef cd = new ColorDef("debug", Color.Red);
             foreach (Face fc in faces)
             {
                 SimpleShape ss = fc.Area;
@@ -2751,8 +3076,8 @@ namespace CADability.GeoObject
                     double sor = pToRight * sfn;
 #if DEBUG
                     DebuggerContainer dccond = new CADability.DebuggerContainer();
-                    ColorDef cd1 = new ColorDef("red", System.Drawing.Color.Red);
-                    ColorDef cd2 = new ColorDef("blue", System.Drawing.Color.Blue);
+                    ColorDef cd1 = new ColorDef("red", Color.Red);
+                    ColorDef cd2 = new ColorDef("blue", Color.Blue);
                     Line l1 = Line.TwoPoints(edg.Curve3D.StartPoint, edg.Curve3D.StartPoint + pfn);
                     l1.ColorDef = cd1;
                     dccond.Add(l1);
@@ -2953,10 +3278,10 @@ namespace CADability.GeoObject
                         e4.SetPrimary(connectingFace, new Line2D(c2de1.EndPoint, c2de3.StartPoint), false);
 #if DEBUG
                         DebuggerContainer dco = new DebuggerContainer();
-                        dco.Add(e1.SecondaryCurve2D, System.Drawing.Color.Red, 1);
-                        dco.Add(e3.SecondaryCurve2D, System.Drawing.Color.Red, 3);
-                        dco.Add(e2.PrimaryCurve2D, System.Drawing.Color.Red, 2);
-                        dco.Add(e4.PrimaryCurve2D, System.Drawing.Color.Red, 4);
+                        dco.Add(e1.SecondaryCurve2D, Color.Red, 1);
+                        dco.Add(e3.SecondaryCurve2D, Color.Red, 3);
+                        dco.Add(e2.PrimaryCurve2D, Color.Red, 2);
+                        dco.Add(e4.PrimaryCurve2D, Color.Red, 4);
                         dce.Add(e2.Curve3D as IGeoObject, 22);
                         dce.Add(e4.Curve3D as IGeoObject, 44);
                         DebuggerContainer dcp = new DebuggerContainer();
@@ -3213,8 +3538,8 @@ namespace CADability.GeoObject
             SplitPeriodicFaces();
             RecalcVertices();
             RecalcEdges(); // muss noch ausgebaut werden. Es muss aber stimmig sein, sonst Probleme beim Schneiden
-            // Edges, deren Krümmungsradius unter dist liegt. aufschneiden, an den Stellen, wo der Krümmungsradius genau dist ist.
-            // das hilft selbstüberschneidungen zu vermeiden
+                           // Edges, deren Krümmungsradius unter dist liegt. aufschneiden, an den Stellen, wo der Krümmungsradius genau dist ist.
+                           // das hilft selbstüberschneidungen zu vermeiden
             Shell res = GetRawOffset(dist, parallelEdges);
             BRepSelfIntersection si = new BRepSelfIntersection(res, this, dist);
             return si.Result(allowOpenEdges);
@@ -3580,7 +3905,7 @@ namespace CADability.GeoObject
             get
             {
                 DebuggerContainer res = new DebuggerContainer();
-                ColorDef cd = new ColorDef("normal", System.Drawing.Color.BlueViolet);
+                ColorDef cd = new ColorDef("normal", Color.BlueViolet);
                 BoundingCube bc = this.GetExtent(0.1);
                 foreach (Face fc in Faces)
                 {
@@ -3658,7 +3983,7 @@ namespace CADability.GeoObject
             {
                 if (edg.PrimaryFace == null) continue;
                 edg.RemoveFace(toReplace); // damit wird ggf. Secondary zu Primary
-                // ggf. bei Säumen entsteht ein leeres edge
+                                           // ggf. bei Säumen entsteht ein leeres edge
                 if (edg.PrimaryFace != null && edg.PrimaryFace != toReplace)
                 {
                     affectedFaces.Add(edg.PrimaryFace);
@@ -3679,9 +4004,9 @@ namespace CADability.GeoObject
             }
 #endif
             connectFaces(affectedFaces.ToArray(), precision); // jetzt sind alle Kanten verbunden
-            // aber die Kanten in replaceBy, die aufgebrochen wurden, haben noch innere Punkte, die nicht verbunden sind
-            // auf der einen Seite haben wir die aufgebrochenen Kanten, die nicht wieder verbunden wurden, weli ihr Gegenstück
-            // geteilt wurde, auf der anderen Seite die offenen kanten von replaceby, das sind die geteilten
+                                                              // aber die Kanten in replaceBy, die aufgebrochen wurden, haben noch innere Punkte, die nicht verbunden sind
+                                                              // auf der einen Seite haben wir die aufgebrochenen Kanten, die nicht wieder verbunden wurden, weli ihr Gegenstück
+                                                              // geteilt wurde, auf der anderen Seite die offenen kanten von replaceby, das sind die geteilten
             Set<Vertex> splitVertices = new Set<Vertex>(); // das sollen alle vertices sein, die in replaceBy sind, aber nicht in affected
             foreach (Face fc in replaceBy)
             {
@@ -4085,15 +4410,15 @@ namespace CADability.GeoObject
         internal void ReduceFaces(double precision)
         {
             Set<Face> facesset = new Set<Face>(faces); // die Faces ändern sich ggf.
-            // zuerst mal degenerierte Edges entfernen:
+                                                       // zuerst mal degenerierte Edges entfernen:
             Edge[] alledges = this.Edges;
-            OrderedMultiDictionary<BRepOperationOld.DoubleVertexKey, Edge> dict = new OrderedMultiDictionary<BRepOperationOld.DoubleVertexKey, Edge>(true);
+            OrderedMultiDictionary<DoubleVertexKey, Edge> dict = new OrderedMultiDictionary<DoubleVertexKey, Edge>(true);
             foreach (Edge e in alledges)
             {
-                dict.Add(new BRepOperationOld.DoubleVertexKey(e.Vertex1, e.Vertex2), e);
+                dict.Add(new DoubleVertexKey(e.Vertex1, e.Vertex2), e);
             }
             // Wenn eine Verbindung zweier Vertices öfter vorkommt, dann testen, ob geometrisch identisch
-            foreach (KeyValuePair<BRepOperationOld.DoubleVertexKey, ICollection<Edge>> kv in dict)
+            foreach (KeyValuePair<DoubleVertexKey, ICollection<Edge>> kv in dict)
             {
                 if (kv.Value.Count > 1)
                 {
@@ -4535,32 +4860,16 @@ namespace CADability.GeoObject
                                 }
                             }
 #endif
-
-                            Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse muss sein, das ist überprüft
-                            // ABER: firstToSecond kann um eine Periode verschoben sein, so dass das Ergebnis nicht zusammenpasst
-                            // es müsste noch eine Art AdjustPeriodic für firstToSecond geben
-                            BoundingRect ext = firstoutline.Extent;
-                            ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
-                            if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
-                            if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
-                            //bool skip = false;
-                            //foreach (Edge edg in edge.SecondaryFace.AllEdgesIterated())
-                            //{
-                            //    if (edg.Curve3D is InterpolatedDualSurfaceCurve)
-                            //    {
-                            //        skip = true;
-                            //        break;
-                            //    }
-                            //}
-                            //if (!skip) foreach (Edge edg in edge.PrimaryFace.AllEdgesIterated())
-                            //    {
-                            //        if (edg.Curve3D is InterpolatedDualSurfaceCurve)
-                            //        {
-                            //            skip = true;
-                            //            break;
-                            //        }
-                            //    }
-                            //if (skip) continue; // zu kompliziert mit InterpolatedDualSurfaceCurve
+                            if (edge.PrimaryFace.Surface.IsUPeriodic || edge.PrimaryFace.Surface.IsVPeriodic)
+                            {   // do not combine two faces, which are periodic and in the combination fill the whole period
+                                // these faces are explicitly kept separate
+                                // firstToSecond may move by a whole period. This is not respected here. but with the non periodic surfaces we want to get rid of periodic surfaces anyhow.
+                                Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
+                                BoundingRect ext = firstoutline.Extent;
+                                ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
+                                if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
+                                if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
+                            }
                             toRemove = edge.SecondaryFace.CombineWith(edge.PrimaryFace, firstToSecond);
                             // isolate the face, which will no longer be used:
                             Face faceToRemove = edge.PrimaryFace;
@@ -5342,6 +5651,9 @@ namespace CADability.GeoObject
                 if (i == 0) faceList.Append("#");
                 else faceList.Append(",#");
                 faceList.Append(facenr.ToString());
+#if DEBUG
+                //if (i == 100) break;
+#endif
             }
             int cs;
             if (HasOpenEdgesExceptPoles())
@@ -5354,7 +5666,7 @@ namespace CADability.GeoObject
             }
             if (Owner == null || (Owner is IColorDef && (Owner as IColorDef).ColorDef != colorDef))
             {
-                if (colorDef == null) colorDef = new ColorDef("Black", System.Drawing.Color.Black);
+                if (colorDef == null) colorDef = new ColorDef("Black", Color.Black);
                 colorDef.MakeStepStyle(cs, export);
             }
             if (topLevel)
@@ -5374,6 +5686,57 @@ namespace CADability.GeoObject
             }
         }
 
+        private class ShellToSolid : ICommandHandler
+        {
+            private readonly Shell shell;
+            private readonly IFrame frame;
+            public ShellToSolid(Shell shell, IFrame frame)
+            {
+                this.shell = shell;
+                this.frame = frame;
+            }
+
+            bool ICommandHandler.OnCommand(string MenuId)
+            {
+                if (MenuId == "MenuId.Shell.ToSolid")
+                {
+                    IGeoObjectOwner owner = shell.Owner;
+                    Solid newSolid = null;
+                    if (shell.OpenEdges.Length > 0)
+                    {
+                        if (shell.CloseOpenEdges())
+                        {
+                            newSolid = Solid.MakeSolid(shell);
+                        }
+                    }
+                    else
+                    {
+                        newSolid = Solid.MakeSolid(shell);
+                    }
+                    // ActiveFrame.Frame;
+                    if (newSolid != null)
+                    {
+                        using (frame.Project.Undo.UndoFrame)
+                        {
+                            owner.Remove(shell);
+                            shell.Owner = newSolid; // unfortunately owner.Remove(shell) sets the shell.owner to null
+                            owner.Add(newSolid);
+                        }
+                    }
+                }
+                return false;
+            }
+
+            void ICommandHandler.OnSelected(MenuWithHandler selectedMenu, bool selected)
+            {
+
+            }
+
+            bool ICommandHandler.OnUpdateCommand(string MenuId, CommandState CommandState)
+            {
+                return MenuId == "MenuId.Shell.ToSolid";
+            }
+        }
         /// <summary>
         /// Returns a menu, which is shown when there is a right click on the face
         /// </summary>
@@ -5381,15 +5744,34 @@ namespace CADability.GeoObject
         /// <returns></returns>
         internal MenuWithHandler[] GetContextMenu(IFrame frame)
         {
+            List<MenuWithHandler> res = new List<MenuWithHandler>();
+            if (OpenEdges.Length == 0)
+            {
+                MenuWithHandler mhsol = new MenuWithHandler();
+                mhsol.ID = "MenuId.Shell.ToSolid";
+                mhsol.Text = StringTable.GetString("MenuId.Shell.ToSolid", StringTable.Category.label);
+                mhsol.Target = new ShellToSolid(this, frame);
+                res.Add(mhsol);
+            }
+            else
+            {
+                MenuWithHandler mhsol = new MenuWithHandler();
+                mhsol.ID = "MenuId.Shell.ToSolid";
+                mhsol.Text = StringTable.GetString("MenuId.Shell.CloseToSolid", StringTable.Category.label);
+                mhsol.Target = new ShellToSolid(this, frame);
+                res.Add(mhsol);
+            }
             MenuWithHandler mhsel = new MenuWithHandler();
             mhsel.ID = "MenuId.Selection.Set";
             mhsel.Text = StringTable.GetString("MenuId.Selection.Set", StringTable.Category.label);
             mhsel.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
+            res.Add(mhsel);
             MenuWithHandler mhadd = new MenuWithHandler();
             mhadd.ID = "MenuId.Selection.Add";
             mhadd.Text = StringTable.GetString("MenuId.Selection.Add", StringTable.Category.label);
             mhadd.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
-            return new MenuWithHandler[] { mhsel, mhadd };
+            res.Add(mhadd);
+            return res.ToArray();
         }
     }
 }

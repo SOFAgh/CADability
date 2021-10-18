@@ -1,11 +1,13 @@
 ﻿using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.Shapes;
+using CADability.UserInterface;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using MathNet.Numerics.LinearAlgebra.Factorization;
 
 namespace CADability
 {
@@ -41,7 +43,7 @@ namespace CADability
                 return c[i];
             }
         }
-        public static implicit operator double[] (PolynomSingleVariable p)
+        public static implicit operator double[](PolynomSingleVariable p)
         {
             return p.c;
         }
@@ -105,9 +107,9 @@ namespace CADability
         /// the exponent for each variable, e.g. {0,2,1} means "y²*z"
         /// </summary>
         public int[] exp; // die Exponenten der Variablen
-                          /// <summary>
-                          /// index into the coefficient array c of the polynom
-                          /// </summary>
+        /// <summary>
+        /// index into the coefficient array c of the polynom
+        /// </summary>
         public int index; // der Index in das Koeffizientenarray c
         private Polynom owner;
         public double Coefficient
@@ -166,6 +168,10 @@ namespace CADability
             res.c[0] = c0;
             res.c[1] = c1;
             return res;
+        }
+        static public Polynom SingleDim(params double[] c)
+        {   // to be implemented
+            throw new NotImplementedException();
         }
         /// <summary>
         /// Creates a polynom as specified by the parameters.
@@ -435,6 +441,21 @@ namespace CADability
             res.reduce();
             return res;
         }
+        public static Polynom operator /(Polynom b, double a) => (1 / a) * b;
+        public static Polynom operator *(Polynom b, double a) => a * b;
+        public static Polynom operator ^(Polynom b, int n)
+        {
+            if (n == 2) return b * b;
+            else
+            {
+                Polynom res = b;
+                for (int i = 0; i < n; i++)
+                {
+                    res = res * b;
+                }
+                return res;
+            }
+        }
         /// <summary>
         /// Adds two Polynoms, which must have the same dimension
         /// </summary>
@@ -483,6 +504,13 @@ namespace CADability
         {
             return a - new Polynom(b, a.dim);
         }
+        public static Polynom operator +(Polynom a, double b)
+        {
+            return a + new Polynom(b, a.dim);
+        }
+        public static Polynom operator -(double b, Polynom a) => -(a - b);
+        public static Polynom operator +(double b, Polynom a) => a + b;
+
         // Subtracts polynom b from this and returns the difference. When two coefficients are close to each other, the coefficient is set to 0
         public Polynom Subtract(Polynom b)
         {
@@ -942,13 +970,13 @@ namespace CADability
         {
             if (polynom.Degree != 2) return ModOp2D.Null;
 
-            Matrix A = new Matrix(2, 2);
+            Matrix A = new DenseMatrix(2, 2);
             A[0, 0] = polynom.Get(2, 0);
             A[1, 1] = polynom.Get(0, 2);
             A[0, 1] = A[1, 0] = polynom.Get(1, 1) / 2.0;
-            EigenvalueDecomposition AEigen = A.Eigen();
-            Matrix ev = AEigen.EigenVectors;
-            ModOp2D m1 = new ModOp2D(ev);
+            Evd<double> AEigen = A.Evd();
+            Matrix ev = (Matrix)AEigen.EigenVectors;
+            ModOp2D m1 = new ModOp2D(ev.ToArray());
             Polynom mod1 = polynom.Modified(m1); // the resulting polynom should not have a mixed term x*y 
             mod1.Set(0.0, 1, 1);// these value should be almost zero anyhow.
             double tx = -mod1.Get(1, 0) / (2 * mod1.Get(2, 0));
@@ -1341,8 +1369,99 @@ namespace CADability
             }
             return true;
         }
+
+        internal static Polynom[] Line3d(GeoPoint startPoint, GeoVector direction)
+        {
+            return new Polynom[] { new Polynom(direction.x, "u", startPoint.x, ""), new Polynom(direction.y, "u", startPoint.y, ""), new Polynom(direction.z, "u", startPoint.z, "") };
+        }
     }
 
+    internal class PolynomVector
+    {
+        Polynom x;
+        Polynom y;
+        Polynom z;
+
+        public PolynomVector(double x, double y, double z)
+        {
+            this.x = new Polynom(0, "x", 0, "y", 0, "z", x, "");
+            this.y = new Polynom(0, "x", 0, "y", 0, "z", y, "");
+            this.z = new Polynom(0, "x", 0, "y", 0, "z", z, "");
+        }
+        public PolynomVector(GeoVector c)
+        {
+            this.x = new Polynom(0, "x", 0, "y", 0, "z", c.x, "");
+            this.y = new Polynom(0, "x", 0, "y", 0, "z", c.y, "");
+            this.z = new Polynom(0, "x", 0, "y", 0, "z", c.z, "");
+        }
+        public static PolynomVector xyz => new PolynomVector(new Polynom(1, "x", 0, "y", 0, "z"), new Polynom(0, "x", 1, "y", 0, "z"), new Polynom(0, "x", 0, "y", 1, "z"));
+        public PolynomVector()
+        {
+            this.x = new Polynom(1, "x", 0, "y", 0, "z");
+            this.y = new Polynom(0, "x", 1, "y", 0, "z");
+            this.z = new Polynom(0, "x", 0, "y", 1, "z");
+        }
+        public PolynomVector(Polynom x, Polynom y, Polynom z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        public GeoVector Eval(double[] pos)
+        {
+            return new GeoVector(x.Eval(pos), y.Eval(pos), z.Eval(pos));
+        }
+        public static PolynomVector operator ^(PolynomVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.y * right.z - left.z * right.y,
+                                    left.z * right.x - left.x * right.z,
+                                    left.x * right.y - left.y * right.x);
+        }
+        public static PolynomVector operator ^(PolynomVector left, GeoVector right)
+        {
+            return new PolynomVector(left.y * right.z - left.z * right.y,
+                                    left.z * right.x - left.x * right.z,
+                                    left.x * right.y - left.y * right.x);
+        }
+        public static Polynom operator *(PolynomVector left, PolynomVector right)
+        {
+            return left.x * right.x + left.y * right.y + left.z * right.z;
+        }
+        public static Polynom operator *(GeoVector left, PolynomVector right)
+        {
+            return left.x * right.x + left.y * right.y + left.z * right.z;
+        }
+        public static Polynom operator *(PolynomVector left, GeoVector right)
+        {
+            return left.x * right.x + left.y * right.y + left.z * right.z;
+        }
+        public static PolynomVector operator ^(GeoVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.y * right.z - left.z * right.y,
+                                    left.z * right.x - left.x * right.z,
+                                    left.x * right.y - left.y * right.x);
+        }
+        public static PolynomVector operator *(Polynom left, PolynomVector right)
+        {
+            return new PolynomVector(left * right.x, left * right.y, left * right.z);
+        }
+        public static PolynomVector operator +(PolynomVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.x + right.x, left.y + right.y, left.z + right.z);
+        }
+        public static PolynomVector operator -(PolynomVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.x - right.x, left.y - right.y, left.z - right.z);
+        }
+        public static PolynomVector operator -(PolynomVector left, GeoVector right)
+        {
+            return new PolynomVector(left.x - right.x, left.y - right.y, left.z - right.z);
+        }
+        public static PolynomVector operator -(GeoVector left, PolynomVector right)
+        {
+            return new PolynomVector(left.x - right.x, left.y - right.y, left.z - right.z);
+        }
+    }
     internal class RationalPolynom
     {
         Polynom nominator, denominator; // Zähler, Nenner
@@ -1529,8 +1648,8 @@ namespace CADability
                 for (int i = 0; i < knots.Length - 1; i++)
                 {
                     // a*u³+b*u²+c*u+d=cvx(u) im nicht homogenen Fall
-                    Matrix m = new Matrix(degree + 1, degree + 1);
-                    Matrix b = new Matrix(degree + 1, 3);
+                    Matrix m = new DenseMatrix(degree + 1, degree + 1);
+                    Matrix b = new DenseMatrix(degree + 1, 3);
                     double du = (knots[i + 1] - knots[i]) / degree;
                     for (int j = 0; j < degree + 1; j++)
                     {
@@ -1546,8 +1665,8 @@ namespace CADability
                         b[j, 1] = p.y;
                         b[j, 2] = p.z;
                     }
-                    Matrix x = m.SaveSolve(b);
-                    if (x != null)
+                    Matrix x = (Matrix)m.Solve(b);
+                    if (x.IsValid())
                     {
                         // Matrix dbg = m.QRD().Solve(b);
 
@@ -1593,8 +1712,8 @@ namespace CADability
 
                 for (int i = 0; i < knots.Length - 1; i++)
                 {
-                    Matrix m = new Matrix(4 * (degree + 1), 4 * (degree + 1)); // ist mit 0 vorbesetzt
-                    Matrix b = new Matrix(4 * (degree + 1), 1);
+                    Matrix m = new DenseMatrix(4 * (degree + 1), 4 * (degree + 1)); // ist mit 0 vorbesetzt
+                    Vector b = new DenseVector(4 * (degree + 1));
                     int n = (4 * (degree + 1) - 1 + 2) / 3; // +2, damit aufgerundet wird bei /3
                     double du = (knots[i + 1] - knots[i]) / (n - 1); // (n-1) damit 1. und letzter Knoten-Punkt verwendet wird
                     for (int j = 0; j < n; j++)
@@ -1625,8 +1744,8 @@ namespace CADability
                         m[m.RowCount - 1, k + 3 * (degree + 1)] = 1.0; // letzte Zeile hat für die Koeffizienten von pw nur 1.0, sonst 0.0
                     }
 
-                    b[b.RowCount - 1, 0] = 1.0; // das ganze b ist 0.0 bis auf die letzte Zeile
-                    Matrix x = m.SaveSolve(b);
+                    b[b.Count - 1] = 1.0; // das ganze b ist 0.0 bis auf die letzte Zeile
+                    Vector x = (Vector)m.Solve(b);
                     if (x != null)
                     {
                         ++ok;
@@ -1638,10 +1757,10 @@ namespace CADability
                         for (int j = 0; j < degree + 1; j++)
                         {
                             exp[0] = j;
-                            px[i].Set(x[j, 0], exp);
-                            py[i].Set(x[j + degree + 1, 0], exp);
-                            pz[i].Set(x[j + 2 * (degree + 1), 0], exp);
-                            pw[i].Set(x[j + 3 * (degree + 1), 0], exp);
+                            px[i].Set(x[j], exp);
+                            py[i].Set(x[j + degree + 1], exp);
+                            pz[i].Set(x[j + 2 * (degree + 1)], exp);
+                            pw[i].Set(x[j + 3 * (degree + 1)], exp);
                         }
 #if DEBUG
                         double err = 0.0;
@@ -1689,8 +1808,8 @@ namespace CADability
                 GeoVector dir2 = dir[i + 1];
                 dir1.Length = len;
                 dir2.Length = len;
-                Matrix m = new Matrix(4, 4); // ist mit 0 vorbesetzt
-                Matrix b = new Matrix(4, 3);
+                Matrix m = new DenseMatrix(4, 4); // ist mit 0 vorbesetzt
+                Matrix b = new DenseMatrix(4, 3);
                 m[0, 0] = knots[i] * knots[i] * knots[i];
                 m[0, 1] = knots[i] * knots[i];
                 m[0, 2] = knots[i];
@@ -1719,8 +1838,8 @@ namespace CADability
                 b[3, 0] = dir2.x;
                 b[3, 1] = dir2.y;
                 b[3, 2] = dir2.z;
-                Matrix x = m.SaveSolve(b);
-                if (x != null)
+                Matrix x = (Matrix)m.Solve(b);
+                if (x.IsValid())
                 {
                     // Matrix dbg = m.QRD().Solve(b);
 
@@ -1735,6 +1854,12 @@ namespace CADability
                         px[i].Set(x[j, 0], exp);
                         py[i].Set(x[j, 1], exp);
                         pz[i].Set(x[j, 2], exp);
+#if DEBUG
+                        if (double.IsNaN(x[j, 0])|| double.IsNaN(x[j, 1])||double.IsNaN(x[j, 2]))
+                        {
+
+                        }
+#endif
                     }
                 }
             }
@@ -1822,6 +1947,40 @@ namespace CADability
             else
             {
                 return new GeoVector(px1[ind].Eval(u), py1[ind].Eval(u), pz1[ind].Eval(u));
+            }
+
+        }
+        public GeoVector Direction2At(double u)
+        {
+            int ind = 0;
+            if (knots != null) // nur ein Abschnitt, unendlich
+            {
+                ind = -1;
+                for (int i = 0; i < knots.Length - 1; i++)
+                {
+                    if (knots[i] <= u && knots[i + 1] > u)
+                    {
+                        ind = i;
+                        break;
+                    }
+                }
+                if (ind == -1)
+                {
+                    if (Math.Abs(u - knots[0]) < Math.Abs(u - knots[knots.Length - 1])) ind = 0;
+                    else ind = knots.Length - 2;
+                }
+            }
+            CalcDerivatives(true, true, false);
+            if (pw != null && pw[ind] != null)
+            {
+                double w = pw[ind].Eval(u);
+                double w1 = pw1[ind].Eval(u);
+                double w2 = pw2[ind].Eval(u); // not sure whether the following is correct:
+                return new GeoVector((px2[ind].Eval(u) * w - px[ind].Eval(u) * w2) / (w * w), (py2[ind].Eval(u) * w - py[ind].Eval(u) * w2) / (w * w), (pz2[ind].Eval(u) * w - pz[ind].Eval(u) * w2) / (w * w));
+            }
+            else
+            {
+                return new GeoVector(px2[ind].Eval(u), py2[ind].Eval(u), pz2[ind].Eval(u));
             }
 
         }
@@ -2422,14 +2581,14 @@ namespace CADability
             {
                 if (ppw != null)
                 {
-                    ppx[i] = m.Item(0, 0) * px[i] + m.Item(0, 1) * py[i] + m.Item(0, 2) * pw[i];
-                    ppy[i] = m.Item(1, 0) * px[i] + m.Item(1, 1) * py[i] + m.Item(1, 2) * pw[i];
+                    ppx[i] = m.At(0, 0) * px[i] + m.At(0, 1) * py[i] + m.At(0, 2) * pw[i];
+                    ppy[i] = m.At(1, 0) * px[i] + m.At(1, 1) * py[i] + m.At(1, 2) * pw[i];
                     ppw[i] = pw[i];
                 }
                 else
                 {
-                    ppx[i] = m.Item(0, 0) * px[i] + m.Item(0, 1) * py[i] + new Polynom(m.Item(0, 2), 1);
-                    ppy[i] = m.Item(1, 0) * px[i] + m.Item(1, 1) * py[i] + new Polynom(m.Item(1, 2), 1);
+                    ppx[i] = m.At(0, 0) * px[i] + m.At(0, 1) * py[i] + new Polynom(m.At(0, 2), 1);
+                    ppy[i] = m.At(1, 0) * px[i] + m.At(1, 1) * py[i] + new Polynom(m.At(1, 2), 1);
                 }
             }
             double[] pknots = null;
@@ -2450,8 +2609,8 @@ namespace CADability
                 for (int i = 0; i < knots.Length - 1; i++)
                 {
                     // a*u³+b*u²+c*u+d=cvx(u) im nicht homogenen Fall
-                    Matrix m = new Matrix(degree + 1, degree + 1);
-                    Matrix b = new Matrix(degree + 1, 2);
+                    Matrix m = new DenseMatrix(degree + 1, degree + 1);
+                    Matrix b = new DenseMatrix(degree + 1, 2);
                     double du = (knots[i + 1] - knots[i]) / degree;
                     for (int j = 0; j < degree + 1; j++)
                     {
@@ -2466,8 +2625,8 @@ namespace CADability
                         b[j, 0] = p.x;
                         b[j, 1] = p.y;
                     }
-                    Matrix x = m.SaveSolve(b);
-                    if (x != null)
+                    Matrix x = (Matrix)m.Solve(b);
+                    if (x.IsValid())
                     {
                         // Matrix dbg = m.QRD().Solve(b);
 
@@ -2511,8 +2670,8 @@ namespace CADability
 
                 for (int i = 0; i < knots.Length - 1; i++)
                 {
-                    Matrix m = new Matrix(3 * (degree + 1), 3 * (degree + 1)); // ist mit 0 vorbesetzt
-                    Matrix b = new Matrix(3 * (degree + 1), 1);
+                    Matrix m = new DenseMatrix(3 * (degree + 1), 3 * (degree + 1)); // ist mit 0 vorbesetzt
+                    Vector b = new DenseVector(3 * (degree + 1));
                     int n = (3 * (degree + 1) - 1 + 2) / 3; // +2, damit aufgerundet wird bei /3
                     double du = (knots[i + 1] - knots[i]) / (n - 1); // (n-1) damit 1. und letzter Knoten-Punkt verwendet wird
                     for (int j = 0; j < n; j++)
@@ -2538,8 +2697,8 @@ namespace CADability
                         m[m.RowCount - 1, k + 3 * (degree + 1)] = 1.0; // letzte Zeile hat für die Koeffizienten von pw nur 1.0, sonst 0.0
                     }
 
-                    b[b.RowCount - 1, 0] = 1.0; // das ganze b ist 0.0 bis auf die letzte Zeile
-                    Matrix x = m.SaveSolve(b);
+                    b[b.Count - 1] = 1.0; // das ganze b ist 0.0 bis auf die letzte Zeile
+                    Vector x = (Vector)m.Solve(b);
                     if (x != null)
                     {
                         ++ok;
@@ -2550,9 +2709,9 @@ namespace CADability
                         for (int j = 0; j < degree + 1; j++)
                         {
                             exp[0] = j;
-                            px[i].Set(x[j, 0], exp);
-                            py[i].Set(x[j + degree + 1, 0], exp);
-                            pw[i].Set(x[j + 2 * (degree + 1), 0], exp);
+                            px[i].Set(x[j], exp);
+                            py[i].Set(x[j + degree + 1], exp);
+                            pw[i].Set(x[j + 2 * (degree + 1)], exp);
                         }
 #if DEBUG
                         double err = 0.0;
@@ -2970,6 +3129,66 @@ namespace CADability
             this.polynom = polynom.Modified(m);
         }
         /// <summary>
+        /// Creates a quadric through these points (needs at least 10 points)
+        /// </summary>
+        /// <param name="samples"></param>
+        public ImplicitPSurface(GeoPoint[] samples)
+        {
+            int degree = 2;
+            List<int[]> exp = new List<int[]>();
+            for (int i = 0; i <= degree; i++)
+            {
+                for (int j = 0; j <= degree - i; j++)
+                {
+                    for (int k = 0; k <= degree - i - j; k++)
+                    {
+                        exp.Add(new int[] { i, j, k });
+                    }
+                }
+            }
+            int nUnknown = 10; // exp.Count; // number of unknown coefficients (10 for degree 2, 20 for degree 3)
+            int nPoints = samples.Length;
+            // the linear equations reflect the point: polynom(point)==0
+            // and the derivation: (polynom*d/dx)(point) == normal.x (same with y and z)
+            // which leads to 4 equations (rows in the matrix) per point (and normal)
+
+            int rows = Math.Max((int)Math.Sqrt(nPoints), 2);
+            {
+                Matrix m = new DenseMatrix(nPoints + 1, nUnknown);
+                Vector b = new DenseVector(nPoints + 1);
+                for (int i = 0; i < nPoints; i++)
+                {
+                    // the polynom is zero at a point on the surface
+                    for (int j = 0; j < nUnknown; j++)
+                    {
+                        double d = 1;
+                        for (int k = 0; k < exp[j][0]; k++) d *= samples[i].x;
+                        for (int k = 0; k < exp[j][1]; k++) d *= samples[i].y;
+                        for (int k = 0; k < exp[j][2]; k++) d *= samples[i].z;
+                        m[i, j] = d;
+                    }
+                    b[i] = 0.0;
+                }
+                for (int i = 0; i < nUnknown; i++) m[nPoints, i] = 1.0;
+                b[nPoints] = 1.0; // alle anderen sind 0.0
+                QR<double> qrd = m.QR();
+                // SingularValueDecomposition svd = m.SVD();
+                if (qrd.IsFullRank)
+                {
+                    Vector x = (Vector)qrd.Solve(b);
+                    if (x != null)
+                    {
+                        polynom = new Polynom(degree, 3);
+                        for (int i = 0; i < nUnknown; i++)
+                        {
+                            polynom.Set(x[i], exp[i]);
+                        }
+                    }
+                }
+            }
+            if (polynom == null) throw new ApplicationException("could not create implicit surface");
+        }
+        /// <summary>
         /// Approximate the provided surface with a imlicit polynomial surface. Uses points an normals of the surface. Yields good
         /// results for quadrics (degree==2) and for ruled surfaces.
         /// </summary>
@@ -3004,8 +3223,8 @@ namespace CADability
             double v = uvbounds.Bottom + dv / 2.0;
             if (useNormal)
             {
-                Matrix m = new Matrix(nPoints * 4, nUnknown);
-                Matrix b = new Matrix(nPoints * 4, 1);
+                Matrix m = new DenseMatrix(nPoints * 4, nUnknown);
+                Vector b = new DenseVector(nPoints * 4);
                 for (int i = 0; i < nPoints; i++)
                 {
                     surface.DerivationAt(new GeoPoint2D(u, v), out GeoPoint p, out GeoVector diru, out GeoVector dirv);
@@ -3025,7 +3244,7 @@ namespace CADability
                         for (int k = 0; k < exp[j][2]; k++) d *= p.z;
                         m[4 * i + 0, j] = d;
                     }
-                    b[4 * i + 0, 0] = normal.x;
+                    b[4 * i + 0] = normal.x;
                     for (int j = 0; j < nUnknown; j++)
                     {
                         double d = exp[j][1];
@@ -3034,7 +3253,7 @@ namespace CADability
                         for (int k = 0; k < exp[j][2]; k++) d *= p.z;
                         m[4 * i + 1, j] = d;
                     }
-                    b[4 * i + 1, 0] = normal.y;
+                    b[4 * i + 1] = normal.y;
                     for (int j = 0; j < nUnknown; j++)
                     {
                         double d = exp[j][2];
@@ -3043,7 +3262,7 @@ namespace CADability
                         for (int k = 0; k < exp[j][2] - 1; k++) d *= p.z;
                         m[4 * i + 2, j] = d;
                     }
-                    b[4 * i + 2, 0] = normal.z;
+                    b[4 * i + 2] = normal.z;
                     // the polynom is zero at a point on the surface
                     for (int j = 0; j < nUnknown; j++)
                     {
@@ -3053,19 +3272,19 @@ namespace CADability
                         for (int k = 0; k < exp[j][2]; k++) d *= p.z;
                         m[4 * i + 3, j] = d;
                     }
-                    b[4 * i + 3, 0] = 0.0;
+                    b[4 * i + 3] = 0.0;
                 }
-                QRDecomposition qrd = m.QRD();
+                QR<double> qrd = m.QR();
                 // SingularValueDecomposition svd = m.SVD();
-                if (qrd.FullRank)
+                if (qrd.IsFullRank)
                 {
-                    Matrix x = qrd.Solve(b);
-                    if (x != null)
+                    Vector x = (Vector)qrd.Solve(b);
+                    if (x.IsValid())
                     {
                         polynom = new Polynom(degree, 3);
                         for (int i = 0; i < nUnknown; i++)
                         {
-                            polynom.Set(x[i, 0], exp[i]);
+                            polynom.Set(x[i], exp[i]);
                         }
 #if DEBUG
                         DebuggerContainer dc = new DebuggerContainer();
@@ -3105,8 +3324,8 @@ namespace CADability
             }
             else
             {
-                Matrix m = new Matrix(nPoints + 1, nUnknown);
-                Matrix b = new Matrix(nPoints + 1, 1);
+                Matrix m = new DenseMatrix(nPoints + 1, nUnknown);
+                Vector b = new DenseVector(nPoints + 1);
                 for (int i = 0; i < nPoints; i++)
                 {
                     GeoPoint p = surface.PointAt(new GeoPoint2D(u, v));
@@ -3125,21 +3344,21 @@ namespace CADability
                         for (int k = 0; k < exp[j][2]; k++) d *= p.z;
                         m[i, j] = d;
                     }
-                    b[i, 0] = 0.0;
+                    b[i] = 0.0;
                 }
                 for (int i = 0; i < nUnknown; i++) m[nPoints, i] = 1.0;
-                b[nPoints, 0] = 1.0; // alle anderen sind 0.0
-                QRDecomposition qrd = m.QRD();
+                b[nPoints] = 1.0; // alle anderen sind 0.0
+                QR<double> qrd = m.QR();
                 // SingularValueDecomposition svd = m.SVD();
-                if (qrd.FullRank)
+                if (qrd.IsFullRank)
                 {
-                    Matrix x = qrd.Solve(b);
-                    if (x != null)
+                    Vector x = (Vector)qrd.Solve(b);
+                    if (x.IsValid())
                     {
                         polynom = new Polynom(degree, 3);
                         for (int i = 0; i < nUnknown; i++)
                         {
-                            polynom.Set(x[i, 0], exp[i]);
+                            polynom.Set(x[i], exp[i]);
                         }
 #if DEBUG
                         DebuggerContainer dc = new DebuggerContainer();
@@ -3197,7 +3416,7 @@ namespace CADability
             // Da alle Koeffizienten==0 eine Lösung ist, muss noch eine zusätzliche Gleichung her,
             // die letztlich der (unbedeutenden) Skalierung dient. Ich nehme mal Summe aller Koefffizenten==1
             int n = exp.Count;
-            Matrix m = new Matrix(n, n);
+            Matrix m = new DenseMatrix(n, n);
             // suche ein Punktraster von n-1 Punkten möglichst gleichmäßig in uvbounds verteilt und möglichst nicht auf den Rändern
             int rows = (int)Math.Sqrt(n);
             double dv = uvbounds.Height / rows;
@@ -3225,15 +3444,15 @@ namespace CADability
             // letzte Zeile: Summe aller Koeffizienten = 1
             for (int i = 0; i < n; i++) m[n - 1, i] = 1.0;
             // m[n - 1, 0] = 1.0; // Konstante==1
-            Matrix b = new Matrix(n, 1);
-            b[n - 1, 0] = 1.0; // alle anderen sind 0.0
-            Matrix x = m.SaveSolve(b);
-            if (x != null)
+            Vector b = new DenseVector(n);
+            b[n - 1] = 1.0; // alle anderen sind 0.0
+            Vector x = (Vector)m.Solve(b);
+            if (x.IsValid())
             {
                 polynom = new Polynom(maxdegree, 3);
                 for (int i = 0; i < n; i++)
                 {
-                    polynom.Set(x[i, 0], exp[i]);
+                    polynom.Set(x[i], exp[i]);
                 }
 #if DEBUG
                 double err = 0.0;
@@ -3281,7 +3500,7 @@ namespace CADability
                 // Da alle Koeffizienten==0 eine Lösung ist, muss noch eine zusätzliche Gleichung her,
                 // die letztlich der (unbedeutenden) Skalierung dient. Ich nehme mal Summe aller Koefffizenten==1
                 int n = exp.Count;
-                Matrix m = new Matrix(n, n);
+                Matrix m = new DenseMatrix(n, n);
                 // suche ein Punktraster von n-1 Punkten möglichst gleichmäßig in uvbounds verteilt und möglichst nicht auf den Rändern
                 int rows = (int)Math.Sqrt(n);
                 double dv = uvbounds.Height / rows;
@@ -3309,15 +3528,15 @@ namespace CADability
                 // letzte Zeile: Summe aller Koeffizienten = 1
                 for (int i = 0; i < n; i++) m[n - 1, i] = 1.0;
                 // m[n - 1, 0] = 1.0; // Konstante==1
-                Matrix b = new Matrix(n, 1);
-                b[n - 1, 0] = 1.0; // alle anderen sind 0.0
-                Matrix x = m.SaveSolve(b);
-                if (x != null)
+                Vector b = new DenseVector(n);
+                b[n - 1] = 1.0; // alle anderen sind 0.0
+                Vector x = (Vector)m.Solve(b);
+                if (x.IsValid())
                 {
                     polynom = new Polynom(md, 3);
                     for (int i = 0; i < n; i++)
                     {
-                        polynom.Set(x[i, 0], exp[i]);
+                        polynom.Set(x[i], exp[i]);
                     }
                     double err = 0.0;
                     rows += 1; // damit testet man an völlig anderen Stellen
@@ -3353,16 +3572,16 @@ namespace CADability
         {
             if (polynom.Degree != 2) return ModOp.Null;
 
-            Matrix A = new Matrix(3, 3);
+            Matrix A = new DenseMatrix(3, 3);
             A[0, 0] = polynom.Get(2, 0, 0);
             A[1, 1] = polynom.Get(0, 2, 0);
             A[2, 2] = polynom.Get(0, 0, 2);
             A[0, 1] = A[1, 0] = polynom.Get(1, 1, 0) / 2.0;
             A[0, 2] = A[2, 0] = polynom.Get(1, 0, 1) / 2.0;
             A[1, 2] = A[2, 1] = polynom.Get(0, 1, 1) / 2.0;
-            EigenvalueDecomposition AEigen = A.Eigen();
-            Matrix ev = AEigen.EigenVectors;
-            ModOp m1 = new ModOp(ev);
+            Evd<double> AEigen = A.Evd();
+            Matrix ev = (Matrix)AEigen.EigenVectors;
+            ModOp m1 = new ModOp(ev.ToArray());
             Polynom mod1 = polynom.Modified(m1); // the resulting polynom should not have mixed terms (like x*y or y*z)
             mod1.Set(0.0, 1, 1, 0); // these values should be almost zero anyhow.
             mod1.Set(0.0, 1, 0, 1);
@@ -3658,7 +3877,7 @@ namespace CADability
             // Da alle Koeffizienten==0 eine Lösung ist, muss noch eine zusätzliche Gleichung her,
             // die letztlich der (unbedeutenden) Skalierung dient. Ich nehme mal Summe aller Koefffizenten==1
             int n = exp.Count;
-            Matrix m = new Matrix(pnts.Length + 1, n);
+            Matrix m = new DenseMatrix(pnts.Length + 1, n);
             for (int i = 0; i < pnts.Length; i++)
             {
                 GeoPoint2D p = pnts[i];
@@ -3673,14 +3892,14 @@ namespace CADability
             // letzte Zeile: Summe aller Koeffizienten = 1
             for (int i = 0; i < n; i++) m[pnts.Length, i] = 1.0;
             // m[n - 1, 0] = 1.0; // Konstante==1
-            Matrix b = new Matrix(pnts.Length + 1, 1);
-            b[pnts.Length, 0] = 1.0; // alle anderen sind 0.0
-            m.QRD().Solve(b);
-            Matrix x = m.QRD().Solve(b);
+            Vector b = new DenseVector(pnts.Length + 1);
+            b[pnts.Length] = 1.0; // alle anderen sind 0.0
+            m.QR().Solve(b);
+            Vector x = (Vector)m.QR().Solve(b);
             polynom = new Polynom(maxdegree, 2);
             for (int i = 0; i < n; i++)
             {
-                polynom.Set(x[i, 0], exp[i]);
+                polynom.Set(x[i], exp[i]);
             }
         }
 
@@ -3713,7 +3932,7 @@ namespace CADability
             // es gibt also exp.Count unbekannte, exp sind die Exponenten für u und v
             // Es gilt jetzt die Kofiizienten für die Polynome P(u,v)==PointAt(u,v) zu finden.
             int n = exp.Count;
-            Matrix m = new Matrix(n, n);
+            Matrix m = new DenseMatrix(n, n);
             // px(u,v) == x, analog y und z
             // suche ein Punktraster von n-1 Punkten möglichst gleichmäßig in uvbounds verteilt und möglichst nicht auf den Rändern
             int rows = (int)Math.Sqrt(n);
@@ -3721,7 +3940,7 @@ namespace CADability
             double du = rows * uvbounds.Width / n;
             double u = uvbounds.Left + du / 2.0;
             double v = uvbounds.Bottom + dv / 2.0;
-            Matrix b = new Matrix(n, 3);
+            Matrix b = new DenseMatrix(n, 3);
             for (int i = 0; i < n; i++)
             {
                 GeoPoint p = surface.PointAt(new GeoPoint2D(u, v));
@@ -3742,8 +3961,8 @@ namespace CADability
                 b[i, 1] = p.y;
                 b[i, 2] = p.z;
             }
-            Matrix x = m.SaveSolve(b);
-            if (x != null)
+            Matrix x = (Matrix)m.Solve(b);
+            if (x.IsValid())
             {
                 px = new Polynom(uDegree + vDegree, 2);
                 py = new Polynom(uDegree + vDegree, 2);
@@ -3930,7 +4149,6 @@ namespace CADability
         Polynom[,] px, py, pz, pw, qx, qy, qz;
         // pw, qx, qy, qz können null sein
         // hat die Form x = (px + sqrt(qx))/pw, y, z analog
-
         int uIndex(double u)
         {
             int high = uKnots.Length - 1;
@@ -3961,7 +4179,6 @@ namespace CADability
             }
             return mid;
         }
-
         public override GeoPoint PointAt(GeoPoint2D uv)
         {
             int i = uIndex(uv.x);
@@ -4014,15 +4231,17 @@ namespace CADability
         {
             throw new NotImplementedException();
         }
-
         public override ICurve FixedV(double u, double umin, double umax)
         {
             throw new NotImplementedException();
         }
-
         public override ISurface GetModified(ModOp m)
         {
             throw new NotImplementedException();
+        }
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            return null;
         }
     }
 
@@ -4284,7 +4503,7 @@ namespace CADability
             }
             Polyline dbgip = Polyline.Construct();
             dbgip.SetPoints(pnts, false);
-            Matrix m = new Matrix(10, 10);
+            Matrix m = new DenseMatrix(10, 10);
             double[] u = new double[] { 0, 1 / 8.0, 2 / 8.0, 3 / 8.0, 4 / 8.0, 5 / 8.0, 6 / 8.0, 7 / 8.0, 1 };
             for (int i = 0; i < 9; i++)
             {
@@ -4306,9 +4525,9 @@ namespace CADability
             }
             m[9, 5] = 1;
             m[9, 6] = 1;
-            Matrix b = new Matrix(10, 1);
-            b[9, 0] = 1; // alle anderen 0
-            Matrix x = m.SaveSolve(b);
+            Vector b = new DenseVector(10);
+            b[9] = 1; // alle anderen 0
+            Vector x = (Vector)m.Solve(b);
             for (int i = 0; i < 9; i++)
             {
                 m[i, 0] = u[i] * u[i] * u[i] * u[i];
@@ -4324,7 +4543,7 @@ namespace CADability
             }
             m[9, 5] = 1;
             m[9, 6] = 1;
-            Matrix y = m.SaveSolve(b);
+            Vector y = (Vector)m.Solve(b);
             for (int i = 0; i < 9; i++)
             {
                 m[i, 0] = u[i] * u[i] * u[i] * u[i];
@@ -4340,15 +4559,15 @@ namespace CADability
             }
             m[9, 5] = 1;
             m[9, 6] = 1;
-            Matrix z = m.SaveSolve(b);
-            if (y != null && z != null) // x != null && 
+            Vector z = (Vector)m.Solve(b);
+            if (y.IsValid() && z.IsValid()) // x != null && 
             {
                 //Polynom px = new Polynom(x[0, 0], "u4", x[1, 0], "u3", x[2, 0], "u2", x[3, 0], "u", x[4, 0], "");
                 //Polynom pwx = new Polynom(x[5, 0], "u4", x[6, 0], "u3", x[7, 0], "u2", x[8, 0], "u", x[9, 0], "");
-                Polynom py = new Polynom(y[0, 0], "u4", y[1, 0], "u3", y[2, 0], "u2", y[3, 0], "u", y[4, 0], "");
-                Polynom pwy = new Polynom(y[5, 0], "u4", y[6, 0], "u3", y[7, 0], "u2", y[8, 0], "u", y[9, 0], "");
-                Polynom pz = new Polynom(z[0, 0], "u4", z[1, 0], "u3", z[2, 0], "u2", z[3, 0], "u", z[4, 0], "");
-                Polynom pwz = new Polynom(z[5, 0], "u4", z[6, 0], "u3", z[7, 0], "u2", z[8, 0], "u", z[9, 0], "");
+                Polynom py = new Polynom(y[0], "u4", y[1], "u3", y[2], "u2", y[3], "u", y[4], "");
+                Polynom pwy = new Polynom(y[5], "u4", y[6], "u3", y[7], "u2", y[8], "u", y[9], "");
+                Polynom pz = new Polynom(z[0], "u4", z[1], "u3", z[2], "u2", z[3], "u", z[4], "");
+                Polynom pwz = new Polynom(z[5], "u4", z[6], "u3", z[7], "u2", z[8], "u", z[9], "");
                 double err = 0.0;
                 GeoPoint[] dbgp = new GeoPoint[100];
                 for (int i = 0; i < 100; i++)
@@ -4503,7 +4722,7 @@ namespace CADability
                             u[5] = 1 - u[3];
                             u[6] = 1 - u[2];
                             u[7] = 1 - u[1];
-                            Matrix m = new Matrix(10, 10);
+                            Matrix m = new DenseMatrix(10, 10);
                             GeoPoint[] pnts = new GeoPoint[9];
                             GeoVector dir = p2 - p1;
                             for (int i = 0; i < 9; i++)
@@ -4544,9 +4763,9 @@ namespace CADability
                             }
                             m[9, 5] = 1;
                             m[9, 6] = 1;
-                            Matrix b = new Matrix(10, 1);
-                            b[9, 0] = 1; // alle anderen 0
-                            Matrix x = m.SaveSolve(b);
+                            Vector b = new DenseVector(10);
+                            b[9] = 1; // alle anderen 0
+                            Vector x = (Vector)m.Solve(b);
                             for (int i = 0; i < 9; i++)
                             {
                                 m[i, 0] = u[i] * u[i] * u[i] * u[i];
@@ -4562,7 +4781,7 @@ namespace CADability
                             }
                             m[9, 5] = 1;
                             m[9, 6] = 1;
-                            Matrix y = m.SaveSolve(b);
+                            Vector y = (Vector)m.Solve(b);
                             for (int i = 0; i < 9; i++)
                             {
                                 m[i, 0] = u[i] * u[i] * u[i] * u[i];
@@ -4578,15 +4797,15 @@ namespace CADability
                             }
                             m[9, 5] = 1;
                             m[9, 6] = 1;
-                            Matrix z = m.SaveSolve(b);
-                            if (x != null && y != null && z != null)
+                            Vector z = (Vector)m.Solve(b);
+                            if (x.IsValid() && y.IsValid()&& z.IsValid())
                             {
-                                Polynom px = new Polynom(x[0, 0], "u4", x[1, 0], "u3", x[2, 0], "u2", x[3, 0], "u", x[4, 0], "");
-                                Polynom pwx = new Polynom(x[5, 0], "u4", x[6, 0], "u3", x[7, 0], "u2", x[8, 0], "u", x[9, 0], "");
-                                Polynom py = new Polynom(y[0, 0], "u4", y[1, 0], "u3", y[2, 0], "u2", y[3, 0], "u", y[4, 0], "");
-                                Polynom pwy = new Polynom(y[5, 0], "u4", y[6, 0], "u3", y[7, 0], "u2", y[8, 0], "u", y[9, 0], "");
-                                Polynom pz = new Polynom(z[0, 0], "u4", z[1, 0], "u3", z[2, 0], "u2", z[3, 0], "u", z[4, 0], "");
-                                Polynom pwz = new Polynom(z[5, 0], "u4", z[6, 0], "u3", z[7, 0], "u2", z[8, 0], "u", z[9, 0], "");
+                                Polynom px = new Polynom(x[0], "u4", x[1], "u3", x[2], "u2", x[3], "u", x[4], "");
+                                Polynom pwx = new Polynom(x[5], "u4", x[6], "u3", x[7], "u2", x[8], "u", x[9], "");
+                                Polynom py = new Polynom(y[0], "u4", y[1], "u3", y[2], "u2", y[3], "u", y[4], "");
+                                Polynom pwy = new Polynom(y[5], "u4", y[6], "u3", y[7], "u2", y[8], "u", y[9], "");
+                                Polynom pz = new Polynom(z[0], "u4", z[1], "u3", z[2], "u2", z[3], "u", z[4], "");
+                                Polynom pwz = new Polynom(z[5], "u4", z[6], "u3", z[7], "u2", z[8], "u", z[9], "");
                                 double err = 0.0;
                                 GeoPoint[] dbgp = new GeoPoint[100];
                                 for (int i = 0; i < 100; i++)

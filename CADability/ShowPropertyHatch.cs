@@ -8,11 +8,11 @@ namespace CADability.UserInterface
     /// <summary>
     /// 
     /// </summary>
-    internal class ShowPropertyHatch : IShowPropertyImpl, ICommandHandler, IGeoObjectShowProperty
+    internal class ShowPropertyHatch : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty
     {
         private Hatch hatch;
-        private IShowProperty[] subEntries;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries;
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         private IFrame frame;
         public ShowPropertyHatch(Hatch hatch, IFrame frame)
         {
@@ -21,54 +21,28 @@ namespace CADability.UserInterface
             base.resourceId = "Hatch.Object";
             attributeProperties = hatch.GetAttributeProperties(frame);
         }
-        public IShowProperty GetHatchStyleProperty()
+        public IPropertyEntry GetHatchStyleProperty()
         {
-            return SubEntries[0];
+            return SubItems[0];
         }
-        #region IShowPropertyImpl Overrides
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-
-        public override IShowProperty[] SubEntries
+        #region PropertyEntryImpl Overrides
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    IShowProperty[] mainProps = new IShowProperty[1];
-                    // Die HatchStyleSelectionProperty kommt ja mit den Attributen
-                    //HatchStyleSelectionProperty hssp = new HatchStyleSelectionProperty("Hatch.HatchStyle",frame.Project.HatchStyleList,hatch.HatchStyle,false);
-                    //mainProps[0] = hssp;
-                    //hssp.HatchStyleChangedEvent += new CADability.UserInterface.HatchStyleSelectionProperty.HatchStyleChanged(OnHatchStyleSelectionChanged);
+                    IPropertyEntry[] mainProps = new IPropertyEntry[1];
                     DoubleProperty dp = new DoubleProperty("Hatch.Area", frame);
                     dp.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetArea);
                     dp.Refresh();
                     mainProps[0] = dp;
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
             }
         }
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
-        }
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -79,24 +53,24 @@ namespace CADability.UserInterface
                 return items.ToArray();
             }
         }
-        public override void Added(IPropertyPage propertyTreeView)
+        public override void Added(IPropertyPage propertyPage)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
             hatch.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);
             hatch.UserData.UserDataRemovedEvent += new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
         }
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
             attributeProperties = hatch.GetAttributeProperties(frame);
-            propertyTreeView.Refresh(this);
+            propertyPage.Refresh(this);
         }
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyPage)
         {
             hatch.UserData.UserDataAddedEvent -= new UserData.UserDataAddedDelegate(OnUserDataAdded);
             hatch.UserData.UserDataRemovedEvent -= new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
         }
 
 #endregion
@@ -140,7 +114,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         #region IGeoObjectShowProperty Members
         public event CADability.GeoObject.CreateContextMenueDelegate CreateContextMenueEvent;

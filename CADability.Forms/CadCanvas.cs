@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
+using Graphics = System.Drawing.Graphics;
 
 namespace CADability.Forms
 {
@@ -216,6 +217,7 @@ namespace CADability.Forms
         protected override void OnMouseClick(MouseEventArgs e)
         {   // click seems not to be processed
             base.OnMouseClick(e);
+            this.Focus();
         }
         protected override void OnMouseDown(MouseEventArgs e)
         {

@@ -461,11 +461,10 @@ namespace CADability.GeoObject
             }
         }
         private Text MakeText(GeoPoint2D location, Angle direction, double textSize, Text.AlignMode alignement, string text)
-        {	// neuen horizontalen Text machen
+        {	
             Text res = Text.Construct();
             res.Location = plane.ToGlobal(location);
-            res.LineDirection = plane.ToGlobal(direction.Direction);
-            res.GlyphDirection = plane.ToGlobal(direction.Direction.ToLeft());
+            res.SetDirections(plane.ToGlobal(direction.Direction), plane.ToGlobal(direction.Direction.ToLeft()));
             res.Font = dimStyle.TextFont;
             res.ColorDef = dimStyle.FontColor;
             if (res.ColorDef == null) res.ColorDef = dimStyle.ExtLineColor;
@@ -478,8 +477,7 @@ namespace CADability.GeoObject
         private void MakeText(Text txt, GeoPoint2D location, Angle direction, double textSize, Text.AlignMode alignement)
         {	// bestehendes Textobjekt (es wird gerade editiert) verändern
             txt.Location = plane.ToGlobal(location);
-            txt.LineDirection = plane.ToGlobal(direction.Direction);
-            txt.GlyphDirection = plane.ToGlobal(direction.Direction.ToLeft());
+            txt.SetDirections(plane.ToGlobal(direction.Direction), plane.ToGlobal(direction.Direction.ToLeft()));
             txt.Font = dimStyle.TextFont;
             // res.TextString = text;
             txt.Alignment = alignement; // 0: Grundlinie, 1: unten, 2: zentriert, 3: oben
@@ -2178,7 +2176,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyDimension(this, Frame);
         }
@@ -2197,10 +2195,10 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty[] GetAttributeProperties(IFrame Frame)
+        public override IPropertyEntry[] GetAttributeProperties(IFrame Frame)
         {
-            IShowProperty[] b = base.GetAttributeProperties(Frame);
-            IShowProperty[] res = new IShowProperty[b.Length + 1];
+            IPropertyEntry[] b = base.GetAttributeProperties(Frame);
+            IPropertyEntry[] res = new IPropertyEntry[b.Length + 1];
             Array.Copy(b, 0, res, 0, b.Length);
             res[b.Length] = new DimensionStyleSelectionProperty("DimensionStyle.Selection", Frame.Project.DimensionStyleList, this, dimType, false);
             return res;

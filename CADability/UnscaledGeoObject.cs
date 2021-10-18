@@ -173,13 +173,13 @@ namespace CADability.GeoObject
             return new BoundingCube(location);
         }
         /// <summary>
-        /// Should be overridden and return a <see cref="IShowProperty"/> derived object
+        /// Should be overridden and return a <see cref="IPropertyEntry"/> derived object
         /// that handles the display and modification of the properties of the IGeoObject derived object.
         /// Default implementation return null.
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override CADability.UserInterface.IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyUnscaledGeoObject(this, Frame);
         }
@@ -314,11 +314,11 @@ namespace CADability.GeoObject
         #endregion
     }
 
-    internal class ShowPropertyUnscaledGeoObject : IShowPropertyImpl, ICommandHandler, IGeoObjectShowProperty
+    internal class ShowPropertyUnscaledGeoObject : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty
     {
         private IFrame frame;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-        private IShowProperty[] subEntries;
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries;
         private UnscaledGeoObject unscaledGeoObject;
         public ShowPropertyUnscaledGeoObject(UnscaledGeoObject unscaledGeoObject, IFrame Frame)
         {
@@ -327,36 +327,23 @@ namespace CADability.GeoObject
             attributeProperties = unscaledGeoObject.GetAttributeProperties(frame);
             base.resourceId = "UnscaledGeoObject.Object";
         }
-        #region IShowProperty overrides
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        public override IShowProperty[] SubEntries
+        #region IPropertyEntry overrides
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> prop = new List<IShowProperty>();
+                    List<IPropertyEntry> prop = new List<IPropertyEntry>();
                     GeoPointProperty location = new GeoPointProperty("UnscaledGeoObject.Location", frame, true);
                     location.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetRefPoint);
                     location.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetRefPoint);
                     prop.Add(location);
-                    IShowProperty spgo = unscaledGeoObject.GeoObject.GetShowProperties(frame);
+                    IPropertyEntry spgo = unscaledGeoObject.GeoObject.GetShowProperties(frame);
                     prop.Add(spgo);
-                    IShowProperty[] mainProps = prop.ToArray();
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    IPropertyEntry[] mainProps = prop.ToArray();
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
             }
@@ -368,16 +355,6 @@ namespace CADability.GeoObject
         private void OnSetRefPoint(GeoPointProperty sender, GeoPoint p)
         {
             unscaledGeoObject.Location = p;
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
         }
         #endregion
         #region ICommandHandler Members
@@ -391,7 +368,7 @@ namespace CADability.GeoObject
         {
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
         #endregion
 

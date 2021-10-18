@@ -2,6 +2,7 @@
 using CADability.GeoObject;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace CADability.UserInterface
 {
@@ -34,7 +35,7 @@ namespace CADability.UserInterface
         {
             base.resourceId = resourceId;
             this.dimensionStyle = dimensionStyle;
-            ArrayList al = new ArrayList();
+            List<DimensionStyle> al = new List<DimensionStyle>();
             for (int i = 0; i < list.Count; ++i)
             {
                 if (dimType == Dimension.EDimType.DimAll || (((int)(list[i].Types)) & (1 << (int)dimType)) != 0)
@@ -42,8 +43,9 @@ namespace CADability.UserInterface
                     al.Add(list[i]);
                 }
             }
-            if (al.Count == 0) throw new DimensionStyleSelectionPropertyException("no appropriate DimensionStyle available");
-            selectableStyles = (DimensionStyle[])al.ToArray(typeof(DimensionStyle));
+            DimensionStyle nd = new DimensionStyle();
+            if (al.Count == 0) al.Add(DimensionStyle.GetDefault());
+            selectableStyles = al.ToArray();
             if (includeUndefined)
             {
                 base.choices = new string[selectableStyles.Length + 1];

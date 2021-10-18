@@ -8,6 +8,7 @@ Some of the features you might be interested in are:
 - Extensible data model and user interface.
 - Simple Windows.Forms.Control to display the CAD model and integrate it in your application.
 - User interface to interact with the geometric data, select objects, show and modify their properties, do 3d modeling.
+- Parametrics to modify features of solids
 
 The CADability solution is composed of two class libraries and an application:
 - CADability, a dll, which contains all the classes of the geometrical objects, the action classes, the geometrical calculations and algorithms (e.g. 3d modeling), 
@@ -25,8 +26,9 @@ This is an overview of the CAD [database](https://sofagh.github.io/CADability/CA
 And this is the [complete table of contents](https://sofagh.github.io/CADability/CADabilityDoc/api/toc.html).
 
 License: CADability uses some open source code copied into it source code:
-- a quite old version of LinearAlgebra: Copyright ©2000 The MathWorks and NIST, ©2004 Joannes Vermorel
 - a quite old version of Wintellect.PowerCollections: Copyright (c) 2004-2005, Wintellect
 - netDxf library: Copyright (C) 2009-2016 Daniel Carvajal (haplokuon@gmail.com)
+
+CADability uses  MathNet: http://github.com/mathnet/mathnet-numerics
 
 CADability itself is provided under the MIT license

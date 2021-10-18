@@ -74,7 +74,7 @@
   <h1 id="CADability_UserInterface_ICommandHandler" data-uid="CADability.UserInterface.ICommandHandler" class="text-break">Interface ICommandHandler
   </h1>
   <div class="markdown level0 summary"><p>Objects that implement this interface can receive menu command.
-Usually used in calls to <see cref="!:MenuResource.LoadContextMenu"></see> to specify
+Usually used in calls to <a class="xref" href="CADability.UserInterface.MenuResource.html#CADability_UserInterface_MenuResource_LoadMenuDefinition_System_String_System_Boolean_CADability_UserInterface_ICommandHandler_">LoadMenuDefinition(String, Boolean, ICommandHandler)</a> to specify
 the target object for that menu.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
@@ -91,7 +91,7 @@ the target object for that menu.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_ICommandHandler_OnCommand_System_String_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.ICommandHandler.OnCommand(System.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/CommandHandler.cs/#L66">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/CommandHandler.cs/#L65">View Source</a>
   </span>
   <a id="CADability_UserInterface_ICommandHandler_OnCommand_" data-uid="CADability.UserInterface.ICommandHandler.OnCommand*"></a>
   <h4 id="CADability_UserInterface_ICommandHandler_OnCommand_System_String_" data-uid="CADability.UserInterface.ICommandHandler.OnCommand(System.String)">OnCommand(String)</h4>
@@ -131,26 +131,26 @@ the target object for that menu.</p>
     <tbody>
       <tr>
         <td><span class="xref">System.Boolean</span></td>
-        <td><p>true, if handled, fals otherwise</p>
+        <td><p>true, if handled, false otherwise</p>
 </td>
       </tr>
     </tbody>
   </table>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
-    <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_ICommandHandler_OnSelected_System_String_System_Boolean_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.ICommandHandler.OnSelected(System.String%2CSystem.Boolean)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+    <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_ICommandHandler_OnSelected_CADability_UserInterface_MenuWithHandler_System_Boolean_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.ICommandHandler.OnSelected(CADability.UserInterface.MenuWithHandler%2CSystem.Boolean)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/CommandHandler.cs/#L80">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/CommandHandler.cs/#L79">View Source</a>
   </span>
   <a id="CADability_UserInterface_ICommandHandler_OnSelected_" data-uid="CADability.UserInterface.ICommandHandler.OnSelected*"></a>
-  <h4 id="CADability_UserInterface_ICommandHandler_OnSelected_System_String_System_Boolean_" data-uid="CADability.UserInterface.ICommandHandler.OnSelected(System.String,System.Boolean)">OnSelected(String, Boolean)</h4>
-  <div class="markdown level1 summary"><p>Notify that the menu item is beeing selected. No need to react on this notification</p>
+  <h4 id="CADability_UserInterface_ICommandHandler_OnSelected_CADability_UserInterface_MenuWithHandler_System_Boolean_" data-uid="CADability.UserInterface.ICommandHandler.OnSelected(CADability.UserInterface.MenuWithHandler,System.Boolean)">OnSelected(MenuWithHandler, Boolean)</h4>
+  <div class="markdown level1 summary"><p>Notify that the menu item is being selected. No need to react on this notification</p>
 </div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">void OnSelected(string MenuId, bool selected)</code></pre>
+    <pre><code class="lang-csharp hljs">void OnSelected(MenuWithHandler selectedMenu, bool selected)</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -163,10 +163,9 @@ the target object for that menu.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">System.String</span></td>
-        <td><span class="parametername">MenuId</span></td>
-        <td><p>Id of the menu command that was selected</p>
-</td>
+        <td><a class="xref" href="CADability.UserInterface.MenuWithHandler.html">MenuWithHandler</a></td>
+        <td><span class="parametername">selectedMenu</span></td>
+        <td></td>
       </tr>
       <tr>
         <td><span class="xref">System.Boolean</span></td>
@@ -181,7 +180,7 @@ the target object for that menu.</p>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_ICommandHandler_OnUpdateCommand_System_String_CADability_UserInterface_CommandState_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.ICommandHandler.OnUpdateCommand(System.String%2CCADability.UserInterface.CommandState)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/CommandHandler.cs/#L73">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/CommandHandler.cs/#L72">View Source</a>
   </span>
   <a id="CADability_UserInterface_ICommandHandler_OnUpdateCommand_" data-uid="CADability.UserInterface.ICommandHandler.OnUpdateCommand*"></a>
   <h4 id="CADability_UserInterface_ICommandHandler_OnUpdateCommand_System_String_CADability_UserInterface_CommandState_" data-uid="CADability.UserInterface.ICommandHandler.OnUpdateCommand(System.String,CADability.UserInterface.CommandState)">OnUpdateCommand(String, CommandState)</h4>
@@ -211,7 +210,7 @@ the target object for that menu.</p>
       <tr>
         <td><a class="xref" href="CADability.UserInterface.CommandState.html">CommandState</a></td>
         <td><span class="parametername">CommandState</span></td>
-        <td><p>State object to modify if apropriate</p>
+        <td><p>State object to modify if appropriate</p>
 </td>
       </tr>
     </tbody>
@@ -227,7 +226,7 @@ the target object for that menu.</p>
     <tbody>
       <tr>
         <td><span class="xref">System.Boolean</span></td>
-        <td><p>true, if handled, fals otherwise</p>
+        <td><p>true, if handled, false otherwise</p>
 </td>
       </tr>
     </tbody>
@@ -243,7 +242,7 @@ the target object for that menu.</p>
                     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_ICommandHandler.md&amp;value=---%0Auid%3A%20CADability.UserInterface.ICommandHandler%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
                   </li>
                   <li>
-                    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/CommandHandler.cs/#L59" class="contribution-link">View Source</a>
+                    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/CommandHandler.cs/#L58" class="contribution-link">View Source</a>
                   </li>
                 </ul>
               </div>

@@ -9,6 +9,13 @@ using DragEventArgs = CADability.Substitutes.DragEventArgs;
 using MouseButtons = CADability.Substitutes.MouseButtons;
 using DragDropEffects = CADability.Substitutes.DragDropEffects;
 using Keys = CADability.Substitutes.Keys;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability
 {
@@ -355,7 +362,7 @@ namespace CADability
                 if (ex is ThreadAbortException) throw (ex);
             }
         }
-        public int GetInfoProviderIndex(System.Drawing.Point ScreenCursorPosition, IView View)
+        public int GetInfoProviderIndex(Point ScreenCursorPosition, IView View)
         {
             if (Actions.Count > 0) return ((Action)Actions.Peek()).GetInfoProviderIndex(ScreenCursorPosition, View);
             return -1;

@@ -111,14 +111,14 @@ namespace CADability.GeoObject
         /// is defined by location and mainDirection. The shape is a 2D object. The 2d origin is moved along
         /// the axis defined by location and main direction. The topDirection vector corresponds to the
         /// 2d y-axis of the shape. The beginning and ending of the extrusion is a miter cut that allows
-        /// the same profile be conected to the starting or ending point where mainDirection and startMiter
+        /// the same profile be connected to the starting or ending point where mainDirection and startMiter
         /// are exchanged and topDirection is kept.
         /// </summary>
         /// <param name="shape">2d shape to be extruded, the 2d origin is moved along mainDirection</param>
         /// <param name="location">Starting point of the resulting profile, corresponds to the 2d origin</param>
-        /// <param name="topDirection">The "up" direction fo the resulting profile, corresponds to the y-axis of the 2d shape</param>
+        /// <param name="topDirection">The "up" direction for the resulting profile, corresponds to the y-axis of the 2d shape</param>
         /// <param name="mainDirection">Direction of the prism, the length of this vector defines the length of the prism</param>
-        /// <param name="startMiter">Direction of the connectiong profile at the starting point</param>
+        /// <param name="startMiter">Direction of the connecting profile at the starting point</param>
         /// <param name="endMiter">Direction of the connecting profile at the ending point</param>
         /// <returns>The resulting solid</returns>
         public static Solid MakePrismMiter(SimpleShape shape, GeoPoint location, GeoVector topDirection, GeoVector mainDirection, GeoVector startMiter, GeoVector endMiter)
@@ -1173,7 +1173,7 @@ namespace CADability.GeoObject
                 }
                 else
                 {
-                    SurfaceOfRevolution sr = new SurfaceOfRevolution(toExtrude, arc.Center, arc.Normal, 0.0, 1.0);
+                    SurfaceOfRevolution sr = new SurfaceOfRevolution(toExtrude, arc.Center, arc.Normal);
                     Ellipse arc1 = arc.Clone() as Ellipse;
                     arc1.Center = Geometry.DropPL(toExtrude.StartPoint, arc.Center, arc.Normal);
                     arc1.Radius = arc1.Center | toExtrude.StartPoint;
@@ -2458,6 +2458,7 @@ namespace CADability.GeoObject
                 for (int i = 0; i < 4; i++)
                 {
                     edges[i].ReverseOrientation(res);
+                    edges[i].Curve2D(res).Reverse();
                 }
                 Array.Reverse(edges);
             }
@@ -2758,7 +2759,7 @@ namespace CADability.GeoObject
                             }
                             else
                             {
-                                surface = new SurfaceOfRevolution(l, axis.Location, axis.Direction, 0.0, 1.0);
+                                surface = new SurfaceOfRevolution(l, axis.Location, axis.Direction);
                             }
                         }
                         else if (path.Curve(i) is Ellipse && (path.Curve(i) as Ellipse).IsCircle)
@@ -2786,7 +2787,7 @@ namespace CADability.GeoObject
                             {
                                 try
                                 {
-                                    surface = new SurfaceOfRevolution(e, axis.Location, axis.Direction, 0.0, 1.0);
+                                    surface = new SurfaceOfRevolution(e, axis.Location, axis.Direction);
                                 }
                                 catch (SurfaceOfRevolutionException) { } // e.g. a Line identical with the axis
                             }
@@ -2795,7 +2796,7 @@ namespace CADability.GeoObject
                         {
                             try
                             {
-                                surface = new SurfaceOfRevolution(path.Curve(i), axis.Location, axis.Direction, 0.0, 1.0);
+                                surface = new SurfaceOfRevolution(path.Curve(i), axis.Location, axis.Direction);
                             }
                             catch (SurfaceOfRevolutionException) { } // e.g. a Line identical with the axis
                         }
@@ -3129,73 +3130,60 @@ namespace CADability.GeoObject
         /// <param name="splittedOnS1">Splitted faces on s1</param>
         /// <param name="splittedOnS2">Splitted faces on s2</param>
         /// <returns>Returns true if common overlapping faces were found.</returns>
-        static public bool SplitCommonFace(Solid s1, Solid s2, out Face[] splittedOnS1, out Face[] splittedOnS2)
-        {
-            List<Face> sps1 = new List<Face>();
-            List<Face> sps2 = new List<Face>();
-            BRepOperationOld bro = new BRepOperationOld(s1.Shells[0], s2.Shells[0], BRepOperationOld.Operation.commonface);
-            Face[] onShell1;
-            Face[] onShell2;
-            ModOp2D[] firstToSecond;
-            bro.GetOverlappingFaces(out onShell1, out onShell2, out firstToSecond);
-            bool splittingDone = true; // bei Überlappung zweier Faces mit mehr als einer gemeinsamen Fläche
-                                       // wird zunächst nur eine Überlappung gerechnet, die Methode muss nochmal aufgerufen werden
-            for (int i = 0; i < onShell1.Length; i++)
-            {
-                SimpleShape ss1 = onShell1[i].Area;
-                SimpleShape ss2 = onShell2[i].Area.GetModified(firstToSecond[i].GetInverse());
-                SimpleShape.Position pos = SimpleShape.GetPosition(ss1, ss2);
-                switch (pos)
-                {
-                    case SimpleShape.Position.identical:
-                        {
-                        }
-                        break;
-                    case SimpleShape.Position.intersecting:
-                        {
-                            CompoundShape cs = SimpleShape.Intersect(ss1, ss2);
-                            if (!cs.Empty)
-                            {   // das sollte laut Lukasz nicht vorkommen
-                                // im Allgemeinen kommt es aber schon vor, in den Beispielen von Lukasz auch!
-                                CompoundShape csi = SimpleShape.Intersect(ss1, ss2);
-                                if (csi.SimpleShapes.Length > 0 && csi.SimpleShapes[0].Area > Precision.eps)
-                                {
-                                    sps1.AddRange(onShell1[i].SplitAndReplace(csi.SimpleShapes[0]));
-                                    sps2.AddRange(onShell2[i].SplitAndReplace(csi.SimpleShapes[0].GetModified(firstToSecond[i])));
-                                }
-                                if (csi.SimpleShapes.Length > 1) splittingDone = false;
-                            }
-                        }
-                        break;
-                    case SimpleShape.Position.firstcontainscecond:
-                        {
-                            sps1.AddRange(onShell1[i].SplitAndReplace(ss2));
-                        }
-                        break;
-                    case SimpleShape.Position.secondcontainsfirst:
-                        {
-                            sps2.AddRange(onShell2[i].SplitAndReplace(ss1.GetModified(firstToSecond[i].GetInverse())));
-                        }
-                        break;
-                }
-            }
-            splittedOnS1 = sps1.ToArray();
-            splittedOnS2 = sps2.ToArray();
-            return splittingDone;
-        }
-#if DEBUG
-        public static Solid BRepUnion(Solid s1, Solid s2)
-        {   // zum Test der BRepOperation
-            BRepOperationOld bro = new BRepOperationOld(s1.Shells[0], s2.Shells[0], BRepOperationOld.Operation.union);
-            Shell[] res = bro.Result();
-            if (res.Length > 0)
-            {
-                Solid sres = Solid.Construct();
-                sres.SetShell(res[0]); // Löcher noch unberücksichtigt!
-            }
-            return null;
-        }
-#endif
+        ////static public bool SplitCommonFace(Solid s1, Solid s2, out Face[] splittedOnS1, out Face[] splittedOnS2)
+        ////{
+        ////    List<Face> sps1 = new List<Face>();
+        ////    List<Face> sps2 = new List<Face>();
+        ////    BRepOperationOld bro = new BRepOperationOld(s1.Shells[0], s2.Shells[0], BRepOperationOld.Operation.commonface);
+        ////    Face[] onShell1;
+        ////    Face[] onShell2;
+        ////    ModOp2D[] firstToSecond;
+        ////    bro.GetOverlappingFaces(out onShell1, out onShell2, out firstToSecond);
+        ////    bool splittingDone = true; // bei Überlappung zweier Faces mit mehr als einer gemeinsamen Fläche
+        ////                               // wird zunächst nur eine Überlappung gerechnet, die Methode muss nochmal aufgerufen werden
+        ////    for (int i = 0; i < onShell1.Length; i++)
+        ////    {
+        ////        SimpleShape ss1 = onShell1[i].Area;
+        ////        SimpleShape ss2 = onShell2[i].Area.GetModified(firstToSecond[i].GetInverse());
+        ////        SimpleShape.Position pos = SimpleShape.GetPosition(ss1, ss2);
+        ////        switch (pos)
+        ////        {
+        ////            case SimpleShape.Position.identical:
+        ////                {
+        ////                }
+        ////                break;
+        ////            case SimpleShape.Position.intersecting:
+        ////                {
+        ////                    CompoundShape cs = SimpleShape.Intersect(ss1, ss2);
+        ////                    if (!cs.Empty)
+        ////                    {   // das sollte laut Lukasz nicht vorkommen
+        ////                        // im Allgemeinen kommt es aber schon vor, in den Beispielen von Lukasz auch!
+        ////                        CompoundShape csi = SimpleShape.Intersect(ss1, ss2);
+        ////                        if (csi.SimpleShapes.Length > 0 && csi.SimpleShapes[0].Area > Precision.eps)
+        ////                        {
+        ////                            sps1.AddRange(onShell1[i].SplitAndReplace(csi.SimpleShapes[0]));
+        ////                            sps2.AddRange(onShell2[i].SplitAndReplace(csi.SimpleShapes[0].GetModified(firstToSecond[i])));
+        ////                        }
+        ////                        if (csi.SimpleShapes.Length > 1) splittingDone = false;
+        ////                    }
+        ////                }
+        ////                break;
+        ////            case SimpleShape.Position.firstcontainscecond:
+        ////                {
+        ////                    sps1.AddRange(onShell1[i].SplitAndReplace(ss2));
+        ////                }
+        ////                break;
+        ////            case SimpleShape.Position.secondcontainsfirst:
+        ////                {
+        ////                    sps2.AddRange(onShell2[i].SplitAndReplace(ss1.GetModified(firstToSecond[i].GetInverse())));
+        ////                }
+        ////                break;
+        ////        }
+        ////    }
+        ////    splittedOnS1 = sps1.ToArray();
+        ////    splittedOnS2 = sps2.ToArray();
+        ////    return splittingDone;
+        ////}
         /// <summary>
         /// Copies all Userdata from Faces in <paramref name="copyFrom"/ to Faces in <paramref name="addTo"/>
         /// when the faces shaer common parts, i.e. are on the same surface

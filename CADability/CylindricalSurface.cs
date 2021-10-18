@@ -9,30 +9,39 @@ using Wintellect.PowerCollections;
 namespace CADability.GeoObject
 {
     /// <summary>
+    /// Interface to handle both CylindricalSurface and CylindricalSurfaceNP
+    /// </summary>
+    public interface ICylinder
+    {
+        Axis Axis { get; set;  }
+        double Radius { get; set; }
+        bool OutwardOriented { get; }
+    }
+    /// <summary>
     /// A cylindrical surface which implements <see cref="ISurface"/>. The surface represents a circular or elliptical
     /// cylinder. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
     [Serializable()]
-    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfArcExtrusion
+    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfArcExtrusion, ICylinder
     {
         // Der Zylinder ist so beschaffen, dass er lediglich durch eine ModOp definiert ist.
         // Der Einheitszylinder steht im Ursprung mit Radius 1, u beschreibt einen Kreis, v eine Mantellinie
         protected ModOp toCylinder; // diese ModOp modifiziert den Einheitszylinder in den konkreten Zylinder
         protected ModOp toUnit; // die inverse ModOp zum schnelleren Rechnen
-        private ModOp2D toHelper; // wird nur benötigt, wenn verzerrt für opencascade
+        Polynom implicitPolynomial;
         /// <summary>
-        /// Creates a cylindrical surface. The length of directionx and directiony specify the radius.
-        /// The axis is perpendicular to directionx and directiony (right hand). The u parameter starts at
-        /// location+directionx, the v parameter increments along the axis and is 0 at location.
+        /// Creates a cylindrical surface. The length of <paramref name="directionX"/> and <paramref name="directionY"/> specify the radius.
+        /// The axis is perpendicular to <paramref name="directionX"/> and <paramref name="directionY"/> (right hand). The u parameter starts at
+        /// <paramref name="location"/>+<paramref name="directionX"/>, the v parameter increments along the axis and is 0 at location.
         /// </summary>
         /// <param name="location"></param>
-        /// <param name="directionx"></param>
-        /// <param name="directiony"></param>
-        public CylindricalSurface(GeoPoint location, GeoVector directionx, GeoVector directiony, GeoVector directionz) : base()
+        /// <param name="directionX"></param>
+        /// <param name="directionY"></param>
+        public CylindricalSurface(GeoPoint location, GeoVector directionX, GeoVector directionY, GeoVector directionZ) : base()
         {
             // this may also be a left handed system
             ModOp m1 = ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis },
-                new GeoVector[] { directionx, directiony, directionz });
+                new GeoVector[] { directionX, directionY, directionZ });
             ModOp m2 = ModOp.Translate(location.x, location.y, location.z);
             toCylinder = m2 * m1;
             toUnit = toCylinder.GetInverse();
@@ -100,15 +109,11 @@ namespace CADability.GeoObject
                 return toCylinder * GeoVector.ZAxis;
             }
         }
+        public Line AxisLine(double vmin, double vmax)
+        {
+            return Line.TwoPoints(toCylinder * new GeoPoint(0, 0, vmin), toCylinder * new GeoPoint(0, 0, vmax));
+        }
         #region ISurfaceImpl Overrides
-        internal override ICurve2D CurveToHelper(ICurve2D original)
-        {
-            return original.GetModified(toHelper);
-        }
-        internal override ICurve2D CurveFromHelper(ICurve2D original)
-        {
-            return original.GetModified(toHelper.GetInverse());
-        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetModified (ModOp)"/>
         /// </summary>
@@ -406,8 +411,8 @@ namespace CADability.GeoObject
                         // concentric
                         if (Precision.SameDirection(this.ZAxis, ts.ZAxis, false))
                         {   // same or opposite orientation should result in one or two circles
-                            if ((Math.Abs(ts.XAxis.Length + ts.MinorRadius - RadiusX) < Precision.eps) || // concentric, torus fits exactely inside cylinder
-                                (Math.Abs(ts.XAxis.Length - ts.MinorRadius - RadiusX) < Precision.eps)) // concentric, cylinderfits exactely inside torus 
+                            if ((Math.Abs(ts.XAxis.Length + ts.MinorRadius - RadiusX) < Precision.eps) || // concentric, torus fits exactly inside cylinder
+                                (Math.Abs(ts.XAxis.Length - ts.MinorRadius - RadiusX) < Precision.eps)) // concentric, cylinder fits exactly inside torus 
                             {
                                 GeoPoint c = toUnit * ts.Location;
                                 return new ICurve[] { this.FixedV(c.z, thisBounds.Left, thisBounds.Right) };
@@ -422,6 +427,22 @@ namespace CADability.GeoObject
                                     return new ICurve[] { this.FixedV(c1.z, thisBounds.Left, thisBounds.Right), this.FixedV(c2.z, thisBounds.Left, thisBounds.Right) };
                                 }
                             }
+                        }
+                    }
+                    else if (Precision.IsPerpendicular(ts.ZAxis, ZAxis, false) && Geometry.CommonPlane(Location, ZAxis, ts.Location, ts.ZAxis ^ ZAxis, out Plane pln))
+                    {   // the axis of the cylinder lies in the plane of the torus (axis-circle plane)
+                        Ellipse circle = (ts as ISurfaceOfExtrusion).Axis(otherBounds) as Ellipse;
+                        if (circle != null) // must be the case
+                        {
+                            GeoPoint pOnAxis = Geometry.DropPL(ts.Location, Location, ZAxis);
+                            if (Math.Abs(RadiusX - ts.MinorRadius) < Precision.eps && Math.Abs((pOnAxis | circle.Center) - circle.Radius) < Precision.eps)
+                            {
+                                // the cylinder is tangential to the torus
+                                GeoPoint c = toUnit * pOnAxis;
+                                double v = c.z;
+                                return new ICurve[] { FixedV(v, thisBounds.Left, thisBounds.Right) };
+                            }
+
                         }
                     }
                 }
@@ -2016,6 +2037,21 @@ namespace CADability.GeoObject
             // sonst die allgemeine Überprüfung
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
         }
+        public override Polynom GetImplicitPolynomial()
+        {
+            if (implicitPolynomial == null)
+            {
+                GeoVector zNormed = ZAxis.Normalized;
+                PolynomVector x = zNormed ^ (new GeoVector(Location.x, Location.y, Location.z) - PolynomVector.xyz);
+                implicitPolynomial = (x * x) - XAxis * XAxis;
+                // we need to scale the implicit polynomial so that it yields the true distance to the surface
+                GeoPoint p = Location + XAxis + XAxis.Normalized; // a point outside the cylinder with distance 1
+                double d = implicitPolynomial.Eval(p); // this should be 1 when the polynomial is normalized
+                if ((XAxis ^ YAxis) * ZAxis < 0) d = -d; // inverse oriented cylinder
+                implicitPolynomial = (1 / d) * implicitPolynomial; // normalize the polynomial
+            }
+            return implicitPolynomial;
+        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetExtrema ()"/>
         /// </summary>
@@ -2056,12 +2092,11 @@ namespace CADability.GeoObject
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNonPeriodicSurface (Border)"/>
         /// </summary>
-        /// <param name="maxOutline"></param>
         /// <returns></returns>
-        public override ISurface GetNonPeriodicSurface(Border maxOutline)
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
         {
-            BoundingRect ext = maxOutline.Extent;
-            return new NonPeriodicCylindricalSurface(this, ext.Bottom, ext.Top);
+            CylindricalSurfaceNP res = new CylindricalSurfaceNP(Location, RadiusX, ZAxis, toUnit.Determinant > 0, orientedCurves);
+            return res;
         }
         public override CADability.GeoObject.RuledSurfaceMode IsRuled
         {
@@ -2157,18 +2192,6 @@ namespace CADability.GeoObject
         {
             return Precision.SameDirection(Axis, direction, false);
         }
-        public override MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face)
-        {
-            MenuWithHandler mhRadius = new MenuWithHandler();
-            mhRadius.ID = "MenuId.Parametrics.Cylinder.Radius";
-            mhRadius.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Radius", StringTable.Category.label);
-            mhRadius.Target = new ParametricsRadius(face, frame);
-            MenuWithHandler mhDiameter = new MenuWithHandler();
-            mhDiameter.ID = "MenuId.Parametrics.Cylinder.Diameter";
-            mhDiameter.Text = StringTable.GetString("MenuId.Parametrics.Cylinder.Diameter", StringTable.Category.label);
-            mhDiameter.Target = new ParametricsRadius(face, frame);
-            return new MenuWithHandler[] { mhRadius, mhDiameter };
-        }
 
         #endregion
         #region ISerializable Members
@@ -2194,65 +2217,32 @@ namespace CADability.GeoObject
             toUnit = toCylinder.GetInverse();
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "CylindricalSurface";
-        }
-
-        public override ShowPropertyEntryType EntryType
-        {
-            get
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty location = new GeoPointProperty("CylindricalSurface.Location", frame, false);
+            location.ReadOnly = true;
+            location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return toCylinder * GeoPoint.Origin; };
+            se.Add(location);
+            GeoVectorProperty dirx = new GeoVectorProperty("CylindricalSurface.DirectionX", frame, false);
+            dirx.ReadOnly = true;
+            dirx.IsAngle = false;
+            dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toCylinder * GeoVector.XAxis; };
+            se.Add(dirx);
+            GeoVectorProperty diry = new GeoVectorProperty("CylindricalSurface.DirectionY", frame, false);
+            diry.ReadOnly = true;
+            diry.IsAngle = false;
+            diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toCylinder * GeoVector.YAxis; };
+            se.Add(diry);
+            if (Precision.IsEqual(RadiusX, RadiusY))
             {
-                return ShowPropertyEntryType.GroupTitle;
+                DoubleProperty radius = new DoubleProperty("CylindricalSurface.Radius", frame);
+                radius.ReadOnly = true;
+                radius.DoubleValue = RadiusX;
+                radius.GetDoubleEvent += delegate (DoubleProperty sender) { return RadiusX; };
+                se.Add(radius);
             }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    GeoPointProperty location = new GeoPointProperty("CylindricalSurface.Location", base.Frame, false);
-                    location.ReadOnly = true;
-                    location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return toCylinder * GeoPoint.Origin; };
-                    se.Add(location);
-                    GeoVectorProperty dirx = new GeoVectorProperty("CylindricalSurface.DirectionX", base.Frame, false);
-                    dirx.ReadOnly = true;
-                    dirx.IsAngle = false;
-                    dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toCylinder * GeoVector.XAxis; };
-                    se.Add(dirx);
-                    GeoVectorProperty diry = new GeoVectorProperty("CylindricalSurface.DirectionY", base.Frame, false);
-                    diry.ReadOnly = true;
-                    diry.IsAngle = false;
-                    diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toCylinder * GeoVector.YAxis; };
-                    se.Add(diry);
-                    if (Precision.IsEqual(RadiusX, RadiusY))
-                    {
-                        DoubleProperty radius = new DoubleProperty("CylindricalSurface.Radius", base.Frame);
-                        radius.ReadOnly = true;
-                        radius.DoubleValue = RadiusX;
-                        radius.GetDoubleEvent += delegate (DoubleProperty sender) { return RadiusX; };
-                        se.Add(radius);
-                    }
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
+            return new GroupProperty("CylindricalSurface", se.ToArray());
         }
 
         /// <summary>
@@ -2265,7 +2255,6 @@ namespace CADability.GeoObject
                 return Math.Abs(XAxis.Length - YAxis.Length) < Precision.eps;
             }
         }
-        #endregion
         #region ISurfaceOfRevolution Members
         Axis ISurfaceOfRevolution.Axis
         {
@@ -2294,23 +2283,8 @@ namespace CADability.GeoObject
             return true;
         }
         IOrientation ISurfaceOfExtrusion.Orientation => throw new NotImplementedException();
-        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsInvalid() ? FixedV(0.0, 0.0, Math.PI) : FixedV(0.0, usedArea.Left, usedArea.Right);
-
-        public ICurve ISurfaceOfExtrusionExtrudedCurve
-        {
-            get
-            {
-                if (usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid())
-                {
-                    return FixedV(0.0, 0.0, Math.PI * 2.0);
-                }
-                else
-                {
-                    return FixedV(0.0, usedArea.Left, usedArea.Right);
-                }
-
-            }
-        }
+        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid() ?
+            FixedV(0.0, 0.0, Math.PI) : FixedV(0.0, usedArea.Left, usedArea.Right);
 
         double ISurfaceOfArcExtrusion.Radius
         {
@@ -2332,6 +2306,28 @@ namespace CADability.GeoObject
 
         bool ISurfaceOfExtrusion.ExtrusionDirectionIsV => true;
         #endregion
+        public bool OutwardOriented => toCylinder.Determinant > 0;
+
+        Axis ICylinder.Axis
+        {
+            get => new Axis(Location, ZAxis);
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        double ICylinder.Radius
+        {
+            get => RadiusX;
+            set
+            {
+                double f = value / RadiusX;
+                ModOp m = ModOp.Scale(f);
+                toCylinder = toCylinder * m;
+                toUnit = toCylinder.GetInverse();
+            }
+        }
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             //CYLINDRICAL_SURFACE

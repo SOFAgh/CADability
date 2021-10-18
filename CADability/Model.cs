@@ -313,7 +313,7 @@ namespace CADability
                     paintTo3D.PaintFaces(PaintTo3D.PaintMode.FacesOnly);
                     foreach (KeyValuePair<Layer, List<IGeoObject>> kv in layerFaceObjects)
                     {
-                        paintTo3D.OpenList();
+                        paintTo3D.OpenList("model-layerFaceObjects");
                         foreach (IGeoObject go in kv.Value)
                         {
                             go.PaintTo3D(paintTo3D); // hier können keine Listen gemacht werden
@@ -322,7 +322,7 @@ namespace CADability
                     }
                     foreach (KeyValuePair<Layer, List<IGeoObject>> kv in layerTransparentObjects)
                     {
-                        paintTo3D.OpenList();
+                        paintTo3D.OpenList("model-layerTransparentObjects");
                         paintTo3D.Blending(true);
                         foreach (IGeoObject go in kv.Value)
                         {
@@ -335,7 +335,7 @@ namespace CADability
                     paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly);
                     foreach (KeyValuePair<Layer, List<IGeoObject>> kv in layerCurveObjects)
                     {
-                        paintTo3D.OpenList();
+                        paintTo3D.OpenList("model-layerCurveObjects");
                         foreach (IGeoObject go in kv.Value)
                         {
                             go.PaintTo3D(paintTo3D);
@@ -381,7 +381,7 @@ namespace CADability
         private void AddOctreeObjects(IGeoObject go, OctTree<IGeoObject> octTree)
         {   // hier werden die EInzelteile eingehängt, damit das Picken von Face oder Edge
             // schnell geht. Oft hat man ja nur ein einziges solid mit vielen Faces
-            if (octTree == null) return;
+            if (octTree == null || go==null) return;
             IGeoObject[] subEntities = go.OwnedItems;
             if (subEntities != null && subEntities.Length > 0)
             {
@@ -720,12 +720,12 @@ namespace CADability
         }
         void OnEndContinousChanges(object source)
         {
-            System.Diagnostics.Trace.WriteLine("OnEndContinousChanges " + source.ToString());
+            // System.Diagnostics.Trace.WriteLine("OnEndContinousChanges " + source.ToString());
             if (continousChanges != null)
             {
                 foreach (IGeoObject go in continousChanges)
                 {
-                    System.Diagnostics.Trace.WriteLine(go.ToString());
+                    // System.Diagnostics.Trace.WriteLine(go.ToString());
                     AddOctreeObjects(go, octTree);
                 }
             }
@@ -733,7 +733,7 @@ namespace CADability
         }
         void OnBeginContinousChanges(object source)
         {
-            System.Diagnostics.Trace.WriteLine("OnBeginContinousChanges " + source.ToString());
+            // System.Diagnostics.Trace.WriteLine("OnBeginContinousChanges " + source.ToString());
             continousChanges = new Set<IGeoObject>();
         }
 
@@ -833,17 +833,6 @@ namespace CADability
         /// <param name="ObjectToAdd">The GeoObject to add</param>
         public void Add(IGeoObject ObjectToAdd)
         {
-            // das Berechnen der Länge erfordert beim SPLine open cascade, und das soll hier vermieden werden
-            //if (ObjectToAdd is ICurve)
-            //{
-            //    if ((ObjectToAdd as ICurve).Length < Precision.eps)
-            //    {
-            //        // return; // nicht einfügen von Null-Linien und Null-Bögen
-            //        // sie machen überall Probleme (OpenCascade!)
-            //        // und sie sind immer unsichtbar. Man kann ja Punkte einfügen
-            //        // warum ist das wieder auskommentiert? die machenecht Probleme!
-            //    }
-            //}
             if (!ObjectToAdd.HasValidData()) return; // die Objekte überprüfen sich hier selbst
             bool cancel = false;
             if (AddingGeoObjectEvent != null) AddingGeoObjectEvent(ObjectToAdd, ref cancel);
@@ -1253,7 +1242,7 @@ namespace CADability
             return res;
         }
         /// <summary>
-        /// Determins whether an attribute (e.g. <see cref="Layer"/>, <see cref="LineStyle"/>) is used by any GeoObjects of this model.
+        /// Determins whether an attribute (e.g. <see cref="Layer"/>, <see cref="LinePattern"/>) is used by any GeoObjects of this model.
         /// </summary>
         /// <param name="Attribute">Attribut to test</param>
         /// <returns>True, if attribute is used, false otherwise.</returns>
@@ -1658,7 +1647,7 @@ namespace CADability
         {
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         #region ICategorizedDislayLists Members
         void ICategorizedDislayLists.Add(Layer layer, bool addToFace, bool addToLinear, IGeoObject go)

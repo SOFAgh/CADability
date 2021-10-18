@@ -4,7 +4,13 @@ using CADability.Substitutes;
 using CADability.UserInterface;
 using System;
 using System.Collections;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.Actions
 {
@@ -71,13 +77,10 @@ namespace CADability.Actions
         private bool OnSetRotationAngle(Angle angle)
         {
             ModOp m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(angle - rotationAngle) + GetOffset());
-            using (new WaitCursor(CurrentMouseView.Canvas))
-            {
-                block.Modify(m);
-                base.ActiveObject = block;
-                rotationAngle = angle;
-                return true;
-            }
+            block.Modify(m);
+            base.ActiveObject = block;
+            rotationAngle = angle;
+            return true;
         }
 
         private Angle OnGetRotationAngle()
@@ -116,15 +119,12 @@ namespace CADability.Actions
             endPoint = p;
             if (startPointInput.Fixed)
             {
-                using (new WaitCursor(CurrentMouseView.Canvas))
-                {
-                    rotAngleInput.Fixed = true; // damit die Aktion nach dem Endpunkt aufhört
-                    SweepAngle swAngle = new SweepAngle((GeoVector2D)(base.ActiveDrawingPlane.Project(startPoint) - base.ActiveDrawingPlane.Project(refPoint)), base.ActiveDrawingPlane.Project(endPoint) - base.ActiveDrawingPlane.Project(refPoint));
-                    ModOp m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(swAngle - rotationAngle) + GetOffset());
-                    rotationAngle = swAngle.Radian;
-                    block.Modify(m);
-                    feedBackEllipse.SetArcPlaneCenterStartEndPoint(ActiveDrawingPlane, ActiveDrawingPlane.Project(BasePoint), ActiveDrawingPlane.Project(startPoint), ActiveDrawingPlane.Project(endPoint), ActiveDrawingPlane, swAngle.Radian > 0.0);
-                }
+                rotAngleInput.Fixed = true; // damit die Aktion nach dem Endpunkt aufhört
+                SweepAngle swAngle = new SweepAngle((GeoVector2D)(base.ActiveDrawingPlane.Project(startPoint) - base.ActiveDrawingPlane.Project(refPoint)), base.ActiveDrawingPlane.Project(endPoint) - base.ActiveDrawingPlane.Project(refPoint));
+                ModOp m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(swAngle - rotationAngle) + GetOffset());
+                rotationAngle = swAngle.Radian;
+                block.Modify(m);
+                feedBackEllipse.SetArcPlaneCenterStartEndPoint(ActiveDrawingPlane, ActiveDrawingPlane.Project(BasePoint), ActiveDrawingPlane.Project(startPoint), ActiveDrawingPlane.Project(endPoint), ActiveDrawingPlane, swAngle.Radian > 0.0);
             }
         }
 
@@ -134,62 +134,56 @@ namespace CADability.Actions
         }
 
         private bool RotateLine(CurveInput sender, ICurve[] Curves, bool up)
-        {	// ... nur die sinnvolen Kurven verwenden
-            using (new WaitCursor(CurrentMouseView.Canvas))
+        {   // ... nur die sinnvolen Kurven verwenden
+            ArrayList usableCurves = new ArrayList();
+            ModOp m;
+            for (int i = 0; i < Curves.Length; ++i)
             {
-                ArrayList usableCurves = new ArrayList();
-                ModOp m;
-                for (int i = 0; i < Curves.Length; ++i)
+                Line l = Curves[i] as Line;
+                if (l != null)
                 {
-                    Line l = Curves[i] as Line;
-                    if (l != null)
-                    {
-                        usableCurves.Add(Curves[i]);
-                    }
+                    usableCurves.Add(Curves[i]);
                 }
-                // ...hier wird der ursprüngliche Parameter überschrieben. Hat ja keine Auswirkung nach außen.
-                Curves = (ICurve[])usableCurves.ToArray(typeof(ICurve));
-                if (up)
-                    if (Curves.Length == 0) sender.SetCurves(Curves, null); // ...die werden jetzt im ControlCenter dargestellt (nur bei up)
-                    else
-                    { // erst jetzt die Werte merken!
-                        base.BasePoint = Curves[0].StartPoint;
-                        axisVector = Curves[0].StartDirection;
-                        sender.SetCurves(Curves, Curves[0]);
-                    }
-                // erstmal den Urprungszustand herstellen, da sonst Drehungg akkumuliert wird
-                for (int i = 0; i < block.Count; ++i)
-                {
-                    block.Child(i).CopyGeometry(originals[i]);
-                }
-                if (Curves.Length > 0)
-                {	// einfach die erste Kurve nehmen
-                    ICurve iCurve = Curves[0];
-                    m = ModOp.Rotate(iCurve.StartPoint, iCurve.StartDirection, new SweepAngle(rotationAngle) + GetOffset());
-                    block.Modify(m);
-                    return true;
-                }
-                // rückgängig!
-                m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(rotationAngle) + GetOffset());
-                block.Modify(m);
-                return false;
             }
+            // ...hier wird der ursprüngliche Parameter überschrieben. Hat ja keine Auswirkung nach außen.
+            Curves = (ICurve[])usableCurves.ToArray(typeof(ICurve));
+            if (up)
+                if (Curves.Length == 0) sender.SetCurves(Curves, null); // ...die werden jetzt im ControlCenter dargestellt (nur bei up)
+                else
+                { // erst jetzt die Werte merken!
+                    base.BasePoint = Curves[0].StartPoint;
+                    axisVector = Curves[0].StartDirection;
+                    sender.SetCurves(Curves, Curves[0]);
+                }
+            // erstmal den Urprungszustand herstellen, da sonst Drehungg akkumuliert wird
+            for (int i = 0; i < block.Count; ++i)
+            {
+                block.Child(i).CopyGeometry(originals[i]);
+            }
+            if (Curves.Length > 0)
+            {   // einfach die erste Kurve nehmen
+                ICurve iCurve = Curves[0];
+                m = ModOp.Rotate(iCurve.StartPoint, iCurve.StartDirection, new SweepAngle(rotationAngle) + GetOffset());
+                block.Modify(m);
+                return true;
+            }
+            // rückgängig!
+            m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(rotationAngle) + GetOffset());
+            block.Modify(m);
+            return false;
         }
 
         private void RotateLineChanged(CurveInput sender, ICurve SelectedCurve)
         {
-            using (new WaitCursor(CurrentMouseView.Canvas))
+            base.BasePoint = SelectedCurve.StartPoint;
+            axisVector = SelectedCurve.StartDirection;
+            // erstmal den Urprungszustand herstellen
+            for (int i = 0; i < block.Count; ++i)
             {
-                base.BasePoint = SelectedCurve.StartPoint;
-                axisVector = SelectedCurve.StartDirection;
-                // erstmal den Urprungszustand herstellen
-                for (int i = 0; i < block.Count; ++i)
-                {
-                    block.Child(i).CopyGeometry(originals[i]);
-                }
-                ModOp m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(rotationAngle) + GetOffset());
-                block.Modify(m);
+                block.Child(i).CopyGeometry(originals[i]);
             }
+            ModOp m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(rotationAngle) + GetOffset());
+            block.Modify(m);
         }
 
         public override bool OnCommand(string MenuId)
@@ -247,7 +241,7 @@ namespace CADability.Actions
             Color backColor = base.Frame.GetColorSetting("Colors.Feedback", Color.DarkGray);
             feedBackEllipse.ColorDef = new ColorDef("", backColor);
             base.FeedBack.Add(feedBackEllipse);
-            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "RotateSmall.cur");
+            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "RotateSmall");
 
             //--> diese Inputs werden gebraucht
             GeoPointInput refPointInput = new GeoPointInput("Objects.RefPoint");
@@ -352,40 +346,37 @@ namespace CADability.Actions
 
         private void RotateWithPlanes()
         {
-            using (new WaitCursor(CurrentMouseView.Canvas))
+            // get rotation axis from the two planes
+            if (src.Intersect(trg, out GeoPoint loc, out GeoVector dir))
             {
-                // get rotation axis from the two planes
-                if (src.Intersect(trg, out GeoPoint loc, out GeoVector dir))
+                // set to original position
+                for (int i = 0; i < block.Count; ++i)
                 {
-                    // set to original position
-                    for (int i = 0; i < block.Count; ++i)
-                    {
-                        block.Child(i).CopyGeometry(originals[i]);
-                    }
-                    Plane perp = new Plane(loc, dir); // plane perpendicular to rotation axis
-                    GeoVector2D from = perp.Project(dir ^ src.Normal);
-                    GeoVector2D to = perp.Project(dir ^ trg.Normal);
-                    SweepAngle sw = new SweepAngle(from, to);
-                    rotationAngle = sw;
-                    rotAngleInput.ForceValue(rotationAngle);
-                    ModOp m0 = ModOp.Rotate(loc, dir, sw);
-                    ModOp m1 = ModOp.Rotate(loc, -dir, sw);
-                    GeoVector n0 = m0 * src.Normal;
-                    GeoVector n1 = m1 * src.Normal;
-                    ModOp m; // not sure, which rotation is better
-                    if (Math.Abs(n0 * trg.Normal) > Math.Abs(n1 * trg.Normal))
-                    {
-                        m = ModOp.Rotate(loc, dir, sw + GetOffset());
-                        axisVector = dir;
-                    }
-                    else
-                    {
-                        m = ModOp.Rotate(loc, -dir, sw + GetOffset());
-                        axisVector = -dir;
-                    }
-                    block.Modify(m);
-                    base.BasePoint = loc;
+                    block.Child(i).CopyGeometry(originals[i]);
                 }
+                Plane perp = new Plane(loc, dir); // plane perpendicular to rotation axis
+                GeoVector2D from = perp.Project(dir ^ src.Normal);
+                GeoVector2D to = perp.Project(dir ^ trg.Normal);
+                SweepAngle sw = new SweepAngle(from, to);
+                rotationAngle = sw;
+                rotAngleInput.ForceValue(rotationAngle);
+                ModOp m0 = ModOp.Rotate(loc, dir, sw);
+                ModOp m1 = ModOp.Rotate(loc, -dir, sw);
+                GeoVector n0 = m0 * src.Normal;
+                GeoVector n1 = m1 * src.Normal;
+                ModOp m; // not sure, which rotation is better
+                if (Math.Abs(n0 * trg.Normal) > Math.Abs(n1 * trg.Normal))
+                {
+                    m = ModOp.Rotate(loc, dir, sw + GetOffset());
+                    axisVector = dir;
+                }
+                else
+                {
+                    m = ModOp.Rotate(loc, -dir, sw + GetOffset());
+                    axisVector = -dir;
+                }
+                block.Modify(m);
+                base.BasePoint = loc;
             }
         }
 
@@ -418,25 +409,22 @@ namespace CADability.Actions
             // TODO: die neuen oder veränderten Objekte sollten markiert sein.
             using (Frame.Project.Undo.UndoFrame)
             {
-                //				ModOp m = ModOp.Rotate(base.BasePoint,base.ActiveDrawingPlane.Normal,new SweepAngle(rotationAngle));
-                using (new WaitCursor(CurrentMouseView.Canvas))
+                //				ModOp m = ModOp.Rotate(base.BasePoint,base.ActiveDrawingPlane.Normal,new SweepAngle(rotationAngle));                
+                ModOp m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(rotationAngle) + GetOffset());
+                if (((Frame.UIService.ModifierKeys & Keys.Shift) != 0) || copyObject)
                 {
-                    ModOp m = ModOp.Rotate(base.BasePoint, axisVector, new SweepAngle(rotationAngle) + GetOffset());
-                    if (((Frame.UIService.ModifierKeys & Keys.Shift) != 0) || copyObject)
+                    GeoObjectList cloned = new GeoObjectList();
+                    foreach (IGeoObject go in originals)
                     {
-                        GeoObjectList cloned = new GeoObjectList();
-                        foreach (IGeoObject go in originals)
-                        {
-                            IGeoObject cl = go.Clone();
-                            cl.Modify(m);
-                            cloned.Add(cl);
-                        }
-                        base.Frame.Project.GetActiveModel().Add(cloned);
+                        IGeoObject cl = go.Clone();
+                        cl.Modify(m);
+                        cloned.Add(cl);
                     }
-                    else
-                    {
-                        originals.Modify(m);
-                    }
+                    base.Frame.Project.GetActiveModel().Add(cloned);
+                }
+                else
+                {
+                    originals.Modify(m);
                 }
             }
             base.ActiveObject = null; // damit es nicht gleich eingefügt wird

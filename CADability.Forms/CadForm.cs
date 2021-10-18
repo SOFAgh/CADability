@@ -18,7 +18,8 @@ namespace CADability.Forms
         {
             InitializeComponent(); // makes the cadCanvas and the propertiesExplorer
             KeyPreview = true; // used to filter the escape key (and maybe some more?)
-            cadFrame = new CadFrame(this);
+            cadFrame = new CadFrame(propertiesExplorer, cadCanvas, this);
+            cadFrame.ProgressAction = (show, percent, title) => { this.ProgressForm.ShowProgressBar(show, percent, title); };
             cadCanvas.Frame = cadFrame;
             propertiesExplorer.Frame = cadFrame;
             // show this menu in the MainForm
@@ -35,9 +36,10 @@ namespace CADability.Forms
             #endregion DebuggerPlayground
             MainMenuStrip = MenuManager.MakeMainMenu(mainMenu);
             Controls.Add(MainMenuStrip);
+            cadFrame.FormMenu = MainMenuStrip;
             // open an existing Project or create a new one
             ToolBars.CreateOrRestoreToolbars(topToolStripContainer, cadFrame);
-            Application.Idle += new EventHandler(OnIdle); // update the toolbars (menues are updated when they popup)
+            Application.Idle += new EventHandler(OnIdle); // update the toolbars (menus are updated when they popup)
         }
         // Access the components of the MainForm from the CadFrame. 
         public ProgressForm ProgressForm
@@ -70,6 +72,25 @@ namespace CADability.Forms
             // ToolStripManager.SaveSettings(this); // save the positions of the toolbars (doesn't work correctly)
             base.OnClosing(e);
         }
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            cadFrame.Dispose();
+            this.Dispose();
+            cadCanvas.Dispose();
+            propertiesExplorer.Dispose();
+            topToolStripContainer.Dispose();
+            splitContainer.Dispose();
+            if (progressForm != null) progressForm.Dispose();
+
+            cadFrame = null;
+            cadCanvas = null;
+            propertiesExplorer = null;
+            topToolStripContainer = null;
+            splitContainer = null;
+            progressForm = null;
+
+            base.OnFormClosed(e);
+        }
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             Keys nmKeyData = (Keys)((int)keyData & 0x0FFFF);
@@ -79,13 +100,17 @@ namespace CADability.Forms
             preProcess = preProcess || (nmKeyData == Keys.Tab) || (nmKeyData == Keys.Enter);
             preProcess = preProcess || keyData.HasFlag(Keys.Control) || keyData.HasFlag(Keys.Alt); // menu shortcut
             if (propertiesExplorer.EntryWithTextBox == null) preProcess |= (nmKeyData == Keys.Delete); // the delete key is preferred by the textbox, if there is one 
+            Substitutes.KeyEventArgs e = new Substitutes.KeyEventArgs((Substitutes.Keys)keyData);
             if (preProcess)
             {
-                Substitutes.KeyEventArgs e = new Substitutes.KeyEventArgs((Substitutes.Keys) keyData);
                 e.Handled = false;
                 cadFrame.PreProcessKeyDown(e);
                 if (e.Handled) return true;
             }
+            CadFrame.PreProcessKeyDown(e);
+            if (e.Handled) return true;
+            //if (msg.Msg== 0x0101) // WM_KEYUP 
+            //{ }
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
@@ -99,9 +124,10 @@ namespace CADability.Forms
             return false;
         }
 
-        public virtual void OnSelected(string MenuId, bool selected)
+        public virtual void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
         {
             
         }
+
     }
 }

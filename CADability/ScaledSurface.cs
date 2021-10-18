@@ -284,7 +284,7 @@ namespace CADability
             throw new NotImplementedException();
         }
 
-        public ISurface GetNonPeriodicSurface(Shapes.Border maxOutline)
+        public ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
         {
             throw new NotImplementedException();
         }
@@ -298,6 +298,11 @@ namespace CADability
         {
             get { throw new NotImplementedException(); }
         }
+
+        public bool UvChangesWithModification => throw new NotImplementedException();
+
+        public IPropertyEntry PropertyEntry => throw new NotImplementedException();
+
         public double MaxDist(GeoPoint2D sp, GeoPoint2D ep, out GeoPoint2D mp)
         {
             double res = original.MaxDist(unscale * sp, unscale * ep, out mp);
@@ -358,6 +363,15 @@ namespace CADability
         }
 
         public MenuWithHandler[] GetContextMenuForParametrics(IFrame frame, Face face)
+        {
+            throw new NotImplementedException();
+        }
+        public IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            return new GroupProperty("ScaledSurface", new IPropertyEntry[0]);
+        }
+
+        public double Fit(IEnumerable<GeoPoint> toPoints)
         {
             throw new NotImplementedException();
         }

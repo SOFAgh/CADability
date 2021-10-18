@@ -12,7 +12,7 @@ namespace CADability.Attribute
     /// 
     /// </summary>
     [Serializable()]
-    public class LineWidth : IShowPropertyImpl, INamedAttribute, ISerializable, ICommandHandler
+    public class LineWidth : PropertyEntryImpl, INamedAttribute, ISerializable, ICommandHandler
     {
         private string name;
         private double width;
@@ -91,6 +91,7 @@ namespace CADability.Attribute
                 }
             }
         }
+        static public LineWidth ThinLine = new LineWidth();
         private void FireDidChange(string propertyName, object propertyOldValue)
         {   // Eine Eigenschaft hat sich geändert.
             // Wird an parent weitergeleitet
@@ -101,36 +102,22 @@ namespace CADability.Attribute
             }
         }
 
-        #region IShowPropertyImpl
-        private IShowProperty[] subEntries;
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.SimpleEntry"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
+        #region PropertyEntryImpl
+        private IPropertyEntry[] subEntries;
+        public override PropertyEntryType Flags
         {
             get
             {
-                return ShowPropertyEntryType.SimpleEntry;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags flags = ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.Editable;
+                PropertyEntryType flags = PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.LabelEditable;
                 if (parent.Current == this)
-                    flags |= ShowPropertyLabelFlags.Bold;
+                    flags |= PropertyEntryType.Bold;
                 return flags;
             }
         }
         public override void Added(IPropertyPage pp)
         {
             base.Added(pp);
-            subEntries = new IShowProperty[1];
+            subEntries = new IPropertyEntry[1];
             string[] choices = StringTable.GetSplittedStrings("LineWidth.Scaling");
             string choice = "";
             if ((int)scale < choices.Length)
@@ -153,16 +140,11 @@ namespace CADability.Attribute
                 Name = value;
             }
         }
-
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-		public override void LabelChanged(string NewText)
+        public override void EndEdit(bool aborted, bool modified, string newValue)
         {
             try
             {
-                Name = NewText;
+                Name = newValue;
             }
             catch (NameAlreadyExistsException)
             {
@@ -176,22 +158,11 @@ namespace CADability.Attribute
                 mcp.ValueChangedEvent -= new ValueChangedDelegate(ScalingChanged);
             }
         }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 return subEntries;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return subEntries.Length;
             }
         }
         public override MenuWithHandler[] ContextMenu
@@ -237,7 +208,7 @@ namespace CADability.Attribute
                 parent = (LineWidthList)value; // muss so sein
             }
         }
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             return null;
         }
@@ -295,7 +266,7 @@ namespace CADability.Attribute
                     parent.Remove(this);
                     return true;
                 case "MenuId.LineWidthEntry.Edit":
-                    propertyTreeView.StartEditLabel(this); // muss ja offen sein
+                    propertyPage.StartEditLabel(this);
                     return true;
                 case "MenuId.LineWidthEntry.Current":
                     parent.Current = this;
@@ -308,7 +279,7 @@ namespace CADability.Attribute
             // TODO:  Add LineWidth.OnUpdateCommand implementation
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
 

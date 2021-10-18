@@ -59,12 +59,12 @@ namespace CADability.UserInterface
     /// and remove GeoPoints to or from the list or modify existing GeoPoints in the list.
     /// </summary>
 
-    public class MultiGeoPointProperty : IShowPropertyImpl
+    public class MultiGeoPointProperty : PropertyEntryImpl
     {
         private IIndexedGeoPoint controlledObject;
         private MenuWithHandler[] prependContextMenue;
         private bool displayZComponent;
-        private IShowProperty[] subEntries; // die ggf. bereits erzeugten SubEntries
+        private IPropertyEntry[] subEntries; 
         /// <summary>
         /// Creates a MultiGeoPointProperty. The parameter "controlledObject" provides the owner
         /// of the list.
@@ -75,8 +75,9 @@ namespace CADability.UserInterface
         /// edit box. ResourceId+".ShortInfo": a short tooltip text ResourceId+"DetailedInfo":
         /// a longer tooltip text.
         /// </param>
-        public MultiGeoPointProperty(IIndexedGeoPoint controlledObject, string resourceId)
+        public MultiGeoPointProperty(IIndexedGeoPoint controlledObject, string resourceId, IFrame frame)
         {
+            this.Frame = frame;
             this.resourceId = resourceId;
             this.controlledObject = controlledObject;
             prependContextMenue = null;
@@ -126,12 +127,12 @@ namespace CADability.UserInterface
         }
         public override void Refresh()
         {
-            if (propertyTreeView == null) return;
+            if (propertyPage == null) return;
             bool wasOpen = false;
-            if (subEntries != null && propertyTreeView.IsOpen(this))
+            if (subEntries != null && propertyPage.IsOpen(this))
             {
                 wasOpen = true;
-                propertyTreeView.OpenSubEntries(this, false);
+                propertyPage.OpenSubEntries(this, false);
             }
             if (subEntries != null && controlledObject.GetGeoPointCount() != subEntries.Length)
             {
@@ -148,11 +149,11 @@ namespace CADability.UserInterface
             }
             for (int i = 0; i < subEntries.Length; i++)
             {
-                subEntries[i].Refresh();
+                //subEntries[i].Refresh();
             }
             if (wasOpen)
             {
-                propertyTreeView.OpenSubEntries(this, true);
+                propertyPage.OpenSubEntries(this, true);
             }
         }
         /// <summary>
@@ -161,13 +162,14 @@ namespace CADability.UserInterface
         /// <param name="initialValue">initial value of the new point</param>
         public void Append(GeoPoint initialValue)
         {
+            if (propertyPage.Selected != null && propertyPage.Selected is GeoPointProperty gpp) propertyPage.SelectEntry(this);
             subEntries = null; // damit werden diese ungültig
             controlledObject.InsertGeoPoint(-1, initialValue);
-            if (propertyTreeView != null)
+            if (propertyPage != null)
             {
-                propertyTreeView.Refresh(this); // damit werden neue subEntries erzeugt
-                propertyTreeView.OpenSubEntries(this, false);
-                propertyTreeView.OpenSubEntries(this, true);
+                propertyPage.Refresh(this); // damit werden neue subEntries erzeugt
+                propertyPage.OpenSubEntries(this, false);
+                propertyPage.OpenSubEntries(this, true);
             }
         }
         //public bool MouseEnabled(int Index)
@@ -181,31 +183,30 @@ namespace CADability.UserInterface
         /// <param name="open">true: open, false: close</param>
         public void ShowOpen(bool open)
         {
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, open);
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, open);
         }
         public void SetFocusToIndex(int index)
         {
-            if (propertyTreeView != null && subEntries != null && subEntries.Length > index)
+            if (propertyPage != null && subEntries != null && subEntries.Length > index)
             {
-                if (propertyTreeView.IsOpen(this))
+                if (propertyPage.IsOpen(this))
                 {
-                    propertyTreeView.SelectEntry(subEntries[index] as IPropertyEntry);
+                    propertyPage.SelectEntry(subEntries[index] as IPropertyEntry);
                 }
             }
         }
         //public void EnableMouse(int Index)
         //{
-        //    if (propertyTreeView!=null) 
+        //    if (propertyPage!=null) 
         //    {
         //        GeoPointProperty gpp = subEntries[Index] as GeoPointProperty;
         //        gpp.SetMouseButton(MouseButtonMode.MouseActive);
         //    }
         //}
 #region IShowPropertyImpl Overrides
-        public override void Added(IPropertyPage propertyTreeView)
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
-            // hier kann man refreshen, weil Frame gesetzt ist:
+            base.Added(propertyPage);
             IShowProperty[] sub = SubEntries;
             for (int i = 0; i < sub.Length; ++i)
             {
@@ -216,40 +217,14 @@ namespace CADability.UserInterface
                 }
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return controlledObject.GetGeoPointCount();
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
-        /// returns the subentries in this property view.
-        /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    subEntries = new IShowProperty[SubEntriesCount];
-                    for (int i = 0; i < SubEntriesCount; ++i)
+                    subEntries = new IPropertyEntry[controlledObject.GetGeoPointCount()];
+                    for (int i = 0; i < subEntries.Length; ++i)
                     {
                         GeoPointProperty gpp = new GeoPointProperty(resourceId + ".Point", this.Frame, false);
                         gpp.UserData["Index"] = i;
@@ -262,8 +237,6 @@ namespace CADability.UserInterface
                         gpp.ContextMenuId = "MenuId.IndexedPoint";
                         gpp.PrependContextMenu = prependContextMenue; // zusätzliches Menue
                         gpp.DisplayZComponent = displayZComponent;
-                        // wenn der LabelText formatierbar ist, d.h. "{0" enthält,
-                        // dann wird der LabelText durch den formatierten Text ersetzt
                         string lt = StringTable.GetString(resourceId + ".Point.Label");
                         if (lt.IndexOf("{0") >= 0)
                         {
@@ -273,14 +246,15 @@ namespace CADability.UserInterface
                             }
                             catch (FormatException) { } // geht halt nicht, Original bleibt
                         }
-                        // TODO: hier noch TAB und Enter abfangen...
                         subEntries[i] = gpp;
                     }
                 }
                 return subEntries;
+
             }
         }
-#endregion
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+        #endregion
         private void OnSetGeoPoint(GeoPointProperty sender, GeoPoint p)
         {
             int index = (int)sender.UserData["Index"];
@@ -414,12 +388,12 @@ namespace CADability.UserInterface
         /// <param name="index">Where to insert</param>
         /// <param name="after">true: insert after this index, false: insert before this index</param>
         /// <returns>The new point to be inserted</returns>
-        public delegate GeoPoint GetInsertionPointDelegate(IShowProperty sender, int index, bool after);
+        public delegate GeoPoint GetInsertionPointDelegate(IPropertyEntry sender, int index, bool after);
         /// <summary>
         /// When a point is about to be inserted this property needs some initial value.
         /// The default initial value is the same point as the first/last point, when inserted before the first
-        /// or after the last point, and the middle point of the intervall where the point is to be inserted.
-        /// If you wisch another behaviour add a handler to this event and return the appropriate point.
+        /// or after the last point, and the middle point of the interval where the point is to be inserted.
+        /// If you wish another behavior add a handler to this event and return the appropriate point.
         /// </summary>
         public GetInsertionPointDelegate GetInsertionPointEvent;
 

@@ -1,5 +1,7 @@
 ﻿using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
+using MathNet.Numerics.LinearAlgebra.Factorization;
 using System;
 using System.Collections;
 using System.Runtime.Serialization;
@@ -227,9 +229,12 @@ namespace CADability
             // nicht unbedingt das optimale Ergebnis :"this method will minimize the squares of the residuals as perpendicular to the main axis, 
             // not the residuals perpendicular to the plane." Sonst wohl besser: https://math.stackexchange.com/questions/99299/best-fitting-plane-given-a-set-of-points
 #if DEBUG
-            // FromPointsSVD(Points, out MaxDistance, out isLinear); bringt nichts!
+            // Plane dbgsvd = FromPointsSVD(Points, out MaxDistance, out isLinear); // bringt nichts!
             // double dbgerr = GaussNewtonMinimizer.PlaneFit(Points, out Plane dbgpln);
-
+            //if (Points.Length > 4)
+            //{
+            //    bool lmok = BoxedSurfaceExtension.PlaneFit(Points, out GeoPoint lmLoc, out GeoVector lmNormal);
+            //}
 #endif
             if (Points.Length < 3)
             {
@@ -274,7 +279,8 @@ namespace CADability
                     isLinear = true;
                     return Plane.XYPlane;
                 }
-                prec = GaussNewtonMinimizer.LineFit(Points.ToIArray(), ext.Size * 1e-6, out lpos, out ldir);
+                prec = BoxedSurfaceExtension.LineFit(Points, ext.Size * 1e-6, out lpos, out ldir);
+                // prec = GaussNewtonMinimizer.LineFit(Points.ToIArray(), ext.Size * 1e-6, out lpos, out ldir);
                 if (prec < ext.Size * 1e-6)
                 {
                     isLinear = true;
@@ -332,10 +338,12 @@ namespace CADability
 #endif
             Plane res = new Plane(centroid, normal);
             MaxDistance = 0.0;
+            double error = 0.0;
             for (int i = 0; i < Points.Length; ++i)
             {
                 double d = Math.Abs(res.Distance(Points[i]));
                 if (d > MaxDistance) MaxDistance = d;
+                error += d * d;
             }
             return res;
         }
@@ -344,7 +352,7 @@ namespace CADability
             isLinear = false;
             MaxDistance = double.MaxValue;
             GeoPoint centroid = new GeoPoint(Points);
-            Matrix m = new LinearAlgebra.Matrix(Points.Length, 3);
+            Matrix m = DenseMatrix.OfArray(new double[Points.Length, 3]);
             for (int i = 0; i < Points.Length; i++)
             {
                 GeoVector v = Points[i] - centroid;
@@ -354,9 +362,8 @@ namespace CADability
             }
             try
             {
-                SingularValueDecomposition svd = m.SVD();
-                // liefert nichts erkennbares für die Ebene!
-                GeoVector normal = new GeoVector(svd.LeftSingularVectors[0, 0], svd.LeftSingularVectors[0, 1], svd.LeftSingularVectors[0, 2]);
+                Svd<double> svd = m.Svd();
+                GeoVector normal = new GeoVector(svd.U[0, 0], svd.U[0, 1], svd.U[0, 2]);
                 return new Plane(centroid, normal);
             }
             catch
@@ -365,207 +372,6 @@ namespace CADability
             }
         }
 
-        private static Plane FromPointsOld(GeoPoint[] Points, out double MaxDistance, out bool isLinear)
-        {   // diese Methode stürzt in opencascade oft ab, und sie wird auch nicht in dieser
-            // Form benötigt. Meist sind alle Punkte in einer Ebene oder wenn nicht, dann ist auch diese Ebene nicht gesucht
-            isLinear = false;
-            // Test mit neuem namespace MathNet.Numerics.LinearAlgebra>
-            LinearAlgebra.Matrix X = new LinearAlgebra.Matrix(Points.Length, 3);
-            LinearAlgebra.Matrix B = new LinearAlgebra.Matrix(Points.Length, 1);
-            double ext = 0.0;
-            for (int i = 0; i < Points.Length; ++i)
-            {
-                X[i, 0] = Points[i].x;
-                X[i, 1] = Points[i].y;
-                X[i, 2] = Points[i].z;
-                ext = Math.Max(Math.Abs(Points[i].x), ext);
-                ext = Math.Max(Math.Abs(Points[i].y), ext);
-                ext = Math.Max(Math.Abs(Points[i].z), ext);
-                B[i, 0] = 1;
-            }
-            LinearAlgebra.QRDecomposition qrd = X.QRD();
-            GeoVector normal = new GeoVector(0.0, 0.0, 0.0);
-            if (qrd.FullRank)
-            {
-                LinearAlgebra.Matrix resx = qrd.Solve(B);
-                normal.x = resx[0, 0];
-                normal.y = resx[1, 0];
-                normal.z = resx[2, 0];
-                ext = 0.0;
-            }
-            else
-            {   // unterbestimmt oder durch den Nullpunkt
-                // unterbestimmt wird mit FullRank nicht richtig festgestellt
-                // deshalb Vortest:
-                isLinear = true;
-                int bestLineEnd = -1;
-                double maxDist = 0;
-                for (int i = 1; i < Points.Length; i++)
-                {
-                    double d = Points[i] | Points[0];
-                    if (d > maxDist)
-                    {
-                        maxDist = d;
-                        bestLineEnd = i;
-                    }
-                }
-                if (maxDist > 0)
-                {
-                    for (int i = 1; i < Points.Length; i++)
-                    {
-                        if (i != bestLineEnd)
-                        {
-                            if (Geometry.DistPL(Points[i], Points[0], Points[bestLineEnd]) > Precision.eps)
-                            {
-                                isLinear = false;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (!isLinear)
-                {
-                    for (int i = 0; i < Points.Length; ++i)
-                    {
-                        X[i, 0] = Points[i].x + ext;
-                        X[i, 1] = Points[i].y + ext;
-                        X[i, 2] = Points[i].z + ext;
-                    }
-                    qrd = X.QRD();
-                    if (qrd.FullRank)
-                    {
-                        LinearAlgebra.Matrix resx = qrd.Solve(B);
-                        normal.x = resx[0, 0];
-                        normal.y = resx[1, 0];
-                        normal.z = resx[2, 0];
-                    }
-                }
-            }
-            if (normal.Length > 1e-16)
-            {
-                // das Ergebnis ist so, dass nx*ax+ny*ay+nz*az==1 
-                // wir nehmen die Achse der stärksten Richtung von n für den Anfangspunkt a
-                GeoPoint org = new GeoPoint(-ext, -ext, -ext); //die ursprünglich verschiebung rückgängig (wenn überhaupt)
-                if (Math.Abs(normal.x) > Math.Abs(normal.y))
-                {
-                    if (Math.Abs(normal.x) > Math.Abs(normal.z)) org.x += 1.0 / normal.x;
-                    else org.z += 1.0 / normal.z;
-                }
-                else
-                {
-                    if (Math.Abs(normal.y) > Math.Abs(normal.z)) org.y += 1.0 / normal.y;
-                    else org.z += 1.0 / normal.z;
-                }
-                // org ist also der Ursprung der Ebene, die Wahl der Vectoren ist noch frei
-                GeoVector axis;
-                if (Math.Abs(normal.x) < Math.Abs(normal.y))
-                {
-                    if (Math.Abs(normal.x) < Math.Abs(normal.z)) axis = GeoVector.XAxis;
-                    else axis = GeoVector.ZAxis;
-                }
-                else
-                {
-                    if (Math.Abs(normal.y) < Math.Abs(normal.z)) axis = GeoVector.YAxis;
-                    else axis = GeoVector.ZAxis;
-                }
-                GeoVector dirx = normal ^ axis;
-                GeoVector diry = normal ^ dirx;
-                Plane plnres = new Plane(org, dirx, diry);
-                if (!plnres.DirectionX.IsNullVector() && !plnres.DirectionY.IsNullVector())
-                {
-                    MaxDistance = 0.0;
-                    for (int i = 0; i < Points.Length; ++i)
-                    {
-                        MaxDistance = Math.Max(MaxDistance, Math.Abs(plnres.Distance(Points[i])));
-                    }
-                    return plnres;
-                }
-            }
-            // Hier folgt die alte methode, die kann man vermutlich ggf. wegwerfen, oder?
-
-            // 1. finde die zwei am weitesten voneinander entfernten Punkte
-            // System.Collections.Generic.SortedList<double, Pair<int,int>> dist = new SortedList<double,Pair<int,int>>();
-            //if (Points.Length < 3)
-            //{
-            MaxDistance = double.MaxValue;
-            return Plane.XYPlane;
-            //}
-            // hier gehts nicht besser:
-            double mindist = double.MaxValue;
-            double maxdist = 0.0;
-            int? i0 = null;
-            int? j0 = null;
-            int i1 = 0, j1 = 0;
-            for (int i = 0; i < Points.Length - 1; ++i)
-            {
-                for (int j = i + 1; j < Points.Length; ++j)
-                {
-                    double d = Geometry.Dist(Points[i], Points[j]);
-                    if (d < mindist)
-                    {
-                        mindist = d;
-                        i0 = i;
-                        j0 = j;
-                    }
-                    if (d > maxdist)
-                    {
-                        maxdist = d;
-                        i1 = i;
-                        j1 = j;
-                    }
-                }
-            }
-            if (!(i0.HasValue && j0.HasValue))
-            {   // alle punkte gleich
-                MaxDistance = double.MaxValue;
-                return new Plane(Points[0], GeoVector.ZAxis);
-            }
-            GeoPoint Location = Points[i0.Value];
-            GeoVector DirectionX = Points[j1] - Points[i1];
-            GeoVector? DirectionY = null;
-            mindist = 0.0;
-            for (int i = 0; i < Points.Length; ++i)
-            {
-                if (i != i0 && i != j0)
-                {
-                    double d = Geometry.DistPL(Points[i], Location, DirectionX);
-                    if (d > mindist)
-                    {
-                        mindist = d;
-                        DirectionY = Points[i] - Location;
-                    }
-                }
-            }
-            Plane res;
-            if (DirectionY.HasValue && !Precision.IsNullVector(DirectionY.Value))
-            {
-                res = new Plane(Location, DirectionX, DirectionY.Value);
-            }
-            else
-            {   // Alle Punkte auf einer Linie, irgendeine Ebene verwenden
-                isLinear = true;
-                DirectionY = DirectionX ^ GeoVector.ZAxis;
-                if (Precision.IsNullVector(DirectionY.Value))
-                {
-                    DirectionY = DirectionX ^ GeoVector.YAxis;
-                }
-                try
-                {
-                    res = new Plane(Location, DirectionX, DirectionY.Value);
-                }
-                catch (PlaneException)
-                {
-                    res = new Plane(Location, GeoVector.ZAxis);
-                }
-            }
-            MaxDistance = 0.0;
-            for (int i = 0; i < Points.Length; ++i)
-            {
-                double d = res.Distance(Points[i]);
-                if (d > MaxDistance) MaxDistance = d;
-            }
-            return res;
-        }
         /// <summary>
         /// Enumeration of the standard planes
         /// </summary>
@@ -585,7 +391,7 @@ namespace CADability
             YZPlane
         }
         /// <summary>
-        /// Creates a new plane parallel to a <see cref="Standardplane"/> with a given offset
+        /// Creates a new plane parallel to a <see cref="StandardPlane"/> with a given offset
         /// </summary>
         /// <param name="std">the standard plane</param>
         /// <param name="offset">the offset to the standard plane</param>
@@ -1065,11 +871,12 @@ namespace CADability
         }
         public static bool Intersect3Planes(GeoPoint loc1, GeoVector norm1, GeoPoint loc2, GeoVector norm2, GeoPoint loc3, GeoVector norm3, out GeoPoint ip)
         {
-            Matrix m = new Matrix(norm1, norm2, norm3);
-            Matrix s = m.SaveSolve(new Matrix(new double[,] { { norm1 * loc1.ToVector() }, { norm2 * loc2.ToVector() }, { norm3 * loc3.ToVector() } }));
-            if (s != null)
+            Matrix m = DenseMatrix.OfRowArrays(norm1, norm2, norm3);
+            // Matrix s = (Matrix)m.Solve(DenseMatrix.OfArray(new double[,] { { norm1 * loc1.ToVector() }, { norm2 * loc2.ToVector() }, { norm3 * loc3.ToVector() } }));
+            Vector s = (Vector)m.Solve(new DenseVector( new double[] { norm1 * loc1.ToVector() ,  norm2 * loc2.ToVector() ,  norm3 * loc3.ToVector() } ));
+            if (s.IsValid())
             {
-                ip = new GeoPoint(s[0, 0], s[1, 0], s[2, 0]);
+                ip = new GeoPoint(s);
                 return true;
             }
             else

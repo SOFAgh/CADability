@@ -97,7 +97,7 @@ namespace CADability.Actions
                 doubleProperty.Refresh();
             }
         }
-        void OnDistanceKey(IShowProperty sender, char KeyPressed)
+        void OnDistanceKey(IPropertyEntry sender, char KeyPressed)
         {   // das Enter auf einem Abstand beendet immer die Aktion, sonst muss man halt mit TAB durch
             // man könnte überprüfen obs der letzte ist, macht aber m.E. keinen Sinn
             if (KeyPressed == 13)
@@ -170,7 +170,7 @@ namespace CADability.Actions
                 sections[nextindex] += toadd;
             }
             // alle Werte bis auf diesen updaten.
-            IShowProperty[] sub = distances.GetShowProperties();
+            IPropertyEntry[] sub = distances.GetShowProperties();
             for (int i = 0; i < sub.Length; ++i)
             {
                 if (i != index) (sub[i] as DoubleProperty).Refresh();
@@ -200,7 +200,7 @@ namespace CADability.Actions
         {   // prozent (0) oder Länge (1)
             mode = val;
             // Refresh für die Einträge
-            IShowProperty[] sub = distances.GetShowProperties();
+            IPropertyEntry[] sub = distances.GetShowProperties();
             for (int i = 0; i < sub.Length; ++i)
             {
                 (sub[i] as DoubleProperty).Refresh();

@@ -1,6 +1,7 @@
 ﻿using CADability.Attribute;
 using CADability.GeoObject;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Reflection;
 
@@ -8,7 +9,6 @@ namespace CADability.UserInterface
 {
 
     public class ColorSelectionProperty : MultipleChoiceProperty
-        , IPropertyEntry
     {
         private IGeoObject toWatch;
         private ColorList colorList;
@@ -22,8 +22,7 @@ namespace CADability.UserInterface
         {
             selectedCD = select;
             useFlags = flags;
-            flags = clrTable.Flags;
-            clrTable.Flags = useFlags;
+            clrTable.Usage = flags;
             base.resourceId = resourceId;
             colorList = clrTable;
             choices = clrTable.Names;
@@ -36,15 +35,13 @@ namespace CADability.UserInterface
             {
                 selectedText = unselectedText;
             }
-            clrTable.Flags = flags;
             unselectedText = StringTable.GetString("ColorDef.Undefined");
             showUnselectedGray = true;
         }
         public ColorSelectionProperty(IColorDef iColorDef, string resourceId, ColorList clrTable, ColorList.StaticFlags flags)
         {
             useFlags = flags;
-            flags = clrTable.Flags;
-            clrTable.Flags = useFlags;
+            clrTable.Usage = flags;
             base.resourceId = resourceId;
             colorList = clrTable;
             ColorDef selectedColor = iColorDef.ColorDef;
@@ -60,27 +57,34 @@ namespace CADability.UserInterface
             {
                 selectedText = unselectedText;
             }
-            clrTable.Flags = flags;
-            toWatch = iColorDef as IGeoObject; // kann natürlich null sein
+            toWatch = iColorDef as IGeoObject; // may be null
             showUnselectedGray = true;
         }
         private void ExtendChoices()
         {
-            if ((useFlags & ColorList.StaticFlags.allowUndefined) != 0)
+            List<string> lchoices = new List<string>(choices);
+            if (useFlags.HasFlag(ColorList.StaticFlags.allowUndefined))
             {
                 unselectedText = StringTable.GetString("ColorDef.Undefined");
-                // sollte es den Namen schon geben, werden solange - davor und dahintergemacht, bis es den Namen mehr gibt
+                // this name should not be a name of a defined color. But if it is so, we prefix the text by "-" as often as necessary
                 while (colorList.Find(unselectedText) != null) unselectedText = "-" + unselectedText + "-";
-                choices = new string[colorList.Names.Length + 1];
-                colorList.Names.CopyTo(choices, 1);
-                choices[0] = unselectedText;
+                lchoices.Insert(0, unselectedText);
             }
+            //if (useFlags.HasFlag(ColorList.StaticFlags.allowFromParent))
+            //{
+            //    lchoices.Add(ColorDef.CDfromParent.Name);
+            //}
+            //if (useFlags.HasFlag(ColorList.StaticFlags.allowFromStyle))
+            //{
+            //    lchoices.Add(ColorDef.CDfromStyle.Name);
+            //}
+            choices = lchoices.ToArray();
         }
         public ColorSelectionProperty(object go, string propertyName, string resourceId, ColorList clrTable, ColorList.StaticFlags flags)
         {
             useFlags = flags;
-            flags = clrTable.Flags;
-            clrTable.Flags = useFlags;
+            flags = clrTable.Usage;
+            clrTable.Usage = useFlags;
             base.resourceId = resourceId;
             colorList = clrTable;
             choices = clrTable.Names;
@@ -95,9 +99,9 @@ namespace CADability.UserInterface
                 selectedText = selectedColor.Name;
             }
             selectedCD = selectedColor;
-            clrTable.Flags = flags;
+            clrTable.Usage = flags;
             unselectedText = StringTable.GetString("ColorDef.Undefined");
-            toWatch = go as IGeoObject; // kann natürlich null sein
+            toWatch = go as IGeoObject; // may be null
         }
         public override void SetSelection(int toSelect)
         {
@@ -118,8 +122,8 @@ namespace CADability.UserInterface
         }
         protected override void OnSelectionChanged(string selected)
         {
-            ColorList.StaticFlags flags = colorList.Flags;
-            colorList.Flags = useFlags;
+            ColorList.StaticFlags flags = colorList.Usage;
+            colorList.Usage = useFlags;
             ColorDef found = colorList.Find(selected);
             if (iColorDef != null)
             {
@@ -137,7 +141,7 @@ namespace CADability.UserInterface
                 ColorDefChangedEvent(found);
             }
             base.OnSelectionChanged(selected);
-            colorList.Flags = flags;
+            colorList.Usage = flags;
         }
         private void colorList_DidModify(object sender, EventArgs args)
         {
@@ -177,12 +181,12 @@ namespace CADability.UserInterface
             }
         }
         public IGeoObject Connected
-        {   // mit dieser Property kann man das kontrollierte Geoobjekt ändern
+        {   // a IGeoObject with a IColorDef to modify the color of that object
             get { return toWatch; }
             set
             {
-                if (base.propertyTreeView != null)
-                {   // dann ist diese Property schon Added und nicht removed
+                if (base.propertyPage != null)
+                {   // when there already was an object
                     if (toWatch != null) toWatch.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
                 }
                 toWatch = value;
@@ -190,7 +194,7 @@ namespace CADability.UserInterface
                 if (toWatch != null) toWatch.DidChangeEvent += new ChangeDelegate(GeoObjectDidChange);
             }
         }
-#region IPropertyEntry
+        #region IPropertyEntry
         public override void Added(IPropertyPage pp)
         {
             base.Added(pp);
@@ -203,27 +207,38 @@ namespace CADability.UserInterface
             colorList.DidModifyEvent -= new DidModifyDelegate(colorList_DidModify);
             if (toWatch != null) toWatch.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
         }
-        string[] IPropertyEntry.GetDropDownList()
+        public override string[] GetDropDownList()
         {
-            string[] res = new string[colorList.Count];
-            for (int i = 0; i < colorList.Count; i++)
+            string[] res = new string[choices.Length];
+            for (int i = 0; i < choices.Length; i++)
             {
-                res[i] = "[[ColorBox:" + colorList[i].Color.R.ToString() + ":" + colorList[i].Color.G.ToString() + ":" + colorList[i].Color.B.ToString() + "]]" + colorList[i].Name;
+                ColorDef cd = colorList.Find(choices[i]);
+                if (cd != null && cd.Source != ColorDef.ColorSource.fromParent && cd.Source != ColorDef.ColorSource.fromStyle)
+                {
+                    res[i] = "[[ColorBox:" + cd.Color.R.ToString() + ":" + cd.Color.G.ToString() + ":" + cd.Color.B.ToString() + "]]" + cd.Name;
+                }
+                else
+                {
+                    res[i] = choices[i];
+                }
             }
             return res;
         }
-        string IPropertyEntry.Value
+        public override string Value
         {
             get
             {
                 if (selectedCD == null) return "";
-                return "[[ColorBox:" + selectedCD.Color.R.ToString() + ":" + selectedCD.Color.G.ToString() + ":" + selectedCD.Color.B.ToString() + "]]" + selectedCD.Name;
+                if (selectedCD.Source != ColorDef.ColorSource.fromParent && selectedCD.Source != ColorDef.ColorSource.fromStyle)
+                    return "[[ColorBox:" + selectedCD.Color.R.ToString() + ":" + selectedCD.Color.G.ToString() + ":" + selectedCD.Color.B.ToString() + "]]" + selectedCD.Name;
+                else return selectedCD.Name;
             }
         }
         public override void ListBoxSelected(int selectedIndex)
         {
             if (selectedIndex < 0) return;
-            selectedCD = colorList[selectedIndex];
+            selectedCD = colorList.Find(choices[selectedIndex]);
+            if (selectedCD == null) return;
             if (iColorDef != null)
             {
                 iColorDef.ColorDef = selectedCD;
@@ -241,8 +256,7 @@ namespace CADability.UserInterface
             }
             if (propertyPage != null) propertyPage.Refresh(this);
         }
-
-#endregion
+        #endregion
 
     }
 }

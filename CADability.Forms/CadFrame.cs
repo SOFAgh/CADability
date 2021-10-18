@@ -20,18 +20,57 @@ namespace CADability.Forms
     /// </summary>
     public class CadFrame : FrameImpl, IUIService
     {
-        private CadForm cadForm; // we need the MainMenu and ProgressBar here
+        #region PRIVATE FIELDS
 
-        public CadFrame(CadForm cadForm) : base(cadForm.PropertiesExplorer, cadForm.CadCanvas)
+        private ICommandHandler commandHandler;
+
+        #endregion PRIVATE FIELDS
+
+        #region PUBLIC PROPERTIES
+
+        /// <summary>
+        /// The parent form menu
+        /// </summary>
+        public MenuStrip FormMenu { set; private get; }
+
+        /// <summary>
+        /// Action that delegate the progress.
+        /// In this way we can use a custom progress ui.
+        /// </summary>
+        public Action<bool, double, string> ProgressAction { get; set; }
+
+        #endregion PUBLIC PROPERTIES
+
+        /// <summary>
+        /// Constructor without form dependency.
+        /// </summary>
+        /// <param name="propertiesExplorer"></param>
+        /// <param name="cadCanvas"></param>
+        /// <param name="commandHandler"></param>
+        public CadFrame(PropertiesExplorer propertiesExplorer, CadCanvas cadCanvas, ICommandHandler commandHandler) 
+            : base(propertiesExplorer, cadCanvas)
         {
-            this.cadForm = cadForm;
+            this.commandHandler = commandHandler;
         }
+        /// <summary>
+        /// Constructor without form dependency.
+        /// </summary>        
+        /// <param name="cadCanvas"></param>
+        /// <param name="commandHandler"></param>
+        public CadFrame(CadCanvas cadCanvas, ICommandHandler commandHandler)
+            : base(cadCanvas)
+        {
+            this.commandHandler = commandHandler;
+        }
+
+        #region FrameImpl override
 
         public override bool OnCommand(string MenuId)
         {
-            if (cadForm != null && cadForm.OnCommand(MenuId)) return true;
+            if (commandHandler != null && commandHandler.OnCommand(MenuId)) return true;
             return base.OnCommand(MenuId);
         }
+
         public override bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             return base.OnUpdateCommand(MenuId, CommandState);
@@ -74,14 +113,15 @@ namespace CADability.Forms
 
         public override void UpdateMRUMenu(string[] mruFiles)
         {
-            if (cadForm.MainMenuStrip != null)
-            {
-                foreach (MenuItemWithHandler mi in cadForm.MainMenuStrip.Items)
-                {
-                    UpdateMRUMenu(mi, mruFiles);
-                }
-            }
+			if (this.FormMenu != null)
+			{
+				foreach (MenuItemWithHandler mi in this.FormMenu.Items)
+				{
+					UpdateMRUMenu(mi, mruFiles);
+				}
+			}
         }
+        #endregion FrameImpl override
 
         #region IUIService implementation
         public override IUIService UIService => this;
@@ -173,7 +213,7 @@ namespace CADability.Forms
         }
         void IUIService.ShowProgressBar(bool show, double percent, string title)
         {
-            cadForm.ProgressForm.ShowProgressBar(show, percent, title);
+            this.ProgressAction?.Invoke(show, percent, title);
         }
         /// <summary>
         /// Returns a bitmap from the specified embeded resource. the name is in the form filename:index

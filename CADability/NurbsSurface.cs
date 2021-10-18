@@ -1,5 +1,5 @@
 ﻿using CADability.Curve2D;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using Wintellect.PowerCollections;
+using MathNet.Numerics.LinearAlgebra.Factorization;
 
 namespace CADability.GeoObject
 {
@@ -88,7 +89,12 @@ namespace CADability.GeoObject
             {
                 if (!simpleSurfaceChecked)
                 {
-                    double precision = BoxedSurfaceEx.GetRawExtent().Size * 1e-6;
+                    BoundingCube polesext = BoundingCube.EmptyBoundingCube;
+                    foreach (GeoPoint point in poles)
+                    {
+                        polesext.MinMax(point);
+                    }
+                    double precision = polesext.Size * 1e-6;
                     if (GetSimpleSurface(precision, out simpleSurface, out toSimpleSurface))
                     {
                     }
@@ -1112,17 +1118,41 @@ namespace CADability.GeoObject
 
         private bool IsCircle(IArray<GeoPoint> pnts, double precision, out GeoPoint center, out double radius)
         {
-            double error = GaussNewtonMinimizer.CircleFit(pnts, GeoPoint.Invalid, 0.0, precision, out Ellipse elli);
-            if (error < precision)
+            Plane pln = Plane.FromPoints(pnts.ToArray(), out double maxerror, out bool islinear);
+            //// double maxerror = PlaneFit(points, precision, out Plane pln);
+            if (islinear || maxerror > precision)
             {
-                center = elli.Center;
-                radius = elli.Radius;
+                center = GeoPoint.Invalid;
+                radius = 0.0;
+                return false;
+            }
+
+            GeoPoint2D[] points2d = new GeoPoint2D[pnts.Length];
+            for (int i = 0; i < points2d.Length; i++)
+            {
+                points2d[i] = pln.Project(pnts[i]);
+            }
+            GeoPoint2D center2d;
+            if (Geometry.IntersectLL(new GeoPoint2D(points2d[0], points2d[1]), (points2d[0]-points2d[1]).ToLeft(), new GeoPoint2D(points2d[2], points2d[1]), (points2d[2]-points2d[1]).ToLeft(),out GeoPoint2D ip))
+            {
+                center2d = ip;
+                radius = points2d[0] | ip;
+            }
+            else
+            {
+                BoundingRect ext = new BoundingRect(points2d);
+                center2d = ext.GetCenter();
+                radius = ext.Size / 4.0;
+            }
+            double error = Circle2D.Fit(points2d, ref center2d, ref radius);
+            if (error<precision)
+            {
+                center = pln.ToGlobal(center2d);
                 return true;
             }
             else
             {
                 center = GeoPoint.Invalid;
-                radius = 0;
                 return false;
             }
         }
@@ -1137,7 +1167,7 @@ namespace CADability.GeoObject
             // upars, vpars describe an almost evenly spaced 5x5 grid while singularities and seams (of closed surface) are avoided
             // now lets see, whether in the middle we have a line or circular arc
 
-            precision = Math.Min(precision, PolesExtent.Size * 1e-6);
+            precision = Math.Min(precision, PolesExtent.Size * 1e-5);
 
             GeoPoint[,] samples = new GeoPoint[5, 5];
             for (int i = 0; i < 5; i++)
@@ -1256,7 +1286,7 @@ namespace CADability.GeoObject
                             double d2 = latcnt[2] | latcnt[4];
                             double d4 = latcnt[4] | latcnt[0];
                             GeoVector axis;
-                            if (d0<d2)
+                            if (d0 < d2)
                             {
                                 if (d2 < d4) axis = latcnt[4] - latcnt[0];
                                 else axis = latcnt[2] - latcnt[4];
@@ -1268,11 +1298,18 @@ namespace CADability.GeoObject
                             }
                             GeoPoint center = Geometry.DropPL(loncnt[0], latcnt[0], axis);
                             axis.Length = center | loncnt[0];
-                            double minerror = GaussNewtonMinimizer.TorusFit(samples.Linear(), center,axis,lonrad[0], precision, out ToroidalSurface ts);
-                            if (minerror < precision) found = ts;
-                            else
+                            double minerror = GaussNewtonMinimizer.TorusFit(samples.Linear(), center, axis, lonrad[0], precision, out ToroidalSurface ts);
+                            if (minerror < precision)
                             {
-
+                                if (ts.MinorRadius > ts.XAxis.Length * 10)
+                                {   // almost a sphere
+                                    minerror = GaussNewtonMinimizer.SphereFit(samples.Linear(), ts.Location, ts.MinorRadius, precision, out SphericalSurface ss);
+                                    if (minerror < precision) found = ss;
+                                }
+                                else
+                                {
+                                    found = ts; // no torus with pole, this is usually meant to be a sphere
+                                }
                             }
                         }
                     }
@@ -1304,6 +1341,11 @@ namespace CADability.GeoObject
                                 double openingAngle = Math.Atan2(Math.Abs(radii[0] - radii[4]), centers[0] | centers[4]);
                                 double minerror = GaussNewtonMinimizer.ConeFit(samples.Linear(), a1, axis, openingAngle, precision, out ConicalSurface cs);
                                 if (minerror < precision) found = cs;
+                                if (Math.Abs(radii[0] - radii[4]) < 10 * precision)
+                                {   // could still be a cylinder
+                                    double minerrorcyl = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cyls);
+                                    if (minerrorcyl < precision && minerrorcyl < minerror) found = cyls;
+                                }
                             }
                         }
                     }
@@ -2428,89 +2470,88 @@ namespace CADability.GeoObject
 #endif
         static ModOp findBestFitQuadric(GeoPoint[] samples)
         {   // nach https://de.scribd.com/doc/14819165/Regressions-coniques-quadriques-circulaire-spherique
-            // geht leider nicht
-            Matrix m = new Matrix(9, 9, 0.0);
-            Matrix b = new Matrix(9, 1, 0.0);
-            for (int i = 0; i < samples.Length; i++)
-            {
-                for (int j = 0; j < 9; j++)
-                {
-                    b[j, 0] += xkykzk(samples[i], j);
-                }
-                for (int j = 0; j < 9; j++)
-                {
-                    for (int k = 0; k < 9; k++)
-                        m[j, k] += xkykzk(samples[i], j) * xkykzk(samples[i], k);
-                }
-            }
-            Matrix x = m.SaveSolve(b);
-            if (x != null)
-            {
-                double[] res = new double[9];
-                for (int i = 0; i < 9; i++)
-                {
-                    res[i] = x[i, 0];
-                }
+            //// geht leider nicht
+            //Matrix m = new Matrix(9, 9, 0.0);
+            //Matrix b = new Matrix(9, 1, 0.0);
+            //for (int i = 0; i < samples.Length; i++)
+            //{
+            //    for (int j = 0; j < 9; j++)
+            //    {
+            //        b[j, 0] += xkykzk(samples[i], j);
+            //    }
+            //    for (int j = 0; j < 9; j++)
+            //    {
+            //        for (int k = 0; k < 9; k++)
+            //            m[j, k] += xkykzk(samples[i], j) * xkykzk(samples[i], k);
+            //    }
+            //}
+            //Matrix x = m.SaveSolve(b);
+            //if (x != null)
+            //{
+            //    double[] res = new double[9];
+            //    for (int i = 0; i < 9; i++)
+            //    {
+            //        res[i] = x[i, 0];
+            //    }
 
-                Matrix h = new Matrix(3, 3);
-                h[0, 0] = res[6] * 2;
-                h[1, 1] = res[7] * 2;
-                h[2, 2] = res[8] * 2;
-                h[0, 1] = h[1, 0] = res[5];
-                h[1, 2] = h[2, 1] = res[4];
-                h[0, 2] = h[2, 0] = res[3];
-                Matrix p = new Matrix(3, 1);
-                p[0, 0] = res[0];
-                p[1, 0] = res[1];
-                p[2, 0] = res[2];
-                Matrix pt = Matrix.Transpose(p);
-                Matrix t = h.SaveSolve(p); // t ist das negative des Zentrums
-                Matrix hinv = h.Inverse();
-                Matrix tt = t.Clone();
-                tt.Transpose();
-                EigenvalueDecomposition evd = h.Eigen();
-                Matrix ev = evd.EigenVectors;
-                Matrix evt = Matrix.Transpose(ev); // ist gleichzeitig die Inverse
-                Matrix normal = evt * h * ev;
-                if (Math.Abs(normal[0, 0]) < Math.Abs(normal[1, 1]) && Math.Abs(normal[0, 0]) < Math.Abs(normal[2, 2]))
-                {   // 1. Index ist der kleinset Eigenwert
-                    Matrix.SwapColumns(ev, 0, 2);
-                }
-                else if (Math.Abs(normal[1, 1]) < Math.Abs(normal[0, 0]) && Math.Abs(normal[0, 0]) < Math.Abs(normal[2, 2]))
-                {   // 2. Index ist der kleinset Eigenwert
-                    Matrix.SwapColumns(ev, 1, 2);
-                }
-                if (ev.Determinant() < 0.0)
-                {
-                    Matrix.SwapColumns(ev, 1, 0);
-                }
-                evt = Matrix.Transpose(ev);
-                ModOp toNormal = new ModOp(evt) * ModOp.Translate(t[0, 0], t[1, 0], t[2, 0]);
-                normal = evt * h * ev; // nochmal mit vertauschten Zeilen/Spalten
-                double coeffx = normal[0, 0];
-                double coeffy = normal[1, 1];
-                double coeffz = normal[2, 2];
-                // diese 3 Koeffizienten besagen ob es Kugel, Zylinder oder Kegel ist
-                // toNormal gibt eine ModOp in den Ursprung und die Hauptachse zur Z-Achse
+            //    Matrix h = new DenseMatrix(3, 3);
+            //    h[0, 0] = res[6] * 2;
+            //    h[1, 1] = res[7] * 2;
+            //    h[2, 2] = res[8] * 2;
+            //    h[0, 1] = h[1, 0] = res[5];
+            //    h[1, 2] = h[2, 1] = res[4];
+            //    h[0, 2] = h[2, 0] = res[3];
+            //    Vector p = new DenseVector(3);
+            //    p[0] = res[0];
+            //    p[1] = res[1];
+            //    p[2] = res[2];
+            //    Vector t = (Vector)h.Solve(p); // t ist das negative des Zentrums
+            //    Matrix hinv = (Matrix)h.Inverse();
+            //    Vector tt = (Vector)t.Clone();
+            //    tt.Transpose();
+            //    EigenvalueDecomposition evd = h.Eigen();
+            //    Matrix ev = evd.EigenVectors;
+            //    Matrix evt = Matrix.Transpose(ev); // ist gleichzeitig die Inverse
+            //    Matrix normal = evt * h * ev;
+            //    if (Math.Abs(normal[0, 0]) < Math.Abs(normal[1, 1]) && Math.Abs(normal[0, 0]) < Math.Abs(normal[2, 2]))
+            //    {   // 1. Index ist der kleinset Eigenwert
+            //        Matrix.SwapColumns(ev, 0, 2);
+            //    }
+            //    else if (Math.Abs(normal[1, 1]) < Math.Abs(normal[0, 0]) && Math.Abs(normal[0, 0]) < Math.Abs(normal[2, 2]))
+            //    {   // 2. Index ist der kleinset Eigenwert
+            //        Matrix.SwapColumns(ev, 1, 2);
+            //    }
+            //    if (ev.Determinant() < 0.0)
+            //    {
+            //        Matrix.SwapColumns(ev, 1, 0);
+            //    }
+            //    evt = Matrix.Transpose(ev);
+            //    ModOp toNormal = new ModOp(evt) * ModOp.Translate(t[0, 0], t[1, 0], t[2, 0]);
+            //    normal = evt * h * ev; // nochmal mit vertauschten Zeilen/Spalten
+            //    double coeffx = normal[0, 0];
+            //    double coeffy = normal[1, 1];
+            //    double coeffz = normal[2, 2];
+            //    // diese 3 Koeffizienten besagen ob es Kugel, Zylinder oder Kegel ist
+            //    // toNormal gibt eine ModOp in den Ursprung und die Hauptachse zur Z-Achse
 
-                Matrix evi = ev.Inverse();
-                Matrix evit = evi.Clone();
-                evit.Transpose();
-                Matrix dbg1 = h * ev;
-                Matrix dbg2 = h * evt;
-                Matrix dbg3 = evi - evt; // ist gleich
-                Matrix dbg4 = pt * hinv * p;
-                Matrix dbg8 = pt * h * p;
-                Matrix dbg5 = evit * h * evi;
-                Matrix dbg6 = evt * h * ev; // dasi ist die Diagonale mit den x², y² und z² Koeffizienten
-                Matrix dbg7 = evi * h * evit;
-                double r = 1 - dbg4[0, 0] / 2;
-                double r1 = 1 - dbg8[0, 0] / 2;
-                double dh = h.Determinant();
-                double de = ev.Determinant();
-                double d6 = dbg6.Determinant();
-                return toNormal;
-            }
+            //    Matrix evi = ev.Inverse();
+            //    Matrix evit = evi.Clone();
+            //    evit.Transpose();
+            //    Matrix dbg1 = h * ev;
+            //    Matrix dbg2 = h * evt;
+            //    Matrix dbg3 = evi - evt; // ist gleich
+            //    Matrix dbg4 = pt * hinv * p;
+            //    Matrix dbg8 = pt * h * p;
+            //    Matrix dbg5 = evit * h * evi;
+            //    Matrix dbg6 = evt * h * ev; // dasi ist die Diagonale mit den x², y² und z² Koeffizienten
+            //    Matrix dbg7 = evi * h * evit;
+            //    double r = 1 - dbg4[0, 0] / 2;
+            //    double r1 = 1 - dbg8[0, 0] / 2;
+            //    double dh = h.Determinant();
+            //    double de = ev.Determinant();
+            //    double d6 = dbg6.Determinant();
+            //    return toNormal;
+            //}
             return ModOp.Identity;
         }
         private bool SameSurface(ISurface surface, double precision, out ModOp2D reparametrisation)
@@ -2797,7 +2838,7 @@ namespace CADability.GeoObject
                 adjustVPeriod(ref vmin);
                 adjustVPeriod(ref vmax);
                 if (vmin >= vmax)
-                {   // was ist besser: vmin oder vmax verändern?
+                {
                     if (Math.Abs(vmin - VPeriod - vKnots[0]) < Math.Abs(vmax + VPeriod - vKnots[vKnots.Length - 1]))
                     {
                         vmin = vKnots[0];
@@ -2810,8 +2851,16 @@ namespace CADability.GeoObject
             }
             if (vmax > vKnots[vKnots.Length - 1]) vmax = vKnots[vKnots.Length - 1];
             if (vmin < vKnots[0]) vmin = vKnots[0];
-            if (vmin == vmax) return null;
+            if ((vmax - vmin) < (vKnots[vKnots.Length - 1] - vKnots[0]) * 1e-8) return null;
             adjustUPeriod(ref u);
+            double[] us = GetUSingularities();
+            if (us != null)
+            {
+                for (int i = 0; i < us.Length; i++)
+                {
+                    if (us[i] == u) return null;
+                }
+            }
             return FixedU(u).TrimParam(vmin, vmax);
         }
         private void adjustUPeriod(ref double u)
@@ -2855,7 +2904,18 @@ namespace CADability.GeoObject
                     }
                 }
             }
+            if (umax > uKnots[uKnots.Length - 1]) umax = uKnots[uKnots.Length - 1];
+            if (umin < uKnots[0]) umin = uKnots[0];
+            if ((umax - umin) < (uKnots[uKnots.Length - 1] - uKnots[0]) * 1e-8) return null;
             adjustVPeriod(ref v);
+            double[] vs = GetVSingularities();
+            if (vs != null)
+            {
+                for (int i = 0; i < vs.Length; i++)
+                {
+                    if (vs[i] == v) return null;
+                }
+            }
             return FixedV(v).TrimParam(umin, umax);
         }
         private BSpline FixedU(double u)
@@ -3206,7 +3266,6 @@ namespace CADability.GeoObject
         }
         public void DebugTest()
         {
-            BoxedSurface bs = this.BoxedSurface;
             BoxedSurfaceEx bse = this.BoxedSurfaceEx;
             double[] usteps, vsteps;
             double umin = uKnots[0];
@@ -3226,6 +3285,60 @@ namespace CADability.GeoObject
         }
 #endif
         #region ISurfaceImpl Overrides
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            BoundingRect ext = BoundingRect.EmptyBoundingRect;
+            for (int i = 0; i < orientedCurves.Length; i++)
+            {
+                ext.MinMax(this.GetProjectedCurve(orientedCurves[i], 0.0).GetExtent());
+            }
+            BoundingRect ext1 = ext;
+            ext1.InflateRelative(1.001);
+            bool ok = false; // when there are poles, we only need to make it non-periodic, when the pole is inside the extent
+            double[] us = GetUSingularities();
+            double[] vs = GetVSingularities();
+            if (us.Length > 0)
+            {
+                for (int i = 0; i < us.Length; i++)
+                {
+                    if (us[i] >= ext1.Left && us[i] <= ext1.Right)
+                    {
+                        ok = true;
+                        if (us[i] < ext.Left) ext.Left = us[i];
+                        if (us[i] > ext.Right) ext.Right = us[i];
+                        if (us[i] > ext.Left && us[i] < ext.Right)
+                        {   // the pole must be on the border, maybe we have to correct the extent here
+                            if (ext.Right - us[i] < us[i] - ext.Left) ext.Right = us[i];
+                            else ext.Left = us[i];
+                        }
+                        break;
+                    }
+                }
+            }
+            if (!ok && vs.Length > 0)
+            {
+                for (int i = 0; i < vs.Length; i++)
+                {
+                    if (vs[i] >= ext1.Bottom && vs[i] <= ext1.Top)
+                    {
+                        ok = true;
+                        if (vs[i] < ext.Bottom) ext.Bottom = vs[i];
+                        if (vs[i] > ext.Top) ext.Top = vs[i];
+                        if (vs[i] > ext.Bottom && vs[i] < ext.Top)
+                        {   // the pole must be on the border, maybe we have to correct the extent here
+                            if (ext.Top - vs[i] < vs[i] - ext.Bottom) ext.Top = vs[i];
+                            else ext.Bottom = vs[i];
+                        }
+                        break;
+                    }
+                }
+            }
+            if (ok || (IsUPeriodic && ext.Width > UPeriod * 0.9) || (IsVPeriodic && ext.Height > VPeriod * 0.9))
+            {
+                return new NonPeriodicSurface(this, ext);
+            }
+            return null;
+        }
         /// <summary>
         /// Implements <see cref="ISurface.GetModified"/>.
         /// </summary>
@@ -3361,7 +3474,7 @@ namespace CADability.GeoObject
         /// <param name="dv"></param>
         public override void DerivationAt(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv)
         {
-            if (nubs == null && nurbs == null) Init(); // manchmal nötig, da währen des deserialisierens nich nicht initialisiert
+            if (nubs == null && nurbs == null) Init(); // sometimes necessary
             if (IsUPeriodic && UPeriod > 0)
             {
                 while (uv.x < uKnots[0]) uv.x += UPeriod;
@@ -3372,24 +3485,22 @@ namespace CADability.GeoObject
                 while (uv.y < vKnots[0]) uv.y += VPeriod;
                 while (uv.y > vKnots[vKnots.Length - 1]) uv.y -= VPeriod;
             }
-            GeoPoint dbgloc;
-            GeoVector dbgdu, dbgdv;
             if (nubs != null)
             {
                 GeoPoint[,] der = nubs.SurfaceDeriv(uv.x, uv.y, 1);
-                dbgloc = der[0, 0];
-                dbgdu = new GeoVector(der[1, 0].x, der[1, 0].y, der[1, 0].z);
-                dbgdv = new GeoVector(der[0, 1].x, der[0, 1].y, der[0, 1].z);
+                location = der[0, 0];
+                du = new GeoVector(der[1, 0].x, der[1, 0].y, der[1, 0].z);
+                dv = new GeoVector(der[0, 1].x, der[0, 1].y, der[0, 1].z);
             }
             else
             {
                 GeoPointH[,] der = nurbs.SurfaceDeriv(uv.x, uv.y, 1);
-                dbgloc = (GeoPoint)der[0, 0];
-                dbgdu = (GeoVector)der[1, 0];
-                dbgdv = (GeoVector)der[0, 1];
+                location = (GeoPoint)der[0, 0];
+                du = (GeoVector)der[1, 0];
+                dv = (GeoVector)der[0, 1];
             }
 
-            base.DerivationAt(uv, out location, out du, out dv);
+            // base.DerivationAt(uv, out location, out du, out dv);
         }
         public override double VPeriod
         {
@@ -4021,6 +4132,15 @@ namespace CADability.GeoObject
             }
             uSteps.Add(umax);
             if (uSteps.Count == 2 && uDegree > 1) uSteps.Insert(1, (uSteps[0] + uSteps[1]) / 2.0);
+            if (uSteps.Count <= 4 && uPeriodic)
+            {
+                uSteps.Clear();
+                uSteps.Add(umin);
+                uSteps.Add(umin + (umax - umin) * 0.25);
+                uSteps.Add(umin + (umax - umin) * 0.5);
+                uSteps.Add(umin + (umax - umin) * 0.75);
+                uSteps.Add(umax);
+            }
             vSteps.Add(vmin);
             for (int i = 0; i < vKnots.Length; ++i)
             {
@@ -4028,6 +4148,15 @@ namespace CADability.GeoObject
             }
             vSteps.Add(vmax);
             if (vSteps.Count == 2 && vDegree > 1) vSteps.Insert(1, (vSteps[0] + vSteps[1]) / 2.0);
+            if (vSteps.Count <= 4 && vPeriodic)
+            {
+                vSteps.Clear();
+                vSteps.Add(vmin);
+                vSteps.Add(vmin + (vmax - vmin) * 0.25);
+                vSteps.Add(vmin + (vmax - vmin) * 0.5);
+                vSteps.Add(vmin + (vmax - vmin) * 0.75);
+                vSteps.Add(vmax);
+            }
             intu = uSteps.ToArray();
             intv = vSteps.ToArray();
         }
@@ -4098,6 +4227,7 @@ namespace CADability.GeoObject
             // we only look for singularities at the Endpoints of the u/v mesh. In theory there could be singularities in between,
             // we could find them by intersecting fixed v curves in 3d
             double[] us = null;
+            double precision = PolesExtent.Size * 1e-6; // there was a problem with a nurbs surface having singularities depending on scaling
             try
             {
                 if (uSingularities != null)
@@ -4113,7 +4243,7 @@ namespace CADability.GeoObject
             bool equal = true;
             for (int j = 0; j < vmax - 1; j++)
             {
-                if (!Precision.IsEqual(poles[0, j], poles[0, j + 1]))
+                if ((poles[0, j] | poles[0, j + 1]) > precision)
                 {
                     equal = false;
                     break;
@@ -4123,7 +4253,7 @@ namespace CADability.GeoObject
             equal = true;
             for (int j = 0; j < vmax - 1; j++)
             {
-                if (!Precision.IsEqual(poles[umax - 1, j], poles[umax - 1, j + 1]))
+                if ((poles[umax - 1, j] | poles[umax - 1, j + 1]) > precision)
                 {
                     equal = false;
                     break;
@@ -4141,6 +4271,7 @@ namespace CADability.GeoObject
         public override double[] GetVSingularities()
         {
             double[] vs = null;
+            double precision = PolesExtent.Size * 1e-6; // there was a problem with a nurbs surface having singularities depending on scaling
             try
             {
                 if (vSingularities != null)
@@ -4156,7 +4287,7 @@ namespace CADability.GeoObject
             bool equal = true;
             for (int i = 0; i < umax - 1; i++)
             {
-                if (!Precision.IsEqual(poles[i, 0], poles[i + 1, 0]))
+                if ((poles[i, 0] | poles[i + 1, 0]) > precision)
                 {
                     equal = false;
                     break;
@@ -4166,7 +4297,7 @@ namespace CADability.GeoObject
             equal = true;
             for (int i = 0; i < umax - 1; i++)
             {
-                if (!Precision.IsEqual(poles[i, vmax - 1], poles[i + 1, vmax - 1]))
+                if ((poles[i, vmax - 1] | poles[i + 1, vmax - 1]) > precision)
                 {
                     equal = false;
                     break;
@@ -4471,7 +4602,7 @@ namespace CADability.GeoObject
                 NurbsSurface nother = other as NurbsSurface;
                 // zuerst der wahrscheinliche Fall, dass gleiche Pole u.s.w. vorhanden sind
                 bool same = true;
-                if (uDegree == nother.uDegree && vDegree == nother.vDegree && upoles == nother.upoles && vpoles == nother.vpoles)
+                if (uDegree == nother.uDegree && vDegree == nother.vDegree && poles.GetLength(0) == nother.poles.GetLength(0) && poles.GetLength(1) == nother.poles.GetLength(1))
                 {
                     // gleicher Grad und gleiche Polzahl, kann jetzt noch verschiedene Richtung haben
                     int imax = poles.GetLength(0);
@@ -4879,7 +5010,7 @@ namespace CADability.GeoObject
                         }
                         if (Math.Abs(sp.x - ep.x) < uSpan * 1e-5 || Math.Abs(sp.y - ep.y) < vSpan * 1e-5) testLine = new Line2D(sp, ep);
                     }
-                    if (testLine != null)
+                    if (testLine != null && testLine.StartPoint.x >= uKnots[0] && testLine.StartPoint.x <= uKnots[uKnots.Length - 1] && testLine.StartPoint.y >= vKnots[0] && testLine.StartPoint.y <= vKnots[vKnots.Length - 1])
                     {
                         ICurve crv = Make3dCurve(testLine);
                         if (crv != null)
@@ -5039,6 +5170,20 @@ namespace CADability.GeoObject
             return res;
             // return base.GetOffsetSurface(offset);
         }
+        //public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        //{
+        //    if (IsUPeriodic || IsVPeriodic || GetUSingularities().Length > 0 || GetVSingularities().Length > 0)
+        //    {
+        //        BoundingRect bounds = BoundingRect.EmptyBoundingRect;
+        //        for (int i = 0; i < orientedCurves.Length; i++)
+        //        {
+        //            bounds.MinMax(this.GetProjectedCurve(orientedCurves[i], 0).GetExtent());
+        //        }
+        //        this.GetNaturalBounds(out bounds.Left, out bounds.Right, out bounds.Bottom, out bounds.Top);
+        //        return new NonPeriodicSurface(this, bounds);
+        //    }
+        //    return null;
+        //}
         #endregion
         #region ISerializable Members
         // constructor for serialization
@@ -5090,56 +5235,11 @@ namespace CADability.GeoObject
         }
 
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "NurbsSurface";
+            // to implement:
+            return new GroupProperty("NurbsSurface", new IPropertyEntry[0]);
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    // blöd: der get event braucht den index
-                    //foreach (GeoPoint pole in poles)
-                    //{
-                    //    GeoPointProperty location = new GeoPointProperty("NurbsSurface.Pole", base.Frame, false);
-                    //    location.ReadOnly = true;
-                    //    location.GetGeoPointEvent += delegate(GeoPointProperty sender) { return fromUnitPlane * GeoPoint.Origin; };
-                    //    se.Add(location);
-                    //}
-                    //BooleanProperty up = new BooleanProperty("NurbsSurface.UPeriodic", "NurbsSurface.UPeriodic.Values");
-                    //up.GetBooleanEvent += delegate() { return uPeriodic; };
-                    //se.Add(up);
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
         #region IDeserializationCallback Members
 
         void IDeserializationCallback.OnDeserialization(object sender)
@@ -5237,13 +5337,13 @@ namespace CADability.GeoObject
             }
             GeoPoint location = new GeoPoint(samples); // center of all points
             GeoVector direction = GeoVector.NullVector;
-            for (int i = 0; i < normals.Length-1; i++)
+            for (int i = 0; i < normals.Length - 1; i++)
             {
                 direction += normals[i] ^ normals[i + 1];
             }
             direction.Norm();
             double halfAngle = -Math.PI / 4.0;
-            if (GaussNewtonMinimizer.ConeFitNew(samples.ToIArray(), location, direction, halfAngle, Precision.eps, out ConicalSurface cs)< Precision.eps)
+            if (GaussNewtonMinimizer.ConeFitNew(samples.ToIArray(), location, direction, halfAngle, Precision.eps, out ConicalSurface cs) < Precision.eps)
             {
                 return cs;
             }
@@ -5263,7 +5363,7 @@ namespace CADability.GeoObject
                     dirx = direction ^ GeoVector.YAxis;
                     diry = direction ^ dirx;
                 }
-                ConicalSurface res = new ConicalSurface(location, dirx, diry, direction, -(Math.PI/2-halfAngle), 0.0);
+                ConicalSurface res = new ConicalSurface(location, dirx, diry, direction, -(Math.PI / 2 - halfAngle), 0.0);
                 return res;
             }
             return null;
@@ -5288,8 +5388,8 @@ namespace CADability.GeoObject
             // nx*sx-nx*cx + ny*sy-ny*cy + nz*sz-nz*cz == 0
             // nx*cx+ny*cy+nz*cz == nx*sx+ny*sy+nz*sz
 
-            Matrix a = new Matrix(normals.Length + 1, 4, 0.0); // mit 0 vorbesetzt
-            Matrix b = new Matrix(normals.Length + 1, 1, 0.0);
+            Matrix a = new DenseMatrix(normals.Length + 1, 4); // mit 0 vorbesetzt
+            Vector b = new DenseVector(normals.Length + 1);
 
             for (int i = 0; i < normals.Length; i++)
             {
@@ -5302,28 +5402,28 @@ namespace CADability.GeoObject
             a[normals.Length, 1] = 1.0;
             a[normals.Length, 2] = 1.0;
             a[normals.Length, 3] = 0.0;
-            b[normals.Length, 0] = 1.0;
-            QRDecomposition qrd = a.QRD();
-            if (qrd.FullRank)
+            b[normals.Length] = 1.0;
+            QR<double> qrd = a.QR();
+            if (qrd.IsFullRank)
             {
-                Matrix x = qrd.Solve(b);
-                direction = new GeoVector(x[0, 0], x[1, 0], x[2, 0]);
+                Vector x = (Vector)qrd.Solve(b);
+                direction = new GeoVector(x[0], x[1], x[2]);
 
-                a = new Matrix(normals.Length + 1, 3, 0.0); // mit 0 vorbesetzt
-                b = new Matrix(normals.Length + 1, 1, 0.0);
+                a = new DenseMatrix(normals.Length + 1, 3); // mit 0 vorbesetzt
+                b = new DenseVector(normals.Length + 1);
 
                 for (int i = 0; i < normals.Length; i++)
                 {
                     a[i, 0] = normals[i].x;
                     a[i, 1] = normals[i].y;
                     a[i, 2] = normals[i].z;
-                    b[i, 0] = normals[i].x * samples[i].x + normals[i].y * samples[i].y + normals[i].z * samples[i].z;
+                    b[i] = normals[i].x * samples[i].x + normals[i].y * samples[i].y + normals[i].z * samples[i].z;
                 }
-                qrd = a.QRD();
-                if (qrd.FullRank)
+                qrd = a.QR();
+                if (qrd.IsFullRank)
                 {
-                    x = qrd.Solve(b);
-                    location = new GeoPoint(x[0, 0], x[1, 0], x[2, 0]);
+                    x = (Vector)qrd.Solve(b);
+                    location = new GeoPoint(x[0], x[1], x[2]);
                     halfAngle = 0.0; // muss noch berechnet werden
                     int n = 0;
                     double sum = 0.0;
@@ -5361,24 +5461,24 @@ namespace CADability.GeoObject
             {
                 normals[i].NormIfNotNull();
             }
-            Matrix a = new Matrix(normals.Length, 4, 0.0); // mit 0 vorbesetzt
-            Matrix b = new Matrix(normals.Length, 1, 0.0);
+            Matrix a = new DenseMatrix(normals.Length, 4); // mit 0 vorbesetzt
+            Vector b = new DenseVector(normals.Length);
             for (int i = 0; i < normals.Length; i++)
             {
                 a[i, 0] = normals[i].x;
                 a[i, 1] = normals[i].y;
                 a[i, 2] = normals[i].z;
                 a[i, 3] = 1.0;
-                b[i, 0] = normals[i].x * samples[i].x + normals[i].y * samples[i].y + normals[i].z * samples[i].z;
+                b[i] = normals[i].x * samples[i].x + normals[i].y * samples[i].y + normals[i].z * samples[i].z;
             }
-            QRDecomposition qrd = a.QRD();
-            if (qrd.FullRank)
+            QR<double> qrd = a.QR();
+            if (qrd.IsFullRank)
             {
-                Matrix x = qrd.Solve(b);
-                if (x[3, 0] != 0.0)
+                Vector x = (Vector)qrd.Solve(b);
+                if (x[3] != 0.0)
                 {
-                    center = new GeoPoint(x[0, 0], x[1, 0], x[2, 0]);
-                    radius = Math.Abs(x[3, 0]);
+                    center = new GeoPoint(x[0], x[1], x[2]);
+                    radius = Math.Abs(x[3]);
                     maxError = 0.0;
                     for (int i = 0; i < samples.Length; i++)
                     {
@@ -5419,8 +5519,8 @@ namespace CADability.GeoObject
             {
                 normals[i].Norm();
             }
-            Matrix a = new Matrix(normals.Length + 1, 9, 0.0); // mit 0 vorbesetzt
-            Matrix b = new Matrix(normals.Length + 1, 1, 0.0);
+            Matrix a = new DenseMatrix(normals.Length + 1, 9); // mit 0 vorbesetzt
+            Vector b = new DenseVector(normals.Length + 1);
 
             for (int i = 0; i < normals.Length; i++)
             {
@@ -5437,12 +5537,12 @@ namespace CADability.GeoObject
             a[normals.Length, 0] = 1.0; // dx+dy+dz==1, sonst wäre (0,0,0) auch eine Lösung
             a[normals.Length, 1] = 1.0;
             a[normals.Length, 2] = 1.0;
-            b[normals.Length, 0] = 1.0;
-            QRDecomposition qrd = a.QRD();
-            if (qrd.FullRank)
+            b[normals.Length] = 1.0;
+            QR<double> qrd = a.QR();
+            if (qrd.IsFullRank)
             {
-                Matrix x = qrd.Solve(b);
-                direction = new GeoVector(x[0, 0], x[1, 0], x[2, 0]);
+                Vector x = (Vector)qrd.Solve(b);
+                direction = new GeoVector(x[0], x[1], x[2]);
                 // cx, cy, cz aus vorigem System ist ein beliebiger Punkt auf der Achse. Somit gilt
                 // x[3,0]/direction.y + a*direction.x == c.x oder
                 // c.x*direction.y - a*direction.x*direction.y== -x[3,0]. Vielleicht wird damit das folgende System einfacher, d.h. man 
@@ -5494,30 +5594,30 @@ namespace CADability.GeoObject
                 // (s-r2*n-c)*d==0 liefert c und r2, wobei jeder Punkt in der Ebene c erfüllt
                 // dz* sz + dy * sy + dx * sx - dz * nz * r - dy * ny * r - dx * nx * r - cz * dz - cy * dy - cx * dx ==0
                 // mit beiden Systemen wird c dingfest gemacht
-                a = new Matrix(normals.Length * 2, 4, 0.0); // mit 0 vorbesetzt
-                b = new Matrix(normals.Length * 2, 1, 0.0);
+                a = new DenseMatrix(normals.Length * 2, 4); // mit 0 vorbesetzt
+                b = new DenseVector(normals.Length * 2);
                 for (int i = 0; i < normals.Length; i++)
                 {
                     a[i, 0] = direction.x;
                     a[i, 1] = direction.y;
                     a[i, 2] = direction.z;
                     a[i, 3] = direction.x * normals[i].x + direction.y * normals[i].y + direction.z * normals[i].z;
-                    b[i, 0] = direction.x * samples[i].x + direction.y * samples[i].y + direction.z * samples[i].z;
+                    b[i] = direction.x * samples[i].x + direction.y * samples[i].y + direction.z * samples[i].z;
                     a[normals.Length + i, 0] = direction.y * normals[i].z - direction.z * normals[i].y;
                     a[normals.Length + i, 1] = direction.z * normals[i].x - direction.x * normals[i].z;
                     a[normals.Length + i, 2] = direction.x * normals[i].y - direction.y * normals[i].x;
                     a[normals.Length + i, 3] = 0.0;
-                    b[normals.Length + i, 0] = -(-direction.x * normals[i].y * samples[i].z + direction.y * normals[i].x * samples[i].z + direction.x * normals[i].z * samples[i].y - direction.z * normals[i].x * samples[i].y - direction.y * normals[i].z * samples[i].x + direction.z * normals[i].y * samples[i].x);
+                    b[normals.Length + i] = -(-direction.x * normals[i].y * samples[i].z + direction.y * normals[i].x * samples[i].z + direction.x * normals[i].z * samples[i].y - direction.z * normals[i].x * samples[i].y - direction.y * normals[i].z * samples[i].x + direction.z * normals[i].y * samples[i].x);
                 }
-                qrd = a.QRD();
-                if (qrd.FullRank)
+                qrd = a.QR();
+                if (qrd.IsFullRank)
                 {
                     //Matrix QT = qrd.Q.Clone();
                     //QT.Transpose();
                     //Matrix err =  QT * b;
-                    x = qrd.Solve(b);
-                    location = new GeoPoint(x[0, 0], x[1, 0], x[2, 0]);
-                    radius2 = x[3, 0];
+                    x = (Vector)qrd.Solve(b);
+                    location = new GeoPoint(x[0], x[1], x[2]);
+                    radius2 = x[3];
                     radius1 = 0.0;
                     double minrad = double.MaxValue;
                     double maxrad = 0.0;
@@ -5543,86 +5643,13 @@ namespace CADability.GeoObject
 #else
         private
 #endif
-        static double findBestFitTorusXxx(GeoPoint[] samples, GeoVector[] normals, out GeoPoint location, out GeoVector direction, out double radius1, out double radius2)
-        {
-            // Kreuzprodukt normal ^ dir (Achse, unbekannt) ist Normale auf Ebene durch center (Mittelpunkt, unbekannt), in der auch sample liegen muss
-            // das führt zu (n^d)*(s-c) == 0, mit Maxima zu:
-            // dx*ny*sz-dy*nx*sz-dx*nz*sy+dz*nx*sy+dy*nz*sx-dz*ny*sx-cx*dy*nz+cy*dx*nz+cx*dz*ny-cz*dx*ny-cy*dz*nx+cz*dy*nx
-            // -cx*dy*nz+cy*dx*nz+cx*dz*ny-cz*dx*ny-cy*dz*nx+cz*dy*nx
-            // dx*(ny*sz-nz*sy) + dy*(nz*sx-nx*sz) + dz*(nx*sy-ny*sz) + cx*dy*(-nz) + cy*dx*(nz) + cz*dx*(-ny) + cx*dz*(ny) + cy*dz*(-nx) + cz*dy*(nx)
-            // Das sind 9 Unbekannte, wobei die auch zusammenhängenden cx*dy u.s.w. vorkommen. Es muss auch noch dx+dy+dz==1 dazugenommen werden
-            // aber c ist nicht eindeutig, denn jeder Punkt auf der Achse erfüllt c
-            // (s-r2*n-c)*d==0 liefert c und r2, wobei jeder Punkt in der Ebene c erfüllt
-            // dz* sz + dy * sy + dx * sx - dz * nz * r - dy * ny * r - dx * nx * r - cz * dz - cy * dy - cx * dx ==0
-            // mit beiden Systemen wird c dingfest gemacht
-
-            // Leider funktioniert das nicht mit einem Schlag, die Lösung mit zwei Schritten dagegen funktioniert
-
-            for (int i = 0; i < normals.Length; i++)
-            {
-                normals[i].Norm();
-            }
-            Matrix a = new Matrix(normals.Length * 2 + 1, 15, 0.0); // mit 0 vorbesetzt
-            Matrix b = new Matrix(normals.Length * 2 + 1, 1, 0.0);
-
-            for (int i = 0; i < normals.Length; i++)
-            {
-                a[i, 0] = normals[i].y * samples[i].z - normals[i].z * samples[i].y; // dx
-                a[i, 1] = normals[i].z * samples[i].x - normals[i].x * samples[i].z; // dy
-                a[i, 2] = normals[i].x * samples[i].y - normals[i].y * samples[i].x; // dz
-                a[i, 3] = -normals[i].z; //cx*dy*(-nz)
-                a[i, 4] = normals[i].z; // cy*dx*(nz)
-                a[i, 5] = -normals[i].y; // cz*dx*(-ny) 
-                a[i, 6] = normals[i].y; // cx*dz*(ny) 
-                a[i, 7] = -normals[i].x; // cy*dz*(-nx) 
-                a[i, 8] = normals[i].x; // cz*dy*(nx)
-                a[normals.Length + i, 0] = samples[i].x; // dx
-                a[normals.Length + i, 1] = samples[i].y; // dy
-                a[normals.Length + i, 2] = samples[i].z; // dz
-                a[normals.Length + i, 9] = -normals[i].x; // dx*r2
-                a[normals.Length + i, 10] = -normals[i].y; // dy*r2
-                a[normals.Length + i, 11] = -normals[i].z; // dz*r2
-                a[normals.Length + i, 12] = -1.0; // dx*cx
-                a[normals.Length + i, 13] = -1.0; // dy*cy
-                a[normals.Length + i, 14] = -1.0; // dz*cz
-            }
-            a[normals.Length * 2, 0] = 1.0; // dx+dy+dz==1, sonst wäre (0,0,0) auch eine Lösung
-            a[normals.Length * 2, 1] = 1.0;
-            a[normals.Length * 2, 2] = 1.0;
-            b[normals.Length * 2, 0] = 1.0;
-            QRDecomposition qrd = a.QRD();
-            if (qrd.FullRank)
-            {
-                Matrix x = qrd.Solve(b);
-                direction = new GeoVector(x[0, 0], x[1, 0], x[2, 0]);
-                location = new GeoPoint(x[12, 0] / direction.x, x[13, 0] / direction.y, x[14, 0] / direction.z);
-                // hier müsste man noch entscheiden, welche direction.x, y, z != 0 sind
-                radius2 = x[9, 0] / direction.x;
-                radius1 = 0.0;
-                for (int i = 0; i < normals.Length; i++)
-                {
-                    radius1 += (samples[i] - radius2 * normals[i]) | location;
-                }
-                radius1 /= normals.Length;
-                return -1.0;
-            }
-            location = GeoPoint.Origin;
-            direction = GeoVector.NullVector;
-            radius1 = radius2 = 0.0;
-            return double.MaxValue;
-        }
-#if DEBUG
-        public
-#else
-        private
-#endif
         static double findBestFitCylinder(GeoPoint[] samples, GeoVector[] normals, out GeoPoint location, out GeoVector direction, out double radius)
         {
             // finde zuerst die Achsenrichtung
             // ax*nx+ay*ny+az*nz=0
             // mindestens 3 Normalenvektoren
-            Matrix a = new Matrix(normals.Length + 1, 3, 0.0); // mit 0 vorbesetzt
-            Matrix b = new Matrix(normals.Length + 1, 1, 0.0);
+            Matrix a = new DenseMatrix(normals.Length + 1, 3); // mit 0 vorbesetzt
+            Vector b = new DenseVector(normals.Length + 1);
 
             for (int i = 0; i < normals.Length; i++)
             {
@@ -5633,12 +5660,12 @@ namespace CADability.GeoObject
             a[normals.Length, 0] = 1.0; // die Summe der Komponenten der Lösung ist 1, sonst wäre (0,0,0) auch eine lösung
             a[normals.Length, 1] = 1.0;
             a[normals.Length, 2] = 1.0;
-            b[normals.Length, 0] = 1.0;
-            QRDecomposition qrd = a.QRD();
-            if (qrd.FullRank)
+            b[normals.Length] = 1.0;
+            QR<double> qrd = a.QR();
+            if (qrd.IsFullRank)
             {
-                Matrix x = qrd.Solve(b);
-                direction = new GeoVector(x[0, 0], x[1, 0], x[2, 0]);
+                Vector x = (Vector)qrd.Solve(b);
+                direction = new GeoVector(x[0], x[1], x[2]);
                 Plane pln = new Plane(GeoPoint.Origin, direction);
                 GeoPoint2D[] samples2d = new GeoPoint2D[samples.Length];
                 for (int i = 0; i < samples.Length; i++)
@@ -5673,6 +5700,11 @@ namespace CADability.GeoObject
                     spoles.Append(n.ToString());
                 }
             }
+            string closed;
+            if (uPeriodic && vPeriodic) closed = ".T.,.T.";
+            else if (uPeriodic) closed = ".T.,.F.";
+            else if (vPeriodic) closed = ".F.,.T.";
+            else closed = ".F.,.F.";
             if (isRational)
             {
                 //#1292=(
@@ -5696,13 +5728,13 @@ namespace CADability.GeoObject
                         sweights.Append(export.ToString(weights[i, j]));
                     }
                 }
-                return export.WriteDefinition("(BOUNDED_SURFACE()B_SPLINE_SURFACE(" + uDegree.ToString() + "," + vDegree.ToString() + spoles.ToString() + ")),.UNSPECIFIED.,.F.,.F.,.F.)B_SPLINE_SURFACE_WITH_KNOTS(("
+                return export.WriteDefinition("(BOUNDED_SURFACE()B_SPLINE_SURFACE(" + uDegree.ToString() + "," + vDegree.ToString() + spoles.ToString() + ")),.UNSPECIFIED.," + closed + ",.F.)B_SPLINE_SURFACE_WITH_KNOTS(("
                     + export.ToString(uMults, false) + "),(" + export.ToString(vMults, false) + "),(" + export.ToString(uKnots) + "),(" + export.ToString(vKnots) + "),.UNSPECIFIED.)GEOMETRIC_REPRESENTATION_ITEM()RATIONAL_B_SPLINE_SURFACE((("
                     + sweights + ")))REPRESENTATION_ITEM('')SURFACE())");
             }
             else
             {
-                return export.WriteDefinition("B_SPLINE_SURFACE_WITH_KNOTS(''," + uDegree.ToString() + "," + vDegree.ToString() + spoles.ToString() + ")),.UNSPECIFIED.,.F.,.F.,.F.,("
+                return export.WriteDefinition("B_SPLINE_SURFACE_WITH_KNOTS(''," + uDegree.ToString() + "," + vDegree.ToString() + spoles.ToString() + ")),.UNSPECIFIED.," + closed + ",.F.,("
                     + export.ToString(uMults, false) + "),(" + export.ToString(vMults, false) + "),(" + export.ToString(uKnots) + "),(" + export.ToString(vKnots) + "),.UNSPECIFIED.)");
             }
         }

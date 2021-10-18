@@ -4,7 +4,11 @@ using CADability.GeoObject;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
 using System.Drawing;
+#endif
 using System.Runtime.Serialization;
 using Wintellect.PowerCollections;
 
@@ -474,7 +478,7 @@ namespace CADability
         //    //    }
         //    //}
         //}
-        public Model Model { get { return model; } }
+        public Model Model { get { return model; } set { model = value; } }
         public string Name
         {
             get { return name; }
@@ -762,7 +766,7 @@ namespace CADability
         }
         /// <summary>
         /// Returns all GeoObjects that coincide with the given BoundingRect in the projection
-        /// of this ProjectedModel. If parameter <see cref="childOfThis"/> is null, this function
+        /// of this ProjectedModel. If parameter <paramref name="childOfThis"/> is null, this function
         /// will return the topmost parents of the objects else it will return direct children
         /// of "childOfthis".
         /// </summary>
@@ -1464,7 +1468,7 @@ namespace CADability
             if (dirty || recalcVisibility || paintTo3D.PixelToWorld != currentUnscaledScale)
             {
                 currentUnscaledScale = paintTo3D.PixelToWorld;
-                paintTo3D.OpenList();
+                paintTo3D.OpenList("unscaled");
                 foreach (KeyValuePair<Layer, GeoObjectList> kv in model.layerUnscaledObjects)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)

@@ -44,7 +44,7 @@ namespace CADability
 
     public interface IMultiObjectUserData
     {
-        IShowProperty GetShowProperty(GeoObjectList selectedObjects);
+        IPropertyEntry GetShowProperty(GeoObjectList selectedObjects);
         bool isChanging { get; }
     }
 

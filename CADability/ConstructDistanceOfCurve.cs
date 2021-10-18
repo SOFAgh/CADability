@@ -6,7 +6,7 @@ using CADability.UserInterface;
 namespace CADability.Actions
 {
     /// <summary>
-    /// Action that constructs a length as a distance between two points. It uses a <see cref="LengthProperty"/>
+    /// Action that constructs a length as a length of a curve. It uses a <see cref="LengthProperty"/>
     /// to communicate the constructed length to the outside.
     /// </summary>
 
@@ -91,7 +91,7 @@ namespace CADability.Actions
             base.TitleId = "Construct.DistanceOfCurve";
 
             curveInput = new CurveInput("Construct.DistanceOfCurve.Object");
-            curveInput.Decomposed = true; // nur Einzelelemente, auch bei Polyline und Pfad
+            curveInput.Decomposed = true; // only decomposed parts of a curve like segments of a polygon or path
             curveInput.MouseOverCurvesEvent += new CADability.Actions.ConstructAction.CurveInput.MouseOverCurvesDelegate(DistCurve);
             curveInput.CurveSelectionChangedEvent += new CADability.Actions.ConstructAction.CurveInput.CurveSelectionChangedDelegate(DistCurveChanged);
 
@@ -108,6 +108,7 @@ namespace CADability.Actions
         {
             base.OnRemoveAction();
             Frame.Project.Undo.ClearContext();
+            lengthProperty.Select();
         }
 
         /// <summary>

@@ -5,7 +5,13 @@ using CADability.UserInterface;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using Wintellect.PowerCollections;
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
 using DragEventArgs = CADability.Substitutes.DragEventArgs;
@@ -284,7 +290,7 @@ namespace CADability.Actions
         }
 #endregion
 #region Die leeren Implementierungen für die ToolTips
-        internal virtual int GetInfoProviderIndex(System.Drawing.Point ScreenCursorPosition, IView View)
+        internal virtual int GetInfoProviderIndex(Point ScreenCursorPosition, IView View)
         {
             return -1;
         }
@@ -454,7 +460,7 @@ namespace CADability.Actions
 
         //public GeoPoint WorldPoint(System.Windows.Forms.MouseEventArgs e)
         //{
-        //    return Frame.ActiveView.Projection.DrawingPlanePoint(new System.Drawing.Point(e.X,e.Y));
+        //    return Frame.ActiveView.Projection.DrawingPlanePoint(new Point(e.X,e.Y));
         //}
         /// <summary>
         /// Returns a <see cref="GeoPoint"/> in the model coordinate system that corresponds
@@ -462,7 +468,7 @@ namespace CADability.Actions
         /// </summary>
         /// <param name="p">Point in the client coordinate system of the active view</param>
         /// <returns>the model coordinate</returns>
-        public GeoPoint WorldPoint(System.Drawing.Point p)
+        public GeoPoint WorldPoint(Point p)
         {
             return Frame.ActiveView.Projection.DrawingPlanePoint(p);
         }
@@ -475,9 +481,9 @@ namespace CADability.Actions
         /// <returns>the model coordinate</returns>
         public GeoPoint WorldPoint(MouseEventArgs e, IView vw)
         {
-            return vw.Projection.DrawingPlanePoint(new System.Drawing.Point(e.X, e.Y));
+            return vw.Projection.DrawingPlanePoint(new Point(e.X, e.Y));
         }
-        internal GeoPoint2D ProjectedPoint(System.Drawing.Point p)
+        internal GeoPoint2D ProjectedPoint(Point p)
         {
             return Frame.ActiveView.Projection.ProjectUnscaled(WorldPoint(p));
         }
@@ -502,7 +508,7 @@ namespace CADability.Actions
         public GeoPoint SnapPoint(MouseEventArgs e, IView vw, out SnapPointFinder.DidSnapModes DidSnap)
         {
             GeoPoint p;
-            DidSnap = vw.AdjustPoint(new System.Drawing.Point(e.X, e.Y), out p, IgnoreForSnap);
+            DidSnap = vw.AdjustPoint(new Point(e.X, e.Y), out p, IgnoreForSnap);
             if (autoCursor)
             {
                 SetCursor(DidSnap, vw);
@@ -521,7 +527,7 @@ namespace CADability.Actions
         public GeoPoint SnapPoint(MouseEventArgs e, GeoPoint BasePoint, IView vw, out SnapPointFinder.DidSnapModes DidSnap)
         {
             GeoPoint p;
-            DidSnap = vw.AdjustPoint(BasePoint, new System.Drawing.Point(e.X, e.Y), out p, IgnoreForSnap);
+            DidSnap = vw.AdjustPoint(BasePoint, new Point(e.X, e.Y), out p, IgnoreForSnap);
             if (autoCursor)
             {
                 SetCursor(DidSnap, vw);
@@ -582,7 +588,7 @@ namespace CADability.Actions
         /// <param name="curve">the curve to test</param>
         /// <param name="mousePoint">the mouse position</param>
         /// <returns>true if the mouse position is close to the curve</returns>
-        public bool CurveHitTest(ICurve curve, System.Drawing.Point mousePoint)
+        public bool CurveHitTest(ICurve curve, Point mousePoint)
         {
             ProjectedModel pm = Frame.ActiveView.ProjectedModel;
             int pickRectSize = Frame.GetIntSetting("Select.Pick", 5); // "Radius" des PickQuadrates
@@ -597,7 +603,7 @@ namespace CADability.Actions
         /// </summary>
         /// <param name="mousePoint">the mouse position to test</param>
         /// <returns>list of touched IGeoObjects</returns>
-        public GeoObjectList GetObjectsUnderCursor(System.Drawing.Point mousePoint)
+        public GeoObjectList GetObjectsUnderCursor(Point mousePoint)
         {
             GeoObjectList result = new GeoObjectList();
             //ProjectedModel pm = Frame.ActiveView.ProjectedModel;
@@ -628,7 +634,7 @@ namespace CADability.Actions
         /// <summary>
         /// Returns the current mouse position.
         /// </summary>
-        public System.Drawing.Point CurrentMousePosition
+        public Point CurrentMousePosition
         {
             get
             {
@@ -689,7 +695,7 @@ namespace CADability.Actions
         /// </summary>
         /// <param name="MenuId"></param>
         /// <param name="selected"></param>
-        public virtual void OnSelected(string MenuId, bool selected) { }
+        public virtual void OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
 

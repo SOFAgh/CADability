@@ -101,8 +101,10 @@ namespace CADability.GeoObject
         public override GeoVector GetNormal(GeoPoint2D uv)
         {
             //GeoVector res = toSphere * new GeoVector(Math.Cos(uv.x) * Math.Cos(uv.y), Math.Sin(uv.x) * Math.Cos(uv.y), Math.Sin(uv.y));
-            GeoVector res = UDirection(uv) ^ VDirection(uv); // wg. Berücksichtigung der Orientierung
-            res.Norm();
+            //GeoVector res = UDirection(uv) ^ VDirection(uv); // wg. Berücksichtigung der Orientierung
+            GeoVector res = (PointAt(uv) - toSphere * GeoPoint.Origin).Normalized;
+            if (!toSphere.Oriented) res = -res;
+            //res.Norm();
             return res;
         }
         /// <summary>
@@ -1080,6 +1082,15 @@ namespace CADability.GeoObject
             extremePositions = null;
             return -1; // means: no implementation for this combination
         }
+        /// <summary>
+        /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNonPeriodicSurface (Border)"/>
+        /// </summary>
+        /// <returns></returns>
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            SphericalSurfaceNP res = new SphericalSurfaceNP(Location, RadiusX, toUnit.Determinant > 0, orientedCurves);
+            return res;
+        }
         #endregion
         #region ISerializable Members
         protected SphericalSurface(SerializationInfo info, StreamingContext context)
@@ -1098,53 +1109,20 @@ namespace CADability.GeoObject
             toUnit = toSphere.GetInverse();
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "SphericalSurface";
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty center = new GeoPointProperty("SphericalSurface.Center", frame, false);
+            center.ReadOnly = true;
+            center.OnGetValue = new EditableProperty<GeoPoint>.GetValueDelegate(delegate () { return toSphere * GeoPoint.Origin; });
+            se.Add(center);
+            DoubleProperty radius = new DoubleProperty("SphericalSurface.Radius", frame);
+            radius.ReadOnly = true;
+            radius.OnGetValue = new EditableProperty<double>.GetValueDelegate(delegate () { return (toSphere * GeoVector.XAxis).Length; });
+            radius.Refresh();
+            se.Add(radius);
+            return new GroupProperty("SphericalSurface", se.ToArray());
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    GeoPointProperty center = new GeoPointProperty("SphericalSurface.Center", base.Frame, false);
-                    center.ReadOnly = true;
-                    center.GetGeoPointEvent += new GeoPointProperty.GetGeoPointDelegate(GetCenter);
-                    se.Add(center);
-                    DoubleProperty radius = new DoubleProperty("SphericalSurface.Radius", base.Frame);
-                    radius.ReadOnly = true;
-                    radius.GetDoubleEvent += new DoubleProperty.GetDoubleDelegate(GetRadius);
-                    radius.Refresh();
-                    se.Add(radius);
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-
         public bool IsRealSphere
         {
             get
@@ -1156,7 +1134,7 @@ namespace CADability.GeoObject
 
             }
         }
-
+        public bool OutwardOriented => toSphere.Determinant > 0;
         double GetRadius(DoubleProperty sender)
         {
             return (toSphere * GeoVector.XAxis).Length;
@@ -1165,8 +1143,6 @@ namespace CADability.GeoObject
         {
             return toSphere * GeoPoint.Origin;
         }
-
-        #endregion
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             int ax = export.WriteAxis2Placement3d(Location, Axis, XAxis);

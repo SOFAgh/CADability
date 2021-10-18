@@ -15,7 +15,7 @@ namespace CADability.Attribute
     /// dass Mehrdeutigkeiten entstehen würden, führt zu einer Exception.
     /// </summary>
     [Serializable]
-    public class LayerList : IShowPropertyImpl, INotifyModification, ISerializable,
+    public class LayerList : PropertyEntryImpl, INotifyModification, ISerializable,
         ICollection, IAttributeList, ICommandHandler, IDeserializationCallback
     {
         private Layer[] unsortedEntries;
@@ -23,7 +23,7 @@ namespace CADability.Attribute
         private IAttributeListContainer owner; // Besitzer, entweder Projekt oder Settings
         private Layer current;
         internal string menuResourceId;
-        IShowProperty[] showProperties;
+        IPropertyEntry[] showProperties;
         public delegate void LayerAddedDelegate(LayerList sender, Layer added);
         public delegate void LayerRemovedDelegate(LayerList sender, Layer removed);
         public event LayerAddedDelegate LayerAddedEvent;
@@ -50,7 +50,7 @@ namespace CADability.Attribute
             if (DidModifyEvent != null) DidModifyEvent(this, null);
             if (LayerAddedEvent != null) LayerAddedEvent(this, LayerToAdd);
             showProperties = null;
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
         /// <summary>
         /// Entfernt einen Layer aus der Liste. Kein Propblem, wenn der Layer nicht in der Liste ist.
@@ -69,14 +69,14 @@ namespace CADability.Attribute
                 showProperties = null;
                 if (DidModifyEvent != null) DidModifyEvent(this, null);
                 if (LayerRemovedEvent != null) LayerRemovedEvent(this, LayerToRemove);
-                if (propertyTreeView != null) propertyTreeView.Refresh(this);
+                if (propertyPage != null) propertyPage.Refresh(this);
             }
         }
         private void RemoveAll() // nur intern verwenden, da nicht RemovingItem aufgerufen wird
         {
             entries.Clear();
             showProperties = null;
-            if (propertyTreeView != null) propertyTreeView.OpenSubEntries(this, false); // zuklappen
+            if (propertyPage != null) propertyPage.OpenSubEntries(this, false); // zuklappen
         }
         /// <summary>
         /// Liefert den Layer mit dem im Parameter gegebenen Namen. 
@@ -320,56 +320,26 @@ namespace CADability.Attribute
         }
 
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
+        #region IPropertyEntry Members
+        public override PropertyEntryType Flags
         {
             get
             {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-
-        //public override string InfoText
-        //{
-        //    get
-        //    {
-        //        return  StringTable.GetString("LayerList.InfoText");
-        //    }
-        //}
-
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return entries.Count;
+                PropertyEntryType flags = PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+                return flags;
             }
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (showProperties == null)
                 {
-                    showProperties = new IShowProperty[entries.Count];
+                    showProperties = new IPropertyEntry[entries.Count];
                     for (int i = 0; i < entries.Count; i++)
                     {
                         Layer l = entries.GetByIndex(i) as Layer;
@@ -456,7 +426,7 @@ namespace CADability.Attribute
                 return current as INamedAttribute;
             }
         }
-#endregion
+        #endregion
         public Layer Current
         {
             get
@@ -497,9 +467,9 @@ namespace CADability.Attribute
             Add(new Layer(NewLayerName));
 
             showProperties = null;
-            propertyTreeView.Refresh(this);
-            propertyTreeView.OpenSubEntries(this, true);
-            propertyTreeView.StartEditLabel(showProperties[entries.IndexOfKey(NewLayerName)] as IPropertyEntry);
+            propertyPage.Refresh(this);
+            propertyPage.OpenSubEntries(this, true);
+            propertyPage.StartEditLabel(showProperties[entries.IndexOfKey(NewLayerName)] as IPropertyEntry);
         }
         #region ICommandHandler Members
         private void OnAddFromGlobal()
@@ -626,7 +596,7 @@ namespace CADability.Attribute
                     return false;
             }
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
     /// <summary>
@@ -682,10 +652,10 @@ namespace CADability.Attribute
                 }
             }
             subEntries = null;
-            if (propertyTreeView != null)
+            if (propertyPage != null)
             {
-                propertyTreeView.Refresh(this);
-                propertyTreeView.OpenSubEntries(this, true);
+                propertyPage.Refresh(this);
+                propertyPage.OpenSubEntries(this, true);
             }
         }
 
@@ -701,7 +671,7 @@ namespace CADability.Attribute
         {
             Refresh();
         }
-#region IShowProperty Members
+        #region IShowProperty Members
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
@@ -755,7 +725,7 @@ namespace CADability.Attribute
                             checkState = CheckState.Unchecked;
                         CheckProperty cp = new CheckProperty("VisibleLayer.Entry", checkState);
                         cp.CheckStateChangedEvent += new CADability.UserInterface.CheckProperty.CheckStateChangedDelegate(OnCheckStateChanged);
-                        cp.LabelText= layerList[i].Name;
+                        cp.LabelText = layerList[i].Name;
                         subEntries[i] = cp;
                     }
                 }
@@ -781,7 +751,7 @@ namespace CADability.Attribute
             }
             if (CheckStateChangedEvent != null) CheckStateChangedEvent(l, state == CheckState.Checked);
         }
-#region ICommandHandler Members
+        #region ICommandHandler Members
         /// <summary>
         /// Implements <see cref="CADability.UserInterface.ICommandHandler.OnCommand (string)"/>
         /// </summary>
@@ -795,19 +765,19 @@ namespace CADability.Attribute
                     checkedLayers.Clear();
                     checkedLayers.AddRange(layerList.ToArray());
                     subEntries = null;
-                    if (propertyTreeView != null)
+                    if (propertyPage != null)
                     {
-                        propertyTreeView.Refresh(this);
-                        propertyTreeView.OpenSubEntries(this, true);
+                        propertyPage.Refresh(this);
+                        propertyPage.OpenSubEntries(this, true);
                     }
                     return true;
                 case "MenuId.VisibleLayer.SelectNone":
                     checkedLayers.Clear();
                     subEntries = null;
-                    if (propertyTreeView != null)
+                    if (propertyPage != null)
                     {
-                        propertyTreeView.Refresh(this);
-                        propertyTreeView.OpenSubEntries(this, true);
+                        propertyPage.Refresh(this);
+                        propertyPage.OpenSubEntries(this, true);
                     }
                     return true;
             }
@@ -824,12 +794,12 @@ namespace CADability.Attribute
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         public void Refresh()
         {
             subEntries = null;
-            if (propertyTreeView != null) propertyTreeView.Refresh(this);
+            if (propertyPage != null) propertyPage.Refresh(this);
         }
         /// <summary>
         /// Returns all checked Layers
@@ -858,7 +828,7 @@ namespace CADability.Attribute
         /// </summary>
         public event CheckStateChangedDelegate CheckStateChangedEvent;
 
-#region ISerializable Members
+        #region ISerializable Members
         protected CheckedLayerList(SerializationInfo info, StreamingContext context)
         {
             resourceId = info.GetString("ResourceId");
@@ -883,8 +853,8 @@ namespace CADability.Attribute
             info.AddValue("CheckedLayers", checkedLayers.ToArray(), typeof(Layer[]));
             info.AddValue("LayerList", layerList, typeof(LayerList));
         }
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
             checkedLayers = new List<Layer>(deserializedCheckedLayers);
@@ -893,6 +863,6 @@ namespace CADability.Attribute
             layerList.LayerRemovedEvent += new LayerList.LayerRemovedDelegate(OnLayerRemoved);
             layerList.DidModifyEvent += new DidModifyDelegate(OnLayerModified);
         }
-#endregion
+        #endregion
     }
 }

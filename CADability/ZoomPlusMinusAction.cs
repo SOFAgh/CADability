@@ -32,7 +32,7 @@ namespace CADability
             double Factor = 1.0;
             if (HScrollOffset > 0) Factor = 1.0 + HScrollOffset / 100.0;
             else if (HScrollOffset < 0) Factor = 1.0 / (1.0 - HScrollOffset / 100.0);
-            (modelView as ICondorViewInternal).ZoomDelta(Factor);
+            (modelView as IView).ZoomDelta(Factor);
             lastPanPosition = new System.Drawing.Point(e.X, e.Y);
         }
         public override void OnMouseUp(MouseEventArgs e, IView vw)

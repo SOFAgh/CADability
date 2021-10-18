@@ -987,6 +987,16 @@ namespace CADability.Shapes
             }
             return new Border(cloned);
         }
+        public ICurve2D[] GetClonedSegments()
+        {
+            ICurve2D[] cloned = new ICurve2D[segment.Length];
+            for (int i = 0; i < segment.Length; ++i)
+            {
+                cloned[i] = segment[i].Clone();
+            }
+            return cloned;
+        }
+
         internal void Reduce()
         {
             double prec = (Extent.Width + Extent.Height) * 1e-8;
@@ -1131,11 +1141,26 @@ namespace CADability.Shapes
             // they make problems in BorderOperation since the position of the start/endpoint 0.0 ad 1.0 is ambiguous
             if (segment.Length == 1)
             {
+                UnsplittedOutline = segment[0].Clone();
                 segment = segment[0].Split(0.5);
+
+                //Save the userdata to the splitted
+                foreach (var item in segment)
+                    item.UserData.Add(UnsplittedOutline.UserData);
+
                 bool dumy;
                 Recalc(out dumy);
             }
+            else
+                UnsplittedOutline = null;
         }
+
+        /// <summary>
+        /// In case of a border with a single outline like circles or closed bsplines
+        /// this property will contain a cloned unsplitted outline. While GetClonedSegments() will return the splitted one.
+        /// </summary>
+        public ICurve2D UnsplittedOutline { get; private set; }
+
         //public void RemoveSegmentsSmaller(double prec)
         //{
         //    List<ICurve2D> red = new List<ICurve2D>();
@@ -3358,7 +3383,8 @@ namespace CADability.Shapes
             else
             {
                 ArrayList res = new ArrayList();
-                ICurve2D c2d = segment[inds].Trim(pars, 1.0);
+                ICurve2D c2d = null;
+                if (pars < 1) c2d = segment[inds].Trim(pars, 1.0);
                 if (c2d != null && c2d.Length > Precision.eps)
                 {
                     c2d.UserData.CloneFrom(segment[inds].UserData);
@@ -3382,7 +3408,7 @@ namespace CADability.Shapes
                         res.Add(segment[i].Clone());
                     }
                 }
-                if (inde < segment.Length)
+                if (inde < segment.Length && pare > 0)
                 {
                     c2d = segment[inde].Trim(0.0, pare);
                     if (c2d != null && c2d.Length > Precision.eps)

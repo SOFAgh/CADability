@@ -1,7 +1,11 @@
 ﻿using System;
-using System.Drawing;
 using System.Runtime.Serialization;
-
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
+using System.Drawing;
+#endif
+using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability
 {
@@ -46,12 +50,12 @@ namespace CADability
                     // fy*bottom + dy = 0, fy*top + dy = 1;
                     try
                     {
-                        LinearAlgebra.Matrix mx = new LinearAlgebra.Matrix(new double[,] { { left, 1 }, { right, 1 } });
-                        CADability.LinearAlgebra.Matrix sx = mx.Solve(new CADability.LinearAlgebra.Matrix(new double[,] { { 1 }, { 0 } }));
-                        LinearAlgebra.Matrix my = new LinearAlgebra.Matrix(new double[,] { { top, 1 }, { bottom, 1 } });
-                        CADability.LinearAlgebra.Matrix sy = my.Solve(new CADability.LinearAlgebra.Matrix(new double[,] { { 1 }, { 0 } }));
+                        Matrix mx = DenseMatrix.OfArray(new double[,] { { left, 1 }, { right, 1 } });
+                        Vector sx = (Vector)mx.Solve(new DenseVector(new double[] {  1 ,  0  }));
+                        Matrix my = DenseMatrix.OfArray(new double[,] { { top, 1 }, { bottom, 1 } });
+                        Vector sy = (Vector)my.Solve(new DenseVector(new double[] {  1 ,  0  }));
                         // Achtung: z geht von -1 bis +1, UnitBox nur von 0 bis 1, deshalb hir z mit 0.5 Faktor und 0.5 Verschiebung versehen
-                        toUnitBox = new Matrix4(new double[,] { { sx[0, 0], 0, 0, sx[1, 0] }, { 0, sy[0, 0], 0, sy[1, 0] }, { 0, 0, 0.5, 0.5 }, { 0, 0, 0, 1 } }) * projection.openGlMatrix;
+                        toUnitBox = new Matrix4(new double[,] { { sx[0], 0, 0, sx[1] }, { 0, sy[0], 0, sy[1] }, { 0, 0, 0.5, 0.5 }, { 0, 0, 0, 1 } }) * projection.openGlMatrix;
                         isPerspective = projection.isPerspective;
                         frontCenter = projection.inverseOpenGLMatrix * new GeoPoint((left + right) / 2, (top + bottom) / 2, -1.0);
                         GeoPoint fb = projection.inverseOpenGLMatrix * new GeoPoint((left + right) / 2, (top + bottom) / 2, 1.0);
@@ -331,8 +335,8 @@ namespace CADability
         {
             if (isPerspective)
             {
-                LinearAlgebra.Matrix offset = new LinearAlgebra.Matrix(ModOp.Translate(2 * (placementX - clientRect.Left / 2.0) / (clientRect.Width), -2 * (placementY - clientRect.Top / 2.0) / (clientRect.Height), 0));
-                LinearAlgebra.Matrix scale = new CADability.LinearAlgebra.Matrix(new double[,] { { placementFactor, 0, 0, 0 }, { 0, placementFactor, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
+                Matrix offset = ModOp.Translate(2 * (placementX - clientRect.Left / 2.0) / (clientRect.Width), -2 * (placementY - clientRect.Top / 2.0) / (clientRect.Height), 0).ToMatrix();
+                Matrix scale = DenseMatrix.OfArray(new double[,] { { placementFactor, 0, 0, 0 }, { 0, placementFactor, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } });
                 openGlMatrix = new Matrix4(offset * scale * perspectiveProjection.Matrix);
                 inverseOpenGLMatrix = openGlMatrix.GetInverse();
             }
@@ -997,12 +1001,12 @@ namespace CADability
             double pright = halfwidth;
             double pbottom = halfwidth / ratio;
             double ptop = -halfwidth / ratio;
-            LinearAlgebra.Matrix perspective = new LinearAlgebra.Matrix(new double[,]{
+            Matrix perspective = DenseMatrix.OfArray(new double[,]{
                 {2*near/(pright-pleft),0,(pright+pleft)/(pright-pleft),0},
                 {0,2*near/(ptop-pbottom),(ptop+pbottom)/(ptop-pbottom),0},
                 {0,0,-(far+near)/(far-near),-2*far*near/(far-near)},
                 {0,0,-1,0}});
-            perspectiveProjection = new Matrix4(perspective * new LinearAlgebra.Matrix(topView)); // das ist die unscalierte und
+            perspectiveProjection = new Matrix4(perspective * topView.ToMatrix()); // das ist die unscalierte und
             // unverschobene Projektion
             inversePerspectiveProjection = perspectiveProjection.GetInverse();
             // DEBUG:
@@ -1158,38 +1162,38 @@ namespace CADability
                 sys[11, 10] = zmax.z;
                 sys[11, 11] = 1.0;
 
-                LinearAlgebra.Matrix mat = new LinearAlgebra.Matrix(sys);
+                Matrix mat = DenseMatrix.OfArray(sys);
 
-                double[,] res = new double[12, 1];
-                res[0, 0] = -1; // Ergebnis leftbottom (x,y)
-                res[1, 0] = -1;
-                res[2, 0] = 1; // Ergebnis rightbottom (x,y)
-                res[3, 0] = -1;
-                res[4, 0] = -1; // Ergebnis lefttop (x,y)
-                res[5, 0] = 1;
-                res[6, 0] = 0; // Ergebnis projdir (x,y)
-                res[7, 0] = 0;
-                res[8, 0] = 0;// Ergebnis dirx (z)
-                res[9, 0] = 0;// Ergebnis diry (z)
-                res[10, 0] = 0; // Ergebnis zmin (nur z Komponente)
-                res[11, 0] = 1; // Ergebnis zmax (nur z Komponente)
-                LinearAlgebra.Matrix b = new LinearAlgebra.Matrix(res);
-                LinearAlgebra.Matrix x = mat.SaveSolve(b);
-                if (x != null)
+                double[] res = new double[12];
+                res[0] = -1; // Ergebnis leftbottom (x,y)
+                res[1] = -1;
+                res[2] = 1; // Ergebnis rightbottom (x,y)
+                res[3] = -1;
+                res[4] = -1; // Ergebnis lefttop (x,y)
+                res[5] = 1;
+                res[6] = 0; // Ergebnis projdir (x,y)
+                res[7] = 0;
+                res[8] = 0;// Ergebnis dirx (z)
+                res[9] = 0;// Ergebnis diry (z)
+                res[10] = 0; // Ergebnis zmin (nur z Komponente)
+                res[11] = 1; // Ergebnis zmax (nur z Komponente)
+                Vector b = new DenseVector(res);
+                Vector x = (Vector)mat.Solve(b);
+                if (x.IsValid())
                 {
                     double[,] result = new double[4, 4];
-                    result[0, 0] = x[0, 0];
-                    result[0, 1] = x[1, 0];
-                    result[0, 2] = x[2, 0];
-                    result[0, 3] = x[3, 0];
-                    result[1, 0] = x[4, 0];
-                    result[1, 1] = x[5, 0];
-                    result[1, 2] = x[6, 0];
-                    result[1, 3] = x[7, 0];
-                    result[2, 0] = x[8, 0];
-                    result[2, 1] = x[9, 0];
-                    result[2, 2] = x[10, 0];
-                    result[2, 3] = x[11, 0];
+                    result[0, 0] = x[0];
+                    result[0, 1] = x[1];
+                    result[0, 2] = x[2];
+                    result[0, 3] = x[3];
+                    result[1, 0] = x[4];
+                    result[1, 1] = x[5];
+                    result[1, 2] = x[6];
+                    result[1, 3] = x[7];
+                    result[2, 0] = x[8];
+                    result[2, 1] = x[9];
+                    result[2, 2] = x[10];
+                    result[2, 3] = x[11];
                     result[3, 0] = 0.0;
                     result[3, 1] = 0.0;
                     result[3, 2] = 0.0;
@@ -1348,39 +1352,39 @@ namespace CADability
             sys[11, 10] = zmax.z;
             sys[11, 11] = 1.0;
 
-            LinearAlgebra.Matrix mat = new LinearAlgebra.Matrix(sys);
+            Matrix mat = DenseMatrix.OfArray(sys);
 
-            double[,] res = new double[12, 1];
-            res[0, 0] = -1; // Ergebnis leftbottom (x,y)
-            res[1, 0] = -1;
-            res[2, 0] = 1; // Ergebnis rightbottom (x,y)
-            res[3, 0] = -1;
-            res[4, 0] = -1; // Ergebnis lefttop (x,y)
-            res[5, 0] = 1;
-            res[6, 0] = 0; // Ergebnis projdir (x,y)
-            res[7, 0] = 0;
-            res[8, 0] = 0;// Ergebnis dirx (z)
-            res[9, 0] = 0;// Ergebnis diry (z)
-            res[10, 0] = 0; // Ergebnis zmin (nur z Komponente)
-            res[11, 0] = 1; // Ergebnis zmax (nur z Komponente)
-            LinearAlgebra.Matrix b = new LinearAlgebra.Matrix(res);
+            double[] res = new double[12];
+            res[0] = -1; // Ergebnis leftbottom (x,y)
+            res[1] = -1;
+            res[2] = 1; // Ergebnis rightbottom (x,y)
+            res[3] = -1;
+            res[4] = -1; // Ergebnis lefttop (x,y)
+            res[5] = 1;
+            res[6] = 0; // Ergebnis projdir (x,y)
+            res[7] = 0;
+            res[8] = 0;// Ergebnis dirx (z)
+            res[9] = 0;// Ergebnis diry (z)
+            res[10] = 0; // Ergebnis zmin (nur z Komponente)
+            res[11] = 1; // Ergebnis zmax (nur z Komponente)
+            Vector b = new DenseVector(res);
             try
             {
-                LinearAlgebra.Matrix x = mat.Solve(b);
+                Vector x = (Vector)mat.Solve(b);
 
                 double[,] result = new double[4, 4];
-                result[0, 0] = x[0, 0];
-                result[0, 1] = x[1, 0];
-                result[0, 2] = x[2, 0];
-                result[0, 3] = x[3, 0];
-                result[1, 0] = x[4, 0];
-                result[1, 1] = x[5, 0];
-                result[1, 2] = x[6, 0];
-                result[1, 3] = x[7, 0];
-                result[2, 0] = x[8, 0];
-                result[2, 1] = x[9, 0];
-                result[2, 2] = x[10, 0];
-                result[2, 3] = x[11, 0];
+                result[0, 0] = x[0];
+                result[0, 1] = x[1];
+                result[0, 2] = x[2];
+                result[0, 3] = x[3];
+                result[1, 0] = x[4];
+                result[1, 1] = x[5];
+                result[1, 2] = x[6];
+                result[1, 3] = x[7];
+                result[2, 0] = x[8];
+                result[2, 1] = x[9];
+                result[2, 2] = x[10];
+                result[2, 3] = x[11];
                 result[3, 0] = 0.0;
                 result[3, 1] = 0.0;
                 result[3, 2] = 0.0;

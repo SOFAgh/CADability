@@ -6,6 +6,11 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
+using System.Drawing;
+#endif
 
 
 namespace CADability
@@ -31,9 +36,9 @@ namespace CADability
                     typeName = typeName.Insert(ind + 20, "*");
                 }
                 Type t = Type.GetType(typeName);
-                if (t == null && typeName == "System.Drawing.Color") // das macht Probleme wg. verschiedenem Framework
+                if (t == null && typeName == "Color") // das macht Probleme wg. verschiedenem Framework
                 {
-                    System.Drawing.Color clr = System.Drawing.Color.Black;
+                    Color clr = Color.Black;
                     t = clr.GetType();
                 }
                 if (t == null && typeName.StartsWith("System.Collections.Generic.Dictionary") && typeName.Contains("System.String")
@@ -133,11 +138,11 @@ namespace CADability
     /// <summary>
     /// This class is used to give access and store information that influences global behavior of the
     /// CADability system.
-    /// There is a static variable <see cref="GlobalSettings"/>. This is the only use of settings in CADability.
+    /// There is a static variable <see cref="Settings.GlobalSettings"/>. This is the only use of settings in CADability.
     /// This class behaves as a hierarchical dictionary. The keys are strings, which may have the form "mainkey.subkey"
     /// The values are objects, i.e. any kind of data.
-    /// If the objects implement the IShowProperty interface they are displayed in the global setting tab of the control-center.
-    /// There are some classes like <see cref="ColorSetting"/>, <see cref="IntergerProperty"/>, <see cref="DoubleProperty"/>,
+    /// If the objects implement the IShowProperty interface they are displayed in the global setting tab of the controlcenter.
+    /// There are some classes like <see cref="ColorSetting"/>, <see cref="IntegerProperty"/>, <see cref="DoubleProperty"/>,
     /// <see cref="StringProperty"/> which can be used as a setting value. If you instead simply use a double or string value
     /// the setting will be only available to programming code but not to the user in the ControlCenter.
     /// </summary>
@@ -174,12 +179,24 @@ namespace CADability
         private bool modified;
         private bool deserialized; // leider notwendig um das deserialisieren und den callback in eine vernünftige ordnung zu bringen
         protected string myName; // Name dieses Settings, wenn in einem anderen Setting anthalten
+        private static Settings globalSettings;
         /// <summary>
         /// The global settings contain many different settings or configurations for the program execution.
         /// The settings are displayed in the "global" tab of the controlcenter. User code may add or remove settings.
         /// <see cref="Settings.AddSetting"/>.
         /// </summary>
-        public static Settings GlobalSettings;
+        public static Settings GlobalSettings
+        {
+            get
+            {
+                if (globalSettings == null) Reload();
+                return globalSettings;
+            }
+            set
+            {
+                globalSettings = value;
+            }
+        }
         public static void SaveGlobalSettings(string FileName)
         {
             Stream stream = File.Open(FileName, FileMode.Create);
@@ -456,37 +473,37 @@ namespace CADability
             if (!colorSettings.ContainsSetting("Background"))
             {
                 ColorSetting cs = new ColorSetting("Background", "Setting.Colors.Background");
-                cs.Color = System.Drawing.Color.AliceBlue;
+                cs.Color = Color.AliceBlue;
                 colorSettings.AddSetting("Background", cs);
             }
             if (!colorSettings.ContainsSetting("Grid"))
             {
                 ColorSetting cs = new ColorSetting("Grid", "Setting.Colors.Grid");
-                cs.Color = System.Drawing.Color.LightGoldenrodYellow;
+                cs.Color = Color.LightGoldenrodYellow;
                 colorSettings.AddSetting("Grid", cs);
             }
             if (!colorSettings.ContainsSetting("Feedback"))
             {
                 ColorSetting cs = new ColorSetting("Feedback", "Setting.Colors.Feedback");
-                cs.Color = System.Drawing.Color.DarkGray;
+                cs.Color = Color.DarkGray;
                 colorSettings.AddSetting("Feedback", cs);
             }
             if (!colorSettings.ContainsSetting("Layout"))
             {
                 ColorSetting cs = new ColorSetting("Layout", "Setting.Colors.Layout");
-                cs.Color = System.Drawing.Color.LightYellow;
+                cs.Color = Color.LightYellow;
                 colorSettings.AddSetting("Layout", cs);
             }
             if (!colorSettings.ContainsSetting("Drawingplane"))
             {
                 ColorSetting cs = new ColorSetting("Drawingplane", "Setting.Colors.Drawingplane");
-                cs.Color = System.Drawing.Color.LightSkyBlue;
+                cs.Color = Color.LightSkyBlue;
                 colorSettings.AddSetting("Drawingplane", cs);
             }
             if (!colorSettings.ContainsSetting("ActiveFrame"))
             {
                 ColorSetting cs = new ColorSetting("ActiveFrame", "Setting.Colors.ActiveFrame");
-                cs.Color = System.Drawing.SystemColors.ActiveCaption;
+                cs.Color = Color.LightBlue;
                 colorSettings.AddSetting("ActiveFrame", cs);
             }
             if (!GlobalSettings.ContainsSetting("Snap"))
@@ -993,7 +1010,7 @@ namespace CADability
                         }
                         else if (entries[Name].GetType() == typeof(ColorSetting))
                         {
-                            ((ColorSetting)(entries[Name])).Color = (System.Drawing.Color)NewValue;
+                            ((ColorSetting)(entries[Name])).Color = (Color)NewValue;
                         }
                         else if (entries[Name].GetType() == typeof(MultipleChoiceSetting))
                         {
@@ -1185,15 +1202,17 @@ namespace CADability
         }
         public void Dispose()
         {
-#if DEBUG
-            //MessageBox.Show("Dispose in GlobalSettings");
-#endif
-            // entries.Clear();
-            // sortedEntries.Clear();
-            // ShowProperties = null;
-            if (Settings.GlobalSettings == this)
+            if (GlobalSettings == this)
             {
-                //StringTable.RemoveSettingsChanged();
+                // remove all event-references to this GlobalSettings
+                string[] allKeys = GlobalSettings.GetAllKeys();
+                for (int i = 0; i < allKeys.Length; i++)
+                {
+                    object s = GlobalSettings.GetValue(allKeys[i]);
+                    if (s is ISettingChanged sc) sc.SettingChangedEvent -= OnSettingChanged;
+                    if (s is INotifyModification nm) nm.DidModifyEvent -= OnDidModify;
+                }
+                // StringTable.RemoveSettingsChanged();
                 GlobalSettings = null;
             }
         }

@@ -158,7 +158,7 @@ namespace CADability.Attribute
 
 		private void ct_DidModify(object sender, EventArgs args)
 		{
-			if (propertyTreeView!=null) propertyTreeView.Refresh(showProperties[3]);
+			if (propertyPage!=null) propertyPage.Refresh(showProperties[3]);
 		}
 		#region ICommandHandler Members
         bool ICommandHandler.OnCommand(string MenuId)
@@ -166,15 +166,15 @@ namespace CADability.Attribute
 			switch( MenuId )
 			{
 				case "MenuId.LayerListEntry.Edit":
-					if (propertyTreeView!=null) propertyTreeView.StartEditLabel(this);
+					if (propertyPage!=null) propertyPage.StartEditLabel(this);
 					return true;
 				case "MenuId.LayerListEntry.Delete":
 					layerList.Remove(layer);
-					if (propertyTreeView!=null) propertyTreeView.Refresh(layerList);
+					if (propertyPage!=null) propertyPage.Refresh(layerList);
 					return true;
 				case "MenuId.LayerListEntry.Current":
 					layerList.Current = layer;
-					if (propertyTreeView!=null) propertyTreeView.Refresh(layerList);
+					if (propertyPage!=null) propertyPage.Refresh(layerList);
 					return true;
 			}
 			return false;
@@ -216,10 +216,10 @@ namespace CADability.Attribute
     /// Layer implements the <see cref="IShowProperty"/> interface to present ist properties.
     /// </summary>
     [Serializable()]
-    public class Layer : IShowPropertyImpl, ISerializable, INamedAttribute,
+    public class Layer : PropertyEntryImpl, ISerializable, INamedAttribute,
             ICommandHandler
     {
-        private string name; // der Name
+        private string name; // name of the Layer
         private int displayOrder;
         private int transparency;
         /// <summary>
@@ -238,7 +238,7 @@ namespace CADability.Attribute
                 (parent as IAttributeList).AttributeChanged(this, change);
             }
         }
-        private IShowProperty[] showProperties;
+        private IPropertyEntry[] showProperties;
         public Layer()
         {	// kein Name
             displayOrder = 0;
@@ -274,7 +274,7 @@ namespace CADability.Attribute
             res.transparency = transparency;
             return res;
         }
-        internal LayerList Parent
+        internal new LayerList Parent
         {
             get { return parent; }
             set { parent = value; }
@@ -284,60 +284,36 @@ namespace CADability.Attribute
             get { return parent; }
             set { parent = value as LayerList; }
         }
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             return null;
         }
 
-        #region IShowProperty Members
+        #region IPropertyEntry Members
+        public override PropertyEntryType Flags
+        {
+            get
+            {
+                PropertyEntryType flags = PropertyEntryType.LabelEditable | PropertyEntryType.Selectable | PropertyEntryType.ContextMenu | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+                if (parent.Current != null && parent.Current.Name == Name) flags |= PropertyEntryType.Bold;
+                return flags;
+            }
+        }
         public override string LabelText
         {
             get { return name; }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                ShowPropertyLabelFlags flags = ShowPropertyLabelFlags.Editable | ShowPropertyLabelFlags.Selectable | ShowPropertyLabelFlags.ContextMenu;
-                if (parent.Current != null && parent.Current.Name == Name)
-                    flags |= ShowPropertyLabelFlags.Bold;
-
-                return flags;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.SimpleEntry"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get { return 2; }
-        }
-        /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (showProperties == null)
                 {
-                    showProperties = new IShowProperty[2];
+                    showProperties = new IPropertyEntry[2];
                     IntegerProperty ip = new IntegerProperty(displayOrder, "Layer.DisplayOrder");
                     ip.GetIntEvent += new IntegerProperty.GetIntDelegate(GetDisplayOrder);
                     ip.SetIntEvent += new IntegerProperty.SetIntDelegate(SetDisplayOrder);
@@ -369,31 +345,27 @@ namespace CADability.Attribute
         {
             return transparency;
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.LabelChanged (string)"/>
-        /// </summary>
-        /// <param name="NewText"></param>
-		public override void LabelChanged(string NewText)
+        public override bool EditTextChanged(string newValue)
         {
-            Name = NewText;
+            return true;
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
             base.resourceId = "LayerName";
         }
-        /*	public override void Removed(IPropertyTreeView propertyTreeView)
+        /*	public override void Removed(IPropertyTreeView propertyPage)
             {
                 ColorList ct = FindColorList();
                 if(ct != null)
                 {
                     ct.DidModify -= new DidModifyDelegate(ColorListDidModify);
                 }
-                base.Removed (propertyTreeView);
+                base.Removed (propertyPage);
             }
     */
         public override MenuWithHandler[] ContextMenu
@@ -418,7 +390,7 @@ namespace CADability.Attribute
 
         /*		private void ColorListDidModify(object sender, EventArgs args)
                 {	// wenn sich die ColorList ändert, dann muss sich das in der Liste der angezeigten Farben wiederspiegeln
-                    propertyTreeView.Refresh(this);
+                    propertyPage.Refresh(this);
                 }
                 */
         #region ISerializable Members
@@ -488,6 +460,7 @@ namespace CADability.Attribute
                 FireDidChange("Transparency", oldtransparence);
             }
         }
+
         #region ICommandHandler Members
         bool ICommandHandler.OnCommand(string MenuId)
         {
@@ -495,15 +468,15 @@ namespace CADability.Attribute
             switch (MenuId)
             {
                 case "MenuId.LayerListEntry.Edit":
-                    if (propertyTreeView != null) propertyTreeView.StartEditLabel(this);
+                    if (propertyPage != null) propertyPage.StartEditLabel(this);
                     return true;
                 case "MenuId.LayerListEntry.Delete":
                     parent.Remove(this);
-                    if (propertyTreeView != null) propertyTreeView.Refresh(parent);
+                    if (propertyPage != null) propertyPage.Refresh(parent);
                     return true;
                 case "MenuId.LayerListEntry.Current":
                     parent.Current = this;
-                    if (propertyTreeView != null) propertyTreeView.Refresh(parent);
+                    if (propertyPage != null) propertyPage.Refresh(parent);
                     return true;
             }
             return false;
@@ -531,7 +504,7 @@ namespace CADability.Attribute
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
 
@@ -615,31 +588,31 @@ namespace CADability.Attribute
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
             if (toWatch != null) toWatch.DidChangeEvent += new ChangeDelegate(GeoObjectDidChange);
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Removed"/>
         /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage">the IPropertyTreeView from which it was removed</param>
+        public override void Removed(IPropertyPage propertyPage)
         {
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
             if (toWatch != null) toWatch.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
         }
         private void GeoObjectDidChange(IGeoObject Sender, GeoObjectChange Change)
         {
-            if (Sender == toWatch && Change.OnlyAttributeChanged && propertyTreeView != null)
+            if (Sender == toWatch && Change.OnlyAttributeChanged && propertyPage != null)
             {
                 if ((Change as GeoObjectChange).MethodOrPropertyName == "Layer" ||
                     (Change as GeoObjectChange).MethodOrPropertyName == "Style")
                 {
                     if (toWatch.Layer != null) base.selectedText = toWatch.Layer.Name;
                     else base.selectedText = null;
-                    propertyTreeView.Refresh(this);
+                    propertyPage.Refresh(this);
                 }
             }
         }
@@ -648,7 +621,7 @@ namespace CADability.Attribute
             get { return toWatch; }
             set
             {
-                if (base.propertyTreeView != null)
+                if (base.propertyPage != null)
                 {   // dann ist diese Property schon Added und nicht removed
                     if (toWatch != null) toWatch.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
                 }

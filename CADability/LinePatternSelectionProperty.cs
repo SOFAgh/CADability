@@ -105,31 +105,31 @@ namespace CADability.UserInterface
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
             if (toWatch != null) toWatch.DidChangeEvent += new ChangeDelegate(GeoObjectDidChange);
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Removed"/>
         /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage">the IPropertyTreeView from which it was removed</param>
+        public override void Removed(IPropertyPage propertyPage)
         {
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
             if (toWatch != null) toWatch.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
         }
         private void GeoObjectDidChange(IGeoObject Sender, GeoObjectChange Change)
         {
-            if (Sender == toWatch && Change.OnlyAttributeChanged && propertyTreeView != null)
+            if (Sender == toWatch && Change.OnlyAttributeChanged && propertyPage != null)
             {
                 if ((Change as GeoObjectChange).MethodOrPropertyName == "LinePattern" ||
                     (Change as GeoObjectChange).MethodOrPropertyName == "Style")
                 {
                     if ((toWatch as ILinePattern).LinePattern != null) base.selectedText = (toWatch as ILinePattern).LinePattern.Name;
                     else base.selectedText = null;
-                    propertyTreeView.Refresh(this);
+                    propertyPage.Refresh(this);
                 }
             }
         }
@@ -138,7 +138,7 @@ namespace CADability.UserInterface
             get { return toWatch; }
             set
             {
-                if (base.propertyTreeView != null)
+                if (base.propertyPage != null)
                 {   // dann ist diese Property schon Added und nicht removed
                     if (toWatch != null) toWatch.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
                 }

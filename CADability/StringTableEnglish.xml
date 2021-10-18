@@ -6168,6 +6168,11 @@
     <tip>Direction for the y-axis of the conical surface</tip>
     <info>Direction for the y-axis of the conical surface</info>
   </data>
+  <data name="ConicalSurface.OpeningAngle">
+    <label>Opening angle</label>
+    <tip>Opening Angle of the conical surface</tip>
+    <info>Opening Angle of the conical surface</info>
+  </data>
   <data name="MenuId.Constr.Face.SelectedRuledFace">
     <label>Ruled face</label>
     <tip>Make a ruled face out of two selected curves</tip>

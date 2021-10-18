@@ -8,20 +8,14 @@ namespace CADability.GeoObject
 {
     /// <summary>
     /// A planar infinite surface. Implements ISurface.
-    /// The plane is defined by two vectors which are not necessary perpendicular or normed.
+    /// The plane is defined by two vectors which are not necessary perpendicular or normalized.
     /// </summary>
     [Serializable()]
     public class PlaneSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IExportStep
-        , IPropertyEntry
     {
-        /*
-         * Da wir hier ein allgemeines ebenes u/v Sytsem haben, kann keine Ebene (Plane) als Basis dienen, sondern
-         * freie Vektoren, die auch nicht normiert sind. 
-         */
-        private ModOp fromUnitPlane; // bildet die XY Ebene in diese Ebene ab
-        private ModOp toUnitPlane; // invers zu fromUnitPlane
+        private ModOp fromUnitPlane; // projects the XY plane into this surface
+        private ModOp toUnitPlane; // inverted fromUnitPlane
 
-        private ModOp2D toHelper; // wird nur benötigt, wenn verzerrt für opencascade
         internal PlaneSurface(ModOp m, BoundingRect? usedArea = null) : base(usedArea)
         {
             fromUnitPlane = m;
@@ -114,28 +108,6 @@ namespace CADability.GeoObject
                 if (!Precision.IsNormedVector(diry)) return false;
                 if (!Precision.IsPerpendicular(dirx, diry, true)) return false;
                 return true;
-            }
-        }
-        internal override ICurve2D CurveToHelper(ICurve2D original)
-        {
-            if (fromUnitPlane.IsOrthogonal)
-            {
-                return original;
-            }
-            else
-            {
-                return original.GetModified(toHelper);
-            }
-        }
-        internal override ICurve2D CurveFromHelper(ICurve2D original)
-        {
-            if (fromUnitPlane.IsOrthogonal)
-            {
-                return original;
-            }
-            else
-            {
-                return original.GetModified(toHelper.GetInverse());
             }
         }
         /// <summary>
@@ -692,12 +664,12 @@ namespace CADability.GeoObject
                         GeoVector dir = (ts.ZAxis ^ Normal) ^ ts.ZAxis; // this is the direction of a line from the center of the torus where the u positions of the extereme position of the torus are
                         if (dir.IsNullVector()) break;
                         GeoPoint2D[] ip = ts.GetLineIntersection(ts.Location, dir); // the result should be 4 points, but we are interested in u parameters only and this must be u and u+pi
-                        if (ip!=null && ip.Length>0)
+                        if (ip != null && ip.Length > 0)
                         {
                             extremePositions = new List<Tuple<double, double, double, double>>();
                             double u = ip[0].x;
                             SurfaceHelper.AdjustUPeriodic(ts, otherBounds, ref u);
-                            if (u>=otherBounds.Left && u<=otherBounds.Right) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, u, double.NaN));
+                            if (u >= otherBounds.Left && u <= otherBounds.Right) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, u, double.NaN));
                             u += Math.PI;
                             SurfaceHelper.AdjustUPeriodic(ts, otherBounds, ref u);
                             if (u >= otherBounds.Left && u <= otherBounds.Right) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, u, double.NaN));
@@ -749,60 +721,25 @@ namespace CADability.GeoObject
             toUnitPlane = fromUnitPlane.GetInverse();
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "PlanarSurface";
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty location = new GeoPointProperty(frame, "PlanarSurface.Location");
+            location.ReadOnly = true;
+            location.OnGetValue = new EditableProperty<GeoPoint>.GetValueDelegate(delegate () { return fromUnitPlane * GeoPoint.Origin; });
+            se.Add(location);
+            GeoVectorProperty dirx = new GeoVectorProperty(frame, "PlanarSurface.DirectionX");
+            dirx.ReadOnly = true;
+            dirx.IsAngle = false;
+            dirx.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return fromUnitPlane * GeoVector.XAxis; });
+            se.Add(dirx);
+            GeoVectorProperty diry = new GeoVectorProperty(frame, "PlanarSurface.DirectionY");
+            diry.ReadOnly = true;
+            diry.IsAngle = false;
+            diry.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return fromUnitPlane * GeoVector.YAxis; });
+            se.Add(diry);
+            return new GroupProperty("PlanarSurface", se.ToArray());
         }
-
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    GeoPointProperty location = new GeoPointProperty("PlanarSurface.Location", base.Frame, false);
-                    location.ReadOnly = true;
-                    location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return fromUnitPlane * GeoPoint.Origin; };
-                    se.Add(location);
-                    GeoVectorProperty dirx = new GeoVectorProperty("PlanarSurface.DirectionX", base.Frame, false);
-                    dirx.ReadOnly = true;
-                    dirx.IsAngle = false;
-                    dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return fromUnitPlane * GeoVector.XAxis; };
-                    se.Add(dirx);
-                    GeoVectorProperty diry = new GeoVectorProperty("PlanarSurface.DirectionY", base.Frame, false);
-                    diry.ReadOnly = true;
-                    diry.IsAngle = false;
-                    diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return fromUnitPlane * GeoVector.YAxis; };
-                    se.Add(diry);
-
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             // #171=AXIS2_PLACEMENT_3D('Plane Axis2P3D',#168,#169,#170) ;

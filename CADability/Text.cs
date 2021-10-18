@@ -5,6 +5,14 @@ using CADability.Shapes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+// some work to do to implement text for webassembly
+//#if WEBASSEMBLY
+//using CADability.WebDrawing;
+//using Point = CADability.WebDrawing.Point;
+//#else
+//using System.Drawing;
+//using Point = System.Drawing.Point;
+//#endif
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.Serialization;
@@ -80,11 +88,11 @@ namespace CADability.GeoObject
     }
 
 
-    public class ShowPropertyText : IShowPropertyImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
+    public class ShowPropertyText : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Text text;
         private IFrame frame;
-        private IShowProperty[] showProperties;
+        private IPropertyEntry[] showProperties;
         private GeoPointProperty locationProperty;
         private GeoVectorProperty glyphDirectionProperty;
         private GeoVectorHotSpot glyphDirHotspot;
@@ -197,9 +205,9 @@ namespace CADability.GeoObject
             }
             return res;
         }
-        internal IShowProperty[] GetAdditionalTextProperties()
+        internal IPropertyEntry[] GetAdditionalTextProperties()
         {
-            List<IShowProperty> res = new List<IShowProperty>();
+            List<IPropertyEntry> res = new List<IPropertyEntry>();
             res.Add(initializeAlignmentProp(false));
             res.Add(initializeAlignmentProp(true));
             res.Add(lineDirectionProperty);
@@ -212,6 +220,7 @@ namespace CADability.GeoObject
             return res.ToArray();
         }
         #region IShowPropertyImpl Overrides
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.Added"/>
         /// </summary>
@@ -236,7 +245,7 @@ namespace CADability.GeoObject
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Removed (IPropertyTreeView)"/>
         /// </summary>
         /// <param name="propertyTreeView"></param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyTreeView)
         {
             base.Removed(propertyTreeView);
             locationProperty.ModifyWithMouseEvent -= new ModifyWithMouseDelegate(locationProperty_ModifyWithMouse);
@@ -258,20 +267,13 @@ namespace CADability.GeoObject
                         selectAction.OnClickedOnSelectedObject -= new Condor.Actions.SelectObjectsAction.ClickedOnSelectedObject(setCarret);
                     */
         }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (showProperties == null)
                 {
-                    List<IShowProperty> list = new List<IShowProperty>();
+                    List<IPropertyEntry> list = new List<IPropertyEntry>();
                     list.Add(stringProperty);
                     //if( editor == null)
                     //    editor = new TextEditor(text,stringProperty,frame);
@@ -290,13 +292,6 @@ namespace CADability.GeoObject
                     showProperties = list.ToArray();
                 }
                 return showProperties;
-            }
-        }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
             }
         }
         /// <summary>
@@ -324,16 +319,7 @@ namespace CADability.GeoObject
             }
             base.Opened(IsOpen);
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
-        }
+
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -592,7 +578,7 @@ namespace CADability.GeoObject
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         #region IGeoObjectShowProperty Members
         public event CADability.GeoObject.CreateContextMenueDelegate CreateContextMenueEvent;
@@ -1009,7 +995,7 @@ namespace CADability.GeoObject
             return res;
         }
         public IPaintTo3DList Get(string font, int fontStyle, char c, out double width, IPaintTo3D paintTo3D)
-        {   // wie sicherstellen, dass nicht gerade eine Liste offen ist???
+        {
             bool useLists = true;
             if (paintTo3D != null) useLists = !paintTo3D.IsBitmap;
             DictVal found;
@@ -1023,14 +1009,13 @@ namespace CADability.GeoObject
                         return found.list;
                     }
                 }
-                // nicht gefunden oder noch keine Liste erzeugt oder keine Listen verwenden
-
+                // no list found for this character in the cache or don't use display list
                 bool oldSelectMode = false;
                 if (paintTo3D != null && useLists)
                 {
                     oldSelectMode = paintTo3D.SelectMode;
-                    paintTo3D.SelectMode = true;
-                    paintTo3D.OpenList();
+                    // paintTo3D.SelectMode = true; // no, all Text will be in select color if we set SelectMode
+                    paintTo3D.OpenList(font + ":" + c);
                 }
                 found = new DictVal();
                 Path2D[] paths = GetOutline2D(font, fontStyle, c, out width);
@@ -1056,11 +1041,11 @@ namespace CADability.GeoObject
                             }
                         }
                         List<SimpleShape> sortedList = sortedshapes.SortedValues;
-                        CompoundShape res = new CompoundShape(); // leer
+                        CompoundShape res = new CompoundShape(); // empty
                         while (sortedList.Count > 0)
                         {
-                            SimpleShape ss = sortedList[sortedList.Count - 1]; // das größte
-                            sortedList.RemoveAt(sortedList.Count - 1); // raus aus der Liste
+                            SimpleShape ss = sortedList[sortedList.Count - 1]; // the biggest shape
+                            sortedList.RemoveAt(sortedList.Count - 1); // remove it from the list
                             CompoundShape cs = new CompoundShape(ss);
                             for (int i = sortedList.Count - 1; i >= 0; --i)
                             {
@@ -1071,8 +1056,8 @@ namespace CADability.GeoObject
                                         sortedList.RemoveAt(i);
                                         break;
                                     default:
-                                        // alle anderen werden nicht verwendet. Beim Überschneiden müsste man noch überlegen
-                                        // z.B. Font raumTalk
+                                        // all shapes must be contained in the outer shape, there should not be overlapping shapes
+                                        // but there is one example with overlapping shapes: Font raumTalk
                                         break;
                                 }
                             }
@@ -1082,22 +1067,23 @@ namespace CADability.GeoObject
                         for (int i = 0; i < res.SimpleShapes.Length; ++i)
                         {
                             Face fc = Face.MakeFace(pls, res.SimpleShapes[i]);
+                            fc.ColorDef = null; // no color in the display list!
                             double oldprecision = paintTo3D.Precision;
-                            switch (FontPrecision)
+                            switch (FontPrecision) // this is for triangulation precision, font size is 1
                             {
-                                case 0: // grob
+                                case 0: // rough
                                     paintTo3D.Precision = 0.2;
                                     break;
-                                case 1: // mittel
+                                case 1: // middle
                                     paintTo3D.Precision = 0.05;
                                     break;
-                                case 2:
+                                case 2: // fine
                                     paintTo3D.Precision = 0.005;
                                     break;
                             }
                             bool oldpse = paintTo3D.PaintSurfaceEdges;
                             paintTo3D.PaintSurfaceEdges = false;
-                            fc.PaintTo3D(paintTo3D); // hier wird trianguliert
+                            fc.PaintTo3D(paintTo3D); // will be triangulated according to paintTo3D.Precision 
                             paintTo3D.Precision = oldprecision;
                             paintTo3D.PaintSurfaceEdges = oldpse;
                         }
@@ -2442,6 +2428,14 @@ namespace CADability.GeoObject
                 }
             }
         }
+        public void SetDirections(GeoVector lineDirection, GeoVector glyphDirection)
+        {
+            using (new Changing(this))
+            {
+                this.glyphDirection = glyphDirection;
+                this.lineDirection = lineDirection;
+            }
+        }
         public GeoVector GlyphDirectionKeepSize
         {
             get { return glyphDirection; }
@@ -2757,7 +2751,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyText(this, Frame);
         }
@@ -2766,9 +2760,9 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty[] GetAttributeProperties(IFrame Frame)
+        public override IPropertyEntry[] GetAttributeProperties(IFrame Frame)
         {
-            List<IShowProperty> res = new List<IShowProperty>();
+            List<IPropertyEntry> res = new List<IPropertyEntry>();
             ShowPropertyText spt = new ShowPropertyText(this, Frame);
             // res.AddRange(spt.GetAdditionalTextProperties());
             res.AddRange(base.GetAttributeProperties(Frame));
@@ -2813,8 +2807,8 @@ namespace CADability.GeoObject
         public override void PrePaintTo3D(IPaintTo3D paintTo3D)
         {
             if (paintTo3D.TriangulateText)
-            {   // hier werden alle displaylisten erzeugt, für jedes Zeichen eine.
-                int fs = 0; // das ist regular
+            {   // generates a display list for each character and saves the display list in a cache
+                int fs = 0; // this is regular
                 if (Underline) fs |= (int)FontStyle.Underline;
                 if (Italic) fs |= (int)FontStyle.Italic;
                 if (Bold) fs |= (int)FontStyle.Bold;
@@ -2836,15 +2830,12 @@ namespace CADability.GeoObject
                     else if (ff.IsStyleAvailable(FontStyle.Bold)) fs = (int)FontStyle.Bold;
                     else if (ff.IsStyleAvailable(FontStyle.Italic)) fs = (int)FontStyle.Italic;
                     else if (ff.IsStyleAvailable(FontStyle.Strikeout)) fs = (int)FontStyle.Strikeout;
-                    else if (ff.IsStyleAvailable(FontStyle.Underline)) fs = (int)FontStyle.Underline; // irgend einen muss es ja wohl geben, oder?
+                    else if (ff.IsStyleAvailable(FontStyle.Underline)) fs = (int)FontStyle.Underline; // there must be one
                 }
                 int em = ff.GetEmHeight((FontStyle)fs);
                 int ls = ff.GetLineSpacing((FontStyle)fs);
                 int dc = ff.GetCellDescent((FontStyle)fs);
                 int ac = ff.GetCellAscent((FontStyle)fs);
-                double dx = 0.0;
-                double dy = 0.0;
-                double totwidth = 0.0;
                 for (int i = 0; i < textString.Length; ++i)
                 {
                     double width;
@@ -2853,7 +2844,11 @@ namespace CADability.GeoObject
             }
             else
             {
+#if WEBASSEMBLY
+                paintTo3D.PrepareText(fontName, textString, CADability.WebDrawing.FontStyle.Regular);
+#else
                 paintTo3D.PrepareText(fontName, textString, fontStyle);
+#endif
             }
         }
         public delegate bool PaintTo3DDelegate(Text toPaint, IPaintTo3D paintTo3D);
@@ -3030,7 +3025,11 @@ namespace CADability.GeoObject
             }
             else
             {
+#if WEBASSEMBLY
+                paintTo3D.Text(lineDirection, glyphDirection, location, fontName, textString, CADability.WebDrawing.FontStyle.Regular, alignment, lineAlignment);
+#else
                 paintTo3D.Text(lineDirection, glyphDirection, location, fontName, textString, fontStyle, alignment, lineAlignment);
+#endif
             }
         }
         /// <summary>

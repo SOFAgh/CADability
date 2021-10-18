@@ -139,10 +139,12 @@ namespace CADability.Actions
                 {
                     visibleLayers = new Set<Layer>((Frame.ActiveView as ModelView).GetVisibleLayers());
                 }
+#if !WEBASSEMBLY
                 else if (Frame.ActiveView is GDI2DView)
                 {
                     visibleLayers = new Set<Layer>((Frame.ActiveView as GDI2DView).VisibleLayers.Checked);
                 }
+#endif
                 GeoObjectList l = Frame.ActiveView.Model.GetObjectsFromRect(pickrect, CurrentMouseView.Projection, visibleLayers, PickMode.normal, Frame.Project.FilterList);
                 // Problem: ein großese Rechteck, welches weit über pickrect hinausgeht hat Inseln, die nicht im pickrect liegen
                 // Diese werden nicht gefunden. Deshalb hier nochmal das pickrect ggf. erweitern
@@ -158,12 +160,12 @@ namespace CADability.Actions
                     CurveGraph cg = CurveGraph.CrackCurves(l, foundOnPlane, l.GetExtent().Size * 1e-6); // gap eine Ordnung größer als Precision
                     if (cg != null)
                     {
-                        cs = cg.CreateCompoundShape(true, onPlane, mode);
+                        cs = cg.CreateCompoundShape(true, onPlane, mode, false);
 #if DEBUG
                         if (cs == null)
                         {
                             cg = CurveGraph.CrackCurves(l, foundOnPlane, l.GetExtent().Size * 1e-6); // gap eine Ordnung größer als Precision
-                            cs = cg.CreateCompoundShape(true, onPlane, mode);
+                            cs = cg.CreateCompoundShape(true, onPlane, mode, false);
                         }
 #endif
                     }

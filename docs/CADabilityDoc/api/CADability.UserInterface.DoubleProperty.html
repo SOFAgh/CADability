@@ -222,7 +222,7 @@
       <a class="xref" href="CADability.UserInterface.PropertyEntryImpl.html#CADability_UserInterface_PropertyEntryImpl_LabelText">PropertyEntryImpl.LabelText</a>
     </div>
     <div>
-      <a class="xref" href="CADability.UserInterface.PropertyEntryImpl.html#CADability_UserInterface_PropertyEntryImpl_ToolTip">PropertyEntryImpl.ToolTip</a>
+      <a class="xref" href="CADability.UserInterface.PropertyEntryImpl.html#CADability_UserInterface_PropertyEntryImpl_ResourceId">PropertyEntryImpl.ResourceId</a>
     </div>
     <div>
       <a class="xref" href="CADability.UserInterface.PropertyEntryImpl.html#CADability_UserInterface_PropertyEntryImpl_Parent">PropertyEntryImpl.Parent</a>
@@ -370,7 +370,8 @@
   <h6><strong>Assembly</strong>: CADability.dll</h6>
   <h5 id="CADability_UserInterface_DoubleProperty_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public class DoubleProperty : EditableProperty&lt;double&gt;, IPropertyEntry, IShowProperty, IConstructProperty, IJsonSerialize, ISerializable</code></pre>
+    <pre><code class="lang-csharp hljs">[Serializable]
+public class DoubleProperty : EditableProperty&lt;double&gt;, IPropertyEntry, IShowProperty, IConstructProperty, IJsonSerialize, ISerializable</code></pre>
   </div>
   <h3 id="constructors">Constructors
   </h3>
@@ -379,7 +380,7 @@
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty__ctor.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.%23ctor%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L267">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L272">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty__ctor_" data-uid="CADability.UserInterface.DoubleProperty.#ctor*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty__ctor" data-uid="CADability.UserInterface.DoubleProperty.#ctor">DoubleProperty()</h4>
@@ -395,7 +396,7 @@
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty__ctor_CADability_IFrame_System_String_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.%23ctor(CADability.IFrame%2CSystem.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L73">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L78">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty__ctor_" data-uid="CADability.UserInterface.DoubleProperty.#ctor*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty__ctor_CADability_IFrame_System_String_" data-uid="CADability.UserInterface.DoubleProperty.#ctor(CADability.IFrame,System.String)">DoubleProperty(IFrame, String)</h4>
@@ -432,7 +433,7 @@
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty__ctor_CADability_UserInterface_EditableProperty_System_Double__GetValueDelegate_CADability_UserInterface_EditableProperty_System_Double__SetValueDelegate_CADability_IFrame_System_String_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.%23ctor(CADability.UserInterface.EditableProperty%7BSystem.Double%7D.GetValueDelegate%2CCADability.UserInterface.EditableProperty%7BSystem.Double%7D.SetValueDelegate%2CCADability.IFrame%2CSystem.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L78">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L83">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty__ctor_" data-uid="CADability.UserInterface.DoubleProperty.#ctor*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty__ctor_CADability_UserInterface_EditableProperty_System_Double__GetValueDelegate_CADability_UserInterface_EditableProperty_System_Double__SetValueDelegate_CADability_IFrame_System_String_" data-uid="CADability.UserInterface.DoubleProperty.#ctor(CADability.UserInterface.EditableProperty{System.Double}.GetValueDelegate,CADability.UserInterface.EditableProperty{System.Double}.SetValueDelegate,CADability.IFrame,System.String)">DoubleProperty(EditableProperty&lt;Double&gt;.GetValueDelegate, EditableProperty&lt;Double&gt;.SetValueDelegate, IFrame, String)</h4>
@@ -479,7 +480,7 @@
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty__ctor_System_Object_System_String_System_String_CADability_IFrame_System_Boolean_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.%23ctor(System.Object%2CSystem.String%2CSystem.String%2CCADability.IFrame%2CSystem.Boolean)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L83">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L88">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty__ctor_" data-uid="CADability.UserInterface.DoubleProperty.#ctor*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty__ctor_System_Object_System_String_System_String_CADability_IFrame_System_Boolean_" data-uid="CADability.UserInterface.DoubleProperty.#ctor(System.Object,System.String,System.String,CADability.IFrame,System.Boolean)">DoubleProperty(Object, String, String, IFrame, Boolean)</h4>
@@ -531,7 +532,7 @@
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty__ctor_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.%23ctor(System.Runtime.Serialization.SerializationInfo%2CSystem.Runtime.Serialization.StreamingContext)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L286">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L291">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty__ctor_" data-uid="CADability.UserInterface.DoubleProperty.#ctor*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty__ctor_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_" data-uid="CADability.UserInterface.DoubleProperty.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">DoubleProperty(SerializationInfo, StreamingContext)</h4>
@@ -568,7 +569,7 @@
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty__ctor_System_String_CADability_IFrame_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.%23ctor(System.String%2CCADability.IFrame)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L183">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L188">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty__ctor_" data-uid="CADability.UserInterface.DoubleProperty.#ctor*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty__ctor_System_String_CADability_IFrame_" data-uid="CADability.UserInterface.DoubleProperty.#ctor(System.String,CADability.IFrame)">DoubleProperty(String, IFrame)</h4>
@@ -606,7 +607,7 @@ public DoubleProperty(string resourceId, IFrame frame)</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty__ctor_System_String_System_String_System_Double_CADability_IFrame_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.%23ctor(System.String%2CSystem.String%2CSystem.Double%2CCADability.IFrame)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L89">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L94">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty__ctor_" data-uid="CADability.UserInterface.DoubleProperty.#ctor*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty__ctor_System_String_System_String_System_Double_CADability_IFrame_" data-uid="CADability.UserInterface.DoubleProperty.#ctor(System.String,System.String,System.Double,CADability.IFrame)">DoubleProperty(String, String, Double, IFrame)</h4>
@@ -655,7 +656,7 @@ public DoubleProperty(string resourceId, IFrame frame)</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_DecimalDigits.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.DecimalDigits%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L130">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L135">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_DecimalDigits_" data-uid="CADability.UserInterface.DoubleProperty.DecimalDigits*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_DecimalDigits" data-uid="CADability.UserInterface.DoubleProperty.DecimalDigits">DecimalDigits</h4>
@@ -685,7 +686,7 @@ public DoubleProperty(string resourceId, IFrame frame)</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_DoubleValue.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.DoubleValue%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L187">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L192">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_DoubleValue_" data-uid="CADability.UserInterface.DoubleProperty.DoubleValue*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_DoubleValue" data-uid="CADability.UserInterface.DoubleProperty.DoubleValue">DoubleValue</h4>
@@ -718,7 +719,7 @@ public double DoubleValue { get; set; }</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_CheckMouseButton_System_Boolean_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.CheckMouseButton(System.Boolean)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L257">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L262">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_CheckMouseButton_" data-uid="CADability.UserInterface.DoubleProperty.CheckMouseButton*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_CheckMouseButton_System_Boolean_" data-uid="CADability.UserInterface.DoubleProperty.CheckMouseButton(System.Boolean)">CheckMouseButton(Boolean)</h4>
@@ -751,7 +752,7 @@ public void CheckMouseButton(bool Check)</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_DoubleChanged.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.DoubleChanged%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L125">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L130">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_DoubleChanged_" data-uid="CADability.UserInterface.DoubleProperty.DoubleChanged*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_DoubleChanged" data-uid="CADability.UserInterface.DoubleProperty.DoubleChanged">DoubleChanged()</h4>
@@ -766,7 +767,7 @@ public void CheckMouseButton(bool Check)</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_GetDouble.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.GetDouble%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L121">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L126">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_GetDouble_" data-uid="CADability.UserInterface.DoubleProperty.GetDouble*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_GetDouble" data-uid="CADability.UserInterface.DoubleProperty.GetDouble">GetDouble()</h4>
@@ -793,10 +794,47 @@ public void CheckMouseButton(bool Check)</code></pre>
   </table>
   <span class="small pull-right mobile-hide">
     <span class="divider">|</span>
+    <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.GetObjectData(System.Runtime.Serialization.SerializationInfo%2CSystem.Runtime.Serialization.StreamingContext)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
+  </span>
+  <span class="small pull-right mobile-hide">
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L309">View Source</a>
+  </span>
+  <a id="CADability_UserInterface_DoubleProperty_GetObjectData_" data-uid="CADability.UserInterface.DoubleProperty.GetObjectData*"></a>
+  <h4 id="CADability_UserInterface_DoubleProperty_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_" data-uid="CADability.UserInterface.DoubleProperty.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">GetObjectData(SerializationInfo, StreamingContext)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual void GetObjectData(SerializationInfo info, StreamingContext context)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Runtime.Serialization.SerializationInfo</span></td>
+        <td><span class="parametername">info</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Runtime.Serialization.StreamingContext</span></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="small pull-right mobile-hide">
+    <span class="divider">|</span>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_SetDouble_System_Double_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.SetDouble(System.Double)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L117">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L122">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_SetDouble_" data-uid="CADability.UserInterface.DoubleProperty.SetDouble*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_SetDouble_System_Double_" data-uid="CADability.UserInterface.DoubleProperty.SetDouble(System.Double)">SetDouble(Double)</h4>
@@ -828,7 +866,7 @@ public void CheckMouseButton(bool Check)</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_TextToValue_System_String_System_Double__.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.TextToValue(System.String%2CSystem.Double%40)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L132">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L137">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_TextToValue_" data-uid="CADability.UserInterface.DoubleProperty.TextToValue*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_TextToValue_System_String_System_Double__" data-uid="CADability.UserInterface.DoubleProperty.TextToValue(System.String,System.Double@)">TextToValue(String, out Double)</h4>
@@ -882,7 +920,7 @@ public void CheckMouseButton(bool Check)</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_ValueToText_System_Double_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.ValueToText(System.Double)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L172">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L177">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_ValueToText_" data-uid="CADability.UserInterface.DoubleProperty.ValueToText*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_ValueToText_System_Double_" data-uid="CADability.UserInterface.DoubleProperty.ValueToText(System.Double)">ValueToText(Double)</h4>
@@ -933,7 +971,7 @@ public void CheckMouseButton(bool Check)</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_GetDoubleEvent.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.GetDoubleEvent%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L212">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L217">View Source</a>
   </span>
   <h4 id="CADability_UserInterface_DoubleProperty_GetDoubleEvent" data-uid="CADability.UserInterface.DoubleProperty.GetDoubleEvent">GetDoubleEvent</h4>
   <div class="markdown level1 summary"></div>
@@ -963,7 +1001,7 @@ public event DoubleProperty.GetDoubleDelegate GetDoubleEvent</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_LabelChangedEvent.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.LabelChangedEvent%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L261">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L266">View Source</a>
   </span>
   <h4 id="CADability_UserInterface_DoubleProperty_LabelChangedEvent" data-uid="CADability.UserInterface.DoubleProperty.LabelChangedEvent">LabelChangedEvent</h4>
   <div class="markdown level1 summary"></div>
@@ -993,7 +1031,7 @@ public event DoubleProperty.LabelChangedDelegate LabelChangedEvent</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_LockedChangedEvent.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.LockedChangedEvent%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L242">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L247">View Source</a>
   </span>
   <h4 id="CADability_UserInterface_DoubleProperty_LockedChangedEvent" data-uid="CADability.UserInterface.DoubleProperty.LockedChangedEvent">LockedChangedEvent</h4>
   <div class="markdown level1 summary"></div>
@@ -1023,7 +1061,7 @@ public event EditableProperty&lt;double&gt;.LockedChangedDelegate LockedChangedE
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_ModifyWithMouseEvent.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.ModifyWithMouseEvent%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L227">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L232">View Source</a>
   </span>
   <h4 id="CADability_UserInterface_DoubleProperty_ModifyWithMouseEvent" data-uid="CADability.UserInterface.DoubleProperty.ModifyWithMouseEvent">ModifyWithMouseEvent</h4>
   <div class="markdown level1 summary"></div>
@@ -1053,7 +1091,7 @@ public event ModifyWithMouseDelegate ModifyWithMouseEvent</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_SetDoubleEvent.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.SetDoubleEvent%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L200">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L205">View Source</a>
   </span>
   <h4 id="CADability_UserInterface_DoubleProperty_SetDoubleEvent" data-uid="CADability.UserInterface.DoubleProperty.SetDoubleEvent">SetDoubleEvent</h4>
   <div class="markdown level1 summary"></div>
@@ -1085,7 +1123,7 @@ public event DoubleProperty.SetDoubleDelegate SetDoubleEvent</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_CADability_IJsonSerialize_GetObjectData_CADability_IJsonWriteData_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.CADability%23IJsonSerialize%23GetObjectData(CADability.IJsonWriteData)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L272">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L277">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_CADability_IJsonSerialize_GetObjectData_" data-uid="CADability.UserInterface.DoubleProperty.CADability#IJsonSerialize#GetObjectData*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_CADability_IJsonSerialize_GetObjectData_CADability_IJsonWriteData_" data-uid="CADability.UserInterface.DoubleProperty.CADability#IJsonSerialize#GetObjectData(CADability.IJsonWriteData)">IJsonSerialize.GetObjectData(IJsonWriteData)</h4>
@@ -1117,7 +1155,7 @@ public event DoubleProperty.SetDoubleDelegate SetDoubleEvent</code></pre>
     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_CADability_IJsonSerialize_SetObjectData_CADability_IJsonReadData_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.CADability%23IJsonSerialize%23SetObjectData(CADability.IJsonReadData)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
   </span>
   <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L278">View Source</a>
+    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L283">View Source</a>
   </span>
   <a id="CADability_UserInterface_DoubleProperty_CADability_IJsonSerialize_SetObjectData_" data-uid="CADability.UserInterface.DoubleProperty.CADability#IJsonSerialize#SetObjectData*"></a>
   <h4 id="CADability_UserInterface_DoubleProperty_CADability_IJsonSerialize_SetObjectData_CADability_IJsonReadData_" data-uid="CADability.UserInterface.DoubleProperty.CADability#IJsonSerialize#SetObjectData(CADability.IJsonReadData)">IJsonSerialize.SetObjectData(IJsonReadData)</h4>
@@ -1140,43 +1178,6 @@ public event DoubleProperty.SetDoubleDelegate SetDoubleEvent</code></pre>
       <tr>
         <td><a class="xref" href="CADability.IJsonReadData.html">IJsonReadData</a></td>
         <td><span class="parametername">data</span></td>
-        <td></td>
-      </tr>
-    </tbody>
-  </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty_System_Runtime_Serialization_ISerializable_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty.System%23Runtime%23Serialization%23ISerializable%23GetObjectData(System.Runtime.Serialization.SerializationInfo%2CSystem.Runtime.Serialization.StreamingContext)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L304">View Source</a>
-  </span>
-  <a id="CADability_UserInterface_DoubleProperty_System_Runtime_Serialization_ISerializable_GetObjectData_" data-uid="CADability.UserInterface.DoubleProperty.System#Runtime#Serialization#ISerializable#GetObjectData*"></a>
-  <h4 id="CADability_UserInterface_DoubleProperty_System_Runtime_Serialization_ISerializable_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_" data-uid="CADability.UserInterface.DoubleProperty.System#Runtime#Serialization#ISerializable#GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">ISerializable.GetObjectData(SerializationInfo, StreamingContext)</h4>
-  <div class="markdown level1 summary"></div>
-  <div class="markdown level1 conceptual"></div>
-  <h5 class="decalaration">Declaration</h5>
-  <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)</code></pre>
-  </div>
-  <h5 class="parameters">Parameters</h5>
-  <table class="table table-bordered table-striped table-condensed">
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Name</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><span class="xref">System.Runtime.Serialization.SerializationInfo</span></td>
-        <td><span class="parametername">info</span></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td><span class="xref">System.Runtime.Serialization.StreamingContext</span></td>
-        <td><span class="parametername">context</span></td>
         <td></td>
       </tr>
     </tbody>
@@ -1208,7 +1209,7 @@ public event DoubleProperty.SetDoubleDelegate SetDoubleEvent</code></pre>
                     <a href="https://github.com/SOFAgh/CADability/new/master/apiSpec/new?filename=CADability_UserInterface_DoubleProperty.md&amp;value=---%0Auid%3A%20CADability.UserInterface.DoubleProperty%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
                   </li>
                   <li>
-                    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L68" class="contribution-link">View Source</a>
+                    <a href="https://github.com/SOFAgh/CADability/blob/master/CADability/DoubleProperty.cs/#L72" class="contribution-link">View Source</a>
                   </li>
                 </ul>
               </div>

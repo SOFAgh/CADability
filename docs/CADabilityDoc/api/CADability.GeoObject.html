@@ -93,6 +93,11 @@ A collection of several <a class="xref" href="CADability.GeoObject.IGeoObject.ht
       <section><p>A conical surface which implements <a class="xref" href="CADability.GeoObject.ISurface.html">ISurface</a>. The surface represents a circular or elliptical
 cone. The u parameter always describes a circle or ellipse, the v parameter a Line.</p>
 </section>
+      <h4><a class="xref" href="CADability.GeoObject.ConicalSurfaceNP.html">ConicalSurfaceNP</a></h4>
+      <section><p>Conical surface with a uv system (parametric space) which is not periodic and has no pole. The uv system correspond to a plane through the apex perpendicular to the axis
+which contains the projected cone to this plane. Disadvantage is numeric precision when the opening angle is very small. A solution would be an offset and a factor
+which only projects the &quot;used area&quot; of this cone to a standard ring</p>
+</section>
       <h4><a class="xref" href="CADability.GeoObject.CurveException.html">CurveException</a></h4>
       <section><p>Exception thrown by object implementing <a class="xref" href="CADability.GeoObject.ICurve.html">ICurve</a>.</p>
 </section>
@@ -103,6 +108,16 @@ of two or more ICurve objects.</p>
       <h4><a class="xref" href="CADability.GeoObject.CylindricalSurface.html">CylindricalSurface</a></h4>
       <section><p>A cylindrical surface which implements <a class="xref" href="CADability.GeoObject.ISurface.html">ISurface</a>. The surface represents a circular or elliptical
 cylinder. The u parameter always describes a circle or ellipse, the v parameter a Line.</p>
+</section>
+      <h4><a class="xref" href="CADability.GeoObject.CylindricalSurfaceNP.html">CylindricalSurfaceNP</a></h4>
+      <section><p>A cylindrical surface, defined by a point (location), and axis (zAxis). The axis (zAxis) and the two vectors xAxis and yAxis build an orthogonal coordinate system.
+xAxis and yAxis have the same length, which define the radius of the cylinder. The length of the zAxis is the domain of the cylindrical surface. points outside this
+domain are defined, but not used. The 2d u/v system is defined by the plane through &quot;location&quot; which is spanned by xAxis and yAxis. For each point on the surface, there
+is a point in this plane, which is found by intersecting the line from (location-zAxis) to the surface point with the u/v plane. Thus all points of the domain on the surface
+are within an annulus with the cylinder radius and a hole of half the cylinder radius. The u/v system is not periodic and has no poles (except of the 2d origin,
+which is at the infinite end of the axis). When the orthogonal system of xAxis, yAxis and zAxis is right handed, the normal vectors point to the outside, otherwise
+they point to the inside. Circles, ellipses and lines in 3d correspond to circles, ellipses and lines in 2d. 3d ellipses with their center at (location-zAxis)
+degenerate to lines in 2d.</p>
 </section>
       <h4><a class="xref" href="CADability.GeoObject.Dimension.html">Dimension</a></h4>
       <section><p>The dimension object represents a dimensioning in a model and is a <a href="a2f7e3d8-5886-48a6-b0a2-a896dcce8c4a.htm">GeoObject</a>.
@@ -129,7 +144,8 @@ If a face is contained in a <a class="xref" href="CADability.Model.html">Model</
 (which maybe a part of a <a class="xref" href="CADability.GeoObject.Solid.html">Solid</a>) it shares some or all of its edges with other faces.</p>
 </section>
       <h4><a class="xref" href="CADability.GeoObject.GeneralCurve.html">GeneralCurve</a></h4>
-      <section></section>
+      <section><p>A base implementation of ICurve</p>
+</section>
       <h4><a class="xref" href="CADability.GeoObject.GeneralCurveException.html">GeneralCurveException</a></h4>
       <section></section>
       <h4><a class="xref" href="CADability.GeoObject.GeoObjectChange.html">GeoObjectChange</a></h4>
@@ -202,6 +218,10 @@ not an infinite line.</p>
 </section>
       <h4><a class="xref" href="CADability.GeoObject.NonPeriodicCylindricalSurface.html">NonPeriodicCylindricalSurface</a></h4>
       <section></section>
+      <h4><a class="xref" href="CADability.GeoObject.NonPeriodicSurface.html">NonPeriodicSurface</a></h4>
+      <section><p>Non-periodic surface made from an underlying periodic surface. The underlying periodic surface must be periodic in u or in v and may have a pole
+at the minimum or maximum of the non periodic parameter. The underlying periodic surface may also be non periodic but have one singularity, which will be removed.</p>
+</section>
       <h4><a class="xref" href="CADability.GeoObject.NurbsSurface.html">NurbsSurface</a></h4>
       <section><p>A NURBS surface implementing <a class="xref" href="CADability.GeoObject.ISurface.html">ISurface</a>.</p>
 </section>
@@ -222,7 +242,7 @@ bits and the location in space.</p>
 </section>
       <h4><a class="xref" href="CADability.GeoObject.PlaneSurface.html">PlaneSurface</a></h4>
       <section><p>A planar infinite surface. Implements ISurface.
-The plane is defined by two vectors which are not necessary perpendicular or normed.</p>
+The plane is defined by two vectors which are not necessary perpendicular or normalized.</p>
 </section>
       <h4><a class="xref" href="CADability.GeoObject.Point.html">Point</a></h4>
       <section><p>Implements a point as a <a class="xref" href="CADability.GeoObject.IGeoObject.html">IGeoObject</a>.</p>
@@ -250,10 +270,17 @@ to the mouse point.</p>
       <section><p>A Solid is a <a class="xref" href="CADability.GeoObject.IGeoObject.html">IGeoObject</a> implementation that represents a solid body.
 Its main data is a collection of oriented faces. The normal vector on any point of the face
 points to the outside of the body. Solids have one set of faces that represent the outer hull
-and any number of cavyties that reside totally inside the outer hull. All cavyties are disjoint.</p>
+and any number of cavities that reside totally inside the outer hull. All cavyties are disjoint.</p>
 </section>
       <h4><a class="xref" href="CADability.GeoObject.SphericalSurface.html">SphericalSurface</a></h4>
       <section></section>
+      <h4><a class="xref" href="CADability.GeoObject.SphericalSurfaceNP.html">SphericalSurfaceNP</a></h4>
+      <section><p>A spherical surface with a non periodic u/v system. It also has no poles. It cannot represent a whole sphere, there must be some part
+which is outside the usable area. The center, xAxis, yAxis and zAxis define a coordinate system. The plane defined by (center, xAxis and yAxis)
+is the equator plane of the sphere, (center+zAxis) is the north pole. (center-zAxis9 is the south pole, which may not be part of the used area.
+The u/v system is the u/v system of the equator area. The point of the sphere for a provided u/v point is the projection of this point from the south pole
+to the surface. All circular arcs on the sphere (e.g. planar intersections) are elliptical arcs in the u/v system (or lines, when they pass the north pole)</p>
+</section>
       <h4><a class="xref" href="CADability.GeoObject.SurfaceHelper.html">SurfaceHelper</a></h4>
       <section></section>
       <h4><a class="xref" href="CADability.GeoObject.SurfaceOfLinearExtrusion.html">SurfaceOfLinearExtrusion</a></h4>
@@ -331,6 +358,11 @@ defines the direction of the x-axis at some point</p>
 </section>
       <h4><a class="xref" href="CADability.GeoObject.IQuadTreeInsertableZ.html">IQuadTreeInsertableZ</a></h4>
       <section></section>
+      <h4><a class="xref" href="CADability.GeoObject.IRestrictedDomain.html">IRestrictedDomain</a></h4>
+      <section><p>Interface for surfaces with non rectangular definition space. Normally surfaces are either defined for all 2d values (infinite)
+or they are restricted to a rectangular domain (e.g. <a class="xref" href="CADability.GeoObject.NurbsSurface.html">NurbsSurface</a>). The <a class="xref" href="CADability.GeoObject.NonPeriodicSurface.html">NonPeriodicSurface</a> is only defined on a
+circular area or on a ring. Maybe other surfaces with irregular domains will follow.</p>
+</section>
       <h4><a class="xref" href="CADability.GeoObject.ISurface.html">ISurface</a></h4>
       <section><p>The ISurface interface must be implemented by all 3-dimensional unbound surfaces that are used by the
 <a class="xref" href="CADability.GeoObject.Face.html">Face</a> object. The surface has a well defined 2-dimensional coordinate system, usually referred to

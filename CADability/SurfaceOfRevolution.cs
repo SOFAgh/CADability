@@ -12,7 +12,7 @@ namespace CADability.GeoObject
         public SurfaceOfRevolutionException(string msg) : base(msg) { }
     }
     [Serializable()]
-    public class SurfaceOfRevolution : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IExportStep, IJsonSerialize
+    public class SurfaceOfRevolution : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IExportStep, IJsonSerialize, IJsonSerializeDone
     {
         // the following properties should be removed:
         private double curveStartParameter, curveEndParameter;
@@ -22,7 +22,7 @@ namespace CADability.GeoObject
         private ICurve2D basisCurve2D; // die Basiskurve im 2D
 
         // in the new implementation we only need these 3 properties. The parameter on the curve is in the natural parameter system
-        private ICurve curveToRotate; // no need to be in a plane with the axis
+        private ICurve curveToRotate; // not necessary in a plane with the axis, but often is
         private GeoPoint axisLocation;
         private GeoVector axisDirection;
 
@@ -43,82 +43,12 @@ namespace CADability.GeoObject
             axisLocation = toSurface * GeoPoint.Origin;
             axisDirection = toSurface * GeoVector.YAxis;
         }
-        public SurfaceOfRevolution(ICurve basisCurve, GeoPoint axisLocation, GeoVector axisDirection, double curveStartParameter, double curveEndParameter, GeoPoint? axisRefPoint = null) : base()
+        public SurfaceOfRevolution(ICurve basisCurve, GeoPoint axisLocation, GeoVector axisDirection) : base()
         {
             this.axisLocation = axisLocation;
             this.axisDirection = axisDirection;
             curveToRotate = basisCurve;
-            return;
-            // old code of the old implementation
-            this.curveEndParameter = curveEndParameter;
-            this.curveStartParameter = curveStartParameter;
-            // curveStartParameter und curveEndParameter haben folgenden Sinn: 
-            // der Aufrufer werwartet ein bestimmtes u/v System. 
-            // in u ist es die Kreisbewegung, in v ist es die Kurve (andersrum als bei SurfaceOfLinearExtrusion)
-            // curveStartParameter und curveEndParameter definieren die Lage von v, die Lage von u ist durch die Ebene
-            // bestimmt
-            // finden der Hauptebene, in der alles stattfindet. Die ist gegeben durch die Achse und die Kurve
-            Plane pln;
-            if (axisRefPoint.HasValue)
-            {
-                GeoPoint cnt = Geometry.DropPL(axisRefPoint.Value, axisLocation, axisDirection);
-                pln = new Plane(axisLocation, axisRefPoint.Value - cnt, axisDirection);
-            }
-            else
-            {
-                double ds = Geometry.DistPL(basisCurve.StartPoint, axisLocation, axisDirection);
-                double de = Geometry.DistPL(basisCurve.EndPoint, axisLocation, axisDirection);
-                if (ds > de && ds > Precision.eps)
-                {
-                    GeoPoint cnt = Geometry.DropPL(basisCurve.StartPoint, axisLocation, axisDirection);
-                    pln = new Plane(axisLocation, basisCurve.StartPoint - cnt, axisDirection);
-                }
-                else if (de >= ds && de > Precision.eps)
-                {
-                    GeoPoint cnt = Geometry.DropPL(basisCurve.EndPoint, axisLocation, axisDirection);
-                    pln = new Plane(axisLocation, basisCurve.EndPoint - cnt, axisDirection);
-                }
-                else if (basisCurve.GetPlanarState() == PlanarState.Planar)
-                {
-                    Plane ppln = basisCurve.GetPlane();
-                    GeoVector dirx = ppln.Normal ^ axisDirection; // richtig rum?
-                    pln = new Plane(axisLocation, dirx, axisDirection);
-                }
-                else if (basisCurve.GetPlanarState() == PlanarState.UnderDetermined)
-                {
-                    pln = new Plane(axisLocation, basisCurve.StartDirection, axisDirection);
-                }
-                else
-                {   // es könnte sein, dass die ganze Fläche singulär ist
-                    // dann kann man nichts machen, sollte aber nicht vorkommen
-                    throw new SurfaceOfRevolutionException("Surface is invalid");
-                }
-            }
-            // pln hat jetzt den Ursprung bei axisLocation, die y-Achse ist axisDirection und die x-Achse durch die
-            // Kurve gegeben
-            // die Orientierung scheint mir noch fraglich, wierum wird gedreht, wierum läuft u
-            basisCurve2D = basisCurve.GetProjectedCurve(pln);
-            // ACHTUNG "Parameterproblem": durch die Projektion der Kurve verschiebt sich bei Kreisen der Parameterraum
-            // da 2D Kreise bzw. Bögen keine Achse haben und sich immer auf die X-Achse beziehen
-            if (basisCurve2D is Arc2D)
-            {
-                curveParameterOffset = (basisCurve2D as Arc2D).StartParameter - this.curveStartParameter;
-            }
-            else if (basisCurve2D is BSpline2D)
-            {   // beim BSpline fängt der Parameter im 3D bei knots[0] an, welches gleich this.curveStartParameter ist
-                // curveParameterOffset = this.curveStartParameter;
-                // wenn man einen geschlossenen Spline um eine Achse rotieren lässt
-                // dann entsteht mit obiger Zeile ein Problem, mit dieser jedoch nicht:
-                curveParameterOffset = (basisCurve2D as BSpline2D).Knots[0];
-            }
-            else
-            {
-                curveParameterOffset = 0.0;
-            }
-            toSurface = ModOp.Fit(new GeoPoint[] { GeoPoint.Origin, GeoPoint.Origin + GeoVector.XAxis, GeoPoint.Origin + GeoVector.YAxis },
-                                  new GeoPoint[] { axisLocation, axisLocation + pln.DirectionX, axisLocation + pln.DirectionY }, false);
-            fromSurface = toSurface.GetInverse();
-
+            usedArea = BoundingRect.EmptyBoundingRect;
         }
         /// <summary>
         /// Returns the location of the axis of revolution
@@ -250,7 +180,36 @@ namespace CADability.GeoObject
         {
             if (curveToRotate != null)
             {
-                return base.PositionOf(p);
+                if (curveToRotate.GetPlanarState() == PlanarState.Planar)
+                {
+                    Plane cpln = curveToRotate.GetPlane();
+                    if (Math.Abs(cpln.Distance(axisLocation)) < Precision.eps && Precision.IsPerpendicular(cpln.Normal, axisDirection, false))
+                    {
+                        // GeoPoint2D dbg = base.PositionOf(p);
+                        // this is very often the case: the curve is in a plane which also contains the rotation axis
+                        GeoPoint onAxis = Geometry.DropPL(p, axisLocation, axisDirection);
+                        Plane perp = new Plane(p, axisDirection); // a plane perpendicular to the axis
+                        double[] ip = curveToRotate.GetPlaneIntersection(perp); // there should be exactly one intersection point
+                        if (ip.Length == 1)
+                        {
+                            GeoPoint cnt = perp.Intersect(axisLocation, axisDirection);
+                            GeoPoint op = curveToRotate.PointAt(ip[0]);
+                            SweepAngle sa1 = new SweepAngle(op - cnt, p - cnt);
+                            return new GeoPoint2D(sa1.Radian, ip[0]);
+                        }
+                    }
+                }
+                Plane pln = new Plane(p, axisDirection);
+                double[] ipar = curveToRotate.GetPlaneIntersection(pln);
+                if (ipar.Length == 1)
+                {
+                    GeoPoint onAxis = Geometry.DropPL(p, axisLocation, axisDirection);
+                    SweepAngle sa = new SweepAngle(p - onAxis, curveToRotate.PointAt(ipar[0]) - onAxis);
+                    ModOp rotate = ModOp.Rotate(axisLocation, axisDirection, sa);
+                    double y = curveToRotate.PositionToParameter(curveToRotate.PositionOf(rotate * p));
+                    return new GeoPoint2D(-sa, y);
+                }
+                return base.PositionOf(p); // we could do better here!
             }
             GeoPoint unit = fromSurface * p;
             double u = Math.Atan2(-unit.z, unit.x);
@@ -314,6 +273,49 @@ namespace CADability.GeoObject
                 return toSurface * rot * dir;
             }
         }
+        public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
+        {
+            // with simple maxima:
+            // loc: [sqrt(cx(v)^2+cy(v)^2)*cos(u),sqrt(cx(v)^2+cy(v)^2)*sin(u),cz(v)]
+            // du: [-sin(u) * sqrt(cy(v) ^ 2 + cx(v) ^ 2), cos(u) * sqrt(cy(v) ^ 2 + cx(v) ^ 2), 0]
+            // dv: [(cos(u)*(2*cy(v)*('diff(cy(v),v,1))+2*cx(v)*('diff(cx(v),v,1))))/(2*sqrt(cy(v)^2+cx(v)^2)),(sin(u)*(2*cy(v)*('diff(cy(v),v,1))+2*cx(v)*('diff(cx(v),v,1))))/(2*sqrt(cy(v)^2+cx(v)^2)),'diff(cz(v),v,1)]
+            // duu:[-cos(u)*sqrt(cy(v)^2+cx(v)^2),-sin(u)*sqrt(cy(v)^2+cx(v)^2),0]
+            // dvv: [(cos(u)*(2*cy(v)*('diff(cy(v),v,2))+2*('diff(cy(v),v,1))^2+2*cx(v)*('diff(cx(v),v,2))+2*('diff(cx(v),v,1))^2))/(2*sqrt(cy(v)^2+cx(v)^2))-(cos(u)*(2*cy(v)*('diff(cy(v),v,1))+2*cx(v)*('diff(cx(v),v,1)))^2)/(4*(cy(v)^2+cx(v)^2)^(3/2)),(sin(u)*(2*cy(v)*('diff(cy(v),v,2))+2*('diff(cy(v),v,1))^2+2*cx(v)*('diff(cx(v),v,2))+2*('diff(cx(v),v,1))^2))/(2*sqrt(cy(v)^2+cx(v)^2))-(sin(u)*(2*cy(v)*('diff(cy(v),v,1))+2*cx(v)*('diff(cx(v),v,1)))^2)/(4*(cy(v)^2+cx(v)^2)^(3/2)),'diff(cz(v),v,2)]
+            // duv: [-(sin(u)*(2*cy(v)*('diff(cy(v),v,1))+2*cx(v)*('diff(cx(v),v,1))))/(2*sqrt(cy(v)^2+cx(v)^2)),(cos(u)*(2*cy(v)*('diff(cy(v),v,1))+2*cx(v)*('diff(cx(v),v,1))))/(2*sqrt(cy(v)^2+cx(v)^2)),0]
+            // transform into a system, where the z-axis is the rotation axis, then calculate the derivations, then transform back
+            // loc: [d*Math.Cos(u),d*Math.Sin(u),c0.z]
+            // du: [-Math.Sin(u) * d, Math.Cos(u) * d, 0]
+            // dv: [(Math.Cos(u)*(2*c0.y*c1.y)+2*c0.x*c1.x)))/(2*d),(Math.Sin(u)*(2*c0.y*c1.y)+2*c0.x*c1.x)))/(2*d),c1.z)]
+            // duu:[-Math.Cos(u)*d,-Math.Sin(u)*d,0]
+            // dvv: [(Math.Cos(u)*(2*c0.y*(c2.y))+2*c1.y)^2+2*c0.x*(c2.x))+2*c1.x)^2))/(2*d)-(Math.Cos(u)*(2*c0.y*c1.y)+2*c0.x*c1.x))^2)/(4*(c0.y^2+c0.x^2)^(3/2)),(Math.Sin(u)*(2*c0.y*(c2.y))+2*c1.y)^2+2*c0.x*(c2.x))+2*c1.x)^2))/(2*d)-(Math.Sin(u)*(2*c0.y*c1.y)+2*c0.x*c1.x))^2)/(4*(c0.y^2+c0.x^2)^(3/2)),c2.z)]
+            // duv: [-(Math.Sin(u)*(2*c0.y*c1.y)+2*c0.x*c1.x)))/(2*d),(Math.Cos(u)*(2*c0.y*c1.y)+2*c0.x*c1.x)))/(2*d),0]
+            axisDirection.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+            Plane pln = new Plane(axisLocation, axisDirection);
+            ModOp toNormal = ModOp.Transform(pln.CoordSys, new CoordSys(GeoPoint.Origin, GeoVector.XAxis, GeoVector.YAxis));
+            if (curveToRotate.TryPointDeriv2At(uv.y, out GeoPoint c0, out GeoVector c1, out GeoVector c2))
+            {
+                c0 = toNormal * c0;
+                c1 = toNormal * c1;
+                c2 = toNormal * c2;
+                double d = Math.Sqrt(c0.x * c0.x + c0.y * c0.y);
+                location = new GeoPoint(d * Math.Cos(uv.x), d * Math.Sin(uv.x), c0.z);
+                du = new GeoVector(-Math.Sin(uv.x) * d, Math.Cos(uv.x) * d, 0);
+                dv = new GeoVector(Math.Cos(uv.x) * (c0.y * c1.y + c0.x * c1.x) / (d), Math.Sin(uv.x) * (c0.y * c1.y + c0.x * c1.x) / (d), c1.z);
+                duu = new GeoVector(-Math.Cos(uv.x) * d, -Math.Sin(uv.x) * d, 0);
+                dvv = new GeoVector(Math.Cos(uv.x) * (c0.y * c2.y + c1.y * c1.y + c0.x * c2.x + c1.x * c1.x) / d - Math.Cos(uv.x) * sqr(c0.y * c1.y + c0.x * c1.x) / (exp32(c0.y * c0.y + c0.x * c0.x)),
+                                    Math.Sin(uv.x) * (c0.y * c2.y + c1.y * c1.y + c0.x * c2.x + c1.x * c1.x) / d - Math.Sin(uv.x) * sqr(c0.y * c1.y + c0.x * c1.x) / (exp32(c0.y * c0.y + c0.x * c0.x)), c2.z);
+                duv = new GeoVector(-Math.Sin(uv.x) * (c0.y * c1.y + c0.x * c1.x) / (d), Math.Cos(uv.x) * (c0.y * c1.y + c0.x * c1.x) / (d), 0);
+                ModOp fromNormal = toNormal.GetInverse();
+                location = fromNormal * location;
+                du = fromNormal * du;
+                dv = fromNormal * dv;
+                duu = fromNormal * duu;
+                dvv = fromNormal * dvv;
+                duv = fromNormal * duv;
+            }
+            else throw new ApplicationException("Derivation 2 of curve not implemented");
+        }
+
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetNormal (GeoPoint2D)"/>
         /// </summary>
@@ -389,30 +391,43 @@ namespace CADability.GeoObject
                 Line2D l2d = curve2d as Line2D;
                 GeoVector2D dir = l2d.EndPoint - l2d.StartPoint;
                 if (Math.Abs(dir.x) < Precision.eps)
-                {   // die Basiskurve selbst, da nur v läuft
-                    ModOp rot = ModOp.Rotate(1, (SweepAngle)l2d.StartPoint.x);
+                {
                     ICurve res;
                     if (curveToRotate != null)
-                    {   // new implementation
-                        res = curveToRotate;
-                    }
-                    else
-                    {
-                        res = basisCurve2D.MakeGeoObject(Plane.XYPlane) as ICurve;
-                    }
-                    res = res.CloneModified(toSurface * rot);
-                    double pos1 = GetPos(l2d.StartPoint.y);
-                    double pos2 = GetPos(l2d.EndPoint.y);
-                    if (pos2 < pos1)
-                    {   // läuft von "oben nach unten"
-                        res.Reverse();
-                        res.Trim(1.0 - pos1, 1.0 - pos2);
+                    {   // new implementation: part of the rotated curveToRotate
+                        ModOp rot = ModOp.Rotate(axisLocation, axisDirection, (SweepAngle)l2d.StartPoint.x);
+                        res = curveToRotate.CloneModified(rot);
+                        double spos = curveToRotate.ParameterToPosition(l2d.StartPoint.y);
+                        double epos = curveToRotate.ParameterToPosition(l2d.EndPoint.y);
+                        if (spos > epos)
+                        {
+                            res.Trim(epos, spos);
+                            res.Reverse();
+                        }
+                        else
+                        {
+                            res.Trim(spos, epos);
+                        }
                         return res;
                     }
                     else
                     {
-                        res.Trim(pos1, pos2);
-                        return res;
+                        ModOp rot = ModOp.Rotate(1, (SweepAngle)l2d.StartPoint.x);
+                        res = (basisCurve2D.MakeGeoObject(Plane.XYPlane) as ICurve).CloneModified(toSurface);
+                        res = res.CloneModified(rot);
+                        double pos1 = GetPos(l2d.StartPoint.y);
+                        double pos2 = GetPos(l2d.EndPoint.y);
+                        if (pos2 < pos1)
+                        {   // läuft von "oben nach unten"
+                            res.Reverse();
+                            res.Trim(1.0 - pos1, 1.0 - pos2);
+                            return res;
+                        }
+                        else
+                        {
+                            res.Trim(pos1, pos2);
+                            return res;
+                        }
                     }
                 }
                 else if (Math.Abs(dir.y) < Precision.eps)
@@ -560,7 +575,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface Clone()
         {
-            if (curveToRotate != null) return new SurfaceOfRevolution(curveToRotate, Location, Axis, curveStartParameter, curveEndParameter);
+            if (curveToRotate != null) return new SurfaceOfRevolution(curveToRotate, Location, Axis);
             return new SurfaceOfRevolution(basisCurve2D.Clone(), toSurface, curveStartParameter, curveEndParameter, curveParameterOffset);
         }
         /// <summary>
@@ -573,15 +588,19 @@ namespace CADability.GeoObject
             if (curveToRotate != null)
             {
                 curveToRotate = curveToRotate.CloneModified(m);
-                GeoPoint axisLocation = Location;
-                Plane pln = new Plane(axisLocation, Axis);
+                axisLocation = m * axisLocation;
+                axisDirection = m * axisDirection;
+                Plane pln = new Plane(axisLocation, axisDirection);
                 toSurface = ModOp.Fit(new GeoPoint[] { GeoPoint.Origin, GeoPoint.Origin + GeoVector.XAxis, GeoPoint.Origin + GeoVector.YAxis },
                                       new GeoPoint[] { axisLocation, axisLocation + pln.DirectionX, axisLocation + pln.DirectionY }, false);
                 fromSurface = toSurface.GetInverse();
 
             }
-            toSurface = m * toSurface; // this is still the Axis definition, remove it with new implementation
-            fromSurface = toSurface.GetInverse();
+            else
+            {
+                toSurface = m * toSurface; // this is still the Axis definition, remove it with new implementation
+                fromSurface = toSurface.GetInverse();
+            }
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetModified (ModOp)"/>
@@ -625,7 +644,7 @@ namespace CADability.GeoObject
         {
             get
             {
-                if (curveToRotate != null) return curveToRotate.IsClosed && Math.Abs(curveEndParameter - curveStartParameter) > 1 - 1e-6;
+                if (curveToRotate != null) return curveToRotate.IsClosed;
                 return basisCurve2D.IsClosed && Math.Abs(curveEndParameter - curveStartParameter) > 1 - 1e-6;
             }
         }
@@ -704,20 +723,26 @@ namespace CADability.GeoObject
             public HyperbolaHelp(GeoPoint sp, GeoVector dir, double ymin, double ymax)
             {   // sp & dir must be in the unit system, ymin & ymax the extent of the curve in the unit system
                 double par1, par2;
-                a = Geometry.DistLLWrongPar2(sp, dir, GeoPoint.Origin, GeoVector.YAxis, out par1, out par2);
+                a = Geometry.DistLL(sp, dir, GeoPoint.Origin, GeoVector.YAxis, out par1, out par2);
                 yoffset = par2;
                 GeoPoint test = sp;
                 if ((Geometry.DistPL(sp, GeoPoint.Origin, GeoVector.YAxis) - a) < Precision.eps)
                     test += dir;
                 double xquad = test.x * test.x + test.z * test.z;
-                double y = test.y - yoffset;
+                double y = test.y + yoffset;
                 b = y * a / (xquad - a * a);
-                double tminhelp = (ymin - yoffset) / b;
+                double tminhelp = (ymin + yoffset) / b;
                 tmin = Math.Log(tminhelp + Math.Sqrt(tminhelp * tminhelp + 1));
-                double tmaxhelp = (ymax - yoffset) / b;
+                double tmaxhelp = (ymax + yoffset) / b;
                 tmax = Math.Log(tmaxhelp + Math.Sqrt(tmaxhelp * tmaxhelp + 1));
                 this.ymin = ymin;
                 this.ymax = ymax;
+            }
+            public override void Reverse()
+            {
+                double tmp = tmin;
+                tmin = tmax;
+                tmax = tmp;
             }
         }
         public class Hyperbola : GeneralCurve2D
@@ -780,6 +805,13 @@ namespace CADability.GeoObject
                 double help = yoffset / b;
                 return h.DirectionAt(Position + Math.Log(help + Math.Sqrt(help * help + 1)));
             }
+            public override void Reverse()
+            {
+                double tmp = tmin;
+                tmin = tmax;
+                tmax = tmp;
+            }
+
             public Hyperbola(GeoPoint sp, GeoVector dir, double ymin, double ymax)
             {   // sp & dir must be in the unit system, ymin & ymax the extent of the curve in the unit system
                 h = new HyperbolaHelp(sp, dir, ymin, ymax);
@@ -797,7 +829,35 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoPoint2D[] GetLineIntersection(GeoPoint startPoint, GeoVector direction)
         {
-            if (curveToRotate != null) return base.GetLineIntersection(startPoint, direction); // new implementation: check special cases
+            if (curveToRotate != null && curveToRotate is IExplicitPCurve3D expcrv)
+            {
+                // brute force: get quadric of hyperboloid defined by the line rotating around the axis
+                GeoPoint[] samples = new GeoPoint[12];
+                samples[0] = startPoint;
+                samples[1] = startPoint + direction;
+                samples[2] = startPoint - direction;
+                ModOp rot90 = ModOp.Rotate(axisLocation, axisDirection, SweepAngle.ToLeft);
+                for (int i = 0; i < 3; i++)
+                {
+                    samples[(i + 1) * 3] = rot90 * samples[i * 3];
+                    samples[(i + 1) * 3 + 1] = rot90 * samples[i * 3 + 1];
+                    samples[(i + 1) * 3 + 2] = rot90 * samples[i * 3 + 2];
+                }
+                ImplicitPSurface ips = new ImplicitPSurface(samples);
+                GeoPoint[] itpts = ips.Intersect(expcrv.GetExplicitPCurve3D(), out double[] ipspars);
+                List<GeoPoint2D> res = new List<GeoPoint2D>();
+                for (int i = 0; i < itpts.Length; i++)
+                {
+                    Plane pln = new Plane(itpts[i], axisDirection);
+                    GeoPoint lip = pln.Intersect(startPoint, direction);
+                    res.Add(PositionOf(lip));
+                }
+                return res.ToArray();
+            }
+            else if (curveToRotate != null)
+            {
+                return base.GetLineIntersection(startPoint, direction); // new implementation: check special cases
+            }
 
             if (Precision.SameDirection(Axis, direction, false))
             {   // Linie parallel zur Achse
@@ -881,7 +941,7 @@ namespace CADability.GeoObject
                 GeoVector dir = fromSurface * direction;
 
                 double par1, par2;
-                if (Geometry.DistLLWrongPar2(sp, dir, GeoPoint.Origin, new GeoVector(0, 1, 0), out par1, out par2) < Precision.eps)
+                if (Geometry.DistLL(sp, dir, GeoPoint.Origin, new GeoVector(0, 1, 0), out par1, out par2) < Precision.eps)
                 {
                     GeoPoint2DWithParameter[] old1 = basisCurve2D.Intersect(new GeoPoint2D(Math.Sqrt(sp.x * sp.x + sp.z * sp.z), sp.y),
                         new GeoPoint2D(Math.Sqrt((sp.x + dir.x) * (sp.x + dir.x) + (sp.z + dir.z) * (sp.z + dir.z)), sp.y + dir.y));
@@ -1249,7 +1309,17 @@ namespace CADability.GeoObject
             {
                 ModOp rotate = ModOp.Rotate(axisLocation, axisDirection, (SweepAngle)u);
                 ICurve res = curveToRotate.CloneModified(rotate);
-                res.Trim(vmin, vmax);
+
+                double vminp = curveToRotate.ParameterToPosition(vmin);
+                double vmaxp = curveToRotate.ParameterToPosition(vmax);
+                if (curveToRotate.IsClosed)
+                {
+                    while (vminp < 0) vminp += 1;
+                    while (vminp > 1) vminp -= 1;
+                    while (vmaxp < 0) vmaxp += 1;
+                    while (vmaxp > 1) vmaxp -= 1;
+                }
+                res.Trim(vminp, vmaxp);
                 return res;
             }
             ICurve2D btr = basisCurve2D.Trim(GetPos(vmin), GetPos(vmax));
@@ -1274,7 +1344,7 @@ namespace CADability.GeoObject
                 GeoPoint cnt = Geometry.DropPL(sp, Location, Axis);
                 Plane pln = new Plane(cnt, Axis);
                 Ellipse res = Ellipse.Construct();
-                res.SetArcPlaneCenterStartEndPoint(pln, GeoPoint2D.Origin, pln.Project(sp), pln.Project(ep), pln, true);
+                res.SetArcPlaneCenterStartEndPoint(pln, GeoPoint2D.Origin, pln.Project(sp), pln.Project(ep), pln, umin > umax);
                 return res;
             }
             GeoPoint2D p2d = basisCurve2D.PointAt(GetPos(v));
@@ -1403,7 +1473,79 @@ namespace CADability.GeoObject
         }
         public override ISurface GetCanonicalForm(double precision, BoundingRect? bounds)
         {
-            if (curveToRotate != null) return base.GetCanonicalForm(precision, bounds); // check special cases
+            if (curveToRotate != null)
+            {
+                ICurve testWith = curveToRotate;
+                if (curveToRotate is BSpline bsp)
+                {
+                    if (bsp.GetSimpleCurve(precision, out ICurve simpleCurve))
+                    {
+                        testWith = simpleCurve;
+                    }
+                }
+                if (Curves.GetCommonPlane(Line.TwoPoints(axisLocation, axisLocation + axisDirection), testWith, out Plane commonPlane))
+                {
+                    if (testWith is Ellipse elli && elli.IsCircle)
+                    {
+                        double r = (elli).Radius;
+                        if (Geometry.DistPL(elli.Center, axisLocation, axisDirection) < Precision.eps)
+                        {   // a sphere
+                            GeoVector xaxis = r * (axisDirection ^ commonPlane.Normal).Normalized;
+                            GeoVector yaxis = r * (axisDirection ^ xaxis).Normalized;
+                            SphericalSurface ss = new SphericalSurface(elli.Center, xaxis, yaxis, r * axisDirection.Normalized);
+                            GeoVector n1 = this.GetNormal(this.PositionOf(elli.PointAt(0.47))); // not at a pole
+                            GeoVector n2 = ss.GetNormal(ss.PositionOf(elli.PointAt(0.47))); 
+                            if (n1 * n2 < 0) ss.ReverseOrientation();
+                            return ss;
+                        }
+                        else
+                        {   // a torus (not tested yet)
+                            GeoVector xaxis = axisDirection ^ commonPlane.Normal;
+                            GeoVector yaxis = axisDirection ^ xaxis;
+                            GeoPoint cnt = Geometry.DropPL(elli.Center, axisLocation, axisDirection);
+                            double majrad = Geometry.DistPL(elli.Center, axisLocation, axisDirection);
+                            ToroidalSurface ts = new ToroidalSurface(cnt, xaxis, yaxis, axisDirection, majrad, elli.Radius);
+                            GeoVector n1 = this.GetNormal(this.PositionOf(elli.PointAt(0.47))); // not at a pole
+                            GeoVector n2 = ts.GetNormal(ts.PositionOf(elli.PointAt(0.47)));
+                            if (n1 * n2 < 0) ts.ReverseOrientation();
+                            return ts;
+                        }
+                    } else if (testWith is Line line)
+                    {
+                        if (Precision.SameDirection(line.EndDirection,axisDirection,false))
+                        {   // a cylinder
+                            GeoPoint loc = Geometry.DropPL(line.StartPoint, axisLocation, axisDirection);
+                            GeoVector dirx = line.StartPoint - loc;
+                            GeoVector diry = dirx.Length * (dirx ^ axisDirection).Normalized;
+                            CylindricalSurface cs = new CylindricalSurface(loc, dirx, diry, axisDirection);
+                            GeoVector n1 = this.GetNormal(this.PositionOf(line.StartPoint));
+                            GeoVector n2 = cs.GetNormal(cs.PositionOf(line.StartPoint));
+                            if (n1 * n2 < 0) cs.ReverseOrientation();
+                            return cs;
+                        }
+                        else if (Precision.IsPerpendicular(line.EndDirection, axisDirection, false))
+                        {
+                            PlaneSurface ps = new PlaneSurface(line.StartPoint, line.StartDirection.Normalized, (axisDirection ^ line.StartDirection).Normalized);
+                            // test the orientation
+                            GeoVector n1 = this.GetNormal(this.PositionOf(line.StartPoint));
+                            GeoVector n2 = ps.GetNormal(ps.PositionOf(line.StartPoint));
+                            if (n1 * n2 < 0) ps.ReverseOrientation();
+                            return ps;
+                        }
+                        else
+                        {   // a cone
+                            GeoPoint apex = Geometry.IntersectLL(axisLocation, axisDirection, line.StartPoint, line.StartDirection);
+                            axisDirection.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+                            ConicalSurface cs = new ConicalSurface(apex, dirx, diry, dirx ^ diry, new Angle(axisDirection, line.StartDirection));
+                            GeoVector n1 = this.GetNormal(this.PositionOf(line.PointAt(0.5)));
+                            GeoVector n2 = cs.GetNormal(cs.PositionOf(line.PointAt(0.5)));
+                            if (n1 * n2 < 0) cs.ReverseOrientation();
+                            return cs;
+                        }
+                    }
+                }
+                // we could check here for a hyperbolic surface
+            }
             ICurve2D c2d = basisCurve2D;
             if (c2d is BSpline2D)
             {
@@ -1445,44 +1587,23 @@ namespace CADability.GeoObject
             return base.GetCanonicalForm(precision, bounds);
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "SurfaceOfRevolution";
-        }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            if (curveToRotate is IGeoObject go)
             {
-                return ShowPropertyEntryType.GroupTitle;
+                se.Add(go.GetShowProperties(frame) as IPropertyEntry);
             }
+            GeoPointProperty loc = new GeoPointProperty(frame, "SurfaceOfRevolution.AxisLocation");
+            loc.ReadOnly = true;
+            loc.OnGetValue = new EditableProperty<GeoPoint>.GetValueDelegate(delegate () { return axisLocation; });
+            se.Add(loc);
+            GeoVectorProperty dir = new GeoVectorProperty(frame, "SurfaceOfRevolution.AxisDirection");
+            dir.ReadOnly = true;
+            dir.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return axisDirection; });
+            se.Add(dir);
+            return new GroupProperty("SurfaceOfRevolution", se.ToArray());
         }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
         #region ISerializable Members
         protected SurfaceOfRevolution(SerializationInfo info, StreamingContext context) : base()
         {
@@ -1551,9 +1672,23 @@ namespace CADability.GeoObject
                 return export.WriteDefinition("SURFACE_OF_REVOLUTION('',#" + nc.ToString() + ",#" + na.ToString() + ")");
             }
         }
+        /// <summary>
+        /// Constructor for Json Serialization
+        /// </summary>
+        protected SurfaceOfRevolution()
+        {
 
+        }
         void IJsonSerialize.GetObjectData(IJsonWriteData data)
         {
+            if (curveToRotate == null)
+            {
+                IGeoObject go = basisCurve2D.MakeGeoObject(Plane.XYPlane);
+                go.Modify(toSurface);
+                curveToRotate = go as ICurve;
+                axisLocation = toSurface * GeoPoint.Origin;
+                axisDirection = toSurface * GeoVector.YAxis;
+            }
             data.AddProperty("CurveToRotate", curveToRotate);
             data.AddProperty("AxisDirection", axisDirection);
             data.AddProperty("AxisLocation", axisLocation);
@@ -1564,6 +1699,11 @@ namespace CADability.GeoObject
             curveToRotate = data.GetProperty<ICurve>("CurveToRotate");
             axisDirection = data.GetProperty<GeoVector>("AxisDirection");
             axisLocation = data.GetProperty<GeoPoint>("AxisLocation");
+            data.RegisterForSerializationDoneCallback(this);
+        }
+
+        void IJsonSerializeDone.SerializationDone()
+        {
         }
         #endregion
         #region ISurfaceOfRevolution Members

@@ -29,7 +29,7 @@ namespace CADability.Forms
             }
             bool ICommandHandler.OnCommand(string MenuId)
             {   // ToolStripSplitButton create a popup menu, which is directed to this tag.
-                // The ToolStripSplitButton contains the icon of the last selected menu item of the sub menue,
+                // The ToolStripSplitButton contains the icon of the last selected menu item of the sub menu,
                 // which will be used, when the button (and not the drop down part) of the ToolStripSplitButton is clicked.
                 if (showLastSubMenu)
                 {
@@ -46,7 +46,7 @@ namespace CADability.Forms
             {
                 return commandHandler.OnUpdateCommand(MenuId, CommandState);
             }
-            void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+            void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
             internal void UpdateCommandState()
             {
                 CommandState commandState = new CommandState(); // default: enabled but not checked

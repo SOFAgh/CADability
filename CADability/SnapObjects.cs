@@ -2,7 +2,13 @@
 using CADability.GeoObject;
 using CADability.Substitutes;
 using System;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 
 namespace CADability.Actions
@@ -197,7 +203,7 @@ namespace CADability.Actions
             Color backColor = base.Frame.GetColorSetting("Colors.Feedback", Color.DarkGray);
             feedBackLine.ColorDef = new ColorDef("", backColor);
             base.FeedBack.Add(feedBackLine);
-            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "ScaleSnap.cur");
+            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "ScaleSnap");
             // Punktepaare
             srcP1 = new GeoPointInput("SnapObjects.Source1");
             srcP1.SetGeoPointEvent += new CADability.Actions.ConstructAction.GeoPointInput.SetGeoPointDelegate(SetSourcePoint1);

@@ -124,11 +124,11 @@ namespace CADability
             /// <summary>
             /// the subtrees, may be null
             /// </summary>
-            public Node<TT> ppp, mpp, pmp, mmp, ppm, mpm, pmm, mmm; // x,y,z P: positiv, N: negativ (in Bezug auf die Mitte des cubes)
+            public Node<TT> ppp, mpp, pmp, mmp, ppm, mpm, pmm, mmm; // x,y,z P: positive, N: negative (relative to the center of the cube)
             /// <summary>
-            /// List of <see cref="IOctTreeInsertable"/> objects in this octtree
+            /// List of <see cref="IOctTreeInsertable"/> objects in this octTree
             /// </summary>
-            public List<TT> list;
+            public HashSet<TT> list;
             /// <summary>
             /// Back reference to the parent node.
             /// </summary>
@@ -138,7 +138,7 @@ namespace CADability
             /// </summary>
             public OctTree<TT> root;
             /// <summary>
-            /// Deepth of this node in the tree
+            /// Depth of this node in the tree
             /// </summary>
             public int deepth; // Tiefe dieses Knotens
             /// <summary>
@@ -173,7 +173,7 @@ namespace CADability
                 this.parent = parent;
                 this.center = center;
                 this.size = halfSize;
-                this.list = new List<TT>(); // beginnt als blatt mit leerer liste, im gegensatz zum root, der ganz leer beginnt
+                this.list = new HashSet<TT>(); // beginnt als blatt mit leerer liste, im gegensatz zum root, der ganz leer beginnt
                 this.deepth = parent.deepth + 1;
                 // this.cube = new BoundingCube(center, size);
                 // the cubes of the octtree may not have gaps inbetween. Because of precisiion loss when adding this might occur
@@ -219,7 +219,7 @@ namespace CADability
                 if (ppp == null && list == null)
                 {   // dieser Knoten ist ein noch unfertiger root Knoten, der sich durch keine Liste und keine Unterknoten
                     // auszeichnet. Er bekommt jetzt eine leere Liste
-                    list = new List<TT>();
+                    list = new HashSet<TT>();
                 }
                 return res;
             }
@@ -251,7 +251,7 @@ namespace CADability
                         {
                             if (list == null)
                             {   // inserting the first object into the root
-                                list = new List<TT>();
+                                list = new HashSet<TT>();
                                 if (size > 0.0 && cube.Contains(ext))    // there is already a size (the octtree has been created with a size)
                                 {
                                 }
@@ -285,7 +285,7 @@ namespace CADability
                     insert = !BoundingCube.Disjoint(objectToAdd.GetExtent(root.precision), cube) && objectToAdd.HitTest(ref cube, root.precision);
                 if (insert)
                 {
-                    List<TT> toInsert = null;
+                    HashSet<TT> toInsert = null;
                     if (ppp == null)
                     {	// no subtrees, insert into the list or split into subtrees
                         lock (this)
@@ -322,16 +322,16 @@ namespace CADability
                     if (toInsert != null)
                     {
                         //Parallel.For(0, toInsert.Count, i =>
-                        for (int i = 0; i < toInsert.Count; ++i)
+                        foreach (TT item in toInsert)
                         {
-                            ppp.AddObjectAsync(toInsert[i]);
-                            mpp.AddObjectAsync(toInsert[i]);
-                            pmp.AddObjectAsync(toInsert[i]);
-                            mmp.AddObjectAsync(toInsert[i]);
-                            ppm.AddObjectAsync(toInsert[i]);
-                            mpm.AddObjectAsync(toInsert[i]);
-                            pmm.AddObjectAsync(toInsert[i]);
-                            mmm.AddObjectAsync(toInsert[i]);
+                            ppp.AddObjectAsync(item);
+                            mpp.AddObjectAsync(item);
+                            pmp.AddObjectAsync(item);
+                            mmp.AddObjectAsync(item);
+                            ppm.AddObjectAsync(item);
+                            mpm.AddObjectAsync(item);
+                            pmm.AddObjectAsync(item);
+                            mmm.AddObjectAsync(item);
                         }
                         // );
                     }
@@ -356,7 +356,7 @@ namespace CADability
                     if (ext.IsEmpty) return;
                     if (list == null)
                     {	// das allererste Objekt wird im root eingefügt
-                        list = new List<TT>();
+                        list = new HashSet<TT>();
                         if (size > 0.0 && cube.Contains(ext))    // es gibt schone eine Größenvorgabe und es passt
                         {
                         }
@@ -403,16 +403,16 @@ namespace CADability
                             pmm = new Node<TT>(root, this, new GeoPoint(center.x + halfSize, center.y - halfSize, center.z - halfSize), halfSize);
                             mmm = new Node<TT>(root, this, new GeoPoint(center.x - halfSize, center.y - halfSize, center.z - halfSize), halfSize);
                             // die vorhanden Objekte aufteilen (for ist marginal schneller als foreach)
-                            for (int i = 0; i < list.Count; ++i)
+                            foreach (TT item in list)
                             {
-                                ppp.AddObject(list[i]);
-                                mpp.AddObject(list[i]);
-                                pmp.AddObject(list[i]);
-                                mmp.AddObject(list[i]);
-                                ppm.AddObject(list[i]);
-                                mpm.AddObject(list[i]);
-                                pmm.AddObject(list[i]);
-                                mmm.AddObject(list[i]);
+                                ppp.AddObject(item);
+                                mpp.AddObject(item);
+                                pmp.AddObject(item);
+                                mmp.AddObject(item);
+                                ppm.AddObject(item);
+                                mpm.AddObject(item);
+                                pmm.AddObject(item);
+                                mmm.AddObject(item);
                             }
                             // das neue Objekt ebenfalls zufügen
 #if DEBUG
@@ -460,7 +460,7 @@ namespace CADability
                 }
                 else
                 {
-                    if (objectToRemove.HitTest(ref cube, root.precision))
+                    // if (objectToRemove.HitTest(ref cube, root.precision))
                     {
                         ppp.RemoveObject(objectToRemove);
                         mpp.RemoveObject(objectToRemove);
@@ -479,10 +479,7 @@ namespace CADability
                 {
                     if (list != null)
                     {
-                        for (int i = 0; i < list.Count; ++i)
-                        {
-                            addToList.Add(list[i]);
-                        }
+                        addToList.AddMany(list);
                     }
                     else if (ppp != null)
                     {
@@ -503,11 +500,11 @@ namespace CADability
                 {
                     if (list != null)
                     {
-                        for (int i = 0; i < list.Count; ++i)
+                        foreach (TT item in list)
                         {
-                            if (!addToList.Contains(list[i]) && list[i].HitTest(projection, rect, onlyInside))
+                            if (!addToList.Contains(item) && item.HitTest(projection, rect, onlyInside))
                             {
-                                addToList.Add(list[i]);
+                                addToList.Add(item);
                             }
                         }
                     }
@@ -531,11 +528,11 @@ namespace CADability
                 {
                     if (list != null)
                     {
-                        for (int i = 0; i < list.Count; ++i)
+                        foreach (TT item in list)
                         {
-                            if (!addToList.Contains(list[i]) && list[i].HitTest(area, onlyInside))
+                            if (!addToList.Contains(item) && item.HitTest(area, onlyInside))
                             {
-                                addToList.Add(list[i]);
+                                addToList.Add(item);
                             }
                         }
                     }
@@ -561,10 +558,7 @@ namespace CADability
                     {
                         lock (addToList)
                         {
-                            for (int i = 0; i < list.Count; ++i)
-                            {
-                                addToList.Add(list[i]);
-                            }
+                            addToList.AddMany(list);
                         }
                     }
                     else
@@ -634,21 +628,21 @@ namespace CADability
                     }
                 }
             }
-            internal IEnumerable<List<TT>> Lists
+            internal IEnumerable<HashSet<TT>> Lists
             {
                 get
                 {
                     if (list != null) yield return list;
                     else if (ppp != null)
                     {
-                        foreach (List<TT> list in ppp.Lists) yield return list;
-                        foreach (List<TT> list in mpp.Lists) yield return list;
-                        foreach (List<TT> list in pmp.Lists) yield return list;
-                        foreach (List<TT> list in mmp.Lists) yield return list;
-                        foreach (List<TT> list in ppm.Lists) yield return list;
-                        foreach (List<TT> list in mpm.Lists) yield return list;
-                        foreach (List<TT> list in pmm.Lists) yield return list;
-                        foreach (List<TT> list in mmm.Lists) yield return list;
+                        foreach (HashSet<TT> list in ppp.Lists) yield return list;
+                        foreach (HashSet<TT> list in mpp.Lists) yield return list;
+                        foreach (HashSet<TT> list in pmp.Lists) yield return list;
+                        foreach (HashSet<TT> list in mmp.Lists) yield return list;
+                        foreach (HashSet<TT> list in ppm.Lists) yield return list;
+                        foreach (HashSet<TT> list in mpm.Lists) yield return list;
+                        foreach (HashSet<TT> list in pmm.Lists) yield return list;
+                        foreach (HashSet<TT> list in mmm.Lists) yield return list;
                     }
                 }
             }
@@ -658,10 +652,10 @@ namespace CADability
                 {
                     if (list != null)
                     {
-                        for (int i = 0; i < list.Count; ++i)
+                        foreach (TT item in list)
                         {
-                            if (filter == null || filter(list[i]))
-                                addToList.Add(list[i]);
+                            if (filter == null || filter(item))
+                                addToList.Add(item);
                         }
                     }
                     else if (ppp != null)
@@ -704,10 +698,7 @@ namespace CADability
                 {
                     if (list != null)
                     {
-                        for (int i = 0; i < list.Count; ++i)
-                        {
-                            addToList.Add(list[i]);
-                        }
+                        addToList.AddMany(list);
                     }
                     else if (ppp != null)
                     {
@@ -728,9 +719,9 @@ namespace CADability
                 {
                     if (list != null)
                     {
-                        for (int i = 0; i < list.Count; ++i)
+                        foreach (T item in list)
                         {
-                            addToList.Add(list[i]);
+                            addToList.Add(item);
                         }
                     }
                     else if (ppp != null)
@@ -867,10 +858,10 @@ namespace CADability
                     GeoObjectList res = new GeoObjectList();
                     if (list != null)
                     {
-                        for (int i = 0; i < list.Count; ++i)
+                        foreach (TT item in list)
                         {
-                            if (list[i] is IDebuggerVisualizer)
-                                res.AddRange((list[i] as IDebuggerVisualizer).GetList());
+                            if (item is IDebuggerVisualizer dv)
+                                res.AddRange(dv.GetList());
                         }
                     }
                     return res;
@@ -958,16 +949,16 @@ namespace CADability
                 pmm = new Node<TT>(root, this, new GeoPoint(center.x + halfSize, center.y - halfSize, center.z - halfSize), halfSize);
                 mmm = new Node<TT>(root, this, new GeoPoint(center.x - halfSize, center.y - halfSize, center.z - halfSize), halfSize);
                 // die vorhanden Objekte aufteilen (for ist marginal schneller als foreach)
-                for (int i = 0; i < list.Count; ++i)
+                foreach (TT item in list)
                 {
-                    ppp.AddObject(list[i]);
-                    mpp.AddObject(list[i]);
-                    pmp.AddObject(list[i]);
-                    mmp.AddObject(list[i]);
-                    ppm.AddObject(list[i]);
-                    mpm.AddObject(list[i]);
-                    pmm.AddObject(list[i]);
-                    mmm.AddObject(list[i]);
+                    ppp.AddObject(item);
+                    mpp.AddObject(item);
+                    pmp.AddObject(item);
+                    mmp.AddObject(item);
+                    ppm.AddObject(item);
+                    mpm.AddObject(item);
+                    pmm.AddObject(item);
+                    mmm.AddObject(item);
                 }
                 // die Liste wird nicht mehr gebraucht
                 list = null;
@@ -1011,9 +1002,9 @@ namespace CADability
             {
                 if (list != null)
                 {
-                    for (int i = 0; i < list.Count; ++i)
+                    foreach (T item in list)
                     {
-                        addToList.Add(list[i]);
+                        addToList.Add(item);
                     }
                 }
                 else if (ppp != null)
@@ -1076,7 +1067,7 @@ namespace CADability
         //{
         //    node.Shrink();
         //}
-        internal List<T> GetDeepest()
+        internal HashSet<T> GetDeepest()
         {
             Node<T> bestCandidate = node;
             node.GetDeepest(ref bestCandidate);
@@ -1218,7 +1209,7 @@ namespace CADability
             return addToList.ToArray();
         }
         /// <summary>
-        /// Returns an array of all objects that interfere with the provided <see cref="PickArea"/>. If <paramref name="onlyInside"/> is true
+        /// Returns an array of all objects that interfere with the provided <see cref="Projection.PickArea"/> area. If <paramref name="onlyInside"/> is true
         /// only objects inside the frustum or box of the <paramref name="area"/> are returned, otherwise there may also be objects
         /// that are aoutside this area.
         /// </summary>
@@ -1285,7 +1276,7 @@ namespace CADability
         /// <summary>
         /// Returns all objects that are close to the provided plane
         /// </summary>
-        /// <param name="plane">Plne for selection</param>
+        /// <param name="plane">Plane for selection</param>
         /// <returns>All objects close to the plane</returns>
         public T[] GetObjectsFromPlane(Plane plane)
         {
@@ -1364,7 +1355,7 @@ namespace CADability
         /// <returns>true if accepted, false if rejected</returns>
         public delegate bool Filter(T toCheck);
         /// <summary>
-        /// Delegate definition of a filtering method restricting <see cref="Node"/>s.
+        /// Delegate definition of a filtering method restricting <see cref="Node<typeparamref name="T"/>"/>s.
         /// </summary>
         /// <param name="toCheck">The node beeing checked</param>
         /// <returns>true if accepted, false if rejected</returns>
@@ -1457,14 +1448,14 @@ namespace CADability
                 }
             }
         }
-        internal IEnumerable<List<T>> Lists
+        internal IEnumerable<HashSet<T>> Lists
         {
             get
             {
                 if (node.list != null) yield return node.list;
                 else
                 {
-                    foreach (List<T> list in node.Lists) yield return list;
+                    foreach (HashSet<T> list in node.Lists) yield return list;
                 }
             }
         }

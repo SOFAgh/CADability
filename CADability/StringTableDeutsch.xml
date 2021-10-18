@@ -6170,6 +6170,11 @@
     <tip>Richtung der Y-Achse der Kegelfläche</tip>
     <info>Richtung der Y-Achse der Kegelfläche</info>
   </data>
+  <data name="ConicalSurface.OpeningAngle">
+    <label>Öffnungswinkel</label>
+    <tip>Öffnungswinkel der Kegelfläche</tip>
+    <info>Öffnungswinkel der Kegelfläche</info>
+  </data>
   <data name="MenuId.Constr.Face.SelectedRuledFace">
     <label>Regelfläche</label>
     <tip>Kante(n) für Regelfläche markieren</tip>

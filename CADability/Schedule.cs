@@ -418,7 +418,7 @@ namespace CADability
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         #region ISerializable Members
         protected Schedule(SerializationInfo info, StreamingContext context)
@@ -705,7 +705,7 @@ namespace CADability
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
     }
 
@@ -849,7 +849,7 @@ namespace CADability
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         internal void Remove(Schedule schedule)
         {

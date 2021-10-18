@@ -172,10 +172,10 @@ namespace CADability.GeoObject
             }
             double pos = (uv.x - curveStartParameter) / (curveEndParameter - curveStartParameter);
             basisCurve.TryPointDeriv2At(pos, out GeoPoint upoint, out du, out duu);
-            location =  upoint + (uv.y * direction);
+            location = upoint + (uv.y * direction);
             dv = direction;
-            du = (curveEndParameter - curveStartParameter)*du;
-            duu = (curveEndParameter - curveStartParameter)*duu;
+            du = (curveEndParameter - curveStartParameter) * du;
+            duu = (curveEndParameter - curveStartParameter) * duu;
             dvv = GeoVector.NullVector;
             duv = du;
         }
@@ -625,6 +625,40 @@ namespace CADability.GeoObject
         {
             return Precision.SameDirection(this.direction, direction, false);
         }
+        public override ISurface GetCanonicalForm(double precision, BoundingRect? bounds)
+        {
+            ICurve testWith = basisCurve;
+            if (basisCurve is BSpline bsp)
+            {
+                if (bsp.GetSimpleCurve(precision, out ICurve simpleCurve))
+                {
+                    testWith = simpleCurve;
+                }
+            }
+            if (testWith is Ellipse elli && elli.IsCircle)
+            {
+                double r = (elli).Radius;
+                if (Precision.SameDirection(elli.Plane.Normal, this.direction, false))
+                {
+                    CylindricalSurface cs = new CylindricalSurface(elli.Center, elli.MajorAxis, elli.MinorAxis, elli.Plane.Normal);
+                    GeoVector n1 = this.GetNormal(this.PositionOf(elli.StartPoint));
+                    GeoVector n2 = cs.GetNormal(cs.PositionOf(elli.StartPoint));
+                    if (n1 * n2 < 0) cs.ReverseOrientation();
+                    return cs;
+                }
+            }
+            else if (testWith is Line line && !Precision.SameDirection(line.EndDirection, direction, false))
+            {   // a plane
+                PlaneSurface ps = new PlaneSurface(line.StartPoint, line.StartDirection.Normalized, direction.Normalized);
+                // test the orientation
+                GeoVector n1 = this.GetNormal(this.PositionOf(line.StartPoint));
+                GeoVector n2 = ps.GetNormal(ps.PositionOf(line.StartPoint));
+                if (n1 * n2 < 0) ps.ReverseOrientation();
+                return ps;
+            }
+            return null;
+        }
+        public override bool CanStretch => true;
 #if DEBUG
         public override GeoObjectList DebugGrid
         {
@@ -645,43 +679,18 @@ namespace CADability.GeoObject
             }
         }
 #endif
-        #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "SurfaceOfLinearExtrusion";
-        }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            if (basisCurve is IGeoObject go)
             {
-                return ShowPropertyEntryType.GroupTitle;
+                se.Add(go.GetShowProperties(frame) as IPropertyEntry);
             }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
+            GeoVectorProperty dir = new GeoVectorProperty(frame, "SurfaceOfLinearExtrusion.Direction");
+            dir.ReadOnly = true;
+            dir.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return Direction; });
+            se.Add(dir);
+            return new GroupProperty("SurfaceOfLinearExtrusion", se.ToArray());
         }
         #endregion
         #region ISerializable Members

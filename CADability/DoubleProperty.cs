@@ -8,7 +8,7 @@ namespace CADability.UserInterface
 {
 
     /// <summary>
-    /// Implements a hotspot <see cref="IHotSpot"/> to manipulate a lenth via a length property
+    /// Implements a hotspot <see cref="IHotSpot"/> to manipulate a length via a length property
     /// </summary>
 
     public class DoubleHotSpot : IHotSpot
@@ -44,7 +44,7 @@ namespace CADability.UserInterface
             }
         }
         /// <summary>
-        /// Implements <see cref="CADability.IHotSpot.StartDrag ()"/>
+        /// Implements <see cref="CADability.IHotSpot.StartDrag(IFrame)"/>
         /// </summary>
         public void StartDrag(IFrame frame)
         {
@@ -53,6 +53,10 @@ namespace CADability.UserInterface
         public string GetInfoText(CADability.UserInterface.InfoLevelMode Level)
         {
             return doubleProperty.LabelText;
+        }
+        public string ResourceId
+        {
+            get { return doubleProperty.ResourceId; }
         }
         public MenuWithHandler[] ContextMenu
         {
@@ -65,6 +69,7 @@ namespace CADability.UserInterface
         #endregion
     }
 
+    [Serializable()]
     public class DoubleProperty : EditableProperty<double>, IJsonSerialize, ISerializable
     {
         private NumberFormatInfo numberFormatInfo;
@@ -285,7 +290,7 @@ namespace CADability.UserInterface
         #region ISerializable
         protected DoubleProperty(SerializationInfo info, StreamingContext context)
         {
-            SetValue(info.GetDouble("Value"), false);
+            SetValue(info.GetDouble("InternalValue"), false);
             resourceId = (string)info.GetValue("resourceId", typeof(string));
             settingName = (string)info.GetValue("SettingName", typeof(string));
             //try
@@ -301,7 +306,7 @@ namespace CADability.UserInterface
             numberFormatInfo = (NumberFormatInfo)CultureInfo.CurrentCulture.NumberFormat.Clone();
             numberFormatInfo.NumberDecimalDigits = 29;
         }
-        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("InternalValue", GetValue(), typeof(double));
             info.AddValue("resourceId", resourceId, resourceId.GetType());

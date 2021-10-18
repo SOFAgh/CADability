@@ -1,11 +1,12 @@
-﻿using CADability.LinearAlgebra;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Runtime.Serialization;
+using CADability.GeoObject;
+using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability
 {
@@ -141,6 +142,19 @@ namespace CADability
             y = p.Y;
             z = 0.0;
         }
+        public GeoPoint(Vector d)
+        {
+            if (d.Count == 3)
+            {
+                x = d[0];
+                y = d[1];
+                z = d[2];
+            }
+            else
+            {
+                throw new ApplicationException("GeoPoint constructor: Length of array must be 3");
+            }
+        }
         /// <summary>
         /// Returns the distance from this point to the given point.
         /// </summary>
@@ -262,11 +276,17 @@ namespace CADability
         {
             return Geometry.Dist(p1, p2);
         }
+        public static double operator &(GeoPoint p1, GeoPoint p2)
+        {
+            return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z);
+        }
         public static GeoPoint operator *(Matrix m, GeoPoint p)
         {
             System.Diagnostics.Debug.Assert(m.ColumnCount == 3 && m.RowCount == 3);
             return new GeoPoint(m[0, 0] * p.x + m[0, 1] * p.y + m[0, 2] * p.z, m[1, 0] * p.x + m[1, 1] * p.y + m[1, 2] * p.z, m[2, 0] * p.x + m[2, 1] * p.y + m[2, 2] * p.z);
         }
+
+        public static implicit operator double[](GeoPoint p) => new double[] { p.x, p.y, p.z };
 
         /// <summary>
         /// returns the origin, same as new GeoPoint(0.0,0.0,0.0);
@@ -363,8 +383,6 @@ namespace CADability
             return res;
         }
 
-        #region CndOCas Conversion
-        #endregion
         #region ISerializable Members
         /// <summary>
         /// Constructor for ISerializable
@@ -559,8 +577,12 @@ namespace CADability
         {
             return (x == 0.0 && y == 0.0 && z == 0.0);
         }
+        public bool IsValid()
+        {
+            return !double.IsNaN(x);
+        }
         /// <summary>
-        /// Determins whether this vector and the othe vector are perpendicular. Use <see cref="Precision.IsPerpendicular"/>
+        /// Determines whether this vector and the othe vector are perpendicular. Use <see cref="Precision.IsPerpendicular"/>
         /// if you need more control over precision.
         /// </summary>
         /// <param name="other">other vector</param>
@@ -571,6 +593,7 @@ namespace CADability
             if (other.Length == 0.0) return true; // oder was?
             return Math.Abs(this * other) / (Length * other.Length) < 1e-6;
         }
+        public static implicit operator double[](GeoVector v) => new double[] { v.x, v.y, v.z };
         public double this[int index]
         {
             get
@@ -686,7 +709,7 @@ namespace CADability
             return new GeoVector(d * v.x, d * v.y, d * v.z);
         }
         /// <summary>
-        /// Divides the given gevcor by the given double value.
+        /// Divides the given GeoVector <paramref name="v"/> by the given scalar value <paramref name="v"/>.
         /// </summary>
         /// <param name="v">vector</param>
         /// <param name="d">divider</param>
@@ -860,7 +883,7 @@ namespace CADability
         {
             return new GeoVector2D(x, y);
         }
-        internal void ArbitraryNormals(out GeoVector dirx, out GeoVector diry)
+        public void ArbitraryNormals(out GeoVector dirx, out GeoVector diry)
         {
             switch (MainDirection)
             {
@@ -1046,6 +1069,16 @@ namespace CADability
         void IJsonSerialize.SetObjectData(IJsonReadData data)
         {
         }
+
+        internal Line Clip(BoundingCube ext)
+        {
+            Line res = Line.Construct();
+            if (ext.ClipAxis(this, out GeoPoint startPoint, out GeoPoint endPoint))
+            {
+                res.SetTwoPoints(startPoint, endPoint);
+            }
+            return res;
+        }
         #endregion
     }
 
@@ -1145,7 +1178,7 @@ namespace CADability
             x = (1 - ratio) * p1.x + ratio * p2.x;
             y = (1 - ratio) * p1.y + ratio * p2.y;
         }
-
+        public static implicit operator double[](GeoPoint2D p) => new double[] { p.x, p.y };
         internal double TaxicabDistance(GeoPoint2D To)
         {	// Betragsnorm, heißt echt auf Englisch Taxicab oder Manhattan
             return Math.Abs(x - To.x) + Math.Abs(y - To.y);
@@ -1214,6 +1247,16 @@ namespace CADability
         public static double operator |(GeoPoint2D p1, GeoPoint2D p2)
         {
             return Geometry.Dist(p1, p2);
+        }
+        /// <summary>
+        /// Square distance. Not a very nice operator symbol, but cannot overload ||, which I would prefer
+        /// </summary>
+        /// <param name="p1"></param>
+        /// <param name="p2"></param>
+        /// <returns></returns>
+        public static double operator &(GeoPoint2D p1, GeoPoint2D p2)
+        {
+            return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
         }
 
         public override bool Equals(object o)
@@ -1393,6 +1436,7 @@ namespace CADability
             this.x = v3.x;
             this.y = v3.y;
         }
+        public static implicit operator double[](GeoVector2D p) => new double[] { p.x, p.y };
         public void Norm()
         {
             if (Length <= 0.0) throw new GeoVectorException(GeoVectorException.tExceptionType.NullVector);
@@ -1518,9 +1562,9 @@ namespace CADability
             get { return new GeoVector2D(0.0, 0.0); }
         }
         /// <summary>
-        /// Returns the area of the parallelgram defined by the two vectors. The result will be positive
-        /// if the sweepdirection from <paramref name="from"/> to <paramref name="to"/> is counterclockwise
-        /// otherwise it will be negative. If you need the angle of the triangle devide the result by 2.0
+        /// Returns the area of the parallelogram defined by the two vectors. The result will be positive
+        /// if the sweep-direction from <paramref name="from"/> to <paramref name="to"/> is counterclockwise
+        /// otherwise it will be negative. If you need the angle of the triangle divide the result by 2.0
         /// </summary>
         /// <param name="from">First vector</param>
         /// <param name="to">Second vector</param>
@@ -1531,8 +1575,8 @@ namespace CADability
         }
         /// <summary>
         /// Returns a positive value if the second vector turns to the left relative to the direction of the first vector,
-        /// a negative value if it turns to the right and 0.0 if the vectors are parallel. The value is the length of the corssproduct
-        /// of the two vectors in 3D or the area of the paralleogram build by the two vectors.
+        /// a negative value if it turns to the right and 0.0 if the vectors are parallel. The value is the length of the crossproduct
+        /// of the two vectors in 3D or the area of the parallelogram build by the two vectors.
         /// </summary>
         /// <param name="v1">First vector</param>
         /// <param name="v2">Second vector</param>

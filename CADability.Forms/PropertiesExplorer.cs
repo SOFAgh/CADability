@@ -13,11 +13,12 @@ namespace CADability.Forms
         TabControl tabControl; // the TabControl containing the tab pages
         public IFrame Frame { get; set; }
         HashSet<string> entriesToHide;
+        public ImageList ImageList { set { tabControl.ImageList = value; } }
         public PropertiesExplorer()
         {
             tabPages = new List<PropertyPage>();
 
-            listBox = new ListBox(); // a ListBox which only becomes visible (and positioned and filled) when a dropdown button of an PropertyEntry has been clicked
+            listBox = new ListBox(); // a ListBox which only becomes visible (and positioned and filled) when a drop-down button of an PropertyEntry has been clicked
             listBox.Visible = false;
             listBox.LostFocus += ListBox_LostFocus;
             listBox.SelectedIndexChanged += ListBox_SelectedIndexChanged;
@@ -78,7 +79,7 @@ namespace CADability.Forms
             {
                 HideListBox();
             }
-            ActivePropertyPage.SelectEntry(ActivePropertyPage.GetCurrentSelection()); // this shows the textbox or listbox
+            ActivePropertyPage.SelectEntry(ActivePropertyPage.GetCurrentSelection()); // this shows the text-box or list-box
         }
         private static PropertyPage GetPropertyPage(IPropertyEntry propertyEntry)
         {
@@ -92,7 +93,7 @@ namespace CADability.Forms
         }
 
         #region listBox 
-        ListBox listBox; // the only listbox, which is hidden and, when needed, moved and filled befor it is shown
+        ListBox listBox; // the only listbox, which is hidden and, when needed, moved and filled before it is shown
         public void ShowListBox(Rectangle screenLocation, string[] items, int selected, IPropertyEntry sender)
         {
             if (EntryWithListBox == sender) return;
@@ -145,7 +146,7 @@ namespace CADability.Forms
         private void ListBox_LostFocus(object sender, EventArgs e)
         {
             if (EntryWithListBox != null)
-            {   // nothong has been selected, the user clicked somwhere else
+            {   // nothing has been selected, the user clicked somewhere else
                 HideListBox();
             }
         }
@@ -184,7 +185,7 @@ namespace CADability.Forms
             int charindex = textBox.GetCharIndexFromPosition(new Point(clickPos.X + charWidth / 2, clickPos.Y));
             if (clickPos.X > lastCharPos.X + charWidth)
             {   // clicked behind the last character: select all
-                textBox.SelectAll();
+               textBox.SelectAll();
             }
             else
             {   // clicked somewhere inside the text
@@ -334,19 +335,25 @@ namespace CADability.Forms
         }
         public void Refresh(IPropertyEntry toRefresh)
         {
-            // we get here e.g. when a textbox is open and we start to enter a value. then in the construct action the "highlight" flag is removed and
+            // we get here e.g. when a textBox is open and we start to enter a value. then in the construct action the "highlight" flag is removed and
             // refresh is called. But we are in the middle of entering text and changing the value would not be desired.
             if (EntryWithTextBox == toRefresh && textBox.Visible && !textBoxIsUpdatingFromKeystroke)
             {
-                bool allSelected = textBox.SelectionLength == textBox.Text.Length;
-                textBox.Text = toRefresh.Value;
-                textBox.Modified = false;
-                if (allSelected) textBox.SelectAll();
-                textBox.Update(); // to show smooth updateing of the text when the mouse is moving
+                textBox.BeginInvoke((Action)delegate () // may be called from a worker thread
+                {
+                    if (EntryWithTextBox == toRefresh) // this was necessary because it might be called after the textBox entry had changed
+                    {
+                        bool allSelected = textBox.SelectionLength == textBox.Text.Length;
+                        textBox.Text = toRefresh.Value;
+                        textBox.Modified = false;
+                        if (allSelected) textBox.SelectAll();
+                        textBox.Update(); // to show smooth updating of the text when the mouse is moving
+                    }
+                });
             }
         }
         public void UnSelected(IPropertyEntry unselected)
-        {   // the entry with the textbox or listbox is beeing unselected (by as mouseclick on a different entry), so we accept the input as valid (not aborted)
+        {   // the entry with the textBox or listBox is being unselected (by as mouseClick on a different entry), so we accept the input as valid (not aborted)
             if (EntryWithTextBox == unselected)
             {
                 EntryWithTextBox.EndEdit(false, textBox.Modified, textBox.Text);
@@ -365,7 +372,7 @@ namespace CADability.Forms
         }
 
         public void PreProcessKeyDown(Substitutes.KeyEventArgs e)
-        {   // this is beeing called after the ActiveAction has preprocessed (and not handled) the key down message
+        {   // this is being called after the ActiveAction has preprocessed (and not handled) the key down message
             // we can handle it here, before it gets handled by maybe and edit text box or something else (menu?)
             switch (e.KeyData) // was KeyCode, but didn't work
             {

@@ -35,7 +35,7 @@ namespace CADability.UserInterface
             }
         }
         /// <summary>
-        /// Implements <see cref="CADability.IHotSpot.StartDrag ()"/>
+        /// Implements <see cref="CADability.IHotSpot.StartDrag(IFrame)"/>
         /// </summary>
         public void StartDrag(IFrame frame)
         {
@@ -43,7 +43,11 @@ namespace CADability.UserInterface
         }
         public string GetInfoText(CADability.UserInterface.InfoLevelMode Level)
         {
-            return geoVectorProperty.LabelText;
+            return geoVectorProperty.Label;
+        }
+        public string ResourceId
+        {
+            get { return geoVectorProperty.ResourceId; }
         }
         MenuWithHandler[] IHotSpot.ContextMenu
         {
@@ -62,7 +66,7 @@ namespace CADability.UserInterface
         {
             return ((ICommandHandler)geoVectorProperty).OnUpdateCommand(MenuId, CommandState);
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
     }
 
     public class GeoVectorProperty : EditableProperty<GeoVector>, IUserData, ICommandHandler
@@ -141,6 +145,7 @@ namespace CADability.UserInterface
             componentsDigits = frame.GetIntSetting("Formatting.Coordinate.ComponentsDigits", 3);
             angleMode = (AngleMode)frame.GetIntSetting("Formatting.Angle.Mode", 0);
             angleDigits = frame.GetIntSetting("Formatting.Angle.Digits", 3);
+            this.Frame = frame;
         }
 
         public bool DisplayZComponent { get; set; } = true;
@@ -693,7 +698,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
 
         #region deprecated adaption to old implementation of GeoVectorProperty

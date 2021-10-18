@@ -58,7 +58,7 @@ namespace CADability.UserInterface
             directionHotSpot = new GeoVectorHotSpot(directionProperty);
             directionHotSpot.Position = line.PointAt(1.0 / 3.0);
 
-            IShowProperty[] sp = line.GetAttributeProperties(frame); // change signature of GetAttributeProperties
+            IPropertyEntry[] sp = line.GetAttributeProperties(frame); // change signature of GetAttributeProperties
             attributeProperties = new IPropertyEntry[sp.Length];
             for (int i = 0; i < sp.Length; i++)
             {
@@ -99,7 +99,7 @@ namespace CADability.UserInterface
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
-            IShowProperty[] sp = line.GetAttributeProperties(frame); // change signature of GetAttributeProperties
+            IPropertyEntry[] sp = line.GetAttributeProperties(frame); // change signature of GetAttributeProperties
             attributeProperties = new IPropertyEntry[sp.Length];
             for (int i = 0; i < sp.Length; i++)
             {
@@ -334,7 +334,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
 
         #region IGeoObjectShowProperty Members

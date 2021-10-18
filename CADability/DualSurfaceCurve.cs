@@ -1,6 +1,6 @@
 ﻿using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -606,13 +606,13 @@ namespace CADability
     /// exact for of the curve than we get, when we approximate the curve in 2d.
     /// </summary>
     [Serializable()]
-    public class ProjectedCurve : TriangulatedCurve2D, ISerializable
+    public class ProjectedCurve : GeneralCurve2D, ISerializable
     {
-        private double startParam; // auf der 3D Kurve, gibt auch die Richtung an
-        private double endParam; // auf der 3D Kurve
+        private double startParam; // start parameter on the 3d curve, together wit endParam also specifies the orientation
+        private double endParam; // on the 3d curve
         ICurve curve3D;
         ISurface surface;
-        BoundingRect periodicDomain; // damit bei periodischen PointAt den richtigen Bereich liefert
+        BoundingRect periodicDomain; // only for periodic domains: to which period the 3d points should be mapped
         GeoPoint2D startPoint2d, endPoint2d;
         bool startPointIsPole, endPointIsPole;
         bool spu, epu; // starting or ending pole in u
@@ -621,12 +621,12 @@ namespace CADability
         private int debugCount; // to identify instance when debugging
 #endif
 
-        public ProjectedCurve(ICurve curve3D, ISurface surface, bool forward, BoundingRect domain)
+        public ProjectedCurve(ICurve curve3D, ISurface surface, bool forward, BoundingRect domain, double precision = 0.0)
         {
 #if DEBUG
             debugCount = debugCounter++;
 #endif
-            this.curve3D = curve3D; // sollte man hier clonen um Unabhängigkeit von surface und curve3D zu erzeugen?
+            this.curve3D = curve3D; // keep in mind, the curve is not cloned, curve3D should not be modified after this
             this.surface = surface;
             List<GeoPoint> lpoles = new List<GeoPoint>();
             List<GeoPoint2D> lpoles2d = new List<GeoPoint2D>();
@@ -634,25 +634,57 @@ namespace CADability
             GeoPoint sp = curve3D.StartPoint;
             GeoPoint ep = curve3D.EndPoint;
             double[] us = surface.GetUSingularities();
-            double prec = curve3D.Length * 1e-2;
+            double prec = precision;
+            if (prec==0.0) prec = curve3D.Length * 1e-3; // changed to 1e-3, it is used to snap endpoints to poles
             startPoint2d = surface.PositionOf(curve3D.StartPoint);
             endPoint2d = surface.PositionOf(curve3D.EndPoint);
+            bool distinctStartEndPoint = false;
+            if ((surface.IsUPeriodic && Math.Abs(startPoint2d.x - endPoint2d.x) < surface.UPeriod * 1e-3) ||
+                (surface.IsVPeriodic && Math.Abs(startPoint2d.y - endPoint2d.y) < surface.VPeriod * 1e-3))
+            {   // adjust start and endpoint according to its neighbors
+                GeoPoint2D p2d = surface.PositionOf(curve3D.PointAt(0.1));
+                SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref p2d);
+                BoundingRect ext = new BoundingRect(p2d);
+                SurfaceHelper.AdjustPeriodic(surface, ext, ref startPoint2d);
+                p2d = surface.PositionOf(curve3D.PointAt(0.9));
+                SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref p2d);
+                ext = new BoundingRect(p2d);
+                SurfaceHelper.AdjustPeriodic(surface, ext, ref endPoint2d);
+                distinctStartEndPoint = true;
+            }
             periodicDomain = domain;
             if (periodicDomain.IsEmpty() && (surface.IsUPeriodic || surface.IsVPeriodic))
-            {   // try to find a domain starting at the inner point proceeding to the outside
-                GeoPoint2D mp = surface.PositionOf(curve3D.PointAt(0.5));
-                periodicDomain.MinMax(mp);
-                for (int i = 1; i <= 5; i++)
+            {
+                // make a few points and assure that they don't jump over the periodic seam
+                // if the curve3d doesn't jump around wildly, this should work. Maybe use curve3D.GetSavePositions?
+                GeoPoint2D[] point2Ds = new GeoPoint2D[11];
+                for (int i = 0; i < 11; i++)
                 {
-                    GeoPoint2D p2d = surface.PositionOf(curve3D.PointAt(0.5 - i / 10.0));
-                    SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref p2d);
-                    periodicDomain.MinMax(p2d);
-                    p2d = surface.PositionOf(curve3D.PointAt(0.5 + i / 10.0));
-                    SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref p2d);
-                    periodicDomain.MinMax(p2d);
+                    point2Ds[i] = surface.PositionOf(curve3D.PointAt(i / 10.0));
                 }
+                for (int i = 0; i < 10; i++)
+                {
+                    GeoVector2D offset = GeoVector2D.NullVector;
+                    if (surface.IsUPeriodic && Math.Abs(point2Ds[i+1].x-point2Ds[i].x)>surface.UPeriod/2.0)
+                    {
+                        if ((point2Ds[i + 1].x - point2Ds[i].x) < 0) offset.x = surface.UPeriod;
+                        else offset.x = -surface.UPeriod;
+                    }
+                    if (surface.IsVPeriodic && Math.Abs(point2Ds[i + 1].y - point2Ds[i].y) > surface.VPeriod / 2.0)
+                    {
+                        if ((point2Ds[i + 1].y - point2Ds[i].y) < 0) offset.y = surface.VPeriod;
+                        else offset.y = -surface.VPeriod;
+                    }
+                    point2Ds[i + 1] += offset;
+                }
+                for (int i = 0; i < 11; i++)
+                {
+                    periodicDomain.MinMax(point2Ds[i]);
+                }
+                startPoint2d = point2Ds[0];
+                endPoint2d = point2Ds[10];
             }
-            if (!periodicDomain.IsEmpty())
+            if (!periodicDomain.IsEmpty() && (!surface.IsUPeriodic || periodicDomain.Width < surface.UPeriod * (1 - 1e-6)) && (!surface.IsVPeriodic || periodicDomain.Height < surface.VPeriod * (1 - 1e-6)))
             {
                 SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref startPoint2d);
                 SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref endPoint2d);
@@ -719,6 +751,10 @@ namespace CADability
             this.startParam = startParam;
             this.endParam = endParam;
             periodicDomain = domain;
+        }
+        internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
+        {
+            GetTriangulationBasis(out interpol, out _, out interparam);
         }
         protected override void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters)
         {
@@ -845,7 +881,20 @@ namespace CADability
                 return surface;
             }
         }
-        public bool IsReverse { get => endParam < startParam; }
+        public bool IsReverse 
+        { 
+            get => endParam < startParam; 
+            internal set
+            {
+                if (value != IsReverse)
+                {
+                    double tmp = startParam;
+                    startParam = endParam;
+                    endParam = tmp;
+                    base.ClearTriangulation();
+                }
+            }
+        }
         #region ICurve2D Members
         private double Get3dParameter(double par)
         {
@@ -863,18 +912,23 @@ namespace CADability
             if (!periodicDomain.IsEmpty()) SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref uv);
             if (par3d < 1e-6 && startPointIsPole) uv = startPoint2d;
             if (par3d > 1 - 1e-6 && endPointIsPole) uv = endPoint2d;
+            if ((surface.IsUPeriodic && periodicDomain.Width > surface.UPeriod * (1 - 1e-6)) || (surface.IsVPeriodic && periodicDomain.Height > surface.VPeriod * (1 - 1e-6)))
+            {   // do not adjust when the domain is the full period and we are close to the start or endpoint. These have been adjusted correctly in the constructor
+                if (par3d < 1e-6) uv = startPoint2d;
+                else if (par3d > 1 - 1e-6) uv = endPoint2d;
+            }
             GeoVector dir3d = curve3D.DirectionAt(par3d);
             // Punkt auf der Fläche und Richtung im Raum:
             // wie drückt sich diese Raumrichtung in diru und dirv aus
             GeoPoint loc;
             GeoVector diru, dirv;
             surface.DerivationAt(uv, out loc, out diru, out dirv);
-            Matrix m = new Matrix(diru, dirv, diru ^ dirv);
-            Matrix b = new Matrix(dir3d);
-            Matrix s = m.SaveSolveTranspose(b);
-            if (s != null)
-            {
-                dir = (endParam - startParam) * new GeoVector2D(s[0, 0], s[1, 0]);
+            Matrix m = DenseMatrix.OfColumnArrays(diru, dirv, diru ^ dirv);
+            Vector b = new DenseVector(dir3d);
+            Vector s = (Vector)m.Solve(b);
+            if (s.IsValid())
+            {   // what about the length? Added the .Normalized, because in "HyperCube Evolution - Double Z motor 1.stp" the direction length is definitely wrong
+                dir = (endParam - startParam) * new GeoVector2D(s[0], s[1]).Normalized;
             }
             else
             {
@@ -886,6 +940,14 @@ namespace CADability
         {   // a face has been modified, in 2d there are no changes, but the surface and the 3d curve must be adopted
             this.surface = surface;
             this.curve3D = curve3d;
+            // following was moved to Edge.ReflectModification()
+            //if (surface.UvChangesWithModification)
+            //{
+            //    startPoint2d = surface.PositionOf(curve3D.StartPoint);
+            //    endPoint2d = surface.PositionOf(curve3D.EndPoint);
+            //    ClearTriangulation();
+            //    if (surface is IRestrictedDomain rd) surface.GetNaturalBounds(out periodicDomain.Left, out periodicDomain.Right, out periodicDomain.Bottom, out periodicDomain.Top);
+            //}
         }
 
         public override GeoVector2D DirectionAt(double Position)
@@ -901,14 +963,12 @@ namespace CADability
             GeoPoint2D res = surface.PositionOf(curve3D.PointAt(par3d));
             if (par3d < 1e-6 && startPointIsPole) res = startPoint2d;
             else if (par3d > 1 - 1e-6 && endPointIsPole) res = endPoint2d;
-            else if (par3d < 0.1 && startPointIsPole)
-            {   // close to the starting pole
-                if (spu)
-                {
-
-                }
-            }
             if (!periodicDomain.IsEmpty()) SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref res);
+            if ((surface.IsUPeriodic && periodicDomain.Width > surface.UPeriod * (1 - 1e-6)) || (surface.IsVPeriodic && periodicDomain.Height > surface.VPeriod * (1 - 1e-6)))
+            {   // do not adjust when the domain is the full period and we are close to the start or endpoint. These have been adjusted correctly in the constructor
+                if (par3d < 1e-6) res = startPoint2d;
+                else if (par3d > 1 - 1e-6) res = endPoint2d;
+            }
             return res;
         }
         public override void Reverse()
@@ -982,7 +1042,10 @@ namespace CADability
             }
             if (ok)
             {
-                periodicDomain.Move(new GeoVector2D(x, y));
+                GeoVector2D offset = new GeoVector2D(x, y);
+                periodicDomain.Move(offset);
+                startPoint2d += offset;
+                endPoint2d += offset;
                 base.ClearTriangulation();
             }
             else throw new ApplicationException("cannot move ProjectedCurve");
@@ -1025,6 +1088,13 @@ namespace CADability
             info.AddValue("StartParam", startParam);
             info.AddValue("EndParam", endParam);
             info.AddValue("PeriodicDomain", periodicDomain);
+        }
+
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            point = GeoPoint2D.Origin;
+            deriv = deriv2 = GeoVector2D.NullVector;
+            return false;
         }
 
         #endregion

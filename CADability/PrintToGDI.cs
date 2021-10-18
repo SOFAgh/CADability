@@ -1,5 +1,4 @@
-﻿#define TRACE
-
+﻿#if !WEBASSEMBLY
 using CADability.Attribute;
 using CADability.Curve2D;
 using CADability.GeoObject;
@@ -97,7 +96,7 @@ namespace CADability
             }
         }
 #endif
-        #region abstract Members
+#region abstract Members
         public abstract void Print(Graphics gr, bool doShading);
         public abstract double ZMaximum
         {
@@ -115,7 +114,7 @@ namespace CADability
 #if DEBUG
         public abstract IGeoObject Debug { get; }
 #endif
-        #endregion
+#endregion
         public bool Printed
         {
             get
@@ -480,7 +479,7 @@ namespace CADability
 
             return false;
         }
-        #region IQuadTreeInsertable Members
+#region IQuadTreeInsertable Members
 
         public abstract BoundingRect GetExtent();
         public abstract bool HitTest(ref BoundingRect rect, bool includeControlPoints);
@@ -488,7 +487,7 @@ namespace CADability
         {   // brauchen wir nicht
             get { throw new NotImplementedException(); }
         }
-        #endregion
+#endregion
 
         internal bool IsCoverdBy(IPrintItemImpl pi2)
         {
@@ -616,7 +615,7 @@ namespace CADability
             }
         }
 
-        #region IQuadTreeInsertable Members
+#region IQuadTreeInsertable Members
         public override BoundingRect GetExtent()
         {
             return new BoundingRect(new GeoPoint2D(startPoint), new GeoPoint2D(endPoint));
@@ -625,7 +624,7 @@ namespace CADability
         {
             return (new ClipRect(rect).LineHitTest(new GeoPoint2D(startPoint), new GeoPoint2D(endPoint)));
         }
-        #endregion
+#endregion
     }
 
     internal class PrintText : IPrintItemImpl
@@ -818,7 +817,7 @@ namespace CADability
             }
         }
 #endif
-        #region IQuadTreeInsertable Members
+#region IQuadTreeInsertable Members
         public override BoundingRect GetExtent()
         {
             BoundingCube bc = txt.GetBoundingCube();
@@ -829,7 +828,7 @@ namespace CADability
             return true;
             return false;
         }
-        #endregion
+#endregion
     }
 
     internal class PrintTriangle : IPrintItemImpl
@@ -1267,7 +1266,7 @@ namespace CADability
             return res;
         }
 
-        #region IQuadTreeInsertable Members
+#region IQuadTreeInsertable Members
         public override BoundingRect GetExtent()
         {
             //throw new Exception("The method or operation is not implemented.");
@@ -1278,7 +1277,7 @@ namespace CADability
             return new ClipRect(rect).TriangleHitTest(new GeoPoint2D(points[i0]), new GeoPoint2D(points[i1]), new GeoPoint2D(points[i2]));
             //throw new Exception("The method or operation is not implemented.");
         }
-        #endregion
+#endregion
     }
 
     internal class PrintBitmap : IPrintItemImpl
@@ -2151,7 +2150,7 @@ namespace CADability
             go.PaintTo3D(this);
         }
 
-        #region IPaintTo3D Members
+#region IPaintTo3D Members
         internal class Transform : IDisposable
         {
             private Graphics graphics;
@@ -2171,14 +2170,14 @@ namespace CADability
                 else newTransform.Multiply(Transform, MatrixOrder.Prepend);
                 graphics.Transform = newTransform;
             }
-            #region IDisposable Members
+#region IDisposable Members
 
             public void Dispose()
             {
                 this.graphics.Transform = previousTransform;
             }
 
-            #endregion
+#endregion
         }
         private Pen MakePen()
         {
@@ -2640,7 +2639,7 @@ namespace CADability
             throw new NotImplementedException("The method or operation is not implemented.");
         }
 
-        void IPaintTo3D.OpenList()
+        void IPaintTo3D.OpenList(string name)
         {
             throw new NotImplementedException("The method or operation is not implemented.");
         }
@@ -2829,9 +2828,9 @@ namespace CADability
             throw new NotImplementedException("The method or operation is not implemented.");
         }
 
-        #endregion
+#endregion
 
-        #region IPaintTo3D Member
+#region IPaintTo3D Member
 
 
         public bool DontRecalcTriangulation
@@ -2851,7 +2850,7 @@ namespace CADability
 
         bool IPaintTo3D.IsBitmap => throw new NotImplementedException();
 
-        #endregion
+#endregion
 
 #if DEBUG
         IGeoObject geoObjectBeeingRendered;
@@ -2863,3 +2862,4 @@ namespace CADability
 #endif
     }
 }
+#endif

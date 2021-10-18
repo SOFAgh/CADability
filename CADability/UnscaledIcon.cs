@@ -2,6 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.GeoObject
 {
@@ -13,7 +20,7 @@ namespace CADability.GeoObject
     [Serializable()]
     public class Icon : IGeoObjectImpl, ISerializable
     {
-        private System.Drawing.Bitmap bitmap;
+        private Bitmap bitmap;
         private GeoPoint location;
         private int offsetx, offsety;
         #region polymorph construction
@@ -57,7 +64,7 @@ namespace CADability.GeoObject
         /// <param name="location">Position where the icon will be displayed</param>
         /// <param name="offsetx">X-Position in the icon where location is applied</param>
         /// <param name="offsety">Y-Position in the icon where location is applied. (0,0) is lower left of the icon</param>
-        public void Set(System.Drawing.Bitmap bitmap, GeoPoint location, int offsetx, int offsety)
+        public void Set(Bitmap bitmap, GeoPoint location, int offsetx, int offsety)
         {
             using (new Changing(this))
             {
@@ -177,7 +184,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override CADability.UserInterface.IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyUnscaledIcon(this, Frame);
         }
@@ -246,7 +253,7 @@ namespace CADability.GeoObject
         #region ISerializable Members
         protected Icon(SerializationInfo info, StreamingContext context)
         {
-            bitmap = info.GetValue("Bitmap", typeof(System.Drawing.Bitmap)) as System.Drawing.Bitmap;
+            bitmap = info.GetValue("Bitmap", typeof(Bitmap)) as Bitmap;
             location = (GeoPoint)info.GetValue("Location", typeof(GeoPoint));
             offsetx = info.GetInt32("Offsetx");
             offsety = info.GetInt32("Offsety");
@@ -262,11 +269,11 @@ namespace CADability.GeoObject
         #endregion
     }
 
-    internal class ShowPropertyUnscaledIcon : IShowPropertyImpl, ICommandHandler, IGeoObjectShowProperty
+    internal class ShowPropertyUnscaledIcon : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty
     {
         private IFrame frame;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-        private IShowProperty[] subEntries;
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries;
         private Icon icon;
         public ShowPropertyUnscaledIcon(Icon icon, IFrame Frame)
         {
@@ -275,34 +282,21 @@ namespace CADability.GeoObject
             attributeProperties = icon.GetAttributeProperties(frame);
             base.resourceId = "Icon.Object";
         }
-        #region IShowProperty overrides
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        public override IShowProperty[] SubEntries
+        #region IPropertyEntry overrides
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> prop = new List<IShowProperty>();
+                    List<IPropertyEntry> prop = new List<IPropertyEntry>();
                     GeoPointProperty location = new GeoPointProperty("Icon.Location", frame, true);
                     location.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetRefPoint);
                     location.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetRefPoint);
                     prop.Add(location);
-                    IShowProperty[] mainProps = prop.ToArray();
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    IPropertyEntry[] mainProps = prop.ToArray();
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
             }
@@ -314,16 +308,6 @@ namespace CADability.GeoObject
         private void OnSetRefPoint(GeoPointProperty sender, GeoPoint p)
         {
             icon.Location = p;
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
-        /// </summary>
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
         }
         #endregion
         #region ICommandHandler Members
@@ -337,7 +321,7 @@ namespace CADability.GeoObject
         {
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
         #endregion
 

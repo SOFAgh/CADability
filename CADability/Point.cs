@@ -169,7 +169,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyPoint(this, Frame);
         }
@@ -208,12 +208,12 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty[] GetAttributeProperties(IFrame Frame)
+        public override IPropertyEntry[] GetAttributeProperties(IFrame Frame)
         {
-            ArrayList res = new ArrayList();
+            List<IPropertyEntry> res = new List<IPropertyEntry>();
             res.AddRange(base.GetAttributeProperties(Frame));
             res.Add(new PointSymbolSelectionProperty(this, "Point.PointSymbol"));
-            return (IShowProperty[])res.ToArray(typeof(IShowProperty));
+            return res.ToArray();
         }
         public delegate bool PaintTo3DDelegate(Point toPaint, IPaintTo3D paintTo3D);
         public static PaintTo3DDelegate OnPaintTo3D;
@@ -441,7 +441,7 @@ namespace CADability.GeoObject
             }
         }
 
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             GeoObjectList pointList = new GeoObjectList();
             foreach (IGeoObject go in geoObjectList)

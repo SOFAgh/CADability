@@ -180,14 +180,15 @@ namespace CADability.GeoObject
             using (new Changing(this, "SetPoints", vertex, this.closed))
             {
                 planarState = PlanarState.Unknown;
-                ArrayList al = new ArrayList(points.Length);
+                List<GeoPoint> al = new List<GeoPoint>(points.Length);
                 for (int i = 0; i < points.Length; ++i)
                 {
                     if (i > 0 && Precision.IsEqual(points[i - 1], points[i])) continue;
                     al.Add(points[i]);
                 }
                 if (al.Count < 2) throw new PolylineException("Setting a polyline with less than two different points", PolylineException.PolylineExceptionType.NoPoints);
-                vertex = (GeoPoint[])al.ToArray(typeof(GeoPoint));
+                if (closed && al[al.Count - 1] == al[0]) al.RemoveAt(al.Count - 1);
+                vertex = al.ToArray();
                 this.closed = closed;
             }
         }
@@ -552,7 +553,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyPolyline(this, Frame);
         }
@@ -844,7 +845,7 @@ namespace CADability.GeoObject
                 else return vertex[vertex.Length - 1];
             }
             set
-            {	
+            {
                 if (IsClosed) SetPoint(0, value);
                 else SetPoint(vertex.Length - 1, value);
             }
@@ -1186,7 +1187,8 @@ namespace CADability.GeoObject
                 else if (EndPos == 1.0)
                 {
                     ICurve[] crvs = Split(StartPos);
-                    SetPoints((crvs[1] as Polyline).vertex, false);
+                    if (crvs.Length > 1) SetPoints((crvs[1] as Polyline).vertex, false);
+                    else SetPoints((crvs[0] as Polyline).vertex, false);
                 }
                 else
                 {
@@ -1453,7 +1455,8 @@ namespace CADability.GeoObject
         }
         double ICurve.ParameterToPosition(double parameter)
         {
-            return (this as ICurve).PositionAtLength(parameter);
+            return parameter / Length;
+            // return (this as ICurve).PositionAtLength(parameter);
         }
         double ICurve.PositionToParameter(double position)
         {
@@ -1473,7 +1476,22 @@ namespace CADability.GeoObject
         }
         double[] ICurve.GetExtrema(GeoVector direction)
         {
-            return new double[0];
+            List<double> res = new List<double>();
+            int c = vertex.Length;
+            if (closed) ++c;
+            GeoPoint sp = StartPoint;
+            for (int i = 0; i < vertex.Length; i++)
+            {
+                if (!closed && i == 0 || i == vertex.Length - 1) continue;
+                double before, after;
+                if (i == 0) before = Geometry.LinePar(sp, direction, vertex[vertex.Length - 1]);
+                else before = Geometry.LinePar(sp, direction, vertex[i - 1]);
+                if (i == vertex.Length - 1) after = 0.0;
+                else after = Geometry.LinePar(sp, direction, vertex[i + 1]);
+                double lp = Geometry.LinePar(sp, direction, vertex[i]);
+                if ((lp <= before && lp <= after) || (lp >= before && lp >= after)) res.Add(i / (double)c);
+            }
+            return res.ToArray();
         }
         double[] ICurve.GetPlaneIntersection(Plane plane)
         {
@@ -1495,14 +1513,21 @@ namespace CADability.GeoObject
                 if (plane.Intersect(sp, ep - sp, out GeoPoint pnt))
                 {
                     double par = Geometry.LinePar(sp, ep, pnt);
-                    if (par >= 0.0 && par <= 1.0)
+                    //bool ok; // we only want the inner intersection points, except with an open Polyline we would allow outside points for the first and last segment
+                    //if (closed) ok = (par >= 0.0 && par <= 1.0);
+                    //else
+                    //{
+                    //    ok = (i == 0 || par >= 0.0) && (i == vertex.Length - 1 || par <= 1.0);
+                    //}
+                    // it looks like we only want inner intersection points not in the extension of the curve. at least SphericalSurfaceNP assumes this in its constructor
+                    if ((par >= 0.0 && par <= 1.0))
                     {
                         if (!closed)
                             par = (i + par) / (vertex.Length - 1);
                         else
                             par = (i + par) / (vertex.Length);
+                        res.Add(par);
                     }
-                    res.Add(par);
                 }
             }
             return res.ToArray();
@@ -1633,7 +1658,7 @@ namespace CADability.GeoObject
         #endregion
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
-            if (vertex.Length==2)
+            if (vertex.Length == 2)
             {
                 Line ln = Line.TwoPoints(vertex[0], vertex[1]);
                 return (ln as IExportStep).Export(export, topLevel);

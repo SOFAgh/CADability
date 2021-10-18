@@ -43,7 +43,7 @@ namespace CADability.Curve2D
         }
         #region ICurve2D Members
         internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
-        {   // für GeneralCurve2D
+        {   // for GeneralCurve2D
             interpol = new GeoPoint2D[] { startPoint, endPoint };
             interparam = new double[] { 0.0, 1.0 };
         }
@@ -110,6 +110,13 @@ namespace CADability.Curve2D
             double dx = endPoint.x - startPoint.x;
             double dy = endPoint.y - startPoint.y;
             return new GeoPoint2D(startPoint.x + Position * dx, startPoint.y + Position * dy);
+        }
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            point = PointAt(position);
+            deriv = endPoint - startPoint;
+            deriv2 = GeoVector2D.NullVector;
+            return true;
         }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.PositionOf (GeoPoint2D)"/>

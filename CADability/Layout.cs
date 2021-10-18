@@ -1,4 +1,5 @@
-﻿using CADability.Attribute;
+﻿#if !WEBASSEMBLY
+using CADability.Attribute;
 using CADability.Shapes;
 using System;
 using System.Collections;
@@ -283,17 +284,7 @@ namespace CADability
                 name = value;
             }
         }
-        #region ISerializable Members
-        /// <summary>
-        /// Used by deserialization.
-        /// </summary>
-        /// <param name="info">see ISerializable</param>
-        /// <param name="context">see ISerializable</param>
-        /// <summary>
-        /// Constructor required by deserialization
-        /// </summary>
-        /// <param name="info">SerializationInfo</param>
-        /// <param name="context">StreamingContext</param>
+#region ISerializable Members
         protected Layout(SerializationInfo info, StreamingContext context)
         {
             SerializationInfoEnumerator e = info.GetEnumerator();
@@ -330,6 +321,7 @@ namespace CADability
             if (pageSettings != null) info.AddValue("PageSettings", pageSettings);
         }
 
-        #endregion
+#endregion
     }
 }
+#endif

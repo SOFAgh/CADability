@@ -1,4 +1,5 @@
 ﻿using MathNet.Numerics;
+using System.Numerics;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -23,7 +24,6 @@ namespace CADability.GeoObject
         public int precis = 0; //Konstante für die gewünschte Iterationsstufe bei der Bogenlängenparametriesierung
         public double[] t; //Segmentlängen im Bezug auf den Parameterbereich
         public double[] par; //Parameterwerte in den Kontrollpunkten
-
 
         public PHCurve()
         {
@@ -125,7 +125,7 @@ namespace CADability.GeoObject
             */
             Complex apos = (position - par[i]) / t[i + 1] - a[i], bpos = (position - par[i]) / t[i + 1] - b[i];
             //Farouki, S. 528 f.
-            GeoPoint p = pFromComplex(fromStdPoint(k[i] / 30 * (apos.Pow(5.0) - 5 * apos.Pow(4.0) * bpos + 10 * apos.Square() * apos * bpos.Square()) + c[i], i));
+            GeoPoint p = pFromComplex(fromStdPoint(k[i] / 30 * (apos.Power(5.0) - 5 * apos.Power(4.0) * bpos + 10 * apos.Square() * apos * bpos.Square()) + c[i], i));
             return p;
         }
         public GeoVector Direction2At(double position)
@@ -185,7 +185,7 @@ namespace CADability.GeoObject
             if (Position != par[i])
             {
                 pts1[i + 1] = p;
-                devs1[i] = vFromComplex(Complex.FromRealImaginary(derivs[i].x, derivs[i].y) * ((Position - par[i])) / (par[i + 1] - par[i]));
+                devs1[i] = vFromComplex(new Complex(derivs[i].x, derivs[i].y) * ((Position - par[i])) / (par[i + 1] - par[i]));
 
             }
 
@@ -193,9 +193,9 @@ namespace CADability.GeoObject
 
             if (Position != par[i])
             {
-                devs2[0] = vFromComplex(Complex.FromRealImaginary(v.x, v.y) * ((par[i + 1] - Position) / (par[i + 1] - par[i])));
-                devs21[i] = vFromComplex(Complex.FromRealImaginary(v.x, v.y) * ((Position - par[i]) / (par[i + 1] - par[i])));
-                devs22[0] = vFromComplex(Complex.FromRealImaginary(derivs2[i].x, derivs2[i].y) * ((par[i + 1] - Position) / (par[i + 1] - par[i])));
+                devs2[0] = vFromComplex(new Complex(v.x, v.y) * ((par[i + 1] - Position) / (par[i + 1] - par[i])));
+                devs21[i] = vFromComplex(new Complex(v.x, v.y) * ((Position - par[i]) / (par[i + 1] - par[i])));
+                devs22[0] = vFromComplex(new Complex(derivs2[i].x, derivs2[i].y) * ((par[i + 1] - Position) / (par[i + 1] - par[i])));
             }
             else
             {
@@ -277,13 +277,13 @@ namespace CADability.GeoObject
             {
                 pts1[0] = p1;
                 pts1[1] = p2;
-                devs1[0] = vFromComplex(Complex.FromRealImaginary(v1.x, v1.y) * (Position2 - Position1) / (par[i1 + 1] - par[i1]));
-                devs21[0] = vFromComplex(Complex.FromRealImaginary(v2.x, v2.y) * (Position2 - Position1) / (par[i1 + 1] - par[i1]));
+                devs1[0] = vFromComplex(new Complex(v1.x, v1.y) * (Position2 - Position1) / (par[i1 + 1] - par[i1]));
+                devs21[0] = vFromComplex(new Complex(v2.x, v2.y) * (Position2 - Position1) / (par[i1 + 1] - par[i1]));
             }
             else
             {
                 pts1[0] = p1;
-                devs1[0] = vFromComplex(Complex.FromRealImaginary(v1.x, v1.y) * (par[i1 + 1] - Position1) / (par[i1 + 1] - par[i1]));
+                devs1[0] = vFromComplex(new Complex(v1.x, v1.y) * (par[i1 + 1] - Position1) / (par[i1 + 1] - par[i1]));
                 if (Position1 != par[i1 + 1])
                 {
                     for (int j = 1; j < i2 - i1; ++j)
@@ -296,10 +296,10 @@ namespace CADability.GeoObject
                     if (Position2 != par[i2])
                     {
                         pts1[i2 - i1 + 1] = p2;
-                        devs1[i2 - i1] = vFromComplex(Complex.FromRealImaginary(derivs[i2].x, derivs[i2].y) * (Position2 - par[i2]) / (par[i2 + 1] - par[i2]));
-                        devs21[i2 - i1] = vFromComplex(Complex.FromRealImaginary(v2.x, v2.y) * ((Position2 - par[i2]) / (par[i2 + 1] - par[i2])));
+                        devs1[i2 - i1] = vFromComplex(new Complex(derivs[i2].x, derivs[i2].y) * (Position2 - par[i2]) / (par[i2 + 1] - par[i2]));
+                        devs21[i2 - i1] = vFromComplex(new Complex(v2.x, v2.y) * ((Position2 - par[i2]) / (par[i2 + 1] - par[i2])));
                     }
-                    devs21[0] = vFromComplex(Complex.FromRealImaginary(derivs2[i1].x, derivs2[i1].y) * (par[i1 + 1] - Position1) / (par[i1 + 1] - par[i1]));
+                    devs21[0] = vFromComplex(new Complex(derivs2[i1].x, derivs2[i1].y) * (par[i1 + 1] - Position1) / (par[i1 + 1] - par[i1]));
                     for (int j = 1; j < i2 - i1; ++j)
                     {
                         devs21[j] = derivs2[j + i1];
@@ -316,8 +316,8 @@ namespace CADability.GeoObject
                     if (Position2 != par[i2])
                     {
                         pts1[i2 - i1] = p2;
-                        devs1[i2 - i1 - 1] = vFromComplex(Complex.FromRealImaginary(derivs[i2].x, derivs[i2].y) * (Position2 - par[i2]) / (par[i2 + 1] - par[i2]));
-                        devs21[i2 - i1 - 1] = vFromComplex(Complex.FromRealImaginary(v2.x, v2.y) * (Position2 - par[i2]) / (par[i2 + 1] - par[i2]));
+                        devs1[i2 - i1 - 1] = vFromComplex(new Complex(derivs[i2].x, derivs[i2].y) * (Position2 - par[i2]) / (par[i2 + 1] - par[i2]));
+                        devs21[i2 - i1 - 1] = vFromComplex(new Complex(v2.x, v2.y) * (Position2 - par[i2]) / (par[i2 + 1] - par[i2]));
                     }
 
                     for (int j = 0; j < i2 - i1 - 1; ++j)
@@ -330,8 +330,8 @@ namespace CADability.GeoObject
 
             if (Position2 != par[i2])
             {
-                devs2[0] = vFromComplex(Complex.FromRealImaginary(v2.x, v2.y) * (par[i2 + 1] - Position2) / (par[i2 + 1] - par[i2]));
-                devs22[0] = vFromComplex(Complex.FromRealImaginary(derivs2[i2].x, derivs2[i2].y) * (par[i2 + 1] - Position2) / (par[i2 + 1] - par[i2]));
+                devs2[0] = vFromComplex(new Complex(v2.x, v2.y) * (par[i2 + 1] - Position2) / (par[i2 + 1] - par[i2]));
+                devs22[0] = vFromComplex(new Complex(derivs2[i2].x, derivs2[i2].y) * (par[i2 + 1] - Position2) / (par[i2 + 1] - par[i2]));
             }
             else
             {
@@ -341,8 +341,8 @@ namespace CADability.GeoObject
 
             if (Position1 != par[i1 + 1])
             {
-                devs2[points.Length - i2 + i1 - 1] = vFromComplex(Complex.FromRealImaginary(derivs[i1].x, derivs[i1].y) * (Position1 - par[i1]) / (par[i1 + 1] - par[i1]));
-                devs22[points.Length - i2 + i1 - 1] = vFromComplex(Complex.FromRealImaginary(v1.x, v1.y) * (Position1 - par[i1]) / (par[i1 + 1] - par[i1]));
+                devs2[points.Length - i2 + i1 - 1] = vFromComplex(new Complex(derivs[i1].x, derivs[i1].y) * (Position1 - par[i1]) / (par[i1 + 1] - par[i1]));
+                devs22[points.Length - i2 + i1 - 1] = vFromComplex(new Complex(v1.x, v1.y) * (Position1 - par[i1]) / (par[i1 + 1] - par[i1]));
             }
             else
             {
@@ -495,7 +495,7 @@ namespace CADability.GeoObject
             double s = 0;
             for (int i = 1; i < pts.Length; ++i)
             {
-                t[i] = (Complex.FromRealImaginary(pts[i].x, pts[i].y) - Complex.FromRealImaginary(pts[i - 1].x, pts[i - 1].y)).Modulus;
+                t[i] = (new Complex(pts[i].x, pts[i].y) - new Complex(pts[i - 1].x, pts[i - 1].y)).Magnitude;
                 s += t[i];
             }
             for (int i = 1; i < pts.Length; ++i)
@@ -537,11 +537,11 @@ namespace CADability.GeoObject
                 a[n] = 1;
                 b[n] = 1;
                 c[n] = 0;
-                r[0] = 2 * Complex.FromRealImaginary((pts[1] - pts[0]).x, (pts[1] - pts[0]).y) / t[1];
-                r[n] = 2 * Complex.FromRealImaginary((pts[n] - pts[n - 1]).x, (pts[n] - pts[n - 1]).y) / t[n];
+                r[0] = 2 * new Complex((pts[1] - pts[0]).x, (pts[1] - pts[0]).y) / t[1];
+                r[n] = 2 * new Complex((pts[n] - pts[n - 1]).x, (pts[n] - pts[n - 1]).y) / t[n];
                 for (int j = 1; j <= n - 1; ++j)
                 {
-                    r[j] = 3 * ((t[j] / t[j + 1]) * Complex.FromRealImaginary((pts[j + 1] - pts[j]).x, (pts[j + 1] - pts[j]).y) + (t[j + 1] / t[j]) * Complex.FromRealImaginary((pts[j] - pts[j - 1]).x, (pts[j] - pts[j - 1]).y));
+                    r[j] = 3 * ((t[j] / t[j + 1]) * new Complex((pts[j + 1] - pts[j]).x, (pts[j + 1] - pts[j]).y) + (t[j + 1] / t[j]) * new Complex((pts[j] - pts[j - 1]).x, (pts[j] - pts[j - 1]).y));
                 }
                 beta[0] = b[0];
                 rho[0] = r[0];
@@ -581,11 +581,11 @@ namespace CADability.GeoObject
                     b[j] = 2 * (t[j] + t[j + 1]);
                     c[j] = t[j];
                 }
-                r[0] = 3 * ((t[n] / t[1]) * Complex.FromRealImaginary((pts[1] - pts[0]).x, (pts[1] - pts[0]).y) + (t[1] / t[n]) * Complex.FromRealImaginary((pts[0] - pts[n - 1]).x, (pts[0] - pts[n - 1]).y));
+                r[0] = 3 * ((t[n] / t[1]) * new Complex((pts[1] - pts[0]).x, (pts[1] - pts[0]).y) + (t[1] / t[n]) * new Complex((pts[0] - pts[n - 1]).x, (pts[0] - pts[n - 1]).y));
                 r[n] = r[0];
                 for (int j = 1; j <= n - 1; ++j)
                 {
-                    r[j] = 3 * ((t[j] / t[j + 1]) * Complex.FromRealImaginary((pts[j + 1] - pts[j]).x, (pts[j + 1] - pts[j]).y) + (t[j + 1] / t[j]) * Complex.FromRealImaginary((pts[j] - pts[j - 1]).x, (pts[j] - pts[j - 1]).y));
+                    r[j] = 3 * ((t[j] / t[j + 1]) * new Complex((pts[j + 1] - pts[j]).x, (pts[j + 1] - pts[j]).y) + (t[j + 1] / t[j]) * new Complex((pts[j] - pts[j - 1]).x, (pts[j] - pts[j - 1]).y));
                 }
                 beta[0] = b[0];
                 rho[0] = r[0];
@@ -638,11 +638,11 @@ namespace CADability.GeoObject
             // für den iterativen Ansatz:
             //Ermittlung der Startapproximation z
             /*
-            q[1] = 6 * Complex.FromRealImaginary((pts[1] - pts[0]).x, (pts[1] - pts[0]).y) - (d[0]+d[1]).Sqrt();
+            q[1] = 6 * new Complex((pts[1] - pts[0]).x, (pts[1] - pts[0]).y) - (d[0]+d[1]).SquareRoot();
             for (int i = 2; i <= n; ++i)
             {
-                q[i] = (6 * Complex.FromRealImaginary((pts[i] - pts[i-1]).x, (pts[i] - pts[i-1]).y) - (d[i-1]+d[i])).Sqrt();
-                if (q[i].Real * q[i - 1].Real + q[i].Imag * q[i - 1].Imag < 0)
+                q[i] = (6 * new Complex((pts[i] - pts[i-1]).x, (pts[i] - pts[i-1]).y) - (d[i-1]+d[i])).SquareRoot();
+                if (q[i].Real * q[i - 1].Real + q[i].Imaginary* q[i - 1].Imaginary< 0)
                     q[i] *= -1;
             }
 
@@ -658,13 +658,13 @@ namespace CADability.GeoObject
             a[n] = 0;
             b[n] = 0;
             c[n] = 1;
-            r[1] = 0.5 * q[1].Sqrt();
-            r[n] = 0.5 * q[n].Sqrt();
-            r[2] = 4 * q[2].Sqrt() - r[1];
-            r[n - 1] = 4 * q[n - 1].Sqrt() - r[n];
+            r[1] = 0.5 * q[1].SquareRoot();
+            r[n] = 0.5 * q[n].SquareRoot();
+            r[2] = 4 * q[2].SquareRoot() - r[1];
+            r[n - 1] = 4 * q[n - 1].SquareRoot() - r[n];
             for (int j = 3; j < n - 1; ++j)
             {
-                r[j] = 4 * q[j].Sqrt();
+                r[j] = 4 * q[j].SquareRoot();
             }
             z[1] = r[1];
             z[n] = r[n];
@@ -699,11 +699,11 @@ namespace CADability.GeoObject
                     a[n - 1] = 2 * z[n - 1] - 2 * z[n];
                     b[n - 1] = 26 * z[n] - 2 * z[n - 1];
                     c[n - 1] = 0;
-                    r[0] = -(13 * z[1].Square() + z[2].Square() - 2 * z[1] * z[2] - 12 * Complex.FromRealImaginary((pts[1] - pts[0]).x, (pts[1] - pts[0]).y));
-                    r[n - 1] = -(13 * z[n].Square() + z[n - 1].Square() - 2 * z[n] * z[n - 1] - 12 * Complex.FromRealImaginary((pts[n] - pts[n - 1]).x, (pts[n] - pts[n - 1]).y));
+                    r[0] = -(13 * z[1].Square() + z[2].Square() - 2 * z[1] * z[2] - 12 * new Complex((pts[1] - pts[0]).x, (pts[1] - pts[0]).y));
+                    r[n - 1] = -(13 * z[n].Square() + z[n - 1].Square() - 2 * z[n] * z[n - 1] - 12 * new Complex((pts[n] - pts[n - 1]).x, (pts[n] - pts[n - 1]).y));
                     for (int j = 1; j < n - 1; ++j)
                     {
-                        r[j] = 3 * z[j - 1].Square() + 27 * z[j].Square() + 3 * z[j + 1].Square() + z[j - 1] * z[j + 1] + 13 * z[j - 1] * z[j] + 13 * z[j] * z[j + 1] - 60 * Complex.FromRealImaginary((pts[j] - pts[j - 1]).x, (pts[j] - pts[j - 1]).y);
+                        r[j] = 3 * z[j - 1].Square() + 27 * z[j].Square() + 3 * z[j + 1].Square() + z[j - 1] * z[j + 1] + 13 * z[j - 1] * z[j] + 13 * z[j] * z[j + 1] - 60 * new Complex((pts[j] - pts[j - 1]).x, (pts[j] - pts[j - 1]).y);
                     }
                     beta[0] = b[0];
                     rho[0] = r[0];
@@ -737,7 +737,7 @@ namespace CADability.GeoObject
             SortedList<double, Pair<Complex, Complex>> ab = new SortedList<double, Pair<Complex, Complex>>(4);
             d0 = stdDeriv(derivs[i], i);
             d1 = stdDeriv(derivs2[i], i);
-            rho1 = (d0 / d1).Sqrt();
+            rho1 = (d0 / d1).SquareRoot();
             rho2 = -rho1;
             rhosqr = d0 / d1;
             alpha11 = quadSol1(-3 * (1 + rho1), 6 * rhosqr + 2 * rho1 + 6 - 30 / d1);
@@ -767,7 +767,7 @@ namespace CADability.GeoObject
             a[i] = ab.Values[0].First;
             b[i] = ab.Values[0].Second;
             k[i] = d0 / (a[i].Square() * b[i].Square());
-            c[i] = k[i] / 30 * (a[i].Pow(5.0) - 5 * a[i].Pow(4.0) * b[i] + 10 * a[i].Square() * a[i] * b[i].Square());
+            c[i] = k[i] / 30 * (a[i].Power(5.0) - 5 * a[i].Power(4.0) * b[i] + 10 * a[i].Square() * a[i] * b[i].Square());
         }
         private void calculateCPoints()
         {
@@ -802,17 +802,17 @@ namespace CADability.GeoObject
             double pos = (param - par[i]) / t[i + 1];
             for (int j = 0; j <= i; ++j)
             {
-                w[0, j] = k[j].Sqrt() * a[j] * b[j];
-                w[1, j] = -k[j].Sqrt() * 0.5 * (a[j] * (1 - b[j]) + (1 - a[j]) * b[j]);
-                w[2, j] = k[j].Sqrt() * (1 - a[j]) * (1 - b[j]);
+                w[0, j] = k[j].SquareRoot() * a[j] * b[j];
+                w[1, j] = -k[j].SquareRoot() * 0.5 * (a[j] * (1 - b[j]) + (1 - a[j]) * b[j]);
+                w[2, j] = k[j].SquareRoot() * (1 - a[j]) * (1 - b[j]);
             }
             for (int j = 0; j <= i; ++j)
             {
-                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imag * w[0, j].Imag;
-                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imag * w[1, j].Imag;
-                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imag * w[1, j].Imag) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imag * w[2, j].Imag);
-                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imag * w[2, j].Imag;
-                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imag * w[2, j].Imag;
+                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imaginary* w[0, j].Imaginary;
+                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imaginary* w[1, j].Imaginary;
+                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imaginary* w[1, j].Imaginary) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imaginary* w[2, j].Imaginary);
+                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imaginary* w[2, j].Imaginary;
+                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imaginary* w[2, j].Imaginary;
             }
             for (int j = 0; j <= i; ++j)
             {
@@ -821,9 +821,9 @@ namespace CADability.GeoObject
                         s[k, j] += sigma[l, j] / 5.0;
             }
             for (int j = 0; j < i; ++j)
-                r += (fromStdDeriv(s[5, j], j)).Modulus;
+                r += (fromStdDeriv(s[5, j], j)).Magnitude;
             for (int k = 0; k <= 5; ++k)
-                r += (fromStdDeriv(s[k, i] * (faculty(5) / (faculty(k) * faculty(5 - k))) * Math.Pow(1 - pos, 5 - k) * Math.Pow(pos, k), i)).Modulus;
+                r += (fromStdDeriv(s[k, i] * (faculty(5) / (faculty(k) * faculty(5 - k))) * Math.Pow(1 - pos, 5 - k) * Math.Pow(pos, k), i)).Magnitude;
             return r;
         }
         public double paramSpeed(double param)
@@ -839,20 +839,20 @@ namespace CADability.GeoObject
             double pos = (param - par[i]) / t[i + 1];
             for (int j = 0; j <= i; ++j)
             {
-                w[0, j] = k[j].Sqrt() * a[j] * b[j];
-                w[1, j] = -k[j].Sqrt() * 0.5 * (a[j] * (1 - b[j]) + (1 - a[j]) * b[j]);
-                w[2, j] = k[j].Sqrt() * (1 - a[j]) * (1 - b[j]);
+                w[0, j] = k[j].SquareRoot() * a[j] * b[j];
+                w[1, j] = -k[j].SquareRoot() * 0.5 * (a[j] * (1 - b[j]) + (1 - a[j]) * b[j]);
+                w[2, j] = k[j].SquareRoot() * (1 - a[j]) * (1 - b[j]);
             }
             for (int j = i; j == i; ++j)
             {
-                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imag * w[0, j].Imag;
-                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imag * w[1, j].Imag;
-                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imag * w[1, j].Imag) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imag * w[2, j].Imag);
-                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imag * w[2, j].Imag;
-                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imag * w[2, j].Imag;
+                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imaginary* w[0, j].Imaginary;
+                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imaginary* w[1, j].Imaginary;
+                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imaginary* w[1, j].Imaginary) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imaginary* w[2, j].Imaginary);
+                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imaginary* w[2, j].Imaginary;
+                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imaginary* w[2, j].Imaginary;
             }
             for (int k = 0; k <= 4; ++k)
-                r += (fromStdDeriv(sigma[k, i] * (faculty(4) / (faculty(k) * faculty(4 - k))) * Math.Pow(1 - pos, 4 - k) * Math.Pow(pos, k), i)).Modulus;
+                r += (fromStdDeriv(sigma[k, i] * (faculty(4) / (faculty(k) * faculty(4 - k))) * Math.Pow(1 - pos, 4 - k) * Math.Pow(pos, k), i)).Magnitude;
             return r;
         }
         private double faculty(int n)
@@ -867,65 +867,65 @@ namespace CADability.GeoObject
         public Complex stdPoint(GeoPoint p, int i)
         {
             //Normierung auf Einheitsintervall
-            Complex z = Complex.FromRealImaginary(p.x - this.points[i].x, p.y - this.points[i].y);
-            return z / Complex.FromRealImaginary(this.points[i + 1].x - this.points[i].x, this.points[i + 1].y - this.points[i].y);
+            Complex z = new Complex(p.x - this.points[i].x, p.y - this.points[i].y);
+            return z / new Complex(this.points[i + 1].x - this.points[i].x, this.points[i + 1].y - this.points[i].y);
         }
         public Complex fromStdPoint(Complex z, int i)
         {
-            Complex sp = Complex.FromRealImaginary(this.points[i].x, this.points[i].y);
-            Complex ep = Complex.FromRealImaginary(this.points[i + 1].x, this.points[i + 1].y);
+            Complex sp = new Complex(this.points[i].x, this.points[i].y);
+            Complex ep = new Complex(this.points[i + 1].x, this.points[i + 1].y);
             return z * (ep - sp) + sp;
         }
         public Complex stdDeriv(GeoVector v, int i)
         {
             //Normierung auf Einheitsintervall
-            Complex z = Complex.FromRealImaginary(v.x, v.y);
-            return z / Complex.FromRealImaginary(this.points[i + 1].x - this.points[i].x, this.points[i + 1].y - this.points[i].y);
+            Complex z = new Complex(v.x, v.y);
+            return z / new Complex(this.points[i + 1].x - this.points[i].x, this.points[i + 1].y - this.points[i].y);
         }
         public Complex fromStdDeriv(Complex z, int i)
         {
-            Complex sp = Complex.FromRealImaginary(this.points[i].x, this.points[i].y);
-            Complex ep = Complex.FromRealImaginary(this.points[i + 1].x, this.points[i + 1].y);
+            Complex sp = new Complex(this.points[i].x, this.points[i].y);
+            Complex ep = new Complex(this.points[i + 1].x, this.points[i + 1].y);
             return z * (ep - sp);
         }
         public GeoPoint pFromComplex(Complex z)
         {
-            return new GeoPoint(z.Real, z.Imag);
+            return new GeoPoint(z.Real, z.Imaginary);
         }
         public GeoVector vFromComplex(Complex z)
         {
-            return new GeoVector(z.Real, z.Imag, 0);
+            return new GeoVector(z.Real, z.Imaginary, 0);
         }
         private Complex quadSol1(Complex p, Complex q)
         {
-            return -p / 2 + (p.Square() / 4 - q).Sqrt();
+            return -p / 2 + (p.Square() / 4 - q).SquareRoot();
         }
         private Complex quadSol2(Complex p, Complex q)
         {
-            return -p / 2 - (p.Square() / 4 - q).Sqrt();
+            return -p / 2 - (p.Square() / 4 - q).SquareRoot();
         }
         //Absoluter Rotationsindex nach Farouki, S. 531 ff.
         private double absRotInd(Complex a, Complex b)
         {
-            if (a.Imag >= 0 && b.Imag >= 0 || a.Imag <= 0 && b.Imag <= 0)
-                return (Math.Abs((a - 1).Argument - a.Argument) + Math.Abs((b - 1).Argument - b.Argument)) / Math.PI;
+            if (a.Imaginary>= 0 && b.Imaginary>= 0 || a.Imaginary<= 0 && b.Imaginary<= 0)
+                return (Math.Abs((a - 1).Atan().Real - a.Atan().Real) + Math.Abs((b - 1).Atan().Real - b.Atan().Real)) / Math.PI;
             else
             {
-                Complex t1c = quadSol1(-2 * (a * b).Imag / (a + b).Imag, (a.ModulusSquared * b + b.ModulusSquared * a).Imag / (a + b).Imag);
-                Complex t2c = quadSol2(-2 * (a * b).Imag / (a + b).Imag, (a.ModulusSquared * b + b.ModulusSquared * a).Imag / (a + b).Imag);
+                Complex t1c = quadSol1(-2 * (a * b).Imaginary/ (a + b).Imaginary, (a.MagnitudeSquared() * b + b.MagnitudeSquared() * a).Imaginary/ (a + b).Imaginary);
+                Complex t2c = quadSol2(-2 * (a * b).Imaginary/ (a + b).Imaginary, (a.MagnitudeSquared() * b + b.MagnitudeSquared() * a).Imaginary/ (a + b).Imaginary);
                 double t1 = t1c.Real;
                 double t2 = t2c.Real;
                 double result = 0;
                 List<double> roots = new List<double>();
                 roots.Add(0);
-                if (t1c.Imag == 0 && t1 > 0 && t1 < 1)
+                if (t1c.Imaginary== 0 && t1 > 0 && t1 < 1)
                     roots.Add(t1);
-                if (t2c.Imag == 0 && t2 > 0 && t2 < 1)
+                if (t2c.Imaginary== 0 && t2 > 0 && t2 < 1)
                     roots.Add(t2);
                 roots.Add(1);
                 roots.Sort();
                 for (int i = 0; i < roots.Count - 2; ++i)
-                    result += Math.Abs(Math.Abs((a - roots[i + 1]).Argument - (a - roots[i]).Argument) - Math.Abs((b - roots[i + 1]).Argument + (b - roots[i]).Argument));
+                    result += Math.Abs(Math.Abs((a - roots[i + 1]).Atan().Real - (a - roots[i]).Atan().Real) - Math.Abs((b - roots[i + 1]).Atan().Real + (b - roots[i]).Atan().Real));
                 return result / Math.PI;
             }
         }
@@ -1043,14 +1043,14 @@ namespace CADability.GeoObject
             double p = paramSpeed(position);
             double p1 = paramSpeedDeriv(position);
             Complex f = fromStdDeriv(1, i);
-            Complex fm = fromStdDeriv(1, i).Modulus;
+            Complex fm = fromStdDeriv(1, i).Magnitude;
             Complex apos = (position - theCurve.par[i]) / theCurve.t[i + 1] - theCurve.a[i];
             Complex bpos = (position - theCurve.par[i]) / theCurve.t[i + 1] - theCurve.b[i];
             */
             GeoVector vec = (paramSpeed(position) * theCurve.Direction2At(position) - paramSpeedDeriv(position) * theCurve.DirectionAt(position)) / (paramSpeed(position) * paramSpeed(position));
             //GeoVector v = vFromComplex(f * theCurve.k[i] * (apos * bpos).Square() + offset * ((f * 2 * theCurve.k[i] * apos * bpos * (apos + bpos) * p - f * theCurve.k[i] * (apos * bpos).Square() * p1) / (fm * p * p)));
             //GeoVector v = vFromComplex((fromStdDeriv(theCurve.k[i] * (apos * bpos).Square(), i) + offset * (fromStdDeriv(-theCurve.k[i] * (apos * bpos).Square() * paramSpeedDeriv(position), i) + fromStdDeriv(paramSpeed(position) * 2 * theCurve.k[i] * apos * bpos * (bpos + apos), i) / fromStdDeriv((Complex)(paramSpeed(position) * paramSpeed(position)),i))));
-            GeoVector v = theCurve.DirectionAt(position) - offset * vFromComplex(Complex.I * Complex.FromRealImaginary(vec.x, vec.y));
+            GeoVector v = theCurve.DirectionAt(position) - offset * vFromComplex(Complex.ImaginaryOne * new Complex(vec.x, vec.y));
             return v;
         }
         public override GeoPoint PointAt(double position)
@@ -1059,7 +1059,7 @@ namespace CADability.GeoObject
             while (position > theCurve.par[i + 1])
                 i += 1;
             Complex apos = (position - theCurve.par[i]) / theCurve.t[i + 1] - theCurve.a[i], bpos = (position - theCurve.par[i]) / theCurve.t[i + 1] - theCurve.b[i];
-            GeoPoint p = pFromComplex(fromStdPoint(theCurve.k[i] / 30 * (apos.Pow(5.0) - 5 * apos.Pow(4.0) * bpos + 10 * apos.Square() * apos * bpos.Square()) + theCurve.c[i], i) + offset / paramSpeed(position) * fromStdDeriv(-theCurve.k[i] * (apos * bpos).Square() * Complex.I, i));
+            GeoPoint p = pFromComplex(fromStdPoint(theCurve.k[i] / 30 * (apos.Power(5.0) - 5 * apos.Power(4.0) * bpos + 10 * apos.Square() * apos * bpos.Square()) + theCurve.c[i], i) + offset / paramSpeed(position) * fromStdDeriv(-theCurve.k[i] * (apos * bpos).Square() * Complex.ImaginaryOne, i));
             return p;
         }
         public override void Reverse()
@@ -1159,17 +1159,17 @@ namespace CADability.GeoObject
             double pos = (param - theCurve.par[i]) / theCurve.t[i + 1];
             for (int j = 0; j <= i; ++j)
             {
-                w[0, j] = theCurve.k[j].Sqrt() * theCurve.a[j] * theCurve.b[j];
-                w[1, j] = -theCurve.k[j].Sqrt() * 0.5 * (theCurve.a[j] * (1 - theCurve.b[j]) + (1 - theCurve.a[j]) * theCurve.b[j]);
-                w[2, j] = theCurve.k[j].Sqrt() * (1 - theCurve.a[j]) * (1 - theCurve.b[j]);
+                w[0, j] = theCurve.k[j].SquareRoot() * theCurve.a[j] * theCurve.b[j];
+                w[1, j] = -theCurve.k[j].SquareRoot() * 0.5 * (theCurve.a[j] * (1 - theCurve.b[j]) + (1 - theCurve.a[j]) * theCurve.b[j]);
+                w[2, j] = theCurve.k[j].SquareRoot() * (1 - theCurve.a[j]) * (1 - theCurve.b[j]);
             }
             for (int j = 0; j <= i; ++j)
             {
-                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imag * w[0, j].Imag;
-                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imag * w[1, j].Imag;
-                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imag * w[1, j].Imag) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imag * w[2, j].Imag);
-                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imag * w[2, j].Imag;
-                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imag * w[2, j].Imag;
+                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imaginary* w[0, j].Imaginary;
+                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imaginary* w[1, j].Imaginary;
+                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imaginary* w[1, j].Imaginary) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imaginary* w[2, j].Imaginary);
+                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imaginary* w[2, j].Imaginary;
+                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imaginary* w[2, j].Imaginary;
             }
             for (int j = 0; j <= i; ++j)
             {
@@ -1178,9 +1178,9 @@ namespace CADability.GeoObject
                         s[k, j] += sigma[l, j] / 5.0;
             }
             for (int j = 0; j < i; ++j)
-                r += (fromStdDeriv(s[5, j], j)).Modulus;
+                r += (fromStdDeriv(s[5, j], j)).Magnitude;
             for (int k = 0; k <= 5; ++k)
-                r += (fromStdDeriv(s[k, i] * (faculty(5) / (faculty(k) * faculty(5 - k))) * Math.Pow(1 - pos, 5 - k) * Math.Pow(pos, k), i)).Modulus;
+                r += (fromStdDeriv(s[k, i] * (faculty(5) / (faculty(k) * faculty(5 - k))) * Math.Pow(1 - pos, 5 - k) * Math.Pow(pos, k), i)).Magnitude;
             return r;
         }
         public double paramSpeed(double param)
@@ -1206,20 +1206,20 @@ namespace CADability.GeoObject
             double pos = (param - theCurve.par[i]) / theCurve.t[i + 1];
             for (int j = 0; j <= i; ++j)
             {
-                w[0, j] = theCurve.k[j].Sqrt() * theCurve.a[j] * theCurve.b[j];
-                w[1, j] = -theCurve.k[j].Sqrt() * 0.5 * (theCurve.a[j] * (1 - theCurve.b[j]) + (1 - theCurve.a[j]) * theCurve.b[j]);
-                w[2, j] = theCurve.k[j].Sqrt() * (1 - theCurve.a[j]) * (1 - theCurve.b[j]);
+                w[0, j] = theCurve.k[j].SquareRoot() * theCurve.a[j] * theCurve.b[j];
+                w[1, j] = -theCurve.k[j].SquareRoot() * 0.5 * (theCurve.a[j] * (1 - theCurve.b[j]) + (1 - theCurve.a[j]) * theCurve.b[j]);
+                w[2, j] = theCurve.k[j].SquareRoot() * (1 - theCurve.a[j]) * (1 - theCurve.b[j]);
             }
             for (int j = i; j == i; ++j)
             {
-                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imag * w[0, j].Imag;
-                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imag * w[1, j].Imag;
-                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imag * w[1, j].Imag) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imag * w[2, j].Imag);
-                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imag * w[2, j].Imag;
-                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imag * w[2, j].Imag;
+                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imaginary* w[0, j].Imaginary;
+                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imaginary* w[1, j].Imaginary;
+                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imaginary* w[1, j].Imaginary) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imaginary* w[2, j].Imaginary);
+                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imaginary* w[2, j].Imaginary;
+                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imaginary* w[2, j].Imaginary;
             }
             for (int k = 0; k <= 4; ++k)
-                r += (fromStdDeriv(sigma[k, i] * (faculty(4) / (faculty(k) * faculty(4 - k))) * Math.Pow(1 - pos, 4 - k) * Math.Pow(pos, k), i)).Modulus;
+                r += (fromStdDeriv(sigma[k, i] * (faculty(4) / (faculty(k) * faculty(4 - k))) * Math.Pow(1 - pos, 4 - k) * Math.Pow(pos, k), i)).Magnitude;
             return r;
         }
         public double paramSpeedDeriv(double param)
@@ -1234,24 +1234,24 @@ namespace CADability.GeoObject
             double pos = (param - theCurve.par[i]) / theCurve.t[i + 1];
             for (int j = 0; j <= i; ++j)
             {
-                w[0, j] = theCurve.k[j].Sqrt() * theCurve.a[j] * theCurve.b[j];
-                w[1, j] = -theCurve.k[j].Sqrt() * 0.5 * (theCurve.a[j] * (1 - theCurve.b[j]) + (1 - theCurve.a[j]) * theCurve.b[j]);
-                w[2, j] = theCurve.k[j].Sqrt() * (1 - theCurve.a[j]) * (1 - theCurve.b[j]);
+                w[0, j] = theCurve.k[j].SquareRoot() * theCurve.a[j] * theCurve.b[j];
+                w[1, j] = -theCurve.k[j].SquareRoot() * 0.5 * (theCurve.a[j] * (1 - theCurve.b[j]) + (1 - theCurve.a[j]) * theCurve.b[j]);
+                w[2, j] = theCurve.k[j].SquareRoot() * (1 - theCurve.a[j]) * (1 - theCurve.b[j]);
             }
             for (int j = i; j == i; ++j)
             {
-                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imag * w[0, j].Imag;
-                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imag * w[1, j].Imag;
-                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imag * w[1, j].Imag) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imag * w[2, j].Imag);
-                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imag * w[2, j].Imag;
-                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imag * w[2, j].Imag;
+                sigma[0, j] = w[0, j].Real * w[0, j].Real + w[0, j].Imaginary* w[0, j].Imaginary;
+                sigma[1, j] = w[0, j].Real * w[1, j].Real + w[0, j].Imaginary* w[1, j].Imaginary;
+                sigma[2, j] = 2 / 3.0 * (w[1, j].Real * w[1, j].Real + w[1, j].Imaginary* w[1, j].Imaginary) + 1 / 3.0 * (w[0, j].Real * w[2, j].Real + w[0, j].Imaginary* w[2, j].Imaginary);
+                sigma[3, j] = w[1, j].Real * w[2, j].Real + w[1, j].Imaginary* w[2, j].Imaginary;
+                sigma[4, j] = w[2, j].Real * w[2, j].Real + w[2, j].Imaginary* w[2, j].Imaginary;
             }
             for (int j = 0; j <= 3; ++j)
             {
                 s[j, i] = sigma[j + 1, i] - sigma[j,i];
             }
             for (int k = 0; k <= 3; ++k)
-                r += (fromStdDeriv(s[k, i] * (faculty(3) / (faculty(k) * faculty(3 - k))) * Math.Pow(1 - pos, 3 - k) * Math.Pow(pos, k), i)).Modulus;
+                r += (fromStdDeriv(s[k, i] * (faculty(3) / (faculty(k) * faculty(3 - k))) * Math.Pow(1 - pos, 3 - k) * Math.Pow(pos, k), i)).Magnitude;
             r *= 4;
             return r;
         }*/
@@ -1265,15 +1265,15 @@ namespace CADability.GeoObject
             Complex apos = (param - theCurve.par[i]) / theCurve.t[i + 1] - theCurve.a[i], bpos = (param - theCurve.par[i]) / theCurve.t[i + 1] - theCurve.b[i];
             Complex deriv1 = theCurve.k[i] * (apos * bpos).Square();
             Complex deriv2 = 2 * theCurve.k[i] * apos * bpos * (apos + bpos);
-            /*double d1arg = deriv1.Argument;
-            double d2arg = deriv2.Argument;
+            /*double d1arg = deriv1.Atan().Real;
+            double d2arg = deriv2.Atan().Real;
             if (d1arg < 0)
                 d1arg += 2 * Math.PI;
             if (d2arg < 0)
                 d2arg += 2 * Math.PI;
             double sin = Math.Sin(d2arg - d1arg);
             */
-            return (deriv1.Real * deriv2.Imag - deriv1.Imag * deriv2.Real) / (paramSpeed(param) * paramSpeed(param) * paramSpeed(param));
+            return (deriv1.Real * deriv2.Imaginary- deriv1.Imaginary* deriv2.Real) / (paramSpeed(param) * paramSpeed(param) * paramSpeed(param));
         }
         private double faculty(int n)
         {
@@ -1286,33 +1286,33 @@ namespace CADability.GeoObject
         }
         private Complex stdPoint(GeoPoint p, int i)
         {
-            Complex z = Complex.FromRealImaginary(p.x - theCurve.points[i].x, p.y - theCurve.points[i].y);
-            return z / Complex.FromRealImaginary(theCurve.points[i + 1].x - theCurve.points[i].x, theCurve.points[i + 1].y - theCurve.points[i].y);
+            Complex z = new Complex(p.x - theCurve.points[i].x, p.y - theCurve.points[i].y);
+            return z / new Complex(theCurve.points[i + 1].x - theCurve.points[i].x, theCurve.points[i + 1].y - theCurve.points[i].y);
         }
         private Complex fromStdPoint(Complex z, int i)
         {
-            Complex sp = Complex.FromRealImaginary(theCurve.points[i].x, theCurve.points[i].y);
-            Complex ep = Complex.FromRealImaginary(theCurve.points[i + 1].x, theCurve.points[i + 1].y);
+            Complex sp = new Complex(theCurve.points[i].x, theCurve.points[i].y);
+            Complex ep = new Complex(theCurve.points[i + 1].x, theCurve.points[i + 1].y);
             return z * (ep - sp) + sp;
         }
         private Complex stdDeriv(GeoVector v, int i)
         {
-            Complex z = Complex.FromRealImaginary(v.x, v.y);
-            return z / Complex.FromRealImaginary(theCurve.points[i + 1].x - theCurve.points[i].x, theCurve.points[i + 1].y - theCurve.points[i].y);
+            Complex z = new Complex(v.x, v.y);
+            return z / new Complex(theCurve.points[i + 1].x - theCurve.points[i].x, theCurve.points[i + 1].y - theCurve.points[i].y);
         }
         private Complex fromStdDeriv(Complex z, int i)
         {
-            Complex sp = Complex.FromRealImaginary(theCurve.points[i].x, theCurve.points[i].y);
-            Complex ep = Complex.FromRealImaginary(theCurve.points[i + 1].x, theCurve.points[i + 1].y);
+            Complex sp = new Complex(theCurve.points[i].x, theCurve.points[i].y);
+            Complex ep = new Complex(theCurve.points[i + 1].x, theCurve.points[i + 1].y);
             return z * (ep - sp);
         }
         private GeoPoint pFromComplex(Complex z)
         {
-            return new GeoPoint(z.Real, z.Imag);
+            return new GeoPoint(z.Real, z.Imaginary);
         }
         private GeoVector vFromComplex(Complex z)
         {
-            return new GeoVector(z.Real, z.Imag, 0);
+            return new GeoVector(z.Real, z.Imaginary, 0);
         }
 
         #endregion

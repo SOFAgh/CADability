@@ -123,7 +123,6 @@ namespace CADability.Actions
             lengthProperty.FireModifyWithMouse(true);
         }
         /// <summary>
-        /// <summary>
         /// Implements <see cref="Action.OnInactivate"/>. If you override this method
         /// don't forget to call the bas implementation.
         /// </summary>

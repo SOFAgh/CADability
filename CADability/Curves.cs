@@ -823,6 +823,7 @@ namespace CADability.GeoObject
         /// <returns>the combined curve or null, if not possible</returns>
         public static ICurve Combine(ICurve crv1, ICurve crv2, double precision)
         {
+            if (crv1 == null || crv2 == null) return null;
             if ((crv1.EndPoint | crv2.StartPoint) > precision) return null;
             Plane pln;
             if (crv1 is InterpolatedDualSurfaceCurve ip1 && crv2 is InterpolatedDualSurfaceCurve ip2)

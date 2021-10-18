@@ -8,13 +8,13 @@ namespace CADability.UserInterface
     /// Shows the properties of a point.
     /// </summary>
 
-    public class ShowPropertyPoint : IShowPropertyImpl, ICommandHandler, IGeoObjectShowProperty, IDisplayHotSpots
+    public class ShowPropertyPoint : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty, IDisplayHotSpots
     {
         private Point point;
         private IFrame frame;
         private GeoPointProperty locationProperty;
-        private IShowProperty[] subEntries;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries;
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
 
         public ShowPropertyPoint(Point point, IFrame frame)
         {
@@ -37,32 +37,18 @@ namespace CADability.UserInterface
             locationProperty.GeoPointChanged();
         }
 
-        #region IShowPropertyImpl Overrides
-        public override ShowPropertyEntryType EntryType { get { return ShowPropertyEntryType.GroupTitle; } }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        public override IShowProperty[] SubEntries
+        #region PropertyEntryImpl Overrides
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    IShowProperty[] mainProps = { locationProperty };
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    IPropertyEntry[] mainProps = { locationProperty };
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
-            }
-        }
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
             }
         }
         public override MenuWithHandler[] ContextMenu
@@ -92,26 +78,26 @@ namespace CADability.UserInterface
             }
             base.Opened(IsOpen);
         }
-        public override void Added(IPropertyPage propertyTreeView)
+        public override void Added(IPropertyPage propertyPage)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
             this.point.DidChangeEvent += new ChangeDelegate(OnPointDidChange);
             point.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);
             point.UserData.UserDataRemovedEvent += new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
         }
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
             attributeProperties = point.GetAttributeProperties(frame);
-            propertyTreeView.Refresh(this);
+            propertyPage.Refresh(this);
         }
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyPage)
         {
             this.point.DidChangeEvent -= new ChangeDelegate(OnPointDidChange);
             point.UserData.UserDataAddedEvent -= new UserData.UserDataAddedDelegate(OnUserDataAdded);
             point.UserData.UserDataRemovedEvent -= new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
         }
 #endregion
         private GeoPoint OnGetLocation(GeoPointProperty sender)
@@ -154,7 +140,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
         #endregion
         #region IGeoObjectShowProperty Members
@@ -172,7 +158,7 @@ namespace CADability.UserInterface
         public event CADability.HotspotChangedDelegate HotspotChangedEvent;
         void IDisplayHotSpots.ReloadProperties()
         {
-            base.propertyTreeView.Refresh(this);
+            base.propertyPage.Refresh(this);
         }
         private void OnStateChanged(IShowProperty sender, StateChangedArgs args)
         {

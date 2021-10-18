@@ -1,7 +1,13 @@
 ﻿using CADability.Attribute;
 using CADability.GeoObject;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.Actions
 {
@@ -44,7 +50,7 @@ namespace CADability.Actions
                 }
             }
         }
-        internal void Repaint(System.Drawing.Rectangle IsInvalid, IView View, IPaintTo3D paintTo3D)
+        internal void Repaint(Rectangle IsInvalid, IView View, IPaintTo3D paintTo3D)
         {
             if (Settings.GlobalSettings.GetBoolValue("ActionFeedBack.UseZBuffer", true)) paintTo3D.UseZBuffer(true);
 
@@ -70,7 +76,7 @@ namespace CADability.Actions
                     if (go != null)
                     {
                         paintTo3D.SelectColor = selectColor;
-                        paintTo3D.OpenList();
+                        paintTo3D.OpenList("feedback");
                         go.PaintTo3D(paintTo3D);
                         IPaintTo3DList list = paintTo3D.CloseList();
                         if (list != null) paintTo3D.SelectedList(list, selectWidth);
@@ -81,7 +87,7 @@ namespace CADability.Actions
 
             if (paintAsTransparent.Count > 0)
             {
-                paintTo3D.OpenList();
+                paintTo3D.OpenList("feedback-transparent");
 
                 foreach (IGeoObject go in paintAsTransparent)
                 {

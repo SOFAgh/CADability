@@ -1,7 +1,8 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.LinearAlgebra;
+using CADability.UserInterface;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -373,11 +374,14 @@ namespace CADability
         #endregion
     }
     /// <summary>
-    /// A general surface defined by a curve which is swept along a curve
+    /// A general surface defined by a curve "toSweep", which is swept along a curve "along"
     /// The u parameter moves along the curve "toSweep", the v parameter moves along the curve "along"
+    /// The curve "along" must implement IOrientation: the coordinate system is defined by the direction of "along" at parameter u, which is the z-axis, while the 
+    /// OrientationAt(u) is the x-axis
     /// </summary>
     [Serializable]
-    internal class GeneralSweptCurve : ISurfaceImpl, ISerializable
+    public class 
+        GeneralSweptCurve : ISurfaceImpl, ISerializable
     {   // erstmal nur zum internen berechnen verwenden, kein Helper
         /*
          * gegeben: 2d Kurve "c" und surface "s" für das Bewegungssystem, das ist die v-Richtung
@@ -433,7 +437,15 @@ namespace CADability
         GeoVector baseDirX, baseDirY, baseDirZ; // das Koordinatensystem am Anfang von "along"
         ModOp toStartPos;
 
-        public GeneralSweptCurve(ICurve toSweep, ICurve along, GeoVector normal, BoundingRect? usedArea = null) : base(usedArea)
+        /// <summary>
+        /// Creates a surface by sweeping the curve <paramref name="toSweep"/> along the curve <paramref name="along"/> and keeping the vector <paramref name="normal"/>
+        /// unchanged
+        /// </summary>
+        /// <param name="toSweep"></param>
+        /// <param name="along"></param>
+        /// <param name="normal"></param>
+        /// <param name="usedArea"></param>
+        public GeneralSweptCurve(ICurve toSweep, ICurve along, GeoVector normal) : base()
         {
             if (normal.IsNullVector())
             {
@@ -471,16 +483,31 @@ namespace CADability
             initSecondaryData();
             initNurbsSurface();
         }
+        /// <summary>
+        /// Creates a surface by sweeping the curve <paramref name="toSweep"/> along the curve <paramref name="along"/>, which must also implement <see cref="IOrientation"/>
+        /// </summary>
+        /// <param name="toSweep"></param>
+        /// <param name="along"></param>
+        public GeneralSweptCurve(ICurve toSweep, ICurve along)
+        {
+            this.toSweep = toSweep;
+            this.along = along;
+            this.vmin = 0;
+            this.vmax = 1.0;
+            this.normal = GeoVector.Invalid;
+            initSecondaryData();
+            initNurbsSurface();
+        }
         private void initSecondaryData()
         {
             GeoPoint loc = along.PointAt(0.0);
             GeoVector deriv1 = along.DirectionAt(0.0);
             baseLoc = loc;
-            baseDirX = deriv1;
-            baseDirY = normal ^ baseDirX;
-            baseDirZ = baseDirX ^ baseDirY;
+            baseDirZ = deriv1;
+            if (normal.IsValid()) baseDirX = normal;
+            else baseDirX = (along as IOrientation).OrientationAt(0);
+            baseDirY = baseDirX ^ baseDirZ;
             toStartPos = ModOp.Fit(new GeoVector[] { baseDirX, baseDirY, baseDirZ }, new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis }) * ModOp.Translate(GeoPoint.Origin - loc);
-
         }
         private void initNurbsSurface()
         {
@@ -516,7 +543,7 @@ namespace CADability
             catch (NurbsException) { }
         }
         /// <summary>
-        /// Retruns the projected curve. The curve "toProject" goes in direction of v, i.e. for each v there is 
+        /// Returns the projected curve. The curve "toProject" goes in direction of v, i.e. for each v there is 
         /// a value for u. It starts at v=0.0 and ends at v=1.0 - or reverse. The curve "toSweep" of this surface must be planar.
         /// </summary>
         /// <param name="toProject"></param>
@@ -606,7 +633,7 @@ namespace CADability
         /// <returns></returns>
         public override ISurface GetModified(ModOp m)
         {
-            return new GeneralSweptCurve(toSweep.CloneModified(m), along.CloneModified(m), m * normal, usedArea);
+            return new GeneralSweptCurve(toSweep.CloneModified(m), along.CloneModified(m), m * normal);
         }
 
         public override GeoVector UDirection(GeoPoint2D uv)
@@ -661,16 +688,17 @@ namespace CADability
                 GeoVector dirZ = dirX ^ dirY;
                 GeoPoint p = toStartPos * toSweep.PointAt(uv.x); // Punkt im Anfangssystem
                 // GeoVector p = toSweep.PointAt(uv.x) - baseLoc;
+
                 GeoPoint dbg1 = modOpAt(uv.y) * toSweep.PointAt(uv.x);
-                Matrix m = Matrix.RowVector(dirX, dirY, dirZ);
-                Matrix b = Matrix.RowVector(dbg1 - baseLoc);
-                Matrix x = m.SaveSolve(b);
-                if (x != null)
+                Matrix m = DenseMatrix.OfColumnArrays(dirX, dirY, dirZ);
+                Vector b = new DenseVector(dbg1 - baseLoc);
+                Vector x = (Vector)m.Solve(b);
+                if (x.IsValid())
                 {
-                    GeoPoint dbg2 = baseLoc + x[0, 0] * dirX + x[1, 0] * dirY + x[2, 0] * dirZ;
-                    p.x = x[0, 0];
-                    p.y = x[1, 0];
-                    p.z = x[2, 0];
+                    GeoPoint dbg2 = baseLoc + x[0] * dirX + x[1] * dirY + x[2] * dirZ;
+                    p.x = x[0];
+                    p.y = x[1];
+                    p.z = x[2];
                 }
 
                 GeoVector ddirx = deriv2;
@@ -690,72 +718,13 @@ namespace CADability
         {
             GeoPoint loc = along.PointAt(v);
             GeoVector deriv1 = along.DirectionAt(v);
+            GeoVector dirX = (along as IOrientation).OrientationAt(v);
+            GeoVector dirZ = deriv1;
+            GeoVector dirY = dirZ ^ dirX;
+            ModOp res = ModOp.Translate(loc - GeoPoint.Origin) * ModOp.Fit(new GeoVector[] { baseDirX.Normalized, baseDirY.Normalized, baseDirZ.Normalized }, new GeoVector[] { dirX.Normalized, dirY.Normalized, dirZ.Normalized }) * ModOp.Translate(GeoPoint.Origin - baseLoc);
+            bool dbgort = res.IsOrthogonal;
+            return res;
 
-            GeoVector dirX = deriv1;
-            GeoVector dirY = normal ^ dirX;
-            GeoVector dirZ = dirX ^ dirY;
-            ModOp dbg = ModOp.Translate(loc - GeoPoint.Origin) * ModOp.Fit(new GeoVector[] { baseDirX.Normalized, baseDirY.Normalized, baseDirZ.Normalized }, new GeoVector[] { dirX.Normalized, dirY.Normalized, dirZ.Normalized }) * ModOp.Translate(GeoPoint.Origin - baseLoc);
-            bool dbgort = dbg.IsOrthogonal;
-            return dbg;
-
-            GeoVector diff = baseDirX.Normalized - deriv1.Normalized;
-            ModOp rot;
-            if (diff.Length < 1e-6)
-            {
-                rot = ModOp.Translate(loc - baseLoc);
-            }
-            else
-            {
-                Plane pln = new Plane(GeoPoint.Origin, diff); // Winkelhalbierende Ebene zu den beiden Vektoren
-                GeoVector rotax = pln.ToGlobal(pln.Project(normal));
-                pln = new Plane(GeoPoint.Origin, rotax);
-                SweepAngle sw = new SweepAngle(pln.Project(baseDirX), pln.Project(deriv1));
-                rot = ModOp.Translate(loc - GeoPoint.Origin) * ModOp.Rotate(rotax, -sw) * ModOp.Translate(GeoPoint.Origin - baseLoc);
-                GeoVector dbgnor = rot * normal;
-                GeoVector dbgdir = rot * baseDirX; // muss deriv1 sein
-            }
-            return rot;
-
-            GeoVector axis = deriv1 ^ baseDirX;
-            if (axis.IsNullVector())
-            {
-                if (Precision.OppositeDirection(deriv1, baseDirX))
-                {
-                    rot = ModOp.Translate(loc - GeoPoint.Origin) * ModOp.Rotate(normal, SweepAngle.Opposite) * ModOp.Translate(GeoPoint.Origin - baseLoc);
-                }
-                else
-                {
-                    rot = ModOp.Translate(loc - baseLoc);
-                }
-            }
-            else
-            {
-                Plane np = new Plane(loc, baseDirX, baseDirX ^ axis);
-                GeoVector2D d12d = np.Project(deriv1);
-                rot = ModOp.Rotate(axis, -d12d.Angle);
-                // GeoVector dbg1 = rot * baseDirX; // sollte deriv1 sein
-                // bool iso1 = rot.IsOrthogonal;
-                // jetzt noch die Längsdrehung machen, damit normal "nach oben zeigt"
-                np = new Plane(loc, deriv1);
-                GeoVector2D npr1 = np.Project(normal);
-                GeoVector2D npr2 = np.Project(rot * normal);
-                ModOp rot1 = ModOp.Rotate(deriv1, new SweepAngle(npr2, npr1));
-                rot = rot1 * rot;
-                // iso1 = rot.IsOrthogonal;
-                // GeoVector dbg2 = rot * normal;
-                rot = ModOp.Translate(loc - GeoPoint.Origin) * rot * ModOp.Translate(GeoPoint.Origin - baseLoc);
-                // iso1 = rot.IsOrthogonal;
-                // GeoPoint dbgloc = rot * baseLoc;
-            }
-            GeoVector dbgn = rot * normal;
-            return rot;
-            //bool b1 = Precision.IsPerpendicular(dirX, dirY,false);
-            //bool b2 = Precision.IsPerpendicular(dirY, dirZ,false);
-            //bool b3 = Precision.IsPerpendicular(dirZ, dirX,false);
-            //ModOp dbg = ModOp.Fit(new GeoVector[] { baseDirX, baseDirY, baseDirZ }, new GeoVector[] { dirX, dirY, dirZ });
-            //bool b4 = dbg.IsOrthogonal;
-            //ModOp res = new ModOp(dirX, dirY, dirZ, loc) * toStartPos;
-            //return ModOp.Scale(loc, 1.0 / res.Factor) * res;
         }
         public override GeoPoint PointAt(GeoPoint2D uv)
         {
@@ -776,7 +745,7 @@ namespace CADability
             umin = 0.0;
             umax = 1.0;
             vmin = 0.0;
-            vmax = 1.0; // beides sind ja Kurven von 0 bis 1
+            vmax = 1.0; 
         }
         public override bool IsUPeriodic
         {
@@ -838,6 +807,11 @@ namespace CADability
             along.Reverse();
             return ModOp2D.Translate(1, 0) * ModOp2D.Scale(-1, 1);
         }
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
+        {
+            return new GroupProperty("GeneralSweptCurve", new IPropertyEntry[0]);
+        }
+
         protected GeneralSweptCurve(SerializationInfo info, StreamingContext context)
         {
             toSweep = (ICurve)info.GetValue("ToSweep", typeof(ICurve));
@@ -980,6 +954,20 @@ namespace CADability
                 info.AddValue("Vmax", vmax, typeof(double));
             }
 
+        }
+    }
+    public class SweptArc : GeneralSweptCurve
+    {
+        public SweptArc(Ellipse toSweep, ICurve along) : base(toSweep, along)
+        {
+
+        }
+        public static SweptArc Debug(ICurve along)
+        {
+            Plane pln = new Plane(along.StartPoint, (along as IOrientation).OrientationAt(0.0), along.StartDirection ^ (along as IOrientation).OrientationAt(0.0));
+            Ellipse arc = Ellipse.Construct();
+            arc.SetArcPlaneCenterRadiusAngles(pln, pln.Location, 10, -Math.PI / 2.0, Math.PI / 2.0);
+            return new SweptArc(arc, along);
         }
     }
 }

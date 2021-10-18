@@ -3,7 +3,11 @@ using CADability.Attribute;
 using CADability.GeoObject;
 using System;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
 using System.Drawing;
+#endif
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -107,17 +111,6 @@ namespace CADability
         /// </summary>
         PaintCapabilities Capabilities { get; }
 
-        // Init and Disconnect removed to get rid of Windows.Forms
-        ///// <summary>
-        ///// Will be called before any other paint methods are called.
-        ///// </summary>
-        ///// <param name="ctrl">The <see cref="Windows.Forms.Control"/> object assiciated with this interface</param>
-        //void Init(Control ctrl);
-        ///// <summary>
-        ///// Will be called when the control is about to disappear.
-        ///// </summary>
-        ///// <param name="ctrl"></param>
-        //void Disconnect(Control ctrl);
         /// <summary>
         /// Will be called before any other paint methods are called. May be called multiple times after <see cref="Init"/> has been called
         /// </summary>
@@ -126,12 +119,12 @@ namespace CADability
         /// Sets the color for the next paint methods
         /// </summary>
         /// <param name="color">The color to use for drawing</param>
-        void SetColor(System.Drawing.Color color);
+        void SetColor(Color color);
         /// <summary>
         /// Never use this color for drawing (because it is the background color)
         /// </summary>
         /// <param name="color">Color to avoid</param>
-        void AvoidColor(System.Drawing.Color color);
+        void AvoidColor(Color color);
         /// <summary>
         /// Sets the line width for subsequent curve drawing
         /// </summary>
@@ -185,7 +178,7 @@ namespace CADability
         /// (Some implementations cache the icon or transform it into an convenient format)
         /// </summary>
         /// <param name="icon">The icon</param>
-        void PrepareIcon(System.Drawing.Bitmap icon);
+        void PrepareIcon(Bitmap icon);
         /// <summary>
         /// Assure that the <paramref name="bitmap"/> will be available when <see cref="DisplayIcon"/> will subsequently be called.
         /// (Some implementations cache the bitmap or transform it into an convenient format)
@@ -193,12 +186,12 @@ namespace CADability
         /// <param name="bitmap">The bitmap</param>
         /// <param name="xoffset">x-component of the origin that defines the insertion point (e.g. to center the bitmap)</param>
         /// <param name="yoffset">y-component of the origin</param>
-        void PrepareBitmap(System.Drawing.Bitmap bitmap, int xoffset, int yoffset);
+        void PrepareBitmap(Bitmap bitmap, int xoffset, int yoffset);
         /// <summary>
-        /// Similar to <see cref="PrepareBitmap(System.Drawing.Bitmap , int , int )"/> with origin set to (0,0)
+        /// Similar to <see cref="PrepareBitmap(Bitmap , int , int )"/> with origin set to (0,0)
         /// </summary>
         /// <param name="bitmap">The bitmap.</param>
-        void PrepareBitmap(System.Drawing.Bitmap bitmap);
+        void PrepareBitmap(Bitmap bitmap);
         /// <summary>
         /// Draws a rectangular bitmap at the provided <paramref name="location"/> with <paramref name="directionWidth"/>
         /// specifying the direction of the lower edge of the bitmap and <paramref name="directionHeight"/>
@@ -209,7 +202,7 @@ namespace CADability
         /// <param name="location">Location of the lower left corner of the bitmap</param>
         /// <param name="directionWidth">Direction of the lower edge of the bitmap</param>
         /// <param name="directionHeight">Direction of the left edge of the bitmap</param>
-        void RectangularBitmap(System.Drawing.Bitmap bitmap, GeoPoint location, GeoVector directionWidth, GeoVector directionHeight);
+        void RectangularBitmap(Bitmap bitmap, GeoPoint location, GeoVector directionWidth, GeoVector directionHeight);
         /// <summary>
         /// Draw a text with the provided parameters and the current color.
         /// </summary>
@@ -274,14 +267,14 @@ namespace CADability
         /// </summary>
         /// <param name="p">Where to draw the icon (world coordinates)</param>
         /// <param name="icon">The icon to draw</param>
-        void DisplayIcon(GeoPoint p, System.Drawing.Bitmap icon);
+        void DisplayIcon(GeoPoint p, Bitmap icon);
         /// <summary>
         /// Displays the provided bitmap at the provided location. The bitmap always faces the viewer.
         /// <see cref="PrepareBitmap"/> has been called or must be called prior to this method.
         /// </summary>
         /// <param name="p">Where to Paint</param>
         /// <param name="bitmap">Th ebitmap to paint</param>
-        void DisplayBitmap(GeoPoint p, System.Drawing.Bitmap bitmap);
+        void DisplayBitmap(GeoPoint p, Bitmap bitmap);
         /// <summary>
         /// Sets the projection to use in subsequent calls to paint methods.
         /// </summary>
@@ -294,7 +287,7 @@ namespace CADability
         /// <param name="background">Color to clear display with</param>
         void Clear(Color background);
         /// <summary>
-        /// Called when the size of the <see cref="Windows.Forms.Control"/> associated with this interface changes.
+        /// Called when the size of the container associated with this interface changes.
         /// </summary>
         /// <param name="width">New width in pixels</param>
         /// <param name="height">New height in pixels</param>
@@ -306,7 +299,7 @@ namespace CADability
         /// <see cref="Points"/>, <see cref="Triangle"/>, <see cref="RectangularBitmap"/>, <see cref="Text"/>,
         /// <see cref="DisplayIcon"/>, <see cref="DisplayBitmap"/>, <see cref="List"/>
         /// </summary>
-        void OpenList();
+        void OpenList(string name = null);
         /// <summary>
         /// Close the display list <see cref="OpenList"/>.
         /// </summary>
@@ -325,12 +318,12 @@ namespace CADability
         void OpenPath();
         //void BeginOutline();
         //void BeginHole();
-        //void PaintRegion(System.Drawing.Color color);
+        //void PaintRegion(Color color);
         /// <summary>
         /// Closes the path which was started with <see cref="OpenPath"/> and fills the interior with the provided color.
         /// </summary>
         /// <param name="color">Color to fill the path with.</param>
-        void ClosePath(System.Drawing.Color color);
+        void ClosePath(Color color);
         /// <summary>
         /// Closes a subfigure while defining a path. Subfigures are the enclosing path and the holes to be spared.
         /// Only valid after <see cref="OpenPath"/> and before <see cref="ClosePath"/> have been called.
@@ -441,16 +434,16 @@ namespace CADability
             //paintTo3D.Point2D((int)pf.X - width, (int)pf.Y + width);
             //paintTo3D.Point2D((int)pf.X - width, (int)pf.Y - width);
         }
-        static List<System.Drawing.Bitmap> bitmapList;
-        internal static List<System.Drawing.Bitmap> BitmapList
+        static List<Bitmap> bitmapList;
+        internal static List<Bitmap> BitmapList
         {
             get
             {
                 if (bitmapList == null)
                 {
                     // must be moved to CADability.Forms
-                    //bitmapList = new List<System.Drawing.Bitmap>();
-                    //System.Drawing.Bitmap bmp;
+                    //bitmapList = new List<Bitmap>();
+                    //Bitmap bmp;
                     //bmp = BitmapTable.GetBitmap("PointSymbols.bmp");
                     //// Die Datei PointSymbols.bmp muss so aufgebaut sein:
                     //// sie enthält 6 Symbole nebeneinader, die alle quadratisch sind
@@ -485,7 +478,7 @@ namespace CADability
                     //imageList.Images.Add(bmp);
                     //for (int i = 0; i < imageList.Images.Count; ++i)
                     //{
-                    //    bitmapList.Add(imageList.Images[i] as System.Drawing.Bitmap);
+                    //    bitmapList.Add(imageList.Images[i] as Bitmap);
                     //}
                     // jetzt ist es so: die ersten 6 sind die dünnen, die zweiten 6 die dicken oder dünnen
                     // un der letzt vollflächig
@@ -524,7 +517,7 @@ namespace CADability
         //}
         public static void PointSymbol(IPaintTo3D paintTo3D, GeoPoint location, double size, GeoObject.PointSymbol symbol)
         {
-            System.Drawing.Bitmap bmp = null;
+            Bitmap bmp = null;
             if ((symbol & CADability.GeoObject.PointSymbol.Select) != 0)
             {
                 bmp = BitmapList[12];
@@ -612,7 +605,7 @@ namespace CADability
             int offset = 0;
             if (paintTo3D.UseLineWidth) offset = 6; // so wird gesteuert dass bei nur dünn die dünnen Punkte und bei
             // mit Linienstärke ggf. die dicken Punkte angezeigt werden (Forderung PFOCAD)
-            System.Drawing.Bitmap bmp = null;
+            Bitmap bmp = null;
             switch ((GeoObject.PointSymbol)((int)symbol & 0x07))
             {
                 case CADability.GeoObject.PointSymbol.Empty:
@@ -718,8 +711,8 @@ namespace CADability
         public static Bitmap PaintToBitmap(GeoObjectList list, GeoVector viewDirection, int width, int height, BoundingCube? extent = null)
         {
             throw new NotImplementedException("PaintToBitmap not implemented, maybe implement in CADability.Forms");
-            Bitmap bmp = new Bitmap(width, height);
-            //System.Drawing.Graphics gr = System.Drawing.Graphics.FromImage(bmp);
+            //Bitmap bmp = new Bitmap(width, height);
+            //Graphics gr = Graphics.FromImage(bmp);
             //IntPtr dc = gr.GetHdc();
             //BoundingCube bc;
             //if (extent.HasValue) bc = extent.Value;
@@ -753,7 +746,7 @@ namespace CADability
             //gr.ReleaseHdc(dc);
             //bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
             //ipaintTo3D.Dispose();
-            return bmp;
+            //return bmp;
         }
     }
 

@@ -26,7 +26,7 @@ namespace CADability
     }
 
     /// <summary>
-    /// Rechtwinkliges, rechtshändiges Koordinatensystem. Normierte Einheitsvektoren?
+    /// normalized, right handed coordinate system
     /// </summary>
     [Serializable]
     [JsonVersion(serializeAsStruct = true, version = 1)]

@@ -319,6 +319,13 @@ namespace CADability.Curve2D
                 // if ((sweep < 0.0 && res > 0.0) || (sweep > 0.0 && res < 0.0)) res = -res; // 2.2.17 entfernt: 
             }
         }
+        internal void MakeFullEllipse()
+        {
+            if (sweepPar < 0) sweepPar = -Math.PI * 2.0;
+            else sweepPar = Math.PI * 2.0;
+            endPoint = startPoint;
+            RecalcQuadrant();
+        }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Clone ()"/>
         /// </summary>
@@ -479,7 +486,7 @@ namespace CADability.Curve2D
             }
         }
         internal void Close()
-        {
+        {   // maybe this is wrong, see MakeFullEllipse
             if (sweep > 0) sweep = Math.PI * 2.0;
             else sweep = -Math.PI * 2.0;
             RecalcQuadrant();
@@ -521,10 +528,14 @@ namespace CADability.Curve2D
             double a1 = (a - startPar) / sweepPar;
             double a2 = (a - startPar + 2.0 * Math.PI) / sweepPar;
             double a3 = (a - startPar - 2.0 * Math.PI) / sweepPar;
+            double a4 = (a - startPar + 4.0 * Math.PI) / sweepPar;
+            double a5 = (a - startPar - 4.0 * Math.PI) / sweepPar;
             // welcher der 3 Werte ist näher an 0.5 ?
             double ax = a1;
             if (Math.Abs(a2 - 0.5) < Math.Abs(ax - 0.5)) ax = a2;
             if (Math.Abs(a3 - 0.5) < Math.Abs(ax - 0.5)) ax = a3;
+            if (Math.Abs(a4 - 0.5) < Math.Abs(ax - 0.5)) ax = a4;
+            if (Math.Abs(a5 - 0.5) < Math.Abs(ax - 0.5)) ax = a5;
             return ax;
         }
         /// <summary>
@@ -696,82 +707,35 @@ namespace CADability.Curve2D
         public override ICurve2D GetModified(ModOp2D m)
         {
 #if DEBUG
-            DebuggerContainer dc = new DebuggerContainer();
-            GeoPoint[] tst = new GeoPoint[10];
-            for (int i = 0; i < 10; i++)
-            {
-                tst[i] = new GeoPoint(PointAt(i / 9.0));
-            }
-            Polyline pl = Polyline.Construct();
-            try
-            {
-                pl.SetPoints(tst, false);
-                dc.Add(pl, 0);
-            }
-            catch { }
-            EllipseArc2D dbg = EllipseArc2D.Create(m * center, m * majorAxis, m * minorAxis, m * StartPoint, m * EndPoint, counterClock);
-            for (int i = 0; i < 10; i++)
-            {
-                tst[i] = new GeoPoint(dbg.PointAt(i / 9.0));
-            }
-            pl = Polyline.Construct();
-            try
-            {
-                pl.SetPoints(tst, false);
-                dc.Add(pl, 1);
-            }
-            catch { }
+            ////DebuggerContainer dc = new DebuggerContainer();
+            ////GeoPoint[] tst = new GeoPoint[10];
+            ////for (int i = 0; i < 10; i++)
+            ////{
+            ////    tst[i] = new GeoPoint(PointAt(i / 9.0));
+            ////}
+            ////Polyline pl = Polyline.Construct();
+            ////try
+            ////{
+            ////    pl.SetPoints(tst, false);
+            ////    dc.Add(pl, 0);
+            ////}
+            ////catch { }
+            ////EllipseArc2D dbg = EllipseArc2D.Create(m * center, m * majorAxis, m * minorAxis, m * StartPoint, m * EndPoint, counterClock);
+            ////for (int i = 0; i < 10; i++)
+            ////{
+            ////    tst[i] = new GeoPoint(dbg.PointAt(i / 9.0));
+            ////}
+            ////pl = Polyline.Construct();
+            ////try
+            ////{
+            ////    pl.SetPoints(tst, false);
+            ////    dc.Add(pl, 1);
+            ////}
+            ////catch { }
 #endif
-            return EllipseArc2D.Create(m * center, m * majorAxis, m * minorAxis, m * StartPoint, m * EndPoint, counterClock);
-            //            Ellipse2D e2d = base.GetModified(m) as Ellipse2D;
-            //            double sp = e2d.ParamOf(m * StartPoint);
-            //            GeoPoint2D dbg = e2d.PointAtParam(sp);
-            //            double ep = e2d.ParamOf(m * EndPoint);
-            //            double sw;
-            //            // Berechnung der Parameter noch nicht überprüft
-            //            if (sweepPar > 0)
-            //            {
-            //                if (m.Determinant > 0)
-            //                {
-            //                    sw = ep - sp;
-            //                    if (sw < 0.0) sw += Math.PI * 2.0;
-            //                }
-            //                else
-            //                {
-            //                    sw = sp - ep;
-            //                    if (sw > 0.0) sw -= Math.PI * 2.0;
-            //                }
-            //            }
-            //            else
-            //            {
-            //                if (m.Determinant < 0)
-            //                {
-            //                    sw = ep - sp;
-            //                    if (sw < 0.0) sw += Math.PI * 2.0;
-            //                }
-            //                else
-            //                {
-            //                    sw = sp - ep;
-            //                    if (sw > 0.0) sw -= Math.PI * 2.0;
-            //                }
-            //            }
-            //#if DEBUG
-            //            DebuggerContainer dc = new DebuggerContainer();
-            //            dc.Add(this, Color.Red, 0);
-            //            dc.Add(e2d, Color.Green, 0);
-            //            Line2D l2d = new Line2D(this.StartPoint, this.EndPoint);
-            //            dc.Add(l2d, Color.BlueViolet, 3);
-            //            dc.Add(l2d.GetModified(m), Color.Black, 4);
-            //            dc.Add(new EllipseArc2D(e2d.center, e2d.majorAxis, e2d.minorAxis, sp, sw, e2d.left, e2d.right, e2d.bottom, e2d.top), Color.Blue, 0);
-            //            bool cc = this.counterClock;
-            //            if (m.Determinant<0) cc = !cc;
-
-            //            dc.Add(EllipseArc2D.Create(m * center, m * majorAxis, m * minorAxis, m * StartPoint, m * EndPoint, counterClock), Color.Chocolate, 0);
-            //#endif
-            //            EllipseArc2D res = new EllipseArc2D(e2d.center, e2d.majorAxis, e2d.minorAxis, sp, sw, e2d.left, e2d.right, e2d.bottom, e2d.top);
-            //            GeoPoint2D dbg1 = res.PointAt(sp);
-            //            return res;
-
+            EllipseArc2D res = EllipseArc2D.Create(m * center, m * majorAxis, m * minorAxis, m * StartPoint, m * EndPoint, counterClock);
+            if (Math.Abs(res.sweepPar) < 1e-6 && Math.Abs(this.sweepPar) > Math.PI * 2.0 - 1e-6) res.sweepPar = this.sweepPar;
+            return res;
         }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.GetFused (ICurve2D, double)"/>
@@ -885,6 +849,16 @@ namespace CADability.Curve2D
                 double segtriangle = GeoVector2D.Area(startPoint - center, endPoint - center); // area of the parallelogram
                 return (triangle + segment - segtriangle) / 2.0; // all values are double size, hence /2.0
             }
+        }
+        public EllipseArc2D GetComplement()
+        {
+            double sp;
+            if (sweepPar > 0) sp = Math.PI * 2.0 - sweepPar;
+            else sp = -(Math.PI * 2.0 + sweepPar);
+            double st = startPar + sweepPar;
+            if (st > Math.PI * 2.0) st -= Math.PI * 2.0;
+            if (st < 0.0) st += Math.PI * 2.0;
+            return new EllipseArc2D(center, majorAxis, minorAxis, st, sp, left, right, bottom, top);
         }
         #region ISerializable Members
         /// <summary>

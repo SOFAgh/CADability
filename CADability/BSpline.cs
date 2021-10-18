@@ -3,11 +3,18 @@ using CADability.Curve2D;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using Wintellect.PowerCollections;
+using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability.GeoObject
 {
@@ -226,7 +233,9 @@ namespace CADability.GeoObject
                 {   // in Wirklichkeit ein 2d spline, nur im Raum gelegen
                     if ((this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
                     {
-                        Plane tmp = new Plane(poles[0], poles[poles.Length - 1] - poles[0]);
+                        GeoVector nrm = poles[poles.Length - 1] - poles[0];
+                        if (nrm.IsNullVector()) nrm = poles[poles.Length - 2] - poles[0];
+                        Plane tmp = new Plane(poles[0], nrm);
                         this.plane = new Plane(tmp.Location, tmp.DirectionX, tmp.Normal);
                     }
                     if (weights == null)
@@ -1646,7 +1655,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyBSpline(this, Frame);
         }
@@ -4088,14 +4097,14 @@ namespace CADability.GeoObject
                     m[2, 0] = p3.x;
                     m[2, 1] = p3.y;
                     m[2, 2] = 1.0;
-                    double[,] b = new double[,] { { p1.z }, { p2.z }, { p3.z } };
-                    LinearAlgebra.Matrix mx = new CADability.LinearAlgebra.Matrix(m);
-                    LinearAlgebra.Matrix s = mx.SaveSolve(new CADability.LinearAlgebra.Matrix(b));
+                    double[] b = new double[] {  p1.z ,  p2.z ,  p3.z  };
+                    Matrix mx = DenseMatrix.OfArray(m);
+                    Vector s = (Vector)mx.Solve(new DenseVector(b));
                     if (s != null)
                     {
-                        fx = s[0, 0];
-                        fy = s[0, 1];
-                        c = s[0, 2];
+                        fx = s[0];
+                        fy = s[1];
+                        c = s[2];
                         this.projection = null; // da es geklappt hat
                     }
                 }

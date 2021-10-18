@@ -2,38 +2,73 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <BuildDocFx Condition=" '$(Configuration)'=='Debug' ">false</BuildDocFx>
-    <AssemblyName>CADabilityCore</AssemblyName>
+    <BuildDocFx Condition=" '$(Configuration)'!='RelWithDoc' ">false</BuildDocFx>
+    <Configurations>Debug;Release;RelWithDoc;WebDebug</Configurations>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>CADabilityKey.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;DEBUG;xPARALLEL,xTESTNEWCONTEXTMENU</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES</DefineConstants>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WebDebug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>TRACE;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES, WEBASSEMBLY</DefineConstants>
+  </PropertyGroup>
+
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>TRACE;xPARALLEL, xTESTNEWCONTEXTMENU</DefineConstants>
+    <DefineConstants>xPARALLEL, xTESTNEWCONTEXTMENU</DefineConstants>
     <Optimize>false</Optimize>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <DocumentationFile></DocumentationFile>
   </PropertyGroup>
 
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
+<ItemGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>xPARALLEL, xTESTNEWCONTEXTMENU</DefineConstants>
+    <Optimize>false</Optimize>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DocumentationFile />
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="CADability.DXF\**" />
+    <Compile Remove="DXF\**" />
     <Compile Remove="_site\**" />
     <EmbeddedResource Remove="CADability.DXF\**" />
+    <EmbeddedResource Remove="DXF\**" />
     <EmbeddedResource Remove="_site\**" />
     <None Remove="CADability.DXF\**" />
+    <None Remove="DXF\**" />
     <None Remove="_site\**" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="OpenGlList.cs" />
     <Compile Remove="Scripting.cs" />
+    <Compile Remove="Tangulation.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="log.txt" />
     <None Remove="MenuResource.xml" />
     <None Remove="StringTableDeutsch.xml" />
     <None Remove="StringTableEnglish.xml" />
@@ -50,6 +85,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="MathNet.Numerics.Signed" Version="4.15.0" />
     <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
   </ItemGroup>
 

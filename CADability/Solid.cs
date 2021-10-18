@@ -4,14 +4,14 @@ using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-
+using System.Threading.Tasks;
 
 namespace CADability.GeoObject
 {
-    class ShowPropertySolid : IShowPropertyImpl, IGeoObjectShowProperty, ICommandHandler
+    class ShowPropertySolid : PropertyEntryImpl, IGeoObjectShowProperty, ICommandHandler
     {
         private Solid solid;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         public ShowPropertySolid(Solid solid, IFrame frame)
             : base(frame)
         {
@@ -20,68 +20,33 @@ namespace CADability.GeoObject
             attributeProperties = solid.GetAttributeProperties(frame);
         }
         #region IShowPropertyImpl overrides
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
-        }
-        public override string LabelText
-        {
-            get
-            {
-                //if (solid.Name != null)
-                //{
-                //    return StringTable.GetFormattedString("Solid.NamedObject", solid.Name);
-                //}
-                return base.LabelText;
-            }
-            set
-            {
-                base.LabelText = value;
-            }
-        }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
+        private IPropertyEntry[] subEntries;
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null)
                 {
-                    List<IShowProperty> se = new List<IShowProperty>();
+                    List<IPropertyEntry> se = new List<IPropertyEntry>();
 #if DEBUG
                     IntegerProperty dbghashcode = new IntegerProperty(solid.UniqueId, "Debug.Hashcode");
                     se.Add(dbghashcode);
 #endif
-                    // Volume dauert zu lange
-                    //DoubleProperty vol = new DoubleProperty("Solid.Volume", base.Frame);
-                    //vol.DoubleValue = solid.Volume;
-                    //vol.ReadOnly = true;
-                    //se.Add(vol);
                     se.Add(new NameProperty(this.solid, "Name", "Solid.Name"));
+                    DoubleProperty vol = new DoubleProperty(base.Frame, "Solid.Volume");
+                    vol.SetDouble(0.0);
+                    vol.ReadOnly = true;
+                    se.Add(vol);
                     foreach (Shell shell in solid.Shells)
                     {
-                        IShowProperty sp = shell.GetShowProperties(base.Frame);
+                        IPropertyEntry sp = shell.GetShowProperties(base.Frame);
                         sp.ReadOnly = true;
                         se.Add(sp);
                     }
                     se.AddRange(attributeProperties);
                     subEntries = se.ToArray();
+                    Task task = Task.Run(() => { vol.SetDouble(solid.Volume(0.0)); });
                 }
                 return subEntries;
             }
@@ -157,7 +122,7 @@ namespace CADability.GeoObject
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
         #endregion
     }
@@ -167,7 +132,7 @@ namespace CADability.GeoObject
     /// A Solid is a <see cref="IGeoObject"/> implementation that represents a solid body.
     /// Its main data is a collection of oriented faces. The normal vector on any point of the face
     /// points to the outside of the body. Solids have one set of faces that represent the outer hull
-    /// and any number of cavyties that reside totally inside the outer hull. All cavyties are disjoint.
+    /// and any number of cavities that reside totally inside the outer hull. All cavyties are disjoint.
     /// </summary>
     [Serializable()]
     public class Solid : IGeoObjectImpl, ISerializable, IColorDef, IGetSubShapes, IGeoObjectOwner, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone, IExportStep
@@ -251,6 +216,17 @@ namespace CADability.GeoObject
                 edges = null;
             }
         }
+        protected void RemoveShell(Shell sh)
+        {
+            if (Shells.Length > 0 && sh == Shells[0])
+            {
+                using (new Changing(this, "SetShell", sh))
+                {
+                    shells = new Shell[0];
+                    edges = null;
+                }
+            }
+        }
         public static Solid MakeSolid(Shell sh)
         {
             Solid res = Solid.Construct();
@@ -312,14 +288,17 @@ namespace CADability.GeoObject
             return res.ToArray();
         }
         /// <summary>
-        /// Returns the volume (capacity) of this solid.
+        /// Returns the volume of this solid. the calculation is based on a triangulation with at least the provided <paramref name="precision"/>.
         /// </summary>
-        public double Volume
+        /// <param name="precision">The precision of the triangulation</param>
+        public double Volume(double precision)
         {
-            get
+            double v = 0.0;
+            for (int i = 0; i < shells.Length; i++)
             {
-                return 0.0;
+                v += shells[i].Volume(precision);
             }
+            return v;
         }
         #region IGeoObject Members
         /// <summary>
@@ -327,7 +306,7 @@ namespace CADability.GeoObject
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertySolid(this, Frame);
         }
@@ -778,6 +757,26 @@ namespace CADability.GeoObject
             }
             return res;
         }
+
+        internal bool ShowFeatureAxis
+        {
+            get
+            {
+                if (Shells.Length == 0) return false;
+                return Shells[0].ShowFeatureAxis;
+            }
+            set
+            {
+                using (new ChangingAttribute(this, "ShowFeatureAxis", !value))
+                {
+                    for (int i = 0; i < Shells.Length; i++)
+                    {
+                        Shells [i].ShowFeatureAxis = value;
+                    }
+                }
+            }
+        }
+
         #region ISerializable Members
         protected Solid(SerializationInfo info, StreamingContext context)
             : base(context)
@@ -927,12 +926,25 @@ namespace CADability.GeoObject
         #region IGeoObjectOwner Members
         void IGeoObjectOwner.Remove(IGeoObject toRemove)
         {
-            // Remove sollte nicht drankommen, es sei denn beim Zerlegen.
-            // dann könnte es ein Problem mit dem Undo geben. Dort sollte besser gecloned werden
+            if (toRemove is Shell shell && shell == Shells[0])
+            {
+                using (new Changing(this, "SetShell", Shells[0]))
+                {
+                    shells = new Shell[0];
+                }
+            }
         }
         void IGeoObjectOwner.Add(IGeoObject toAdd)
         {
-            // Add machen wir nur selbst, wenn das Objekt erzeugt wird, da bleibt hier nichts zu tun
+            if (toAdd is Shell shell)
+            {
+                using (new Changing(this, "RemoveShell", shell))
+                {
+                    if (Shells == null || Shells.Length == 0) shells = new Shell[1];
+                    Shells[0] = shell;
+                    shell.Owner = this;
+                }
+            }
         }
         #endregion
 
@@ -949,6 +961,7 @@ namespace CADability.GeoObject
 
         int IExportStep.Export(ExportStep export, bool topLevel)
         {   // MANIFOLD_SOLID_BREP is a Geometric_Representation_Item
+            if (string.IsNullOrEmpty(shells[0].Name)) shells[0].Name = NameOrEmpty;
             int shellnr = (shells[0] as IExportStep).Export(export, false);
             int msb = export.WriteDefinition("MANIFOLD_SOLID_BREP('" + NameOrEmpty + "',#" + shellnr.ToString() + ")");
             if (colorDef != null)
@@ -970,6 +983,62 @@ namespace CADability.GeoObject
             return brep;
         }
 
+        private class BRepOpAction : ConstructAction
+        {
+            private Solid solid;
+
+            public BRepOpAction(Solid solid)
+            {
+                this.solid = solid;
+            }
+            public override string GetID()
+            {
+                throw new NotImplementedException();
+            }
+            public override void OnSetAction()
+            {
+                base.OnSetAction();
+            }
+
+            public override bool OnCommand(string MenuId)
+            {
+                return base.OnCommand(MenuId);
+            }
+            public override bool OnUpdateCommand(string MenuId, CommandState CommandState)
+            {
+                return base.OnUpdateCommand(MenuId, CommandState);
+            }
+        }
+        private class BRepOpWith : ICommandHandler
+        {
+            private Solid solid;
+            private List<Solid> other;
+
+            public BRepOpWith(Solid solid, List<Solid> other)
+            {
+                this.solid = solid;
+                this.other = other;
+            }
+
+            bool ICommandHandler.OnCommand(string MenuId)
+            {
+                switch (MenuId)
+                {
+                    case "MenuId.Solid.RemoveThisFromAll":
+                        break;
+                }
+                return false;
+            }
+
+            void ICommandHandler.OnSelected(MenuWithHandler selectedMenu, bool selected)
+            {
+            }
+
+            bool ICommandHandler.OnUpdateCommand(string MenuId, CommandState CommandState)
+            {
+                return true;
+            }
+        }
         /// <summary>
         /// Returns a menu, which is shown when there is a right click on the solid
         /// </summary>
@@ -977,15 +1046,131 @@ namespace CADability.GeoObject
         /// <returns></returns>
         internal MenuWithHandler[] GetContextMenu(IFrame frame)
         {
+            List<MenuWithHandler> res = new List<MenuWithHandler>();
+            Model owner = this.Owner as Model;
+            if (owner != null)
+            {
+                GeoObjectList fromBox = owner.GetObjectsFromBox(this.GetExtent(0.0));
+                List<Solid> otherSolids = new List<Solid>();
+                for (int i = 0; i < fromBox.Count; i++)
+                {
+                    if (fromBox[i] is Solid sld && sld != this) otherSolids.Add(sld);
+                }
+                if (otherSolids.Count > 0)
+                {   // there are other solids close to this solid, it is not guaranteed that these other solids interfere with this solid 
+                    MenuWithHandler mhSubtractFrom = new MenuWithHandler();
+                    mhSubtractFrom.ID = "MenuId.Solid.RemoveFrom";
+                    mhSubtractFrom.Text = StringTable.GetString("MenuId.Solid.RemoveFrom", StringTable.Category.label);
+                    mhSubtractFrom.Target = new BRepOpAction(this);
+                    res.Add(mhSubtractFrom);
+                    MenuWithHandler mhSubtractFromAll = new MenuWithHandler();
+                    mhSubtractFromAll.ID = "MenuId.Solid.RemoveFromAll";
+                    mhSubtractFromAll.Text = StringTable.GetString("MenuId.Solid.RemoveFromAll", StringTable.Category.label);
+                    mhSubtractFromAll.Target = new BRepOpWith(this, otherSolids);
+                    res.Add(mhSubtractFromAll);
+                    MenuWithHandler mhUniteWith = new MenuWithHandler();
+                    mhUniteWith.ID = "MenuId.Solid.UniteWith";
+                    mhUniteWith.Text = StringTable.GetString("MenuId.Solid.UniteWith", StringTable.Category.label);
+                    mhUniteWith.Target = new BRepOpAction(this);
+                    res.Add(mhUniteWith);
+                    MenuWithHandler mhUniteWithAll = new MenuWithHandler();
+                    mhUniteWithAll.ID = "MenuId.Solid.UniteWithAll";
+                    mhUniteWithAll.Text = StringTable.GetString("MenuId.Solid.UniteWithAll", StringTable.Category.label);
+                    mhUniteWithAll.Target = new BRepOpWith(this, otherSolids);
+                    res.Add(mhUniteWithAll);
+                    MenuWithHandler mhIntersectWith = new MenuWithHandler();
+                    mhIntersectWith.ID = "MenuId.Solid.IntersectWith";
+                    mhIntersectWith.Text = StringTable.GetString("MenuId.Solid.IntersectWith", StringTable.Category.label);
+                    mhIntersectWith.Target = new BRepOpAction(this);
+                    res.Add(mhIntersectWith);
+                    MenuWithHandler mhSplitWith = new MenuWithHandler();
+                    mhSplitWith.ID = "MenuId.Solid.SplitWith";
+                    mhSplitWith.Text = StringTable.GetString("MenuId.Solid.SplitWith", StringTable.Category.label);
+                    mhSplitWith.Target = new BRepOpAction(this);
+                    res.Add(mhSplitWith);
+                    MenuWithHandler mhSplitWithAll = new MenuWithHandler();
+                    mhSplitWithAll.ID = "MenuId.Solid.SplitWithAll";
+                    mhSplitWithAll.Text = StringTable.GetString("MenuId.Solid.SplitWithAll", StringTable.Category.label);
+                    mhSplitWithAll.Target = new BRepOpWith(this, otherSolids);
+                    res.Add(mhSplitWithAll);
+                }
+            }
+            MenuWithHandler mhtr = new MenuWithHandler();
+            if (this.Layer != null && this.Layer.Name == "CADability.Transparent")
+            {
+                mhtr.ID = "MenuId.MakeOpaque";
+                mhtr.Text = StringTable.GetString("MenuId.MakeOpaque", StringTable.Category.label);
+                mhtr.Target = SimpleMenuCommand.HandleCommand((menuId) =>
+                {   // reset the layer of this solid
+                    Layer layer = UserData.GetData("CADability.OriginalLayer") as Layer;
+                    if (layer != null)
+                    {
+                        Layer = layer;
+                        UserData.RemoveUserData("CADability.OriginalLayer");
+                    }
+                    else
+                    {
+                        Style sldstl = frame.Project.StyleList.GetDefault(Style.EDefaultFor.Solids);
+                        if (sldstl != null && sldstl.Layer != null) Layer = sldstl.Layer;
+                    }
+                    return true;
+                });
+                res.Add(mhtr);
+            }
+            else
+            {
+                mhtr.ID = "MenuId.MakeTransparent";
+                mhtr.Text = StringTable.GetString("MenuId.MakeTransparent", StringTable.Category.label);
+                mhtr.Target = SimpleMenuCommand.HandleCommand((menuId) =>
+                {   // reset the layer of this solid
+                    UserData.Add("CADability.OriginalLayer", Layer);
+                    Layer layer = frame.Project.LayerList.CreateOrFind("CADability.Transparent");
+                    layer.Transparency = 128; // should be configurable
+                    Layer = layer;
+                    return true;
+                });
+                res.Add(mhtr);
+            }
+            MenuWithHandler mhhide = new MenuWithHandler();
+            mhhide.ID = "MenuId.Solid.Hide"; // hide this solid
+            mhhide.Text = StringTable.GetString("MenuId.Solid.Hide", StringTable.Category.label);
+            mhhide.Target = SimpleMenuCommand.HandleCommand((menuId) =>
+            {
+                if (!UserData.ContainsData("CADability.OriginalLayer"))
+                {
+                    if (Layer == null)
+                    {
+                        Style sldstl = frame.Project.StyleList.GetDefault(Style.EDefaultFor.Solids);
+                        if (sldstl != null && sldstl.Layer != null) Layer = sldstl.Layer;
+                    }
+                    UserData.Add("CADability.OriginalLayer", Layer);
+                }
+                Layer layer = frame.Project.LayerList.CreateOrFind("CADability.Hidden");
+                Layer = layer;
+                return true;
+            });
+            res.Add(mhhide);
             MenuWithHandler mhsel = new MenuWithHandler();
             mhsel.ID = "MenuId.Selection.Set";
             mhsel.Text = StringTable.GetString("MenuId.Selection.Set", StringTable.Category.label);
             mhsel.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
+            res.Add(mhsel);
             MenuWithHandler mhadd = new MenuWithHandler();
             mhadd.ID = "MenuId.Selection.Add";
             mhadd.Text = StringTable.GetString("MenuId.Selection.Add", StringTable.Category.label);
             mhadd.Target = new SetSelection(this, frame.ActiveAction as SelectObjectsAction);
-            return new MenuWithHandler[] { mhsel, mhadd };
+            res.Add(mhadd);
+            MenuWithHandler mhremove = new MenuWithHandler();
+            mhremove.ID = "MenuId.Remove";
+            mhremove.Text = StringTable.GetString("MenuId.Remove", StringTable.Category.label);
+            mhremove.Target = SimpleMenuCommand.HandleCommand((menuId) =>
+            {
+                Model model = Owner as Model;
+                if (model != null) model.Remove(this);
+                return true;
+            });
+            res.Add(mhremove);
+            return res.ToArray();
         }
     }
 }

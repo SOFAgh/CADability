@@ -32,7 +32,6 @@
     <Compile Include="..\CADability.Forms\CadForm.cs" Link="CadForm.cs" />
     <Compile Include="..\CADability.Forms\CadForm.Designer.cs" Link="CadForm.Designer.cs" />
     <Compile Include="..\CADability.Forms\CadFrame.cs" Link="CadFrame.cs" />
-    <Compile Include="..\CADability.Forms\DebuggerPlayground.cs" Link="DebuggerPlayground.cs" />
     <Compile Include="..\CADability.Forms\IUIServiceImpl.cs" Link="IUIServiceImpl.cs" />
     <Compile Include="..\CADability.Forms\MenuManager.cs" Link="MenuManager.cs" />
     <Compile Include="..\CADability.Forms\PaintToGDI.cs" Link="PaintToGDI.cs" />

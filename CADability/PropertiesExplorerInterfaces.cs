@@ -1,7 +1,13 @@
 ﻿using CADability.GeoObject;
 using CADability.Substitutes;
 using System;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 using System.Drawing.Printing;
 
 /* Connection to the new user-interface provided by CADability.Forms
@@ -145,16 +151,14 @@ namespace CADability.UserInterface
         /// </summary>
         string Value { get; }
         /// <summary>
-        /// A tooltip, or null if no tooltip should be displayed
+        /// A tool-tip, or null if no tool-tip should be displayed
         /// </summary>
-        string ToolTip { get; }
+        string ResourceId { get; }
         /// <summary>
         /// if sub-entries are show, then hide them, if not, then show them (user clicked on the + or - symbol for opening or closing the sub-entries)
         /// </summary>
         /// <returns></returns>
         int OpenOrCloseSubEntries();
-        //void MouseOnLabel();
-        //void MouseOnValue(MouseState ms);
         void ButtonClicked(PropertyEntryButton button);
         /// <summary>
         /// Has been added to the property page, can be used to do some initialization.
@@ -193,17 +197,17 @@ namespace CADability.UserInterface
         /// <returns></returns>
         string[] GetDropDownList();
         /// <summary>
-        /// Notification that the label or value part is beeing edited. Will only be called when <see cref="Flags> contains <see cref="PropertyEntryType.ValueEditable"/> or <see cref="PropertyEntryType.LabelEditable"> is set.
+        /// Notification that the label or value part is being edited. Will only be called when <see cref="Flags> contains <see cref="PropertyEntryType.ValueEditable"/> or <see cref="PropertyEntryType.LabelEditable"> is set.
         /// </summary>
         /// <param name="editValue">true: editing the value part, false: editing the label part</param>
         void StartEdit(bool editValue);
         /// <summary>
-        /// Notification when the editing process is beeing terminated. 
+        /// Notification when the editing process is being terminated. 
         /// </summary>
         /// <param name="aborted">true: the edit has been aborted, false: normal end of edit process</param>
         void EndEdit(bool aborted, bool modified, string newValue);
         /// <summary>
-        /// The text beeing edited has changed
+        /// The text being edited has changed
         /// </summary>
         /// <param name="newValue">The new text</param>
         /// <returns>true, when the property would accept this value</returns>
@@ -228,15 +232,9 @@ namespace CADability.UserInterface
         /// </summary>
         /// <param name="selectedIndex"></param>
         void ListBoxSelected(int selectedIndex);
-        // ReadOnly doesn't make sense, simply remove the flag PropertyEntryType.ValueEditable
-        ///// <summary>
-        ///// Only meaningful when <see cref="PropertyEntryType.ValueEditable"/> is set. 
-        ///// In this case the value is not editable
-        ///// </summary>
-        //bool ReadOnly { get; set; }
         /// <summary>
         /// Only meaningful when <see cref="PropertyEntryType.ValueEditable"/> is set. 
-        /// In this case the changes by typing do not notify the system until the textbox is closed (e.g. enter or tab was pressed)
+        /// In this case the changes by typing do not notify the system until the text-box is closed (i.e. the focus leaves the text box)
         /// </summary>
         bool DeferUpdate { get; set; }
         /// <summary>
@@ -274,7 +272,7 @@ namespace CADability.UserInterface
     {
         GeoObjectList GetDataPresent(object data);
         Substitutes.Keys ModifierKeys { get; }
-        System.Drawing.Point CurrentMousePosition { get; }
+        Point CurrentMousePosition { get; }
         /// <summary>
         /// Shows an open file dialog. The <paramref name="id"/> is used to cache the last directory, so with different ids you get different
         /// start directories. The <paramref name="filter"/> is a windows OpenFileDialog filter, <paramref name="filterIndex"/> specifies, 
@@ -289,13 +287,13 @@ namespace CADability.UserInterface
         Substitutes.DialogResult ShowOpenFileDlg(string id, string title, string filter, ref int filterIndex, out string fileName);
         Substitutes.DialogResult ShowSaveFileDlg(string id, string title, string filter, ref int filterIndex, ref string fileName);
         Substitutes.DialogResult ShowMessageBox(string text, string caption, Substitutes.MessageBoxButtons buttons);
-        Substitutes.DialogResult ShowColorDialog(ref System.Drawing.Color color);
+        Substitutes.DialogResult ShowColorDialog(ref Color color);
         /// <summary>
         /// Returns a bitmap from a bitmap strip, name has the format filename:index(, where filename should be part of the resources?)
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        System.Drawing.Bitmap GetBitmap(string name);
+        Bitmap GetBitmap(string name);
         event EventHandler ApplicationIdle;
         IPaintTo3D CreatePaintInterface(Bitmap paintToBitmap, double precision);
         DialogResult ShowPageSetupDlg(ref PrintDocument printDocument1, PageSettings pageSettings, out int width, out int height, out bool landscape);

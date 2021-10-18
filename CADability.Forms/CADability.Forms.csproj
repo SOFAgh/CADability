@@ -43,12 +43,13 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
+    <DebugType>full</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'KernelOnly|AnyCPU'">
     <OutputPath>..\..\..\bin_KernelOnly\</OutputPath>
@@ -59,7 +60,19 @@
   <PropertyGroup>
     <StartupObject />
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'RelWithDoc|AnyCPU'">
+    <OutputPath>bin\RelWithDoc\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="MathNet.Numerics, Version=4.15.0.0, Culture=neutral, PublicKeyToken=cd8b63ad3d691a37, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathNet.Numerics.Signed.4.15.0\lib\net461\MathNet.Numerics.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.VisualStudio.DebuggerVisualizers, Version=16.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\PublicAssemblies\Microsoft.VisualStudio.DebuggerVisualizers.dll</HintPath>
@@ -69,6 +82,8 @@
     <Reference Include="System.Drawing.Common, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Drawing.Common.4.7.0\lib\net461\System.Drawing.Common.dll</HintPath>
     </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ValueTuple, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\System.ValueTuple.4.5.0\lib\portable-net40+sl4+win8+wp8\System.ValueTuple.dll</HintPath>
@@ -86,12 +101,17 @@
   <ItemGroup>
     <Compile Include="BitmapTable.cs" />
     <Compile Include="ButtonImages.cs" />
+    <Compile Include="CadControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="CadControl.Designer.cs">
+      <DependentUpon>CadControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="CadFrame.cs" />
     <Compile Include="CadCanvas.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="DebugForm.cs" />
-    <Compile Include="DebuggerPlayground.cs" />
     <Compile Include="IUIServiceImpl.cs" />
     <Compile Include="MenuManager.cs">
       <SubType>Component</SubType>
@@ -115,6 +135,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ToolBars.cs" />
+    <EmbeddedResource Include="CadControl.resx">
+      <DependentUpon>CadControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="CadForm.resx">
       <DependentUpon>CadForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -213,18 +236,18 @@
     <EmbeddedResource Include="Bitmaps\Buttons5.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CADability\CADability.csproj">
-      <Project>{b234840a-1f1c-4c53-9789-4eeb82349f98}</Project>
-      <Name>CADability</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Bitmaps\Icons.bmp" />
     <EmbeddedResource Include="Bitmaps\PointSymbols.bmp" />
     <EmbeddedResource Include="Bitmaps\PointSymbolsB.bmp" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Bitmaps\Hotspots.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CADability\CADability.csproj">
+      <Project>{b234840a-1f1c-4c53-9789-4eeb82349f98}</Project>
+      <Name>CADability</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

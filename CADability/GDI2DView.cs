@@ -1,4 +1,5 @@
-﻿using CADability.Actions;
+﻿#if !WEBASSEMBLY
+using CADability.Actions;
 using CADability.Attribute;
 using CADability.GeoObject;
 using CADability.UserInterface;
@@ -328,7 +329,7 @@ namespace CADability
                 if (!deferRefresh) (this as IView).InvalidateAll();
             }
         }
-        #region IShowProperty implementation
+#region IShowProperty implementation
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.LabelType"/>
         /// </summary>
@@ -471,8 +472,8 @@ namespace CADability
                 propertyTreeView.Refresh(this);
             }
         }
-        #endregion
-        #region ICommandHandler Members
+#endregion
+#region ICommandHandler Members
 
         bool ICommandHandler.OnCommand(string MenuId)
         {
@@ -531,10 +532,10 @@ namespace CADability
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
-        #endregion
-        #region ICondorViewInternal Members
+#endregion
+#region ICondorViewInternal Members
         public Substitutes.DragDropEffects DoDragDrop(GeoObjectList dragList, Substitutes.DragDropEffects all)
         {
             return DragDropEffects.None;
@@ -1355,8 +1356,8 @@ namespace CADability
                 canvas?.Invalidate();
             }
         }
-        #endregion
-        #region IView Members
+#endregion
+#region IView Members
         ProjectedModel IView.ProjectedModel
         {   // sollte nicht aufgerufen werden
             get { return null; }
@@ -1478,7 +1479,7 @@ namespace CADability
             get { return lastSnapMode; }
         }
 
-        #endregion
+#endregion
         /// <summary>
         /// Zooms to the extend of the model. The projection direction is not changed.
         /// </summary>
@@ -1554,7 +1555,7 @@ namespace CADability
             RecalcScrollPosition();
         }
 
-        #region IActionInputView Members
+#region IActionInputView Members
 
         bool IActionInputView.IsLayerVisible(Layer l)
         {
@@ -1582,9 +1583,9 @@ namespace CADability
 
         }
 
-        #endregion
+#endregion
 
-        #region ISerializable Members
+#region ISerializable Members
         protected GDI2DView(SerializationInfo info, StreamingContext context)
             : this()
         {
@@ -1633,8 +1634,8 @@ namespace CADability
             info.AddValue("UseDisplayOrder", useDisplayOrder);
             info.AddValue("VisibleLayers", visibleLayers);
         }
-        #endregion
-        #region IDeserializationCallback Members
+#endregion
+#region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
             // kopiert aus Init(), jedoch ohne Überschreibung der eingelesenen properties
@@ -1666,6 +1667,7 @@ namespace CADability
             projection.Grid.YDistance = Settings.GlobalSettings.GetDoubleValue("Grid.YDistance", 10.0);
             modelNeedsRepaint = false;
         }
-        #endregion
+#endregion
     }
 }
+#endif

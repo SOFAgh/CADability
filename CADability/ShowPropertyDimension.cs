@@ -3,13 +3,20 @@ using CADability.GeoObject;
 using System;
 using System.Collections.Generic;
 using MouseEventArgs = CADability.Substitutes.MouseEventArgs;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
+using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.UserInterface
 {
     /// <summary>
     /// 
     /// </summary>
-    internal class ShowPropertyDimension : IShowPropertyImpl, IDisplayHotSpots, IIndexedGeoPoint, ICommandHandler, IGeoObjectShowProperty
+    internal class ShowPropertyDimension : PropertyEntryImpl, IDisplayHotSpots, IIndexedGeoPoint, ICommandHandler, IGeoObjectShowProperty
     {
         private Dimension dimension; // diese wird dargestellt
         private IFrame frame; // Frame für diverse Zwecke
@@ -30,7 +37,7 @@ namespace CADability.UserInterface
         private GeoVectorProperty endAngle; // für Winkelbemaßung
         private GeoVectorHotSpot startAngleHotSpot;
         private GeoVectorHotSpot endAngleHotSpot;
-        private IShowProperty[] subProperties;
+        private IPropertyEntry[] subProperties;
         private bool ignoreChange;
 
         public ShowPropertyDimension(Dimension dimension, IFrame frame)
@@ -61,14 +68,14 @@ namespace CADability.UserInterface
         private void Init()
         {
             // Initialisiert den gesammten Inhalt des TreeViews
-            // danach sollte meist propertyTreeView.Refresh(this); aufgerufen werden
+            // danach sollte meist propertyPage.Refresh(this); aufgerufen werden
             subProperties = null;
 
             if (dimension.DimType == Dimension.EDimType.DimPoints || dimension.DimType == Dimension.EDimType.DimCoord)
             {
-                points = new MultiGeoPointProperty(this, "Dimension.Points");
+                points = new MultiGeoPointProperty(this, "Dimension.Points", this.Frame);
                 points.ModifyWithMouseEvent += new CADability.UserInterface.MultiGeoPointProperty.ModifyWithMouseIndexDelegate(OnModifyPointWithMouse);
-                points.StateChangedEvent += new StateChangedDelegate(OnPointsStateChanged);
+                points.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnPointsStateChanged);
                 points.GeoPointSelectionChangedEvent += new CADability.UserInterface.GeoPointProperty.SelectionChangedDelegate(OnPointsSelectionChanged);
                 direction = new GeoVectorProperty("Dimension.Direction", frame, true);
                 direction.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetDirection);
@@ -120,7 +127,7 @@ namespace CADability.UserInterface
             dimLineRef.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetDimLineRef);
             dimLineRef.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetDimLineRef);
             dimLineRef.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyDimLineRef);
-            dimLineRef.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+            dimLineRef.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
 
             // die String Eingabefelder:
             int numprop = 1;
@@ -144,7 +151,7 @@ namespace CADability.UserInterface
                 textPos[i].SetDoubleEvent += new CADability.UserInterface.DoubleProperty.SetDoubleDelegate(OnSetTextPos);
                 textPos[i].DoubleChanged();
                 textPos[i].ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyTextPosWithMouse);
-                textPos[i].StateChangedEvent += new StateChangedDelegate(OnStateChanged);
+                textPos[i].PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
 
                 textPosHotSpot[i] = new DoubleHotSpot(textPos[i]);
                 textPosHotSpot[i].Position = dimension.GetTextPosCoordinate(i, frame.ActiveView.Projection);
@@ -181,43 +188,28 @@ namespace CADability.UserInterface
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
+        /// Overrides <see cref="PropertyEntryImpl.Added"/>
         /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        /// <param name="propertyPage"></param>
+        public override void Added(IPropertyPage propertyPage)
         {
             dimension.DidChangeEvent += new ChangeDelegate(DimensionDidChange);
             dimension.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);
             dimension.UserData.UserDataRemovedEvent += new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
         }
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyPage)
         {
             dimension.DidChangeEvent -= new ChangeDelegate(DimensionDidChange);
             dimension.UserData.UserDataAddedEvent -= new UserData.UserDataAddedDelegate(OnUserDataAdded);
             dimension.UserData.UserDataRemovedEvent -= new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
         }
         void OnUserDataAdded(string name, object value)
         {
-            //this.subEntries = null; werden hier jedesmal neu bestimmt, ist das gut so???
-            //attributeProperties = circle.GetAttributeProperties(frame);
-            propertyTreeView.Refresh(this);
+            propertyPage.Refresh(this);
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
-        }
+        public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -228,7 +220,7 @@ namespace CADability.UserInterface
                 return items.ToArray();
             }
         }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
@@ -253,7 +245,7 @@ namespace CADability.UserInterface
                 }
                 if (subProperties == null)
                 {
-                    subProperties = new IShowProperty[numprop + 7 * numpoints];
+                    subProperties = new IPropertyEntry[numprop + 7 * numpoints];
                 }
                 if (dimension.DimType == Dimension.EDimType.DimPoints || dimension.DimType == Dimension.EDimType.DimCoord)
                 {
@@ -289,17 +281,9 @@ namespace CADability.UserInterface
                     subProperties[numprop + 7 * i + 5] = postfix[i];
                     subProperties[numprop + 7 * i + 6] = postfixAlt[i];
                 }
-                return IShowPropertyImpl.Concat(subProperties, dimension.GetAttributeProperties(frame));
+                return PropertyEntryImpl.Concat(subProperties, dimension.GetAttributeProperties(frame));
             }
         }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-
         public override void Opened(bool IsOpen)
         {
             if (HotspotChangedEvent != null)
@@ -339,7 +323,7 @@ namespace CADability.UserInterface
         }
 
 
-#region IDisplayHotSpots Members
+        #region IDisplayHotSpots Members
 
         public event CADability.HotspotChangedDelegate HotspotChangedEvent;
 
@@ -348,9 +332,9 @@ namespace CADability.UserInterface
             // TODO:  Add ShowPropertyDimension.ReloadProperties implementation
         }
 
-#endregion
+        #endregion
 
-#region IIndexedGeoPoint Members
+        #region IIndexedGeoPoint Members
 
         public void SetGeoPoint(int Index, GeoPoint ThePoint)
         {
@@ -368,8 +352,8 @@ namespace CADability.UserInterface
             else throw new NotImplementedException("Dimension: InsertGeoPoint");
             Opened(false);
             Init();
-            propertyTreeView.Refresh(this);
-            propertyTreeView.OpenSubEntries(points, true);
+            propertyPage.Refresh(this);
+            propertyPage.OpenSubEntries(points, true);
         }
 
         public void RemoveGeoPoint(int Index)
@@ -378,8 +362,8 @@ namespace CADability.UserInterface
             dimension.RemovePoint(Index);
             ignoreChange = false;
             subProperties = null;
-            propertyTreeView.Refresh(this);
-            propertyTreeView.OpenSubEntries(points, true);
+            propertyPage.Refresh(this);
+            propertyPage.OpenSubEntries(points, true);
             SelectObjectsAction selAct = frame.ActiveAction as SelectObjectsAction;
             if (selAct != null)
             {
@@ -404,7 +388,7 @@ namespace CADability.UserInterface
         {
             return dimension.PointCount > 2;
         }
-#endregion
+        #endregion
 
         private GeoPoint OnGetDimLineRef(GeoPointProperty sender)
         {
@@ -448,8 +432,8 @@ namespace CADability.UserInterface
         {
             dimension.SortPoints();
             subProperties = null;
-            propertyTreeView.Refresh(this);
-            propertyTreeView.OpenSubEntries(points, true);
+            propertyPage.Refresh(this);
+            propertyPage.OpenSubEntries(points, true);
         }
 
         private void OnSetDimText(StringProperty sender, string newValue)
@@ -460,7 +444,7 @@ namespace CADability.UserInterface
                 if (newValue.Length == 0)
                 {
                     dimension.SetDimText(ind, null);
-                    sender.SetString( dimension.GetDimText(ind));
+                    sender.SetString(dimension.GetDimText(ind));
                 }
                 else dimension.SetDimText(ind, newValue);
             }
@@ -565,7 +549,7 @@ namespace CADability.UserInterface
             frame.SetAction(gpa);
         }
 
-        private void OnPointsStateChanged(IShowProperty sender, StateChangedArgs args)
+        private void OnPointsStateChanged(IPropertyEntry sender, StateChangedArgs args)
         {
             if (HotspotChangedEvent != null)
             {
@@ -646,10 +630,10 @@ namespace CADability.UserInterface
             {
                 Opened(false); // alle hotspots abmelden
                 Init();
-                if (propertyTreeView != null)
+                if (propertyPage != null)
                 {
-                    propertyTreeView.Refresh(this);
-                    propertyTreeView.OpenSubEntries(points, true);
+                    propertyPage.Refresh(this);
+                    propertyPage.OpenSubEntries(points, true);
                 }
             }
         }
@@ -771,40 +755,40 @@ namespace CADability.UserInterface
 
         private void OnClickOnSelectedObject(IGeoObject selected, IView vw, MouseEventArgs e, ref bool handled)
         {
-            if (!handled && propertyTreeView != null)
+            if (!handled && propertyPage != null)
             {
-                GeoPoint dp = vw.Projection.DrawingPlanePoint(new System.Drawing.Point(e.X, e.Y));
+                GeoPoint dp = vw.Projection.DrawingPlanePoint(new Point(e.X, e.Y));
                 int index;
                 Dimension.HitPosition hp = dimension.GetHitPosition(vw.Projection, vw.Projection.ProjectUnscaled(dp), out index);
                 if ((hp & Dimension.HitPosition.Text) != 0)
                 {
-                    propertyTreeView.MakeVisible(dimText[index]);
-                    propertyTreeView.SelectEntry(dimText[index]);
+                    propertyPage.MakeVisible(dimText[index]);
+                    propertyPage.SelectEntry(dimText[index]);
                 }
                 else if ((hp & Dimension.HitPosition.LowerText) != 0)
                 {
-                    propertyTreeView.MakeVisible(tolMinusText[index]);
-                    propertyTreeView.SelectEntry(tolMinusText[index]);
+                    propertyPage.MakeVisible(tolMinusText[index]);
+                    propertyPage.SelectEntry(tolMinusText[index]);
                 }
                 else if ((hp & Dimension.HitPosition.PostFix) != 0)
                 {
-                    propertyTreeView.MakeVisible(postfix[index]);
-                    propertyTreeView.SelectEntry(postfix[index]);
+                    propertyPage.MakeVisible(postfix[index]);
+                    propertyPage.SelectEntry(postfix[index]);
                 }
                 else if ((hp & Dimension.HitPosition.PostFixAlt) != 0)
                 {
-                    propertyTreeView.MakeVisible(postfixAlt[index]);
-                    propertyTreeView.SelectEntry(postfixAlt[index]);
+                    propertyPage.MakeVisible(postfixAlt[index]);
+                    propertyPage.SelectEntry(postfixAlt[index]);
                 }
                 else if ((hp & Dimension.HitPosition.Prefix) != 0)
                 {
-                    propertyTreeView.MakeVisible(prefix[index]);
-                    propertyTreeView.SelectEntry(prefix[index]);
+                    propertyPage.MakeVisible(prefix[index]);
+                    propertyPage.SelectEntry(prefix[index]);
                 }
                 else if ((hp & Dimension.HitPosition.UpperText) != 0)
                 {
-                    propertyTreeView.MakeVisible(tolPlusText[index]);
-                    propertyTreeView.SelectEntry(tolPlusText[index]);
+                    propertyPage.MakeVisible(tolPlusText[index]);
+                    propertyPage.SelectEntry(tolPlusText[index]);
                 }
                 else if ((hp & Dimension.HitPosition.AltText) != 0)
                 {
@@ -838,7 +822,7 @@ namespace CADability.UserInterface
                 else HotspotChangedEvent(sender, HotspotChangeMode.Deselected);
             }
         }
-#region ICommandHandler Members
+        #region ICommandHandler Members
 
         public bool OnCommand(string MenuId)
         {
@@ -876,7 +860,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
         #endregion
         #region IGeoObjectShowProperty Members
@@ -889,9 +873,9 @@ namespace CADability.UserInterface
         {
             return "MenuId.Object.Dimension";
         }
-#endregion
+        #endregion
 
-        private void OnStateChanged(IShowProperty sender, StateChangedArgs args)
+        private void OnStateChanged(IPropertyEntry sender, StateChangedArgs args)
         {
             if (HotspotChangedEvent == null) return;
 

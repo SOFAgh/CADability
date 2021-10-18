@@ -6,6 +6,9 @@ using System.Collections.Generic;
 using CADability.GeoObject;
 using System.Runtime.Serialization;
 using Wintellect.PowerCollections;
+using MathNet.Numerics.Optimization;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 
 namespace CADability.Curve2D
 {
@@ -209,7 +212,7 @@ namespace CADability.Curve2D
         /// <returns>positions found</returns>
         double[] TangentPointsToAngle(GeoVector2D direction);
         /// <summary>
-        /// Returns a list of onflection points of this curve. Teh list might be empty
+        /// Returns a list of inflection points of this curve. The list might be empty
         /// </summary>
         /// <returns>List of inflection points</returns>
         double[] GetInflectionPoints();
@@ -331,14 +334,14 @@ namespace CADability.Curve2D
 #if DEBUG
     [System.Diagnostics.DebuggerVisualizer(typeof(Curve2DVisualizer))]
 #endif
-    public abstract class GeneralCurve2D : ICurve2D, I2DIntersectable
+    public abstract class GeneralCurve2Dold : ICurve2D, I2DIntersectable
     {
         /* Weg von Opencascade!
          * Diese Klasse auf Triangulierung umstellen und weg von OpenCascade bringen.
          * Schnitt, Tangenten, Absatnd u.s.w. alles ohne OCas.
          * Erzeugt eine Traingulierung und behält Verbesserungen derselben bis zu einem gewissen Grad bei
          */
-        protected GeneralCurve2D()
+        protected GeneralCurve2Dold()
         {
             // wird nur durch die static Methoden erzeugt
         }
@@ -595,7 +598,7 @@ namespace CADability.Curve2D
         public virtual double MinDistance(ICurve2D Other)
         {
             double minDist = Curves2D.SimpleMinimumDistance(this, Other);
-            GeneralCurve2D g2d = Other as GeneralCurve2D;
+            GeneralCurve2Dold g2d = Other as GeneralCurve2Dold;
             if (g2d != null)
             {   // openCascade geht nicht, da u.U. multithreaded
                 //if (OCasBuddy.MinPerpendicularDistance(g2d.OCasBuddy, ref minDist))
@@ -671,9 +674,9 @@ namespace CADability.Curve2D
                 }
                 return res;
             }
-            if (IntersectWith is TriangulatedCurve2D)
+            if (IntersectWith is GeneralCurve2D)
             {
-                TriangulatedCurve2D t2d = IntersectWith as TriangulatedCurve2D;
+                GeneralCurve2D t2d = IntersectWith as GeneralCurve2D;
                 GeoPoint2DWithParameter[] res = t2d.Intersect(this);
                 for (int i = 0; i < res.Length; i++)
                 {
@@ -683,104 +686,12 @@ namespace CADability.Curve2D
                 }
                 return res;
             }
-            TempTriangulatedCurve2D tt = new TempTriangulatedCurve2D(this);
-            return tt.Intersect(IntersectWith);
-            // 15.6.18: changed to TempTriangulatedCurve2D, because there were problems with the following
-            //GeneralCurve2D g2d = IntersectWith as GeneralCurve2D;
-            //if (g2d != null)
-            //{
-            //    // hier beziehen wir uns auf die Traingulierung, die natürlich an den Wendepunkten
-            //    // aufgeteilt sein muss und keine Bögen über 180° enthalten darf
-            //    List<GeoPoint2DWithParameter> res = new List<GeoPoint2DWithParameter>();
-            //    GeoPoint2D[] pts1, pts2;
-            //    GeoVector2D[] dirs1, dirs2;
-            //    double[] par1, par2;
-            //    GetTriangulationPoints(out pts1, out par1);
-            //    g2d.GetTriangulationPoints(out pts2, out par2);
-            //    dirs1 = new GeoVector2D[par1.Length];
-            //    for (int i = 0; i < pts1.Length; ++i)
-            //        dirs1[i] = (this as ICurve2D).DirectionAt(par1[i]);
-            //    dirs2 = new GeoVector2D[par2.Length];
-            //    for (int i = 0; i < pts2.Length; ++i)
-            //        dirs2[i] = (g2d as ICurve2D).DirectionAt(par2[i]);
-            //    for (int i = 0; i < pts1.Length - 1; ++i)
-            //    {
-            //        for (int j = 0; j < pts2.Length - 1; ++j)
-            //        {
-            //            GeoPoint2DWithParameter[] gpwp = CheckTriangleIntersect(this, pts1[i], pts1[i + 1], par1[i], par1[i + 1], dirs1[i], dirs1[i + 1],
-            //                g2d, pts2[j], pts2[j + 1], par2[j], par2[j + 1], dirs2[j], dirs2[j + 1]);
-            //            for (int k = 0; k < gpwp.Length; ++k)
-            //            {
-            //                if (IsValidParameter(gpwp[k].par1) && g2d.IsValidParameter(gpwp[k].par2))
-            //                {
-            //                    res.Add(gpwp[k]);
-            //                }
-            //            }
-            //        }
-            //    }
-            //    // Nachbesserung: Die Ergebnisse der Bisektion sind ja gemittelt, wenn eine gewisse Distanz unterschritten wird
-            //    // hier können wir noch bei nicht tnagentialen Schnitten leicht nachbessern
-            //    for (int i = 0; i < res.Count; ++i)
-            //    {
-            //        GeoVector2D dir1 = (this as ICurve2D).DirectionAt(res[i].par1);
-            //        GeoVector2D dir2 = (g2d as ICurve2D).DirectionAt(res[i].par2);
-            //        if (!Precision.SameDirection(dir1, dir2, false))
-            //        {
-            //            GeoPoint2D p1 = (this as ICurve2D).PointAt(res[i].par1);
-            //            GeoPoint2D p2 = (g2d as ICurve2D).PointAt(res[i].par2);
-            //            double olddist = Geometry.Dist(p1, p2);
-            //            for (int j = 0; j < 3; ++j)
-            //            {
-            //                GeoPoint2D ip;
-            //                if (Geometry.IntersectLL(p1, dir1, p2, dir2, out ip))
-            //                {
-            //                    double newpar1 = (this as ICurve2D).PositionOf(ip);
-            //                    double newpar2 = (g2d as ICurve2D).PositionOf(ip);
-            //                    p1 = (this as ICurve2D).PointAt(newpar1);
-            //                    p2 = (g2d as ICurve2D).PointAt(newpar2);
-            //                    double dist = Geometry.Dist(p1, p2);
-            //                    if (dist < olddist)
-            //                    {   // es konvertiert
-            //                        olddist = dist;
-            //                        res[i] = new GeoPoint2DWithParameter(ip, newpar1, newpar2);
-            //                    }
-            //                    else break;
-            //                    dir1 = (this as ICurve2D).DirectionAt(res[i].par1);
-            //                    dir2 = (g2d as ICurve2D).DirectionAt(res[i].par2);
-            //                }
-            //                else break;
-            //            }
-            //        }
-            //    }
-            //    res.Sort(new ICompareGeoPoint2DWithParameter1());
-            //    for (int i = res.Count - 1; i > 0; --i)
-            //    {   // Doppekpunkte entfernen
-            //        if (Precision.IsEqual(res[i].p, res[i - 1].p))
-            //        {
-            //            res.RemoveAt(i);
-            //        }
-            //    }
-            //    return res.ToArray();
-
-            //    // das war mit opaencascade:
-            //    //double [] par1, par2;
-            //    //// im folgenden muss Entity2D und nicht entity2D, damit das Objekt ggf erstmals erzeugt wird
-            //    //CndHlp2D.GeoPoint2D[] isp = CndHlp2D.Entity2D.Intersect(this.Entity2D, g2d.Entity2D, out par1, out par2);
-            //    //List<GeoPoint2DWithParameter> res = new List<GeoPoint2DWithParameter>();
-            //    //for (int i=0; i<isp.Length; ++i)
-            //    //{
-            //    //    GeoPoint2DWithParameter pwp;
-            //    //    pwp.p = new GeoPoint2D(isp[i]);
-            //    //    pwp.par1 = (par1[i] - entity2D.StartParameter) / (entity2D.EndParameter - entity2D.StartParameter); // normiert auf 0..1
-            //    //    pwp.par2 = (par2[i] - g2d.entity2D.StartParameter) / (g2d.entity2D.EndParameter - g2d.entity2D.StartParameter);
-            //    //    res.Add(pwp);
-            //    //}
-            //    //return res.ToArray();
-            //}
-            //throw new NotImplementedException("GeneralCurve2D.Intersect");
+            //TempTriangulatedCurve2D tt = new TempTriangulatedCurve2D(this);
+            //return tt.Intersect(IntersectWith);
+            throw new NotImplementedException("GeneralCurve2Dold.Intersect");
         }
-        private static GeoPoint2DWithParameter[] CheckTriangleIntersect(GeneralCurve2D curve1, GeoPoint2D sp1, GeoPoint2D ep1, double spar1, double epar1, GeoVector2D sd1, GeoVector2D ed1,
-            GeneralCurve2D curve2, GeoPoint2D sp2, GeoPoint2D ep2, double spar2, double epar2, GeoVector2D sd2, GeoVector2D ed2)
+        private static GeoPoint2DWithParameter[] CheckTriangleIntersect(GeneralCurve2Dold curve1, GeoPoint2D sp1, GeoPoint2D ep1, double spar1, double epar1, GeoVector2D sd1, GeoVector2D ed1,
+            GeneralCurve2Dold curve2, GeoPoint2D sp2, GeoPoint2D ep2, double spar2, double epar2, GeoVector2D sd2, GeoVector2D ed2)
         {
             // testet die beiden gegebenen Dreiecke auf Schnitt.
             // Die Dreiecke hüllen jeweils ein Kurvenstück ein, d.h. wenn die Dreiecke sich schneiden 
@@ -1161,8 +1072,9 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual double[] GetInflectionPoints()
         {
-            TempTriangulatedCurve2D ttc = new TempTriangulatedCurve2D(this);
-            return ttc.GetInflectionPoints();
+            //TempTriangulatedCurve2D ttc = new TempTriangulatedCurve2D(this);
+            //return ttc.GetInflectionPoints();
+            throw new ApplicationException("GetInflectionPoints should not be called");
         }
         private bool approxTwoArcs(double par1, double par2, out GeoPoint2D c1, out GeoPoint2D c2, out GeoPoint2D innerPoint)
         {	// gesucht sind zwei Kreisbögen, die an par1 bzw. par2 tangential zu dieser Kurve sind
@@ -1563,106 +1475,131 @@ namespace CADability.Curve2D
     /// <summary>
     /// Nur temporär, später soll alles von TriangulatedCurve2D abgeleitet sein
     /// </summary>
-    internal class TempTriangulatedCurve2D : TriangulatedCurve2D
-    {
-        ICurve2D curve;
-        public TempTriangulatedCurve2D(ICurve2D curve)
-        {
-            this.curve = curve;
-            MakeTringulation();
-        }
-        protected override void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters)
-        {
-            if (curve is GeneralCurve2D)
-            {
-                (curve as GeneralCurve2D).GetTriangulationPoints(out points, out parameters);
-                directions = new GeoVector2D[parameters.Length];
-                for (int i = 0; i < parameters.Length; ++i)
-                {
-                    directions[i] = curve.DirectionAt(parameters[i]);
-                }
-            }
-            else if (curve is Path2D)
-            {   // Overkill, aber so am schnellsten programmiert
-                Path2D p2d = (curve as Path2D);
-                Set<double> pars = new Set<double>();
-                for (int i = 0; i < p2d.SubCurvesCount; i++)
-                {
-                    TempTriangulatedCurve2D ttc = new TempTriangulatedCurve2D(p2d.SubCurves[i]);
-                    double[] spars;
-                    ttc.GetTriangulationBasis(out points, out directions, out spars);
-                    for (int j = 0; j < spars.Length; j++)
-                    {
-                        pars.Add((i + spars[j]) / p2d.SubCurvesCount);
-                    }
-                }
-                parameters = pars.ToArray();
-                Array.Sort(parameters);
-                directions = new GeoVector2D[parameters.Length];
-                points = new GeoPoint2D[parameters.Length];
-                for (int i = 0; i < parameters.Length; ++i)
-                {
-                    points[i] = curve.PointAt(parameters[i]);
-                    directions[i] = curve.DirectionAt(parameters[i]);
-                }
-            }
-            else
-            {
-                parameters = new double[] { 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 };
-                directions = new GeoVector2D[parameters.Length];
-                points = new GeoPoint2D[parameters.Length];
-                for (int i = 0; i < parameters.Length; ++i)
-                {
-                    points[i] = curve.PointAt(parameters[i]);
-                    directions[i] = curve.DirectionAt(parameters[i]);
-                }
-            }
-        }
+    //internal class TempTriangulatedCurve2D : TriangulatedCurve2D
+    //{
+    //    ICurve2D curve;
+    //    public TempTriangulatedCurve2D(ICurve2D curve)
+    //    {
+    //        this.curve = curve;
+    //        MakeTringulation();
+    //    }
+    //    protected override void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters)
+    //    {
+    //        if (curve is GeneralCurve2D)
+    //        {
+    //            (curve as GeneralCurve2D).GetTriangulationPoints(out points, out parameters);
+    //            directions = new GeoVector2D[parameters.Length];
+    //            for (int i = 0; i < parameters.Length; ++i)
+    //            {
+    //                directions[i] = curve.DirectionAt(parameters[i]);
+    //            }
+    //        }
+    //        else if (curve is Path2D)
+    //        {   // Overkill, aber so am schnellsten programmiert
+    //            Path2D p2d = (curve as Path2D);
+    //            Set<double> pars = new Set<double>();
+    //            for (int i = 0; i < p2d.SubCurvesCount; i++)
+    //            {
+    //                TempTriangulatedCurve2D ttc = new TempTriangulatedCurve2D(p2d.SubCurves[i]);
+    //                double[] spars;
+    //                ttc.GetTriangulationBasis(out points, out directions, out spars);
+    //                for (int j = 0; j < spars.Length; j++)
+    //                {
+    //                    pars.Add((i + spars[j]) / p2d.SubCurvesCount);
+    //                }
+    //            }
+    //            parameters = pars.ToArray();
+    //            Array.Sort(parameters);
+    //            directions = new GeoVector2D[parameters.Length];
+    //            points = new GeoPoint2D[parameters.Length];
+    //            for (int i = 0; i < parameters.Length; ++i)
+    //            {
+    //                points[i] = curve.PointAt(parameters[i]);
+    //                directions[i] = curve.DirectionAt(parameters[i]);
+    //            }
+    //        }
+    //        else
+    //        {
+    //            parameters = new double[] { 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 };
+    //            directions = new GeoVector2D[parameters.Length];
+    //            points = new GeoPoint2D[parameters.Length];
+    //            for (int i = 0; i < parameters.Length; ++i)
+    //            {
+    //                points[i] = curve.PointAt(parameters[i]);
+    //                directions[i] = curve.DirectionAt(parameters[i]);
+    //            }
+    //        }
+    //    }
 
-        public override GeoVector2D DirectionAt(double Position)
-        {
-            return curve.DirectionAt(Position);
-        }
+    //    public override GeoVector2D DirectionAt(double Position)
+    //    {
+    //        return curve.DirectionAt(Position);
+    //    }
 
-        public override GeoPoint2D PointAt(double Position)
-        {
-            return curve.PointAt(Position);
-        }
-        public override void Reverse()
-        {
-            curve.Reverse();
-            base.ClearTriangulation();
-        }
+    //    public override GeoPoint2D PointAt(double Position)
+    //    {
+    //        return curve.PointAt(Position);
+    //    }
+    //    public override void Reverse()
+    //    {
+    //        curve.Reverse();
+    //        base.ClearTriangulation();
+    //    }
 
-        public override ICurve2D Clone()
-        {
-            return new TempTriangulatedCurve2D(curve);
-        }
+    //    public override ICurve2D Clone()
+    //    {
+    //        return new TempTriangulatedCurve2D(curve);
+    //    }
 
-        public override void Copy(ICurve2D toCopyFrom)
-        {
-            TempTriangulatedCurve2D tc = toCopyFrom as TempTriangulatedCurve2D;
-            if (tc != null)
-            {
-                curve = tc.curve;
-            }
-        }
-    }
+    //    public override void Copy(ICurve2D toCopyFrom)
+    //    {
+    //        TempTriangulatedCurve2D tc = toCopyFrom as TempTriangulatedCurve2D;
+    //        if (tc != null)
+    //        {
+    //            curve = tc.curve;
+    //        }
+    //    }
+
+    //    public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+    //    {
+    //        return this.curve.TryPointDeriv2At(position, out point, out deriv, out deriv2);
+    //    }
+    //}
 
     [Serializable()]
-    public abstract class TriangulatedCurve2D : ICurve2D, ISerializable
+#if DEBUG
+    [System.Diagnostics.DebuggerVisualizer(typeof(Curve2DVisualizer))]
+#endif
+    public abstract class GeneralCurve2D : ICurve2D, ISerializable
     {
-        /* Später in GeneralCurve2D umbenennen und die Abhängigketi von obigem loswerden
-         */
+        // This was called TriangulatedCurve2D in earlier versions
         private GeoPoint2D[] interpol; // gewisse Stützpunkte für jeden Knoten und ggf Zwischenpunkte (Wendepunkte, zu große Dreiecke)
         private GeoVector2D[] interdir; // Richtungen an den Stützpunkten
         private double[] interparam; // Parameterwerte an den Stützpunkten
         private GeoPoint2D[] tringulation; // Dreiecks-Zwischenpunkte (einer weniger als interpol)
         private ICurve2D baseApproximation;
-        protected TriangulatedCurve2D()
+        protected GeneralCurve2D()
         {
         }
-        protected abstract void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters);
+        protected double sqr(double d) => d * d;
+        protected virtual void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters)
+        {
+            GetTriangulationPoints(out points, out parameters);
+            directions = new GeoVector2D[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                directions[i] = DirectionAt(parameters[i]).Normalized;
+            }
+        }
+        internal virtual void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
+        {
+            interparam = new double[] { 0, 0.25, 0.5, 0.75, 1.0 };
+            interpol = new GeoPoint2D[interparam.Length];
+            for (int i = 0; i < interparam.Length; i++)
+            {
+                interpol[i] = PointAt(interparam[i]);
+            }
+        }
         protected void MakeTringulation()
         {   // ACHTUNG: Probleme sind hier Singularitäten und doppelte Punkte. Das muss noch überprüft werden
             // am Besten mit bösartigen BSplines (mehrfach identische Pole)
@@ -1674,13 +1611,13 @@ namespace CADability.Curve2D
             DebuggerContainer dc1 = new DebuggerContainer();
             try
             {
-                //Polyline2D pl2d = new Polyline2D(points);
-                //dc1.Add(pl2d, System.Drawing.Color.Red, -1);
-                //for (int i = 0; i < directions.Length; ++i)
-                //{
-                //    Line2D l2d = new Line2D(points[i], points[i] + directions[i]);
-                //    dc1.Add(l2d, System.Drawing.Color.Blue, i);
-                //}
+                Polyline2D pl2d = new Polyline2D(points);
+                dc1.Add(pl2d, System.Drawing.Color.Red, -1);
+                for (int i = 0; i < directions.Length; ++i)
+                {
+                    Line2D l2d = new Line2D(points[i], points[i] + directions[i]);
+                    dc1.Add(l2d, System.Drawing.Color.Blue, i);
+                }
             }
             catch (Polyline2DException) { }
 #endif
@@ -1748,9 +1685,9 @@ namespace CADability.Curve2D
             tringulation = ltringulation.ToArray();
 #if DEBUGx
             DebuggerContainer dc = new DebuggerContainer();
-            ColorDef red = new ColorDef("red", System.Drawing.Color.Red);
-            ColorDef green = new ColorDef("green", System.Drawing.Color.Green);
-            ColorDef blue = new ColorDef("blue", System.Drawing.Color.Blue);
+            Attribute.ColorDef red = new Attribute.ColorDef("red", System.Drawing.Color.Red);
+            Attribute.ColorDef green = new Attribute.ColorDef("green", System.Drawing.Color.Green);
+            Attribute.ColorDef blue = new Attribute.ColorDef("blue", System.Drawing.Color.Blue);
             for (int i = 1; i < interpol.Length; ++i)
             {
                 Line2D l1 = new Line2D(interpol[i - 1], interpol[i]);
@@ -1971,7 +1908,21 @@ namespace CADability.Curve2D
         {
             return position / Length;
         }
-
+        public virtual bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2)
+        {
+            point = PointAt(position);
+            deriv1 = DirectionAt(position);
+            deriv2 = GeoVector2D.NullVector;
+            return false;
+        }
+        public virtual bool TryPointDeriv3At(double position, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2, out GeoVector2D deriv3)
+        {
+            point = PointAt(position);
+            deriv1 = DirectionAt(position);
+            deriv2 = GeoVector2D.NullVector;
+            deriv3 = GeoVector2D.NullVector;
+            return false;
+        }
         public virtual double Length
         {
             get
@@ -2044,10 +1995,9 @@ namespace CADability.Curve2D
         /// <param name="Other"></param>
         /// <returns></returns>
         public virtual double MinDistance(ICurve2D Other)
-        {
-            throw new Exception("The method or operation is not implemented.");
+        {   // we should use the triangulation here!
+            return Curves2D.SimpleMinimumDistance(this, Other);
         }
-
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.MinDistance (GeoPoint2D)"/>
         /// </summary>
@@ -2073,7 +2023,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual ICurve2D Trim(double StartPos, double EndPos)
         {
-            // mal hier nix machen zum Test, muss aber überschrieben werden
+            // this must be overridden!
             return this;
         }
 
@@ -2258,6 +2208,7 @@ namespace CADability.Curve2D
                     Geometry.IntersectLL(sp1, ep1, sp2, ep2, out ip);
                     double par1 = spar1 + Geometry.LinePar(sp1, ep1, ip) * (epar1 - spar1);
                     double par2 = spar2 + Geometry.LinePar(sp2, ep2, ip) * (epar2 - spar2);
+                    // bool dbg = BoxedSurfaceExtension.CurveIntersection2D(curve1, spar1, epar1, curve2, spar2, epar2, ref par1, ref par2, ref ip);
                     if (NewtonApproximation(curve1, spar1, epar1, curve2, spar2, epar2, ref par1, ref par2, ref ip))
                     {
                         GeoPoint2DWithParameter res = new GeoPoint2DWithParameter();
@@ -2623,18 +2574,34 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual GeoPoint2DWithParameter[] Intersect(ICurve2D IntersectWith)
         {
-            // Einen QuadTree aufbauen, der die Dreiecke dieser Kurve enthält und adaptiv bei feinerer Auflösung
-            // mitgeht könnte auch nützlich sein
-            if (IntersectWith is TriangulatedCurve2D)
+            ICurve2D[] sc = null;
+            if (IntersectWith is Path2D pth2d) sc = pth2d.SubCurves;
+            else if (IntersectWith is Polyline2D pl2d) sc = pl2d.GetSubCurves();
+            if (sc != null)
             {
-                return Intersect(this, IntersectWith as TriangulatedCurve2D);
+                List<GeoPoint2DWithParameter> res = new List<GeoPoint2DWithParameter>();
+                for (int i = 0; i < sc.Length; i++)
+                {
+                    GeoPoint2DWithParameter[] p2ds = Intersect(sc[i]);
+                    for (int j = 0; j < p2ds.Length; j++)
+                    {
+                        p2ds[j].par2 = IntersectWith.PositionOf(p2ds[j].p);
+                    }
+                    res.AddRange(p2ds);
+                }
+                return res.ToArray();
+            }
+            else if (IntersectWith is GeneralCurve2D)
+            {
+                return Intersect(this, IntersectWith as GeneralCurve2D);
             }
             else
             {   // das soll eliminiert werden, indem alles von TriangulatedCurve2D abgeleitet wird.
-                return Intersect(this, new TempTriangulatedCurve2D(IntersectWith));
+                //return Intersect(this, new TempTriangulatedCurve2D(IntersectWith));
+                throw new ApplicationException("must be a GeneralCurve2D");
             }
         }
-        internal static GeoPoint2DWithParameter[] Intersect(TriangulatedCurve2D curve1, TriangulatedCurve2D curve2)
+        internal static GeoPoint2DWithParameter[] Intersect(GeneralCurve2D curve1, GeneralCurve2D curve2)
         {
             List<GeoPoint2DWithParameter> res = new List<GeoPoint2DWithParameter>();
             GeoPoint2D[] pts1, pts2;
@@ -2707,9 +2674,9 @@ namespace CADability.Curve2D
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.PerpendicularFoot (GeoPoint2D)"/>
         /// </summary>
-        /// <param name="FromHere"></param>
+        /// <param name="fromHere"></param>
         /// <returns></returns>
-        public virtual GeoPoint2D[] PerpendicularFoot(GeoPoint2D FromHere)
+        public virtual GeoPoint2D[] PerpendicularFoot(GeoPoint2D fromHere)
         {
             List<GeoPoint2D> res = new List<GeoPoint2D>();
             if (interpol == null) MakeTringulation();
@@ -2717,14 +2684,14 @@ namespace CADability.Curve2D
             {
                 GeoVector2D snorm = interdir[i].ToRight();
                 GeoVector2D enorm = interdir[i + 1].ToRight();
-                bool l1 = Geometry.OnLeftSide(FromHere, interpol[i], snorm);
-                bool l2 = Geometry.OnLeftSide(FromHere, interpol[i + 1], enorm);
-                // die Normalen in den beiden Punkten müssen den Punkt auf verschiedenen Seiten haben, dann kann es einen Lotfußpunkt geben
-                // geometrisch bedeutet das, dass die Normale auf der Kurve den Punkt überstreicht
+                bool l1 = Geometry.OnLeftSide(fromHere, interpol[i], snorm);
+                bool l2 = Geometry.OnLeftSide(fromHere, interpol[i + 1], enorm);
+                // tho point "fromHere" must be on different sides of the normals at the two endpoints of this segment
+                // it means the normal on the curve wipes over the point "fromHere" when it moves along this segment
                 if (l1 != l2)
                 {
                     double par;
-                    if (FindPerpendicularFoot(FromHere, interparam[i], interparam[i + 1], interpol[i], interpol[i + 1], snorm, enorm, out par))
+                    if (FindPerpendicularFoot(fromHere, interparam[i], interparam[i + 1], interpol[i], interpol[i + 1], snorm, enorm, out par))
                     {
                         res.Add(PointAt(par));
                     }
@@ -2733,25 +2700,39 @@ namespace CADability.Curve2D
             return res.ToArray();
         }
 
-        private bool FindPerpendicularFoot(GeoPoint2D FromHere, double spar, double epar, GeoPoint2D sp, GeoPoint2D ep, GeoVector2D snorm, GeoVector2D enorm, out double par)
+        private bool FindPerpendicularFoot(GeoPoint2D fromHere, double spar, double epar, GeoPoint2D sp, GeoPoint2D ep, GeoVector2D snorm, GeoVector2D enorm, out double par)
         {
-            double pos = Geometry.LinePar(sp, ep, Geometry.DropPL(FromHere, sp, ep));
+            double pos = Geometry.LinePar(sp, ep, Geometry.DropPL(fromHere, sp, ep));
             if (-1e-6 <= pos && pos <= 1.0 + 1e-6)
-            {   // hier kann mans mit Newton versuchen
+            {   // here we are close enough to try with newton
                 par = (spar + epar) / 2.0;
-                if (NewtonPerpendicular(FromHere, ref par))
+                int iterations = 20;
+                if (TryPointDeriv2At(par, out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2))
+                {
+                    double stepTolerance = (epar - spar) * 1e-8;
+                    double functionTolerance = (point | fromHere) * deriv1.Length * 1e-18;
+                    par = Geometry.SimpleNewtonApproximation(delegate (double w, out double x, out double dx)
+                    {
+                        TryPointDeriv2At(w, out point, out deriv1, out deriv2);
+                        x = (fromHere - point) * deriv1;
+                        dx = (fromHere - point) * deriv2 - deriv1 * deriv1;
+
+                    }, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance);
+                    if (par != double.MaxValue) return true;
+                }
+                else if (NewtonPerpendicular(fromHere, ref par))
                 {
                     return true;
                 }
             }
             double mpar = (spar + epar) / 2.0;
             par = mpar;
-            bool l1 = Geometry.OnLeftSide(FromHere, sp, snorm);
-            bool l2 = Geometry.OnLeftSide(FromHere, ep, enorm);
+            bool l1 = Geometry.OnLeftSide(fromHere, sp, snorm);
+            bool l2 = Geometry.OnLeftSide(fromHere, ep, enorm);
             GeoPoint2D mp = PointAt(mpar);
             GeoVector2D mnorm = DirectionAt(mpar).ToRight();
-            bool lm = Geometry.OnLeftSide(FromHere, mp, mnorm);
-            if (Math.Abs(Geometry.DistPL(FromHere, mp, mnorm)) < Precision.eps || (epar - spar) < 1e-6)
+            bool lm = Geometry.OnLeftSide(fromHere, mp, mnorm);
+            if (Math.Abs(Geometry.DistPL(fromHere, mp, mnorm)) < Precision.eps || (epar - spar) < 1e-6)
             {   // Abbruchbedingung mit Abstand von der Normalen ist bei starker Krümmung natürlich schwer zu erreichen
                 // deshalb zusätzlich die Parametergrenze
                 return true;
@@ -2760,14 +2741,14 @@ namespace CADability.Curve2D
             // geometrisch bedeutet das, dass die Normale auf der Kurve den Punkt überstreicht
             if (l1 != lm)
             {
-                if (FindPerpendicularFoot(FromHere, spar, mpar, sp, mp, snorm, mnorm, out par))
+                if (FindPerpendicularFoot(fromHere, spar, mpar, sp, mp, snorm, mnorm, out par))
                 {
                     return true;
                 }
             }
             else if (lm != l2)
             {
-                if (FindPerpendicularFoot(FromHere, mpar, epar, mp, ep, mnorm, enorm, out par))
+                if (FindPerpendicularFoot(fromHere, mpar, epar, mp, ep, mnorm, enorm, out par))
                 {
                     return true;
                 }
@@ -2801,6 +2782,33 @@ namespace CADability.Curve2D
             } while (Math.Abs(dp) > 1e-6);
             return true;
         }
+        private bool NewtonTangential(GeoVector2D dir, ref double par)
+        {
+            double dp = double.MaxValue;
+            int dbg = 0;
+            dir = dir.ToLeft().Normalized; // search for perpendicular
+            do
+            {
+                ++dbg;
+                GeoPoint2D s = PointAt(par);
+                GeoVector2D v = DirectionAt(par);
+                double d = (v.x * v.x + v.y * v.y);
+                if (d == 0.0) return true; // null vector: singularity
+                double l = (dir * v);
+                if (Math.Abs(l) > Math.Abs(dp / 2.0)) return false; // konvergiert nicht
+                dp = l;
+                par += dp;
+#if DEBUGCURVE
+
+                DebuggerContainer dc = new DebuggerContainer();
+                dc.Add(this);
+                Line2D l2d = new Line2D(s, s + v);
+                dc.Add(l2d);
+                dc.Add(p, System.Drawing.Color.Red, 0);
+#endif
+            } while (Math.Abs(dp) > 1e-6);
+            return true;
+        }
 
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.TangentPoints (GeoPoint2D, GeoPoint2D)"/>
@@ -2810,7 +2818,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual GeoPoint2D[] TangentPoints(GeoPoint2D FromHere, GeoPoint2D CloseTo)
         {
-            throw new Exception("The method or operation is not implemented.");
+            return new GeoPoint2D[] { };
         }
 
         /// <summary>
@@ -2821,7 +2829,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual GeoPoint2D[] TangentPointsToAngle(Angle ang, GeoPoint2D CloseTo)
         {
-            throw new Exception("The method or operation is not implemented.");
+            return new GeoPoint2D[] { };
         }
 
         /// <summary>
@@ -2830,8 +2838,8 @@ namespace CADability.Curve2D
         /// <param name="direction"></param>
         /// <returns></returns>
         public virtual double[] TangentPointsToAngle(GeoVector2D direction)
-        {
-            throw new Exception("The method or operation is not implemented.");
+        {   // need to implement a general solution!
+            return new double[] { };
         }
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.GetInflectionPoints ()"/>
@@ -2840,6 +2848,7 @@ namespace CADability.Curve2D
         public virtual double[] GetInflectionPoints()
         {
             List<double> res = new List<double>();
+            if (interpol == null) MakeTringulation();
             for (int i = 0; i < interpol.Length - 2; ++i)
             {
                 if (Precision.IsPointOnLine(tringulation[i], interpol[i], interpol[i + 1])) continue;
@@ -2986,7 +2995,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual double[] GetSelfIntersections()
         {
-            throw new Exception("The method or operation is not implemented.");
+            return new double[0];
         }
 
         /// <summary>
@@ -3249,21 +3258,8 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual ICurve2D GetFused(ICurve2D toFuseWith, double precision)
         {
-            throw new Exception("The method or operation is not implemented.");
-        }
-        /// <summary>
-        /// Implements <see cref="CADability.Curve2D.ICurve2D.TryPointDeriv2At (double, out GeoPoint2D, out GeoVector2D, out GeoVector2D)"/>
-        /// </summary>
-        /// <param name="position"></param>
-        /// <param name="point"></param>
-        /// <param name="deriv"></param>
-        /// <param name="deriv2"></param>
-        /// <returns></returns>
-        public virtual bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
-        {
-            point = GeoPoint2D.Origin;
-            deriv = deriv2 = GeoVector2D.NullVector;
-            return false;
+            return null; // should be implemented
+            // throw new Exception("The method or operation is not implemented.");
         }
 
         #endregion
@@ -3277,8 +3273,85 @@ namespace CADability.Curve2D
             for (int i = 0; i < interpol.Length; ++i)
             {
                 ext.MinMax(interpol[i]);
+                if (i < interpol.Length - 1)
+                {
+                    if (Math.Sign(interdir[i].x) != Math.Sign(interdir[i + 1].x))
+                    {
+                        //if (TryPointDeriv2At((interparam[i] + interparam[i + 1]) / 2, out GeoPoint2D p, out GeoVector2D deriv1, out GeoVector2D deriv2))
+                        //{
+                        //    if (NewtonMaximum(interparam[i], interparam[i + 1], true, out double par))
+                        //    {
+                        //        ext.MinMax(PointAt(par));
+                        //    }
+                        //}
+                        //else
+                        if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.XAxis, out double par))
+                        {
+                            ext.MinMax(PointAt(par));
+                        }
+                    }
+                    if (Math.Sign(interdir[i].y) != Math.Sign(interdir[i + 1].y))
+                    {
+                        if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.YAxis, out double par))
+                        {
+                            ext.MinMax(PointAt(par));
+                        }
+                    }
+                }
             }
             return ext;
+        }
+        private bool NewtonMaximum(double p1, double p2, bool horizontal, out double par)
+        {
+            double u = (p1 + p2) / 2.0;
+            TryPointDeriv2At(u, out GeoPoint2D p, out GeoVector2D deriv1, out GeoVector2D deriv2);
+            while (Math.Abs(deriv1.x) > 1e-6)
+            {
+                u = u - (deriv1.x / deriv2.x);
+                TryPointDeriv2At(u, out p, out deriv1, out deriv2);
+            }
+            par = u;
+            return true;
+        }
+        private bool BisectPerpendicular(double p1, double p2, GeoVector2D dir, out double par)
+        {
+            double d1 = DirectionAt(p1) * dir;
+            double d2 = DirectionAt(p2) * dir;
+            if (d1 == 0.0)
+            {
+                par = p1;
+                return true;
+            }
+            if (d2 == 0.0)
+            {
+                par = p2;
+                return true;
+            }
+            if (Math.Sign(d1) == Math.Sign(d2))
+            {
+                par = 0.0;
+                return false;
+            }
+            while (p2 - p1 > 1e-6)
+            {
+                double p = (p1 + p2) / 2.0;
+                double d = DirectionAt(p) * dir;
+                if (d == 0.0)
+                {
+                    par = p;
+                    return true;
+                }
+                else if (Math.Sign(d) == Math.Sign(d1))
+                {
+                    p1 = p;
+                }
+                else
+                {
+                    p2 = p;
+                }
+            }
+            par = (p1 + p2) / 2.0;
+            return true;
         }
 
         private bool TriangleHitTest(ref ClipRect rect, GeoPoint2D sp, GeoPoint2D ep, GeoPoint2D tr, double spar, double epar, GeoVector2D sdir, GeoVector2D edir)
@@ -3352,7 +3425,7 @@ namespace CADability.Curve2D
         #endregion
 
         #region ISerializable Members
-        protected TriangulatedCurve2D(SerializationInfo info, StreamingContext context)
+        protected GeneralCurve2D(SerializationInfo info, StreamingContext context)
         {
             userData = info.GetValue("UserData", typeof(UserData)) as UserData;
         }
@@ -3393,7 +3466,7 @@ namespace CADability.Curve2D
     /// A general 2D Curve which results from a non-affine transformation of the 2D space
     /// </summary>
 
-    public class TransformedCurve2D : TriangulatedCurve2D
+    public class TransformedCurve2D : GeneralCurve2D
     {
         ICurve2D original;
         ICurveTransformation2D transformation2D;
@@ -3407,7 +3480,7 @@ namespace CADability.Curve2D
             if (original is GeneralCurve2D)
             {
                 (original as GeneralCurve2D).GetTriangulationPoints(out points, out parameters);
-                directions = new GeoVector2D[parameters.Length];
+                directions = new GeoVector2D[points.Length];
                 for (int i = 0; i < parameters.Length; ++i)
                 {
                     points[i] = transformation2D.TransformPoint(original, parameters[i]);
@@ -3426,7 +3499,26 @@ namespace CADability.Curve2D
                 }
             }
         }
-
+        internal override void GetTriangulationPoints(out GeoPoint2D[] points, out double[] parameters)
+        {
+            if (original is GeneralCurve2D)
+            {
+                (original as GeneralCurve2D).GetTriangulationPoints(out points, out parameters);
+                for (int i = 0; i < parameters.Length; ++i)
+                {
+                    points[i] = transformation2D.TransformPoint(original, parameters[i]);
+                }
+            }
+            else
+            {
+                parameters = new double[] { 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 };
+                points = new GeoPoint2D[parameters.Length];
+                for (int i = 0; i < parameters.Length; ++i)
+                {
+                    points[i] = transformation2D.TransformPoint(original, parameters[i]);
+                }
+            }
+        }
         public override GeoVector2D DirectionAt(double Position)
         {
             return transformation2D.TransformDeriv1(original, Position);
@@ -3505,6 +3597,18 @@ namespace CADability.Curve2D
             ICurve2D c2d = original.Trim(StartPos, EndPos);
             if (c2d != null) return new TransformedCurve2D(c2d, transformation2D);
             return null;
+        }
+
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            if (original.TryPointDeriv2At(position, out point, out deriv, out deriv2))
+            {
+                point = transformation2D.TransformPoint(original, position);
+                deriv = transformation2D.TransformDeriv1(original, position);
+                deriv2 = transformation2D.TransformDeriv2(original, position);
+                return true;
+            }
+            return false;
         }
     }
 

@@ -905,43 +905,18 @@ namespace CADability
             }
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
         }
-        #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "RuledSurface";
-        }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+                if (firstCurve is IGeoObject first)
                 {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    subEntries = se.ToArray();
+                    se.Add(first.GetShowProperties(frame) as IPropertyEntry);
                 }
-                return subEntries;
-            }
+                if (secondCurve is IGeoObject second)
+                {
+                    se.Add(second.GetShowProperties(frame) as IPropertyEntry);
+                }
+            return new GroupProperty("RuledSurface", se.ToArray());
         }
         #endregion
         #region ISerializable Members

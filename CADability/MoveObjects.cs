@@ -1,7 +1,13 @@
 ﻿using CADability.Attribute;
 using CADability.GeoObject;
 using CADability.Substitutes;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
+using Point = System.Drawing.Point;
+#endif
 
 
 namespace CADability.Actions
@@ -117,7 +123,7 @@ namespace CADability.Actions
             feedBackLine = Line.Construct();
             Color backColor = base.Frame.GetColorSetting("Colors.Feedback", Color.DarkGray);
             feedBackLine.ColorDef = new ColorDef("", backColor);
-            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "Move.cur");
+            base.SetCursor(SnapPointFinder.DidSnapModes.DidNotSnap, "Move");
 
 
             vec = new GeoVectorInput("MoveObjects.Vector");

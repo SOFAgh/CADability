@@ -61,6 +61,10 @@ namespace CADability.UserInterface
         {
             return null;
         }
+        public string ResourceId
+        {
+            get { return null; }
+        }
 
         MenuWithHandler[] IHotSpot.ContextMenu
         {
@@ -409,7 +413,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
 
         #region deprecated adaption to old implementation of GeoPointProperty

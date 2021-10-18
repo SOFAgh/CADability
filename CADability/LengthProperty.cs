@@ -52,6 +52,10 @@ namespace CADability.UserInterface
         {
             return lengthProperty.Label;
         }
+        public string ResourceId
+        {
+            get { return lengthProperty.ResourceId; }
+        }
         MenuWithHandler[] IHotSpot.ContextMenu
         {
             get
@@ -71,7 +75,7 @@ namespace CADability.UserInterface
         {
             return ((ICommandHandler)lengthProperty).OnUpdateCommand(MenuId, CommandState);
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
     }
 
 
@@ -177,7 +181,7 @@ namespace CADability.UserInterface
         {
             return val.ToString("f", numberFormatInfo);
         }
-#region ICommandHandler Members
+        #region ICommandHandler Members
         bool ICommandHandler.OnCommand(string MenuId)
         {
             switch (MenuId)
@@ -185,18 +189,18 @@ namespace CADability.UserInterface
                 case "MenuId.Length.ModifyWithMouse":
                     ModifyWithMouse?.Invoke(this, false);
                     return true;
-                //case "MenuId.Length.DistanceOfCurve":
-                //    Frame.SetAction(new CADability.Actions.ConstructDistanceOfCurve(this));
-                //    return true;
-                //case "MenuId.Length.DistanceTwoPoints":
-                //    Frame.SetAction(new CADability.Actions.ConstructDistanceTwoPoints(this));
-                //    return true;
-                //case "MenuId.Length.DistancePointCurve":
-                //    Frame.SetAction(new CADability.Actions.ConstructDistancePointCurve(this));
-                //    return true;
-                //case "MenuId.Length.DistanceTwoCurves":
-                //    Frame.SetAction(new CADability.Actions.ConstructDistanceTwoCurves(this));
-                //    return true;
+                case "MenuId.Length.DistanceOfCurve":
+                    Frame.SetAction(new CADability.Actions.ConstructDistanceOfCurve(this));
+                    return true;
+                case "MenuId.Length.DistanceTwoPoints":
+                    Frame.SetAction(new CADability.Actions.ConstructDistanceTwoPoints(this));
+                    return true;
+                case "MenuId.Length.DistancePointCurve":
+                    Frame.SetAction(new CADability.Actions.ConstructDistancePointCurve(this));
+                    return true;
+                case "MenuId.Length.DistanceTwoCurves":
+                    Frame.SetAction(new CADability.Actions.ConstructDistanceTwoCurves(this));
+                    return true;
                 case "MenuId.Length.DoubleValue":
                     this.SetLength(this.GetLength() * 2.0);
                     return true;
@@ -248,7 +252,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
 
         #region deprecated adaption to old implementation of LengthProperty
@@ -331,7 +335,7 @@ namespace CADability.UserInterface
                 LabelTextChanged = null;
             }
         }
-#endregion
+        #endregion
 
     }
 }

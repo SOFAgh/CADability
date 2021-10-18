@@ -68,39 +68,26 @@ namespace CADability.Attribute
                 }
             }
         }
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
-        /// returns the number of subentries in this property view.
-        /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-
-        private IShowProperty[] subEntries;
+        #region IPropertyEntry Members
+        private IPropertyEntry[] subItems;
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.
         /// </summary>
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
-                if (subEntries == null)
+                if (subItems == null)
                 {
-                    ColorSelectionProperty csp = new ColorSelectionProperty("HatchStyleSolid.Color", Frame.Project.ColorList, this.Color, ColorList.StaticFlags.allowUndefined);
+                    ColorSelectionProperty csp = new ColorSelectionProperty("HatchStyleSolid.Color", Frame.Project.ColorList, this.Color, ColorList.StaticFlags.allowFromParent);
                     csp.ShowAllowUndefinedGray = false;
                     csp.ColorDefChangedEvent += new ColorSelectionProperty.ColorDefChangedDelegate(OnColorDefChanged);
-                    subEntries = new IShowProperty[] { csp };
+                    subItems = new IPropertyEntry[] { csp };
                 }
-                return subEntries;
+                return subItems;
             }
         }
-
         #endregion
         #region ISerializable Members
         /// <summary>

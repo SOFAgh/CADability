@@ -9,6 +9,8 @@ using CADability.Attribute;
 using CADability.GeoObject;
 using System.Drawing;
 using System.Windows.Forms;
+using MathNet.Numerics.LinearAlgebra.Double;
+
 
 namespace CADability.Forms
 {
@@ -135,7 +137,7 @@ namespace CADability.Forms
                     IntPtr fnt = Gdi.CreateFont(100, 0, 0, 0, 0, false, false, false, 1, 0, 0, 0, 0, fontName);
                     IntPtr oldfont = Gdi.SelectObject(deviceContext, fnt);
                     Gdi.GLYPHMETRICSFLOAT[] glyphmetrics = new Gdi.GLYPHMETRICSFLOAT[1];
-                    OpenGlList list = new OpenGlList();
+                    OpenGlList list = new OpenGlList(fontName + "-" + c);
                     if (Wgl.wglUseFontOutlines(deviceContext, (int)c, 1, list.ListNumber, 20.0f, 0.0f, Wgl.WGL_FONT_POLYGONS, glyphmetrics))
                     {
 #if DEBUG
@@ -862,15 +864,10 @@ namespace CADability.Forms
                     Gl.glColor4ub(255, 255, 255, color.A);
                 else
                     Gl.glColor4ub(0, 0, 0, color.A);
-                //byte R = (byte)((color.R + 128) % 256);
-                //byte G = (byte)((color.G + 128) % 256);
-                //byte B = (byte)((color.B + 128) % 256);
-                //Gl.glColor4ub(R, G, B, color.A);
             }
             else
             {
                 Gl.glColor4ub(color.R, color.G, color.B, color.A);
-                //Gl.glColor4ub(color.R, color.G, color.B, 120);
             }
             CheckError();
         }
@@ -1144,7 +1141,7 @@ namespace CADability.Forms
                         }
                     }
                 }
-                (this as IPaintTo3D).OpenList(); // zwischen open und close keine GarbageCollection sonst stimmt die Adresse von oglbitmap nicht mehr
+                (this as IPaintTo3D).OpenList("icon"); // zwischen open und close keine GarbageCollection sonst stimmt die Adresse von oglbitmap nicht mehr
                 currentList.hasContents = true;
                 Gl.glRasterPos3d(0.0, 0.0, 0.0);
                 Gl.glPixelStorei(Gl.GL_PACK_SWAP_BYTES, 0);
@@ -1180,7 +1177,7 @@ namespace CADability.Forms
                         // pixels[i * bitmap.Width + j] = (clr.R << 16) + (clr.G << 8) + clr.B;
                     }
                 }
-                (this as IPaintTo3D).OpenList(); // zwischen open und close keine GarbageCollection sonst stimmt die Adresse von oglbitmap nicht mehr
+                (this as IPaintTo3D).OpenList("bitmap"); // zwischen open und close keine GarbageCollection sonst stimmt die Adresse von oglbitmap nicht mehr
                 currentList.hasContents = true;
                 Gl.glRasterPos3d(0.0, 0.0, 0.0);
                 // ich finde keine Möglichkeit die Position auf z.B. die Mitte oder einen beliebigen Punkt des
@@ -1627,6 +1624,7 @@ namespace CADability.Forms
             if (paintThisList == null) return;
             if (currentList != null) currentList.SetHasContents();
             if ((paintThisList as OpenGlList).ListNumber != 0) Gl.glCallList((paintThisList as OpenGlList).ListNumber);
+            //System.Diagnostics.Trace.WriteLine("display list: " + (paintThisList as OpenGlList).ListNumber.ToString());
             CheckError();
         }
         private void PaintListWithOffset(IPaintTo3DList paintThisList, int offsetX, int offsetY)
@@ -1799,11 +1797,12 @@ namespace CADability.Forms
         //    Gl.glEnable(Gl.GL_DEPTH_TEST);
         //    CheckError();
         //}
-        void IPaintTo3D.OpenList()
+        void IPaintTo3D.OpenList(string name)
         {
             if (currentList != null) throw new PaintToOpenGLException("IPaintTo3DList: nested lists not allowed");
-            currentList = new OpenGlList();
+            currentList = new OpenGlList(name);
             currentList.Open();
+            //System.Diagnostics.Trace.WriteLine("open list: " + currentList.ListNumber.ToString());
             CheckError();
         }
         IPaintTo3DList IPaintTo3D.CloseList()
@@ -1812,6 +1811,7 @@ namespace CADability.Forms
             OpenGlList res = currentList;
             currentList = null;
             CheckError();
+            //System.Diagnostics.Trace.WriteLine("close list: " + res.ListNumber.ToString());
             if (res != null && res.HasContents()) return res;
             else
             {
@@ -1821,7 +1821,15 @@ namespace CADability.Forms
         }
         IPaintTo3DList IPaintTo3D.MakeList(List<IPaintTo3DList> sublists)
         {
-            OpenGlList res = new OpenGlList();
+            StringBuilder name = new StringBuilder("_");
+            foreach (IPaintTo3DList sub in sublists)
+            {
+                if (sub != null)
+                {
+                    if (sub.Name != null) name.Append(sub.Name + "_");
+                }
+            }
+            OpenGlList res = new OpenGlList(name.ToString());
             res.Open();
             foreach (IPaintTo3DList sub in sublists)
             {
@@ -1833,6 +1841,7 @@ namespace CADability.Forms
             res.Close();
             (res as IPaintTo3DList).containedSubLists = sublists;
             CheckError();
+            //System.Diagnostics.Trace.WriteLine("make list: " + res.ListNumber.ToString());
             return res;
         }
         void IPaintTo3D.OpenPath()
@@ -1936,15 +1945,15 @@ namespace CADability.Forms
                     mat[1, 3] = pmat[13];
                     mat[2, 3] = pmat[14];
                     mat[3, 3] = pmat[15];
-                    LinearAlgebra.Matrix m0 = new CADability.LinearAlgebra.Matrix(mat);
+                    Matrix m0 = DenseMatrix.OfArray(mat);
                     double det = m0.Determinant();
-                    LinearAlgebra.Matrix m1 = m0.Inverse();
-                    LinearAlgebra.Matrix trans = new CADability.LinearAlgebra.Matrix(new double[,] {
+                    Matrix m1 = (Matrix)m0.Inverse();
+                    Matrix trans = DenseMatrix.OfArray(new double[,] {
                     { 1, 0, 0, 0 },
                     { 0, 1, 0, 0 },
                     { 0, 0, 1, 0.001 }, // verschiebung in z un 1/1000
                     { 0, 0, 0, 1 } });
-                    LinearAlgebra.Matrix comp = m1 * trans * m0;
+                    Matrix comp = (Matrix)(m1 * trans * m0);
                     pmat[0] = comp[0, 0];
                     pmat[1] = comp[1, 0];
                     pmat[2] = comp[2, 0];
@@ -2066,17 +2075,25 @@ namespace CADability.Forms
     internal class OpenGlList : IPaintTo3DList
     {
         static List<int> toDelete = new List<int>();
-
+#if DEBUG
+        static HashSet<int> openLists = new HashSet<int>();
+#endif
         public OpenGlList(int listNr)
         {
             ListNumber = listNr;
         }
         public bool hasContents, isDeleted;
-        public OpenGlList()
+        public OpenGlList(string name = null)
         {
             FreeLists();
             ListNumber = Gl.glGenLists(1); // genau eine Liste
-            // System.Diagnostics.Trace.WriteLine("Creating OpenGl List Nr.: " + listNumber.ToString());
+            if (name != null) this.name = name;
+#if DEBUG
+            openLists.Add(ListNumber);
+            System.Diagnostics.Trace.WriteLine("+++++ OpenGl List Nr.: " + ListNumber.ToString() + " (" + openLists.Count.ToString() + ") " + name);
+            if (ListNumber == 39 || ListNumber == 40)
+            { }
+#endif
             // Gl.glIsList()
         }
         ~OpenGlList()
@@ -2094,7 +2111,10 @@ namespace CADability.Forms
                 {
                     for (int i = 0; i < toDelete.Count; ++i)
                     {
-                        // System.Diagnostics.Trace.WriteLine("Deleting OpenGl List Nr.: " + toDelete[i].ToString());
+#if DEBUG
+                        System.Diagnostics.Trace.WriteLine("----- OpenGl List Nr.: " + toDelete[i].ToString());
+                        openLists.Remove(toDelete[i]);
+#endif
                         try
                         {
                             Gl.glDeleteLists(toDelete[i], 1);
@@ -2106,6 +2126,14 @@ namespace CADability.Forms
                     }
                     toDelete.Clear();
                 }
+#if DEBUG
+                System.Diagnostics.Trace.Write("still open: ");
+                foreach (int l in openLists)
+                {
+                    System.Diagnostics.Trace.Write(l.ToString() + ", ");
+                }
+                System.Diagnostics.Trace.WriteLine(".");
+#endif
             }
         }
         public int ListNumber { get; }
@@ -2148,7 +2176,7 @@ namespace CADability.Forms
         }
         public void Delete()
         {
-            // System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + listNumber.ToString());
+            //System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + ListNumber.ToString());
             isDeleted = true;
             Gl.glDeleteLists(ListNumber, 1);
         }

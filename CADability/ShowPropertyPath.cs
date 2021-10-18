@@ -12,12 +12,12 @@ namespace CADability.UserInterface
     /// Shows the properties of a path.
     /// </summary>
 
-    public class ShowPropertyPath : IShowPropertyImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
+    public class ShowPropertyPath : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Path path;
         private IFrame frame;
-        private IShowProperty[] subEntries; // abhängig von der Form, also Rechteck, Parallelogramm
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries; // abhängig von der Form, also Rechteck, Parallelogramm
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         private DoubleProperty area, length;
         public ShowPropertyPath(Path path, IFrame frame)
         {
@@ -62,7 +62,7 @@ namespace CADability.UserInterface
                 }
                 return false;
             }
-            void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+            void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
             #endregion
         }
@@ -77,7 +77,7 @@ namespace CADability.UserInterface
                 vertex.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetVertexPoint);
                 vertex.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetVertexPoint);
                 vertex.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyVertexWithMouse);
-                vertex.StateChangedEvent += new StateChangedDelegate(OnVertexStateChanged);
+                vertex.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnVertexStateChanged);
                 vertex.GeoPointChanged();
                 if (path.IsClosed)
                 {
@@ -96,11 +96,11 @@ namespace CADability.UserInterface
             length.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetLength);
             length.Refresh();
             gp.Add(length);
-            subEntries = (IShowProperty[])gp.ToArray(typeof(IShowProperty));
+            subEntries = (IPropertyEntry[])gp.ToArray(typeof(IPropertyEntry));
             attributeProperties = path.GetAttributeProperties(frame);
         }
 
-        void OnVertexStateChanged(IShowProperty sender, StateChangedArgs args)
+        void OnVertexStateChanged(IPropertyEntry sender, StateChangedArgs args)
         {
             if (HotspotChangedEvent != null)
             {
@@ -146,21 +146,8 @@ namespace CADability.UserInterface
             }
             base.Opened(IsOpen);
         }
-#region IShowPropertyImpl Overrides
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override ShowPropertyLabelFlags LabelType
-        {
-            get
-            {
-                return ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.ContextMenu | ShowPropertyLabelFlags.Selectable;
-            }
-        }
+        #region PropertyEntryImpl Overrides
+        public override PropertyEntryType Flags => PropertyEntryType.ContextMenu | PropertyEntryType.Selectable | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -171,42 +158,35 @@ namespace CADability.UserInterface
                 return items.ToArray();
             }
         }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return subEntries.Length + attributeProperties.Length;
-            }
-        }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
                 if (subEntries == null) return attributeProperties;
-                else return IShowPropertyImpl.Concat(subEntries, attributeProperties);
+                else return PropertyEntryImpl.Concat(subEntries, attributeProperties);
             }
         }
-        public override void Added(IPropertyPage propertyTreeView)
+        public override void Added(IPropertyPage propertyPage)
         {	// die events müssen in Added angemeldet und in Removed wieder abgemeldet werden,
             // sonst bleibt die ganze ShowProperty für immer an der Linie hängen
             path.DidChangeEvent += new ChangeDelegate(PathDidChange);
             path.UserData.UserDataAddedEvent += new UserData.UserDataAddedDelegate(OnUserDataAdded);
             path.UserData.UserDataRemovedEvent += new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Added(propertyTreeView);
+            base.Added(propertyPage);
         }
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
             InitSubEntries();
             attributeProperties = path.GetAttributeProperties(frame);
-            propertyTreeView.Refresh(this);
+            propertyPage.Refresh(this);
         }
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyPage)
         {
             path.DidChangeEvent -= new ChangeDelegate(PathDidChange);
             path.UserData.UserDataAddedEvent -= new UserData.UserDataAddedDelegate(OnUserDataAdded);
             path.UserData.UserDataRemovedEvent -= new UserData.UserDataRemovedDelegate(OnUserDataAdded);
-            base.Removed(propertyTreeView);
+            base.Removed(propertyPage);
         }
 #endregion
 #region IDisplayHotSpots Members
@@ -293,8 +273,8 @@ namespace CADability.UserInterface
             {
                 case "MenuId.Reverse":
                     (path as ICurve).Reverse();
-                    if (propertyTreeView != null)
-                        propertyTreeView.Refresh(this);
+                    if (propertyPage != null)
+                        propertyPage.Refresh(this);
                     return true;
                 case "MenuId.CurveSplit":
                     frame.SetAction(new ConstrSplitCurve(path));
@@ -379,7 +359,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
         #region IGeoObjectShowProperty Members
         public event CADability.GeoObject.CreateContextMenueDelegate CreateContextMenueEvent;

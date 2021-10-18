@@ -155,11 +155,11 @@ namespace CADability
                 return res.ToArray();
             }
         }
-        public Set<Face> InvolvedFaces
+        public HashSet<Face> InvolvedFaces
         {
             get
             {
-                Set<Face> res = new Set<Face>();
+                HashSet<Face> res = new HashSet<Face>();
                 foreach (Edge edge in edges)
                 {
                     res.Add(edge.PrimaryFace);

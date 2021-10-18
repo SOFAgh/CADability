@@ -1,7 +1,11 @@
 ﻿using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+#else
 using System.Drawing;
+#endif
 using System.Globalization;
 using System.Runtime.Serialization;
 
@@ -55,21 +59,21 @@ namespace CADability.Attribute
             get { return parent; }
             set { parent = value as ColorList; }
         }
-        IShowProperty INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
+        IPropertyEntry INamedAttribute.GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList)
         {
             return null;
         }
-        private System.Drawing.Color color;
+        private Color color;
         /*		public static ColorDef CDfromLayer = new ColorDef(StringTable.GetString("ColorDef.fromLayer"),SystemColors.WindowText  ,ColorSource.fromLayer);
         */
-        public static ColorDef CDfromParent = new ColorDef(StringTable.GetString("ColorDef.fromParent"), SystemColors.WindowText, ColorSource.fromParent);
-        public static ColorDef CDfromStyle = new ColorDef(StringTable.GetString("ColorDef.fromStyle"), SystemColors.WindowText, ColorSource.fromStyle);
+        public static ColorDef CDfromParent = new ColorDef(StringTable.GetString("ColorDef.fromParent"), Color.FromArgb(0,0,0), ColorSource.fromParent);
+        public static ColorDef CDfromStyle = new ColorDef(StringTable.GetString("ColorDef.fromStyle"), Color.FromArgb(0, 0, 0), ColorSource.fromStyle);
         public ColorDef()
         {
             source = ColorSource.fromName;
             color = Color.FromArgb(0, 0, 0);
         }
-        public ColorDef(string pName, System.Drawing.Color pColor, ColorSource cs)
+        public ColorDef(string pName, Color pColor, ColorSource cs)
         {
             name = pName;
             color = pColor;
@@ -83,7 +87,7 @@ namespace CADability.Attribute
                 }
         }
 
-        public ColorDef(string pName, System.Drawing.Color pColor)
+        public ColorDef(string pName, Color pColor)
         {
             name = pName;
             color = pColor;
@@ -180,10 +184,10 @@ namespace CADability.Attribute
             int b = (int)(color.B * percent);
             int g = (int)(color.G * percent);
             int r = (int)(color.R * percent);
-            return System.Drawing.Color.FromArgb(color.A, r, g, b);
+            return Color.FromArgb(color.A, r, g, b);
         }
 
-        #region ISerializable Members
+#region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -215,8 +219,8 @@ namespace CADability.Attribute
             info.AddValue("Source", source);
             info.AddValue("Color", color);
         }
-        #endregion
-        #region IJsonSerialize
+#endregion
+#region IJsonSerialize
         // Needs an empty constructor or an constructor with IJsonSerialize as a parameter
         void IJsonSerialize.GetObjectData(IJsonWriteData data)
         {
@@ -231,7 +235,7 @@ namespace CADability.Attribute
             source = dict.GetProperty<ColorSource>("Source");
             color = Color.FromArgb(dict.GetIntProperty("Color"));
         }
-        #endregion
+#endregion
         internal void MakeStepStyle(int msb, ExportStep export)
         {
             //#23=COLOUR_RGB('Colour',0.,0.501960784314,1.) ;
@@ -291,7 +295,7 @@ namespace CADability.Attribute
         void SetTopLevel(ColorDef newValue, bool overwriteChildNullColor);
     }
     /*Standard Implementierung von IColorDef:
-    #region IColorDef Members
+#region IColorDef Members
         private ColorDef colorDef;
         public ColorDef ColorDef
         {
@@ -307,6 +311,6 @@ namespace CADability.Attribute
                 }
             }
         }
-    #endregion
+#endregion
     */
 }

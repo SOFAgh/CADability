@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 namespace CADability.Curve2D
 {
     [Serializable()]
-    public class SineCurve2D : TriangulatedCurve2D, ISerializable
+    public class SineCurve2D : GeneralCurve2D, ISerializable
     {
         double ustart, udiff;
         ModOp2D fromUnit;
@@ -130,6 +130,10 @@ namespace CADability.Curve2D
             System.Diagnostics.Trace.WriteLine("SinArea. " + (udiff > 0).ToString() + ", " + (fromUnit.Determinant > 0).ToString() + ", " + aa.ToString() + ", " + r1.ToString() + ", " + r2.ToString() + ", " + r3.ToString() + ", " + r4.ToString());
 #endif
         }
+        internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
+        {
+            GetTriangulationBasis(out interpol, out _, out interparam);
+        }
 
         protected override void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] positions)
         {
@@ -140,7 +144,7 @@ namespace CADability.Curve2D
                 double u = 0.0;
                 while (u < ustart) u += Math.PI / 2;
                 while (u > ustart) u -= Math.PI / 2;
-                while (u > ustart + udiff)
+                while (u > ustart + udiff+1e-4)
                 {
                     if (u < uvalues[uvalues.Count - 1] - 1e-4) uvalues.Add(u);
                     u -= Math.PI / 2;
@@ -151,7 +155,7 @@ namespace CADability.Curve2D
                 double u = 0.0;
                 while (u > ustart) u -= Math.PI / 2;
                 while (u < ustart) u += Math.PI / 2;
-                while (u < ustart + udiff)
+                while (u < ustart + udiff -1e-4)
                 {
                     if (u > uvalues[uvalues.Count - 1] + 1e-4) uvalues.Add(u);
                     u += Math.PI / 2;
@@ -200,6 +204,14 @@ namespace CADability.Curve2D
             info.AddValue("Ustart", ustart);
             info.AddValue("Udiff", udiff);
             info.AddValue("FromUnit", fromUnit, typeof(ModOp2D));
+        }
+
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {   // not yet tested
+            point = fromUnit * new GeoPoint2D(position, Math.Sin(ustart + position * udiff));
+            deriv = fromUnit * new GeoVector2D(1, udiff * Math.Cos(ustart + position * udiff));
+            deriv2 = fromUnit * new GeoVector2D(1, -udiff *udiff * Math.Sin(ustart + position * udiff));
+            return true;
         }
 
         #endregion

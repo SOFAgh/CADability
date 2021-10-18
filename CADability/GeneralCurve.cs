@@ -1,11 +1,13 @@
 ﻿using CADability.Attribute;
 using CADability.Curve2D;
-using CADability.LinearAlgebra;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.Serialization;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
+
 namespace CADability.GeoObject
 {
 
@@ -17,12 +19,12 @@ namespace CADability.GeoObject
         }
     }
 
-    internal class ShowPropertyGeneralCurve : IShowPropertyImpl
+    internal class ShowPropertyGeneralCurve : PropertyEntryImpl
     {
         private GeneralCurve generalCurve;
         private IFrame frame;
-        private IShowProperty[] subEntries;
-        private IShowProperty[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
+        private IPropertyEntry[] subEntries;
+        private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         public ShowPropertyGeneralCurve(GeneralCurve GeneralCurve, IFrame Frame)
         {
             this.generalCurve = GeneralCurve;
@@ -30,16 +32,15 @@ namespace CADability.GeoObject
             attributeProperties = generalCurve.GetAttributeProperties(frame);
             base.resourceId = "General.Curve";
         }
-        #region IShowPropertyImpl Overrides
-        public override ShowPropertyEntryType EntryType { get { return ShowPropertyEntryType.GroupTitle; } }
-        public override int SubEntriesCount
+        #region PropertyEntryImpl Overrides
+        public override PropertyEntryType Flags
         {
             get
             {
-                return SubEntries.Length;
+                return PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
             }
         }
-        public override IShowProperty[] SubEntries
+        public override IPropertyEntry[] SubItems
         {
             get
             {
@@ -50,11 +51,11 @@ namespace CADability.GeoObject
                     GeoPointProperty endPointProperty = new GeoPointProperty(this, "EndPoint", "GeneralCurve.EndPoint", frame, false);
                     endPointProperty.ReadOnly = true;
 
-                    IShowProperty[] mainProps = {
+                    IPropertyEntry[] mainProps = {
                                                      startPointProperty,
                                                      endPointProperty
                                                  };
-                    subEntries = IShowPropertyImpl.Concat(mainProps, attributeProperties);
+                    subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
             }
@@ -80,13 +81,12 @@ namespace CADability.GeoObject
      * Dient u.a. als Basis für Kanten, die auf zwei Oberflächen basieren.
      */
     /// <summary>
-    /// 
+    /// A base implementation of ICurve
     /// </summary>
-
     public abstract class GeneralCurve : IGeoObjectImpl, IColorDef, ICurve, ILineWidth, ILinePattern
     {
         [Serializable]
-        private class ProjectedCurve : TriangulatedCurve2D, ISerializable
+        private class ProjectedCurve : GeneralCurve2D, ISerializable
         {
             private ICurve curve;
             private Plane plane;
@@ -163,6 +163,24 @@ namespace CADability.GeoObject
                 info.AddValue("Curve", curve);
             }
 
+            public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+            {
+                if (curve.TryPointDeriv2At(position, out GeoPoint p3d, out GeoVector d1, out GeoVector d2))
+                {
+                    point = plane.Project(p3d);
+                    deriv = plane.Project(d1);
+                    deriv2 = plane.Project(d2);
+                    return true;
+                }
+                else
+                {
+                    point = GeoPoint2D.Origin;
+                    deriv = GeoVector2D.NullVector;
+                    deriv2 = GeoVector2D.NullVector;
+                    return false;
+                }
+            }
+
             #endregion
 
         }
@@ -183,6 +201,7 @@ namespace CADability.GeoObject
         private double[] tetraederParams; // Parameter zu tetraederBase
         private GeoPoint[] tetraederVertex; // zu jedem tetraederBase (bis auf den letzten) gibt es zwei Punkte, so dass ein Tetraeder aufgespannt wird
         private TetraederHull tetraederHull;
+        private BoundingCube extent = BoundingCube.EmptyBoundingCube;
         internal TetraederHull TetraederHull
         {
             get
@@ -289,6 +308,7 @@ namespace CADability.GeoObject
         protected virtual void InvalidateSecondaryData()
         {
             tetraederHull = null;
+            extent = BoundingCube.EmptyBoundingCube;
         }
         // public abstract void Modify(ModOp m); ist schon abstract
         /// <summary>
@@ -354,30 +374,34 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override BoundingCube GetBoundingCube()
         {
-            BoundingCube res = new BoundingCube(this.StartPoint, this.EndPoint);
-            double[] extr = TetraederHull.GetExtrema(GeoVector.XAxis);
-            for (int i = 0; i < extr.Length; ++i)
+            if (extent.IsEmpty)
             {
-                res.MinMax(PointAt(extr[i]));
+                extent.MinMax(StartPoint);
+                extent.MinMax(EndPoint);
+                double[] extr = TetraederHull.GetExtrema(GeoVector.XAxis);
+                for (int i = 0; i < extr.Length; ++i)
+                {
+                    extent.MinMax(PointAt(extr[i]));
+                }
+                extr = TetraederHull.GetExtrema(GeoVector.YAxis);
+                for (int i = 0; i < extr.Length; ++i)
+                {
+                    extent.MinMax(PointAt(extr[i]));
+                }
+                extr = TetraederHull.GetExtrema(GeoVector.ZAxis);
+                for (int i = 0; i < extr.Length; ++i)
+                {
+                    extent.MinMax(PointAt(extr[i]));
+                }
             }
-            extr = TetraederHull.GetExtrema(GeoVector.YAxis);
-            for (int i = 0; i < extr.Length; ++i)
-            {
-                res.MinMax(PointAt(extr[i]));
-            }
-            extr = TetraederHull.GetExtrema(GeoVector.ZAxis);
-            for (int i = 0; i < extr.Length; ++i)
-            {
-                res.MinMax(PointAt(extr[i]));
-            }
-            return res;
+            return extent;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetShowProperties (IFrame)"/>
         /// </summary>
         /// <param name="Frame"></param>
         /// <returns></returns>
-        public override IShowProperty GetShowProperties(IFrame Frame)
+        public override IPropertyEntry GetShowProperties(IFrame Frame)
         {
             return new ShowPropertyGeneralCurve(this, Frame);
         }
@@ -781,19 +805,19 @@ namespace CADability.GeoObject
         public virtual double DistanceTo(GeoPoint p)
         {
             double pos = PositionOf(p);
-            if (pos > 1e-6 && pos <= 1.0-1e-6)
+            if (pos > 1e-6 && pos <= 1.0 - 1e-6)
             {   // at the start and enpoint, especially when the curve is an intersection curve with tangential surfaces, we also should consider start- end endpoint
                 GeoPoint pCurve = PointAt(pos);
                 return pCurve | p;
             }
             else
             {
-                if (pos>=0.0)
+                if (pos >= 0.0)
                 {
                     GeoPoint pCurve = PointAt(pos);
                     return Math.Min(p | StartPoint, pCurve | p);
                 }
-                else if (pos<1.0)
+                else if (pos < 1.0)
                 {
                     GeoPoint pCurve = PointAt(pos);
                     return Math.Min(p | EndPoint, pCurve | p);
@@ -1355,7 +1379,7 @@ namespace CADability.GeoObject
                     {
                         GeoPoint p1 = area.ToUnitBox * tetraederBase[i];
                         GeoPoint p2 = area.ToUnitBox * tetraederBase[i + 1];
-                        return BoundingCube.UnitBoundingCube.Interferes(ref p1, ref p2);
+                        if (BoundingCube.UnitBoundingCube.Interferes(ref p1, ref p2)) return true;
                     }
                     else if (BoundingCube.UnitBoundingCube.Interferes(area.ToUnitBox * tetraederBase[i], area.ToUnitBox * tetraederBase[i + 1], area.ToUnitBox * tetraederVertex[2 * i], area.ToUnitBox * tetraederVertex[2 * i + 1]))
                     {   // die Basispunkte sind außerhalb, aber das Tetraeder berührt die area
@@ -1565,7 +1589,7 @@ namespace CADability.GeoObject
                                 GeoVector v1 = t2 - t1;
                                 GeoVector v2 = t4 - t1;
                                 GeoVector v3 = v1 ^ v2;
-                                Matrix m = Matrix.RowVector(v1, v2, v3).SaveInverse();
+                                Matrix m = (Matrix)DenseMatrix.OfRowArrays(new double[][] { v1, v2, v3 }).Inverse();
                                 if (m != null)
                                 {
                                     toUnit.SetData(m, t1);
@@ -1581,7 +1605,7 @@ namespace CADability.GeoObject
                             GeoVector v1 = t2 - t1;
                             GeoVector v2 = t3 - t1;
                             GeoVector v3 = t4 - t1;
-                            Matrix m = Matrix.RowVector(v1, v2, v3).Inverse();
+                            Matrix m = (Matrix)DenseMatrix.OfRowArrays(new double[][] { v1, v2, v3 }).Inverse();
                             GeoPoint trans = m * t1;
                             toUnit.SetData(m, new GeoPoint(-trans.x, -trans.y, -trans.z));
                         }
@@ -1942,7 +1966,7 @@ namespace CADability.GeoObject
                         uOnCurve.Add(id.umax);
                         isOnVertex.Add(true);
                     }
-                    else if (id.umax - id.umin > 1e-8)
+                    else if (id.umax - id.umin > 1e-6)
                     {
                         GeoPoint pm, tv1, tv2, tv3, tv4;
                         double parm;
@@ -1986,7 +2010,7 @@ namespace CADability.GeoObject
                     if (u < umin || u > umax) return false; // aus dem Intervall gelaufen, Newton hier nicht geeignet, zurück und einmal Bisektion
                     ip = theCurve.PointAt(u);
                     l = ps.ToXYPlane * ip;
-                    if (error < Math.Abs(l.z)) return false; // wird nicht kleiner
+                    if (error <= Math.Abs(l.z)) return false; // wird nicht kleiner
                     error = Math.Abs(l.z);
                 } while (error > 1e-8); // konfigurierbar?
                 ip = theCurve.PointAt(u);
@@ -2115,9 +2139,9 @@ namespace CADability.GeoObject
                 GeoVector v3 = v1 ^ v2;
                 // v3 ist senkrecht auf beide, d.h. z muss 0 sein
                 GeoVector v4 = toTest - tetra1;
-                Matrix m = Matrix.RowVector(v1, v2, v3);
-                Matrix s = m.SaveSolve(Matrix.RowVector(v4));
-                if (s != null)
+                Matrix m = Extensions.RowVector(v1, v2, v3);
+                Matrix s = (Matrix)m.Solve(Extensions.RowVector(v4));
+                if (s.IsValid())
                 {
                     double x = s[0, 0];
                     double y = s[1, 0];
@@ -2140,9 +2164,9 @@ namespace CADability.GeoObject
 
                 GeoVector v4 = toTest - tetra1;
                 // x*v1+y*v2+z*v3 = v4; Löse für x,y und z
-                Matrix m = Matrix.RowVector(v1, v2, v3);
-                Matrix s = m.SaveSolve(Matrix.RowVector(v4));
-                if (s != null)
+                Matrix m = Extensions.RowVector(v1, v2, v3);
+                Matrix s = (Matrix)m.Solve(Extensions.RowVector(v4));
+                if (s.IsValid())
                 {
                     double x = s[0, 0];
                     double y = s[1, 0];
@@ -2349,7 +2373,7 @@ namespace CADability.GeoObject
                 dir = theCurve.DirectionAt(u);
                 pfound = theCurve.PointAt(u);
                 d = p | pfound;
-                if (d >= dist && cnt>2) return d; // doesn't converge, allow two bad steps at the beginning
+                if (d >= dist && cnt > 2) return d; // doesn't converge, allow two bad steps at the beginning
                 dist = d;
             }
             return dist;
@@ -2518,13 +2542,13 @@ namespace CADability.GeoObject
 #endif
                 GeoVector xdir = dir1 ^ dir2;
                 double d = double.MaxValue;
-                Matrix m = new Matrix(dir1, dir2, xdir);
-                Matrix b = new Matrix(p2 - p1);
-                Matrix x = m.SaveSolveTranspose(b);
-                if (x != null)
+                Matrix m = DenseMatrix.OfColumnArrays(dir1, dir2, xdir);
+                Vector b = new DenseVector(p2 - p1);
+                Vector x = (Vector)m.Solve(b);
+                if (x.IsValid())
                 {
-                    par1 += x[0, 0];
-                    par2 -= x[1, 0]; // das ist richtig so, in DistLL hat par2 falsches Vorzeichen!
+                    par1 += x[0];
+                    par2 -= x[1]; // das ist richtig so, in DistLL hat par2 falsches Vorzeichen!
                     // der Parameter darf nicht aus dem [0,1] Intervall rauslaufen, denn dort gibt es keine Werte
                     // tut er es trotzdem, dann wird auf das Ende geklippt. Das Newtonverfahren
                     // kann ja hin und her wackeln, aber wenns nach dem Klippen immer noch rausläuft, dann ist aus
@@ -2601,6 +2625,62 @@ namespace CADability.GeoObject
                 // jetzt könnte man noch die Richtungen überprüfen, aber es gibt kein gutes Kriterium für die erlaubte Abweichung
             }
             return true;
+        }
+
+        internal double[] Intersect(Polynom implicitSurface)
+        {
+            List<double> res = new List<double>();
+            double d0 = implicitSurface.Eval(tetraederBase[0]);
+            for (int i = 0; i < tetraederBase.Length - 1; ++i)
+            {
+                double d1 = implicitSurface.Eval(tetraederBase[i + 1]);
+                if (Math.Sign(d0) != Math.Sign(d1)) AddSingleIntersection(implicitSurface, TetraederParams[i], TetraederParams[i + 1], res);
+                else
+                {   // the surface does not intersect the linear connection of tetraederBase[i] and tetraederBase[i+1] or
+                    // it intersects an even number of times (a torus might intersect a circle 4 times)
+                    // here we look, whether the surface has a minimum distaance to the line in this segment, and if so
+                    // we try to find multiple intersection points 
+                    GeoPoint startPoint = tetraederBase[i];
+                    GeoVector direction = tetraederBase[i + 1] - tetraederBase[i];
+                    Polynom toSolve = implicitSurface.Substitute(new Polynom(direction.x, "u", startPoint.x, ""), new Polynom(direction.y, "u", startPoint.y, ""), new Polynom(direction.z, "u", startPoint.z, "")).Derivate(1);
+                    double[] roots = toSolve.Roots();
+                    // roots are the positions on the line from tetraederBase[i] to tetraederBase[i+1] where the distance to the surface has a minimum
+                    // or maximum
+                    for (int j = 0; j < roots.Length; j++)
+                    {
+                        if (roots[j] >= 0 && roots[j] <= 1)
+                        {
+                            double u = TetraederParams[i] + roots[j] * (TetraederParams[i + 1] - TetraederParams[i]);
+                            double du = implicitSurface.Eval(theCurve.PointAt(u));
+                            if (Math.Sign(du) != Math.Sign(d0))
+                            {
+                                AddSingleIntersection(implicitSurface, TetraederParams[i], u, res);
+                                AddSingleIntersection(implicitSurface, u, TetraederParams[i + 1], res);
+                            }
+                        }
+                    }
+                }
+                d0 = d1;
+                //tetraederVertex[2 * i]
+                //  tetraederVertex[2 * i + 1]
+            }
+            return res.ToArray();
+        }
+
+        private void AddSingleIntersection(Polynom implicitSurface, double startParam, double endParam, List<double> list)
+        {
+            double u = (startParam + endParam) / 2.0;
+            if (theCurve.TryPointDeriv2At(u, out GeoPoint location, out GeoVector deriv1, out GeoVector deriv2))
+            {
+                // find a*u² + b*u + c, which approximates the curve at u and a, b, c are points/vectors.
+                GeoVector a = deriv2 / 2.0;
+                GeoVector b = deriv1;
+                GeoPoint c = location;
+                Polynom toSolve = implicitSurface.Substitute(new Polynom(a.x, "u2", b.x, "u", c.x, ""), new Polynom(a.y, "u2", b.y, "u", c.y, ""), new Polynom(a.z, "u2", b.z, "u", c.z, ""));
+                double[] roots = toSolve.Roots();
+                // here should be roots, since startParam and endParam are on different sides of the surface (which is not open)
+                // if not, we would have to use bisection
+            }
         }
     }
 }

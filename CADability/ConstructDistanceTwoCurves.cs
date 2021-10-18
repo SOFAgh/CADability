@@ -2,9 +2,13 @@
 using CADability.Curve2D;
 using CADability.GeoObject;
 using CADability.UserInterface;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
-
-
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.Actions
 {
@@ -79,7 +83,6 @@ namespace CADability.Actions
             actualLength = 0;
             return false;
         }
-
 
         private bool DistCurve1(CurveInput sender, ICurve[] Curves, bool up)
         {
@@ -164,7 +167,6 @@ namespace CADability.Actions
             return actualLength;
         }
 
-
         /// <summary>
         /// Overrides <see cref="CADability.Actions.ConstructAction.OnSetAction ()"/>
         /// </summary>
@@ -199,6 +201,7 @@ namespace CADability.Actions
         {
             base.OnRemoveAction();
             Frame.Project.Undo.ClearContext();
+            lengthProperty.Select();
         }
 
         /// <summary>

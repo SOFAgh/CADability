@@ -46,7 +46,11 @@ namespace CADability.UserInterface
         }
         string IHotSpot.GetInfoText(CADability.UserInterface.InfoLevelMode Level)
         {
-            return angleProperty.LabelText;
+            return angleProperty.Label;
+        }
+        public string ResourceId
+        {
+            get { return angleProperty.ResourceId; }
         }
         MenuWithHandler[] IHotSpot.ContextMenu
         {
@@ -67,7 +71,7 @@ namespace CADability.UserInterface
         {
             return ((ICommandHandler)angleProperty).OnUpdateCommand(MenuId, CommandState);
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
     }
     /// <summary>
     /// Exception thrown by <see cref="AngleProperty"/>.
@@ -238,7 +242,7 @@ namespace CADability.UserInterface
             }
             return false;
         }
-        void ICommandHandler.OnSelected(string MenuId, bool selected) { }
+        void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
 
         #region deprecated adaption to old implementation of AngleProperty

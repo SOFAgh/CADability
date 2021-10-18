@@ -1,4 +1,5 @@
 ﻿using CADability.Forms;
+using CADability.GeoObject;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -35,11 +36,24 @@ namespace CADability.App
             }
             if (toOpen == null) CadFrame.GenerateNewProject();
             else CadFrame.Project = toOpen;
+            Ellipse.Constructed += new Ellipse.ConstructedDelegate(OnEllipseConstructed);
+
         }
+
+        private void OnEllipseConstructed(Ellipse justConstructed)
+        {
+            justConstructed.UserData.Add("Name", "Wert");
+        }
+
         public override bool OnCommand(string MenuId)
         {
             if (MenuId == "MenuId.App.Exit")
             {   // this command cannot be handled by CADability.dll
+#if DEBUG
+                System.GC.Collect();
+                System.GC.WaitForFullGCComplete();
+                System.GC.Collect();
+#endif
                 Application.Exit();
                 return true;
             }

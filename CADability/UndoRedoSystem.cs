@@ -377,7 +377,7 @@ namespace CADability
         }
         /// <summary>
         /// Opens an undo frame, which means that all subsequent calls to AddUndoStep
-        /// will be considert as a single undo step. Calling UndoLastStep  or selecting
+        /// will be considered as a single undo step. Calling UndoLastStep  or selecting
         /// Undo from the Menu will undo all this
         /// steps as a single step. Use the C# "using" construct, since this property
         /// supports the IDisposable interface, which closes the undoframe when Dispose
@@ -392,7 +392,7 @@ namespace CADability
         }
         /// <summary>
         /// Opens an undo frame: all subsequent calls to <see cref="AddUndoStep"/> are considered
-        /// as a single undo step until <see cref="CloseUndoFrame"/> is beeing called. You can use
+        /// as a single undo step until <see cref="CloseUndoFrame"/> is being called. You can use
         /// the property <see cref="UndoFrame"/> instead. UndoFrames may be nested.
         /// </summary>
         /// <returns>an object that will be needed for the corresponding CloseUndoFrame call.</returns>

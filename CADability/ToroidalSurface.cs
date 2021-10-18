@@ -12,11 +12,12 @@ namespace CADability.GeoObject
     /// the "big" circles around the main axis, the v parameter describes the "small" circles.
     /// </summary>
     [Serializable()]
-    public class ToroidalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IImplicitPSurface, IExportStep
+    public class ToroidalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IImplicitPSurface, IExportStep, ISurfaceOfArcExtrusion
     {
         private ModOp toTorus; // diese ModOp modifiziert den Einheitstorus in den konkreten Torus
         private ModOp toUnit; // die inverse ModOp zum schnelleren Rechnen
         private double minorRadius; // im Unit-System. majorRadius ist dort immer 1
+        Polynom imlicitPolynomial; // cached but not serialized implicit polynomial (degree 4)
         public ToroidalSurface(GeoPoint loc, GeoVector dirx, GeoVector diry, GeoVector dirz, double majorRadius, double minorRadius)
         {
             ModOp m1 = ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis },
@@ -25,7 +26,7 @@ namespace CADability.GeoObject
             toTorus = m2 * m1;
             toUnit = toTorus.GetInverse();
             this.minorRadius = toUnit.Factor * minorRadius;
-            // majorRadius ist 1
+            // majorRadius is 1
         }
         internal ToroidalSurface(ModOp toTorus, double minorRadius)
         {
@@ -405,6 +406,12 @@ namespace CADability.GeoObject
             dirline.Norm();
             double dl = Geometry.DistPL(GeoPoint.Origin, sp, dirline);
             if (dl > 1 + minorRadius) return new GeoPoint[0]; // certainly no intersection
+            List<GeoPoint> sol = new List<GeoPoint>();
+            // test for tangential (because polynomial is bad in this case)
+            GeoPoint closest = Geometry.DropPL(GeoPoint.Origin, sp, dirline);
+            GeoPoint2D closest2D = PositionOfInUnit(closest);
+            GeoPoint punit = GeoPoint.Origin + (1 + minorRadius * Math.Cos(closest2D.y)) * (Math.Cos(closest2D.x) * GeoVector.XAxis + Math.Sin(closest2D.x) * GeoVector.YAxis) + minorRadius * Math.Sin(closest2D.y) * GeoVector.ZAxis;
+            if ((punit | closest) < 1e-6) sol.Add(punit); // in the unit system!
             double a, b, c, d, e;
             double x1, x2, x3;
             x1 = dirline.x * dirline.x + dirline.y * dirline.y + dirline.z * dirline.z;
@@ -417,7 +424,6 @@ namespace CADability.GeoObject
             e = x3 * x3 - 4 * (sp.x * sp.x + sp.y * sp.y);
             //double[] s1 = new double[4];
             //int nl = Geometry.ragle4(a, b, c, d, e, s1);
-            List<GeoPoint> sol = new List<GeoPoint>();
             try
             {
                 List<double> s = RealPolynomialRootFinder.FindRoots(a, b, c, d, e);
@@ -796,7 +802,7 @@ namespace CADability.GeoObject
                     for (int i = 0; i < isps.Length; i++)
                     {   // it is important to not have duplicate results.
                         SurfaceHelper.AdjustPeriodic(this, bounds, ref isps[i]);
-                        if (!bounds.Contains(isps[i])) continue;
+                        // if (!bounds.Contains(isps[i])) continue;
                         bool alreadyused = false;
                         for (int j = 0; j < usedIps.Count; j++)
                         {
@@ -1733,6 +1739,31 @@ namespace CADability.GeoObject
             #endregion
         }
 
+        public override Polynom GetImplicitPolynomial()
+        {
+            if (imlicitPolynomial == null)
+            {
+                // ∆: point - location, r: major radius, s: minor radius, from: https://www.geometrictools.com/Documentation/DistanceToCircle3.pdf
+                // s² = (N · ∆)² + (sqrt(|∆|² − (N · ∆)²) − r)² // line 3 of part (3), where |P - K|² == s²
+                // s² = (N · ∆)² + (|∆|² − (N · ∆)²) + r² -2*r*sqrt(|∆|² − (N · ∆)²)
+                // (s² - (N · ∆)² - (|∆|² − (N · ∆)²) - r²)²/(-2*r)² = |∆|² − (N · ∆)²
+                // (s² - (N · ∆)² - (|∆|² − (N · ∆)²) - r²)²/(-2*r)² - |∆|² + (N · ∆)² = 0
+                // (s²  - |∆|²  - r²)²/(-2*r)² - |∆|² + (N · ∆)² = 0
+
+                PolynomVector d = PolynomVector.xyz - new PolynomVector(Location - GeoPoint.Origin); // ∆ = point-location, point is the variable for the polynom in x, y and z
+                PolynomVector n = new PolynomVector(ZAxis.Normalized);
+                double r = XAxis.Length;
+                double s = MinorRadius;
+                imlicitPolynomial = ((s * s - d * d - r * r) ^ 2) / (4 * r * r) - d * d + (n * d) * (n * d); // this is a polynomial in x, y and z of degree 4
+                GeoPoint dist1 = PointAt(GeoPoint2D.Origin) + GetNormal(GeoPoint2D.Origin).Normalized; // point outside the torus with distance 1
+                double d1 = imlicitPolynomial.Eval(dist1); // this should yield 1, if the scaling of the polynomial would be correct
+                imlicitPolynomial = imlicitPolynomial / d1; // correct the scaling, unfortunately the evaluation of the polynomial doesn't yield the correct distance
+                // but it seems with this scaling it yields the correct distance or less
+                //dist1 = PointAt(new GeoPoint2D(0,Math.PI/2)) + GetNormal(new GeoPoint2D(0, Math.PI / 2)).Normalized; // point outside the torus with distance 1
+                //d1 = imlicitPolynomial.Eval(dist1); // this should yield 1, if the scaling of the polynomial would be correct
+            }
+            return imlicitPolynomial;
+        }
         public Ellipse GetAxisEllipse()
         {
             Ellipse e = Ellipse.Construct();
@@ -1885,6 +1916,30 @@ namespace CADability.GeoObject
             //    return;
             //}
             base.Intersect(curve, uvExtent, out ips, out uvOnFaces, out uOnCurve3Ds);
+        }
+        public override ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {   // fill in more special cases
+            if (other is PlaneSurface ps)
+            {
+                IDualSurfaceCurve[] pli = GetPlaneIntersection(ps, thisBounds.Left, thisBounds.Right, thisBounds.Bottom, thisBounds.Top, 0.0);
+                ICurve[] res = new ICurve[pli.Length];
+                for (int i = 0; i < pli.Length; i++)
+                {
+                    res[i] = pli[i].Curve3D;
+                }
+                return res;
+            }
+            else if (other is CylindricalSurface) return other.Intersect(otherBounds, this, thisBounds);
+            return base.Intersect(thisBounds, other, otherBounds);
+        }
+        public override ICurve Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, GeoPoint seed)
+        {
+            ICurve[] crvs = Intersect(thisBounds, other, otherBounds);
+            for (int i = 0; i < crvs.Length; i++)
+            {
+                if (crvs[i].DistanceTo(seed) < Precision.eps) return crvs[i];
+            }
+            return base.Intersect(thisBounds, other, otherBounds, seed);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.CopyData (ISurface)"/>
@@ -2230,7 +2285,7 @@ namespace CADability.GeoObject
                 return true;
             }
 
-            //  now the cube is complete inside or outside of the torus
+            //  now the cube is completely inside or outside of the torus
             return false;
         }
 
@@ -2249,6 +2304,11 @@ namespace CADability.GeoObject
         protected override double[] GetSaveVSteps()
         {
             return new double[] { 0.0, Math.PI / 2.0, Math.PI, 3 * Math.PI / 2, 2 * Math.PI };
+        }
+        public override void GetNaturalBounds(out double umin, out double umax, out double vmin, out double vmax)
+        {
+            umin = vmin = 0.0;
+            umax = vmax = Math.PI * 2.0;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.SameGeometry (BoundingRect, ISurface, BoundingRect, double, out ModOp2D)"/>
@@ -2411,7 +2471,7 @@ namespace CADability.GeoObject
                             SurfaceHelper.AdjustUPeriodic(this, thisBounds.Left, thisBounds.Right, ref u);
                             if (u >= thisBounds.Left - 1e-6 && u <= thisBounds.Right + 1e-6)
                             {
-                                // not yet testet!!!
+                                // not yet tested!!!
                                 ICurve crv = FixedU(u, thisBounds.Bottom, thisBounds.Top);
                                 Line2D l2d = new Line2D(new GeoPoint2D(u, thisBounds.Bottom), new GeoPoint2D(u, thisBounds.Top));
                                 DualSurfaceCurve dsc = new DualSurfaceCurve(crv, this, l2d, other, other.GetProjectedCurve(crv, 0.0));
@@ -2443,6 +2503,23 @@ namespace CADability.GeoObject
             return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
 
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            BoundingRect ext = BoundingRect.EmptyBoundingRect;
+            GeoPoint2D startPoint = GeoPoint2D.Origin;
+            for (int i = 0; i < orientedCurves.Length; i++)
+            {
+                ICurve2D pc = GetProjectedCurve(orientedCurves[i], 0.0);
+                if (!ext.IsEmpty())
+                {
+                    SurfaceHelper.AdjustPeriodicStartPoint(this, startPoint, pc);
+                }
+                ext.MinMax(pc.GetExtent());
+                startPoint = pc.EndPoint;
+            }
+            if (ext.Width < Math.PI * 2.0 - 0.1 || ext.Height < Math.PI * 2.0 - 0.1) return new NonPeriodicSurface(this, ext);
+            return null;
+        }
         #endregion
         #region ISerializable Members
         protected ToroidalSurface(SerializationInfo info, StreamingContext context)
@@ -2462,77 +2539,85 @@ namespace CADability.GeoObject
             toUnit = toTorus.GetInverse();
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "ToroidalSurface";
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty location = new GeoPointProperty(frame, "ToroidalSurface.Location");
+            location.ReadOnly = true;
+            location.OnGetValue = new EditableProperty<GeoPoint>.GetValueDelegate(delegate () { return toTorus * GeoPoint.Origin; });
+            se.Add(location);
+            GeoVectorProperty dirx = new GeoVectorProperty(frame, "ConicaToroidalSurfacelSurface.DirectionX");
+            dirx.ReadOnly = true;
+            dirx.IsAngle = false;
+            dirx.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return toTorus * GeoVector.XAxis; });
+            se.Add(dirx);
+            GeoVectorProperty diry = new GeoVectorProperty(frame, "ToroidalSurface.DirectionY");
+            diry.ReadOnly = true;
+            diry.IsAngle = false;
+            diry.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return toTorus * GeoVector.XAxis; });
+            se.Add(diry);
+            DoubleProperty majrad = new DoubleProperty(frame, "ToroidalSurface.MajorRadius");
+            majrad.ReadOnly = true;
+            majrad.OnGetValue = new EditableProperty<double>.GetValueDelegate(delegate () { return toTorus.Factor; });
+            se.Add(majrad);
+            DoubleProperty minrad = new DoubleProperty(frame, "ToroidalSurface.MinorRadius");
+            minrad.ReadOnly = true;
+            minrad.OnGetValue = new EditableProperty<double>.GetValueDelegate(delegate () { return toTorus.Factor * minorRadius; });
+            se.Add(minrad);
+            return new GroupProperty("ToroidalSurface", se.ToArray());
         }
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    GeoPointProperty location = new GeoPointProperty("ToroidalSurface.Location", base.Frame, false);
-                    location.ReadOnly = true;
-                    location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return toTorus * GeoPoint.Origin; };
-                    se.Add(location);
-                    GeoVectorProperty dirx = new GeoVectorProperty("ToroidalSurface.DirectionX", base.Frame, false);
-                    dirx.ReadOnly = true;
-                    dirx.IsAngle = false;
-                    dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toTorus * GeoVector.XAxis; };
-                    se.Add(dirx);
-                    GeoVectorProperty diry = new GeoVectorProperty("ToroidalSurface.DirectionY", base.Frame, false);
-                    diry.ReadOnly = true;
-                    diry.IsAngle = false;
-                    diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toTorus * GeoVector.YAxis; };
-                    se.Add(diry);
-                    DoubleProperty majrad = new DoubleProperty("ToroidalSurface.MajorRadius", base.Frame);
-                    majrad.ReadOnly = true;
-                    majrad.GetDoubleEvent += delegate (DoubleProperty sender) { return toTorus.Factor; };
-                    majrad.DoubleValue = toTorus.Factor;
-                    se.Add(majrad);
-                    DoubleProperty minrad = new DoubleProperty("ToroidalSurface.MinorRadius", base.Frame);
-                    minrad.ReadOnly = true;
-                    minrad.GetDoubleEvent += delegate (DoubleProperty sender) { return toTorus.Factor * minorRadius; };
-                    minrad.DoubleValue = toTorus.Factor * minorRadius;
-                    se.Add(minrad);
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
         ImplicitPSurface IImplicitPSurface.GetImplicitPSurface()
         {
-            // implizite Form gemäß https://en.wikipedia.org/wiki/Implicit_surface
-            // wobei R==1 und a==minorRadius
+            // implicit form according to https://en.wikipedia.org/wiki/Implicit_surface
+            // where R==1 and a==minorRadius
             Polynom p = new Polynom(1, "x2", 1, "y2", 1, "z2", 1 - minorRadius * minorRadius, "");
-            Polynom pp = p * p + new Polynom(-4, "x2", -4, "y2", 0, "z"); // 0 z damit es 3dimensional wird
-            ImplicitPSurface res = new ImplicitPSurface(pp, toUnit); // ja, es muss toUnit haißen, nicht toTorus!
+            Polynom pp = p * p + new Polynom(-4, "x2", -4, "y2", 0, "z"); // 0 z to make a 3 dimensional polynom
+            ImplicitPSurface res = new ImplicitPSurface(pp, toUnit); // yes, toUnit, not toTorus!
+
             return res;
         }
+        #region ISurfaceOf(Arc)Extrusion
+        ICurve ISurfaceOfExtrusion.Axis(BoundingRect domain)
+        {   // the axis of the extrusion is an arc
+            Ellipse elli = Ellipse.Construct();
+            elli.SetArcPlaneCenterRadius(new Plane(Location, XAxis, YAxis), Location, XAxis.Length);
+            elli.StartParameter = domain.Left;
+            elli.SweepParameter = domain.Width;
+            return elli;
+        }
+        bool ISurfaceOfExtrusion.ModifyAxis(GeoPoint throughPoint)
+        {   // a movement along the axis and a change of the major radius. The axis to modify is the circular axis of the torus
+            GeoPoint onAxis = Geometry.DropPL(throughPoint, Location, ZAxis);
+            double oldMinorRadius = MinorRadius;
+            double majorRadius = Geometry.DistPL(throughPoint, Location, ZAxis);
+            ModOp m1 = ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis },
+                new GeoVector[] { majorRadius * XAxis.Normalized, majorRadius * YAxis.Normalized, majorRadius * ZAxis.Normalized });
+            ModOp m2 = ModOp.Translate(onAxis.x, onAxis.y, onAxis.z);
+            toTorus = m2 * m1;
+            toUnit = toTorus.GetInverse();
+            this.minorRadius = toUnit.Factor * oldMinorRadius;
+            return true;
+        }
+        IOrientation ISurfaceOfExtrusion.Orientation => throw new NotImplementedException();
+        ICurve ISurfaceOfExtrusion.ExtrudedCurve => usedArea.IsEmpty() || usedArea.IsInfinite || usedArea.IsInvalid() ?
+            FixedU(0.0, 0.0, Math.PI) : FixedU(0.0, usedArea.Bottom, usedArea.Right);
+        /// <summary>
+        /// Setting the radius of a ISurfaceOfArcExtrusion means setting the radius of the extruded arc, which is the minor radius in this case
+        /// </summary>
+        double ISurfaceOfArcExtrusion.Radius
+        {
+            get
+            {
+                return MinorRadius;
+            }
+            set
+            {
+                minorRadius = toUnit.Factor * value;
+            }
+        }
+
+        bool ISurfaceOfExtrusion.ExtrusionDirectionIsV => false; // it is the extrusion of the "small" circle around the axis
+        #endregion
 
         int IExportStep.Export(ExportStep export, bool topLevel)
         {

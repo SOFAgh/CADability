@@ -256,6 +256,10 @@ namespace CADability
             }
             return false;
         }
+        public static bool SameAxis(Axis a1, Axis a2)
+        {
+            return IsPointOnLine(a1.Location, a2.Location, a2.Location + a2.Direction) && SameDirection(a1.Direction, a2.Direction, false);
+        }
         /// <summary>
         /// Determins, whether the given vector is in the given plane
         /// </summary>

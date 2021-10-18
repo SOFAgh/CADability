@@ -69,7 +69,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.ButtonImages.html",
-          "hash": "x5D6W+MFiRKZPLYTqB96+w=="
+          "hash": "qKTIVhjxIZDk2zz1dWK5UA=="
         }
       },
       "is_incremental": true,
@@ -81,7 +81,19 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadCanvas.html",
-          "hash": "i01SPNc1rBbknqhj0QI6PQ=="
+          "hash": "foEKBOIhQ1tCQE3IaE1bZA=="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.CadControl.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.CadControl.html",
+          "hash": "gOhwD9QMWN79Y0JQaw3RiQ=="
         }
       },
       "is_incremental": true,
@@ -93,7 +105,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadForm.html",
-          "hash": "CCEvN/3d0lkCKt4mgCmzRA=="
+          "hash": "Y9cEAQQQvf5Z6cuHSPq7hQ=="
         }
       },
       "is_incremental": true,
@@ -105,7 +117,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadFrame.html",
-          "hash": "7Mkgxs3xBO03GPq4znuf4g=="
+          "hash": "3Se4IwQgWSc9B0VukAi4ng=="
         }
       },
       "is_incremental": true,
@@ -141,7 +153,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGL.html",
-          "hash": "3MkYfE/j9r8R4hM7yxtpdQ=="
+          "hash": "QA+0OmE1UJoKvqcb5vl9hg=="
         }
       },
       "is_incremental": true,
@@ -153,7 +165,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGLException.html",
-          "hash": "X/0QVUB3xC1v292mr17RwQ=="
+          "hash": "phuu03PVFgY4wHcwgPxJmQ=="
         }
       },
       "is_incremental": true,
@@ -177,7 +189,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PropertiesExplorer.html",
-          "hash": "dd5/aYZmHrYCWrD0nzjBlA=="
+          "hash": "8vyiplINVcEjKsnjI+gSoA=="
         }
       },
       "is_incremental": true,
@@ -189,7 +201,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.html",
-          "hash": "0RNfKCUharXz2F014PqsjA=="
+          "hash": "MpdRlQL1OSRJX7NS+MWD3A=="
         }
       },
       "is_incremental": true,
@@ -201,7 +213,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "zeOshwYEuRechHJFeeHwOw=="
+          "hash": "lCYjDYDQUrBGd7OI/Tm6AQ=="
         }
       },
       "is_incremental": false,
@@ -238,8 +250,8 @@
         "ManagedReferenceDocumentProcessor": {
           "can_incremental": true,
           "incrementalPhase": "build",
-          "total_file_count": 12,
-          "skipped_file_count": 12
+          "total_file_count": 13,
+          "skipped_file_count": 13
         },
         "TocDocumentProcessor": {
           "can_incremental": false,

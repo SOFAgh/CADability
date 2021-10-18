@@ -19,7 +19,6 @@ namespace CADability.GeoObject
         private ModOp toCone; // diese ModOp modifiziert den Einheitskegel in den konkreten Kegel
         private ModOp toUnit; // die inverse ModOp zum schnelleren Rechnen
         private double voffset; // OCas arbeitet mit anderem v, ggf. nach dem Einlesen die 2d Kuren verschieben und voffset wieder wegmachen
-        private ModOp2D toHelper; // wird nur benötigt, wenn verzerrt für opencascade
         public ConicalSurface(GeoPoint apex, GeoVector dirx, GeoVector diry, GeoVector dirz, double semiAngle, double voffset = 0.0)
         {
             double s = Math.Sin(semiAngle);
@@ -50,7 +49,7 @@ namespace CADability.GeoObject
             double semiAngle = Math.Atan2(r, 1);
             // noch nicht fertig!!!
         }
-        internal ConicalSurface(ModOp toCone, BoundingRect? usedArea = null): base(usedArea)
+        internal ConicalSurface(ModOp toCone, BoundingRect? usedArea = null) : base(usedArea)
         {
             this.toCone = toCone;
             toUnit = toCone.GetInverse();
@@ -67,7 +66,7 @@ namespace CADability.GeoObject
         {
             if (Precision.SameDirection(c1.Normal, c2.Normal, false) && Precision.SameDirection(c1.Normal, c2.Center - c1.Center, false))
             {   // the two circles have a common axis
-                // work in the plane where the circles appear als horizontal lines (c1 is the X-Axis) and the normal of the circles is th Y-axis
+                // work in the plane where the circles appear as horizontal lines (c1 is the X-Axis) and the normal of the circles is th Y-axis
                 if (Math.Abs(c1.Radius - c2.Radius) < Precision.eps) return null; // this would be a cylinder
                 if (c1.Radius < c2.Radius) Hlp.Swap(ref c1, ref c2);
                 Plane pln = new Plane(c1.Center, c1.MajorAxis, c1.Normal);
@@ -122,15 +121,11 @@ namespace CADability.GeoObject
                 return new Angle(toCone * new GeoVector(1, 0, 1), toCone * new GeoVector(-1, 0, 1));
             }
         }
+        public Line AxisLine(double vmin, double vmax)
+        {
+            return Line.TwoPoints(toCone * new GeoPoint(0, 0, vmin), toCone * new GeoPoint(0, 0, vmax));
+        }
         #region ISurfaceImpl Overrides
-        internal override ICurve2D CurveToHelper(ICurve2D original)
-        {
-            return original.GetModified(toHelper);
-        }
-        internal override ICurve2D CurveFromHelper(ICurve2D original)
-        {
-            return original.GetModified(toHelper.GetInverse());
-        }
         // im Folgenden noch mehr überschreiben, das hier ist erst der Anfang:
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetModified (ModOp)"/>
@@ -190,7 +185,7 @@ namespace CADability.GeoObject
                 GeoPoint2D fromHere2d = pln.Project(fromHere);
                 GeoPoint2D fp1 = Geometry.DropPL(fromHere2d, GeoPoint2D.Origin, new GeoVector2D(dira));
                 GeoPoint2D fp2 = Geometry.DropPL(fromHere2d, GeoPoint2D.Origin, new GeoVector2D(-dira));
-                return new GeoPoint2D[] { PositionOf(pln.ToGlobal(fp1)), PositionOf(pln.ToGlobal(fp1)) };
+                return new GeoPoint2D[] { PositionOf(pln.ToGlobal(fp1)), PositionOf(pln.ToGlobal(fp2)) };
             }
             catch
             {   // fromHere is on the axis
@@ -297,6 +292,7 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoVector UDirection(GeoPoint2D uv)
         {
+            uv.y += voffset; // voffset is not guaranteed to be 0, step import creates such surfaces
             return toCone * new GeoVector(-uv.y * Math.Sin(uv.x), uv.y * Math.Cos(uv.x), 0.0);
         }
         static double Sqrt2 = Math.Sqrt(2.0);
@@ -307,11 +303,13 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoVector VDirection(GeoPoint2D uv)
         {
+            uv.y += voffset; // v-offset is not guaranteed to be 0, step import creates such surfaces
             return toCone * new GeoVector(Math.Cos(uv.x), Math.Sin(uv.x), 1.0);
         }
         public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
         {
             location = PointAt(uv); // GeoPoint(uv.y * Math.Cos(uv.x), uv.y * Math.Sin(uv.x), uv.y);
+            uv.y += voffset; // v-offset is not guaranteed to be 0, step import creates such surfaces
             du = toCone * new GeoVector(-uv.y * Math.Sin(uv.x), uv.y * Math.Cos(uv.x), 0.0);
             dv = toCone * new GeoVector(Math.Cos(uv.x), Math.Sin(uv.x), 1.0);
             duu = toCone * new GeoVector(-uv.y * Math.Cos(uv.x), -uv.y * Math.Sin(uv.x), 0.0);
@@ -325,8 +323,8 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override GeoVector GetNormal(GeoPoint2D uv)
         {
-            if (uv.y == 0.0) uv.y = 1.0; // gibt sonst keine Normale im singulären Punkt
-            return UDirection(uv) ^ VDirection(uv); ;
+            if (uv.y == 0.0) uv.y = 1.0;
+            return UDirection(uv) ^ VDirection(uv);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.MakeCanonicalForm ()"/>
@@ -1524,6 +1522,20 @@ namespace CADability.GeoObject
 #endif
             return res;
         }
+        public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
+        {
+            ConicalSurfaceNP res = new ConicalSurfaceNP(Location, XAxis, YAxis, ZAxis);
+            GeoPoint testPoint = orientedCurves[0].PointAt(0.5); // any point except the apex
+            // we need the zAxis to have positive values for all points (a face with a conical surface never contains parts from both sides of the apex)
+            double lp = Geometry.LinePar(Location, ZAxis, testPoint);
+            if (lp < 0) res = new ConicalSurfaceNP(Location, XAxis, YAxis, -ZAxis);
+            //GeoPoint testPoint1 = res.PointAt(res.PositionOf(testPoint));
+            //if (PositionOf(testPoint).y<0) res = new ConicalSurfaceNP(Location, XAxis, YAxis, -ZAxis);
+            GeoVector normalOriginal = GetNormal(PositionOf(testPoint));
+            GeoVector normalNp = res.GetNormal(res.PositionOf(testPoint));
+            if (normalOriginal * normalNp < 0) res.ReverseOrientation(); // make the same orientation as this conical surface
+            return res;
+        }
         public override IDualSurfaceCurve[] GetDualSurfaceCurves(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds, List<GeoPoint> seeds, List<Tuple<double, double, double, double>> extremePositions)
         {
             if (other is PlaneSurface)
@@ -1545,7 +1557,7 @@ namespace CADability.GeoObject
                     double u = Math.Atan2(mp.y, mp.x);
                     if (l.StartPoint.z + l.EndPoint.z < 0) u += Math.PI; // start- or endpoint could be 0, crossing z=0 is not allowed
                     if (u < 0.0) u += 2.0 * Math.PI;
-                    return new Line2D(new GeoPoint2D(u, l.StartPoint.z), new GeoPoint2D(u, l.EndPoint.z));
+                    return new Line2D(new GeoPoint2D(u, l.StartPoint.z - voffset), new GeoPoint2D(u, l.EndPoint.z - voffset));
                 }
             }
             else if (crvunit is Ellipse)
@@ -1773,59 +1785,29 @@ namespace CADability.GeoObject
             voffset = 0.0;
         }
         #endregion
-        #region IShowProperty Members
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
+        public override IPropertyEntry GetPropertyEntry(IFrame frame)
         {
-            base.Added(propertyTreeView);
-            resourceId = "ConicalSurface";
+            List<IPropertyEntry> se = new List<IPropertyEntry>();
+            GeoPointProperty location = new GeoPointProperty(frame, "ConicalSurface.Location");
+            location.ReadOnly = true;
+            location.OnGetValue =new EditableProperty<GeoPoint>.GetValueDelegate( delegate () { return toCone * GeoPoint.Origin; });
+            se.Add(location);
+            GeoVectorProperty dirx = new GeoVectorProperty(frame, "ConicalSurface.DirectionX");
+            dirx.ReadOnly = true;
+            dirx.IsAngle = false;
+            dirx.OnGetValue =new EditableProperty<GeoVector>.GetValueDelegate( delegate () { return toCone * GeoVector.XAxis; });
+            se.Add(dirx);
+            GeoVectorProperty diry = new GeoVectorProperty(frame, "ConicalSurface.DirectionY");
+            diry.ReadOnly = true;
+            diry.IsAngle = false;
+            diry.OnGetValue =new EditableProperty<GeoVector>.GetValueDelegate( delegate () { return toCone * GeoVector.XAxis; });
+            se.Add(diry);
+            AngleProperty openingAngle = new AngleProperty(frame, "ConicalSurface.OpeningAngle");
+            openingAngle.ReadOnly = true;
+            openingAngle.OnGetValue =new EditableProperty<Angle>.GetValueDelegate( delegate () { return OpeningAngle; });
+            se.Add(openingAngle);
+            return new GroupProperty("ConicalSurface", se.ToArray());
         }
-
-        public override ShowPropertyEntryType EntryType
-        {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
-        }
-        public override int SubEntriesCount
-        {
-            get
-            {
-                return SubEntries.Length;
-            }
-        }
-        private IShowProperty[] subEntries;
-        public override IShowProperty[] SubEntries
-        {
-            get
-            {
-                if (subEntries == null)
-                {
-                    List<IShowProperty> se = new List<IShowProperty>();
-                    GeoPointProperty location = new GeoPointProperty("ConicalSurface.Location", base.Frame, false);
-                    location.ReadOnly = true;
-                    location.GetGeoPointEvent += delegate (GeoPointProperty sender) { return toCone * GeoPoint.Origin; };
-                    se.Add(location);
-                    GeoVectorProperty dirx = new GeoVectorProperty("ConicalSurface.DirectionX", base.Frame, false);
-                    dirx.ReadOnly = true;
-                    dirx.IsAngle = false;
-                    dirx.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toCone * GeoVector.XAxis; };
-                    se.Add(dirx);
-                    GeoVectorProperty diry = new GeoVectorProperty("ConicalSurface.DirectionY", base.Frame, false);
-                    diry.ReadOnly = true;
-                    diry.IsAngle = false;
-                    diry.GetGeoVectorEvent += delegate (GeoVectorProperty sender) { return toCone * GeoVector.YAxis; };
-                    se.Add(diry);
-                    subEntries = se.ToArray();
-                }
-                return subEntries;
-            }
-        }
-        #endregion
 #if DEBUG
         Face DebugAsFace
         {

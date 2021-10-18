@@ -2,8 +2,13 @@
 using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
+#if WEBASSEMBLY
+using CADability.WebDrawing;
+using Point = CADability.WebDrawing.Point;
+#else
 using System.Drawing;
-
+using Point = System.Drawing.Point;
+#endif
 
 namespace CADability.Actions
 {
@@ -166,6 +171,7 @@ namespace CADability.Actions
         {
             base.OnRemoveAction();
             Frame.Project.Undo.ClearContext();
+            lengthProperty.Select();
         }
 
         public override string GetID()

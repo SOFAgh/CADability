@@ -87,7 +87,7 @@ namespace CADability
         }
     }
     /// <summary>
-    /// List objects (e.g. <see cref="Attribute.HatchStyleList"/>) raise this event, when an
+    /// List objects (e.g. <see cref="HatchStyleList"/>) raise this event, when an
     /// object is going to be removed. You may prevent this by setting the <see cref="RemovingFromListEventArgs.Refuse"/>
     /// member in <see cref="RemovingFromListEventArgs"/> to true.
     /// </summary>
@@ -118,7 +118,7 @@ namespace CADability
         /// <param name="project">The project that contains the attributeList</param>
         /// <param name="geoObject">The object that keeps the attribute</param>
         /// <returns></returns>
-        IShowProperty GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList);
+        IPropertyEntry GetSelectionProperty(string key, Project project, GeoObjectList geoObjectList);
     }
 
 }

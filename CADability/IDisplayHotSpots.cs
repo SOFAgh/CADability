@@ -48,11 +48,15 @@ namespace CADability
         /// </summary>
         void StartDrag(IFrame frame);
         /// <summary>
-        /// Returns the info text to be displayed in the <see cref="InfoPopup"/>.
+        /// Returns the info text to be displayed in the ToolTip.
         /// </summary>
         /// <param name="Level">Requested info level (simple info or detailed info)</param>
         /// <returns>The info string</returns>
         string GetInfoText(CADability.UserInterface.InfoLevelMode Level);
+        /// <summary>
+        /// Get the ResourceId of the Hotspot
+        /// </summary>
+        string ResourceId { get; }
         MenuWithHandler[] ContextMenu { get; }
         // hier könnte man noch ein Paint dazunehmen, um den Hotspots die
         // Möglichkeit zu geben, sich selbst gemäß ihrer Bedeutung darzustellen
