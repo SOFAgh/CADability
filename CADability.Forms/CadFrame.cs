@@ -80,11 +80,14 @@ namespace CADability.Forms
         {
             if (mi.DropDownItems.Count > 0)
             {
-                foreach (MenuItemWithHandler mmi in mi.DropDownItems)
-                {
-                    UpdateMRUMenu(mmi, mruFiles);
-                }
-            }
+				foreach (ToolStripItem tsi in mi.DropDownItems)
+				{
+					if (tsi is MenuItemWithHandler mmi)
+					{
+						UpdateMRUMenu(mmi, mruFiles);
+					}
+				}
+			}
             else
             {
                 MenuWithHandler mwh = mi.Tag as MenuWithHandler;
