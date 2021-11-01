@@ -54,8 +54,62 @@ namespace CADability.DXF
                 case GeoObject.Text text: entity = ExportText(text); break;
                 case GeoObject.Block block: entity = ExportBlock(block); break;
             }
-            if (entity != null) SetAttributes(entity, geoObject);
+            if (entity != null)
+            {
+                SetAttributes(entity, geoObject);
+                SetUserData(entity, geoObject);
+            }
+
             return entity;
+        }
+
+        private void SetUserData(netDxf.Entities.EntityObject entity, IGeoObject go)
+        {
+            if (entity is null || go is null || go.UserData is null || go.UserData.Count == 0)
+                return;
+
+            foreach (KeyValuePair<string, object> de in go.UserData)
+            {
+                if (de.Value is ExtendedEntityData xData)
+                {
+                    ApplicationRegistry registry = new ApplicationRegistry(xData.ApplicationName);
+                    XData data = new XData(registry);
+
+                    foreach (var item in xData.Data)
+                    {
+                        XDataCode code = item.Key;
+                        XDataRecord record = new XDataRecord(code, item.Value);
+                        data.XDataRecord.Add(record);
+                    }
+
+                    entity.XData.Add(data);
+                }
+                else
+                {
+                    ApplicationRegistry registry = new ApplicationRegistry(ApplicationRegistry.DefaultName);
+                    XData data = new XData(registry);
+
+                    XDataRecord record = null;
+
+                    //TODO: Add more types
+                    if (de.Value is string strValue)
+                    {
+                        record = new XDataRecord(XDataCode.String, strValue);
+                    }
+                    else if (de.Value is short shrValue)
+                    {
+                        record = new XDataRecord(XDataCode.Int16, shrValue);
+                    }
+                    else if (de.Value is int intValue)
+                    {
+                        record = new XDataRecord(XDataCode.Int32, intValue);
+                    }
+
+                    if (record != null)
+                        data.XDataRecord.Add(record);
+                }
+            }
+
         }
 
         private EntityObject ExportText(GeoObject.Text text)
