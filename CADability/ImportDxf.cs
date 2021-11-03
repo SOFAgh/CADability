@@ -473,6 +473,7 @@ namespace CADability.DXF
                 BSpline bsp = BSpline.Construct();
                 if (bsp.SetData(degree, poles, weights, kn, null, spline.IsPeriodic))
                 {
+                    if (spline.IsPeriodic) bsp.IsClosed = true; // to remove strange behavior in hünfeld.dxf
                     return bsp;
                 }
                 // strange spline in "bspline-closed-periodic.dxf"
