@@ -22,8 +22,34 @@ using System.IO;
 
 namespace CADability.DXF
 {
-    // ODAFileConverter "C:\Zeichnungen\DxfDwg\Stahl" "C:\Zeichnungen\DxfDwg\StahlConverted" "ACAD2010" "DWG" "0" "0"
-    // only converts whole directories. 
+    /// <summary>
+    /// Class to handle the serialization of extended entity data.
+    /// </summary>
+    public class ExtendedEntityData : List<KeyValuePair<int, object>>, IJsonSerialize
+    {
+        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        {
+            int[] keys = new int[Count];
+            object[] values = new object[Count];
+            for (int i = 0; i < Count; i++)
+            {
+                keys[i] = this[i].Key;
+                values[i] = this[i].Value;
+            }
+            data.AddProperty("Keys", keys);
+            data.AddProperty("Values", values);
+        }
+
+        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        {
+            List<object> keys = data.GetProperty<List<object>>("Keys");
+            List<object> values = data.GetProperty<List<object>>("Values");
+            for (int i = 0; i < keys.Count; i++)
+            {
+                Add(new KeyValuePair<int, object>((int)(double)(keys[i]), values[i]));
+            }
+        }
+    }
     /// <summary>
     /// Imports a DXF file, converts it to a project
     /// </summary>
@@ -313,7 +339,7 @@ namespace CADability.DXF
             foreach (KeyValuePair<string, XData> item in entity.XData)
             {
                 string name = item.Value.ApplicationRegistry.Name + ":" + item.Key;
-                List<KeyValuePair<int, object>> xdata = new List<KeyValuePair<int, object>>();
+                ExtendedEntityData xdata = new ExtendedEntityData();
                 for (int i = 0; i < item.Value.XDataRecord.Count; i++)
                 {
                     xdata.Add(new KeyValuePair<int, object>((int)(item.Value.XDataRecord[i].Code), item.Value.XDataRecord[i].Value));
@@ -469,6 +495,7 @@ namespace CADability.DXF
                 BSpline bsp = BSpline.Construct();
                 if (bsp.SetData(degree, poles, weights, kn, null, spline.IsPeriodic))
                 {
+                    if (spline.IsPeriodic) bsp.IsClosed = true; // in some cases bsp.IsClosed was refused on SetData and here it is forced (hünfeld.dxf)
                     return bsp;
                 }
                 // strange spline in "bspline-closed-periodic.dxf"

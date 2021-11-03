@@ -121,6 +121,10 @@ namespace CADability.Forms
         }
         void ICanvas.ShowView(IView toShow)
         {
+            if (paintTo3D is PaintToOpenGL openGL)
+            {
+                openGL.Disconnect(this);
+            }
             view = toShow;
             switch (toShow.PaintType)
             {

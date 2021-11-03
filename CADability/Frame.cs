@@ -383,7 +383,7 @@ namespace CADability
                 IView active = FindView(project.ActiveViewName);
                 if (active != null) ActiveView = active;
                 else ActiveView = FirstModelView;
-                canvas.ShowView(ActiveView);
+                // canvas.ShowView(ActiveView); // setting the ActiveView already calls canvas.ShowView
                 // die Views in dem View Tab anzeigen
                 SetViewProperties();
                 if (actionStack.ActiveAction == null)

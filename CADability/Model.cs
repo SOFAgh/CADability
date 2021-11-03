@@ -107,9 +107,9 @@ namespace CADability
         private Hashtable projectionToExtent;
         private Set<IGeoObject> continousChanges;
         // Displaylisten für alle Objekte nach Layern aufgelistet
-        internal Dictionary<Layer, IPaintTo3DList> layerFaceDisplayList; // Alle Faces, geordnet nach Layern
-        internal Dictionary<Layer, IPaintTo3DList> layerTransparentDisplayList; // Alle transparenten, geordnet nach Layern
-        internal Dictionary<Layer, IPaintTo3DList> layerCurveDisplayList; // alle Curves etc. geordnet nach Layern
+        internal LayerToDisplayListDictionary layerFaceDisplayList; // Alle Faces, geordnet nach Layern
+        internal LayerToDisplayListDictionary layerTransparentDisplayList; // Alle transparenten, geordnet nach Layern
+        internal LayerToDisplayListDictionary layerCurveDisplayList; // alle Curves etc. geordnet nach Layern
         internal Dictionary<Layer, GeoObjectList> layerUnscaledObjects; // die Liste aller UnscaledObjects
         internal Dictionary<Layer, List<IGeoObject>> layerFaceObjects; // temporär Alle Faces, geordnet nach Layern
         internal Dictionary<Layer, List<IGeoObject>> layerTransparentObjects; // temporär Alle transparenten, geordnet nach Layern
@@ -629,9 +629,9 @@ namespace CADability
             projectionToExtent = new Hashtable();
             base.resourceId = "ModelName";
             extent = null;
-            layerFaceDisplayList = new Dictionary<Layer, IPaintTo3DList>();
-            layerTransparentDisplayList = new Dictionary<Layer, IPaintTo3DList>();
-            layerCurveDisplayList = new Dictionary<Layer, IPaintTo3DList>();
+            layerFaceDisplayList = new LayerToDisplayListDictionary();
+            layerTransparentDisplayList = new LayerToDisplayListDictionary();
+            layerCurveDisplayList = new LayerToDisplayListDictionary();
             layerUnscaledObjects = new Dictionary<Layer, GeoObjectList>();
             layerFaceObjects = new Dictionary<Layer, List<IGeoObject>>();
             layerTransparentObjects = new Dictionary<Layer, List<IGeoObject>>();
@@ -1304,9 +1304,9 @@ namespace CADability
 
             projectionToExtent = new Hashtable();
             displayListsDirty = true;
-            layerFaceDisplayList = new Dictionary<Layer, IPaintTo3DList>();
-            layerTransparentDisplayList = new Dictionary<Layer, IPaintTo3DList>();
-            layerCurveDisplayList = new Dictionary<Layer, IPaintTo3DList>();
+            layerFaceDisplayList = new LayerToDisplayListDictionary();
+            layerTransparentDisplayList = new LayerToDisplayListDictionary();
+            layerCurveDisplayList = new LayerToDisplayListDictionary();
             layerUnscaledObjects = new Dictionary<Layer, GeoObjectList>();
             layerFaceObjects = new Dictionary<Layer, List<IGeoObject>>();
             layerTransparentObjects = new Dictionary<Layer, List<IGeoObject>>();

@@ -32,6 +32,7 @@ namespace CADability.Forms
         public static int debugNumTriangles = 0;
         public static Thread MainThread = null;
         public static List<IntPtr> ContextsToDelete = new List<IntPtr>();
+        public static List<IntPtr> activeRenderContexts = new List<IntPtr>();
         bool paintSurfaces;
         bool paintEdges;
         bool paintSurfaceEdges;
@@ -315,10 +316,10 @@ namespace CADability.Forms
 
             //Create rendering context
             renderContext = Wgl.wglCreateContext(deviceContext);
-            // System.Diagnostics.Trace.WriteLine("RenderContext created: " + renderContext.ToString());
 #if DEBUG
-            // activeRenderContexts.Add(renderContext);
+            System.Diagnostics.Trace.WriteLine("RenderContext created: " + renderContext.ToString());
 #endif
+            activeRenderContexts.Add(renderContext);
             // CheckError(); kein OpenGL
             // wir wollen nur einen Satz von Listen verwenden, sonst ist das mit dem Löschen der Listen
             // ein Problem, da es die gleichen Nummern mehrfach gibt. Da das Löschen der Listen zu unberechenbaren
@@ -378,10 +379,10 @@ namespace CADability.Forms
                 for (int i = 0; i < ContextsToDelete.Count; i++)
                 {
                     bool ok = Wgl.wglDeleteContext(ContextsToDelete[i]);
-                    // System.Diagnostics.Trace.WriteLine("RenderContext deleted: " + ContextsToDelete[i].ToString() + ", " + ok.ToString());
 #if DEBUG
-                    // activeRenderContexts.Remove(ContextsToDelete[i]);
+                    System.Diagnostics.Trace.WriteLine("RenderContext deleted: " + ContextsToDelete[i].ToString() + ", " + ok.ToString());
 #endif
+                    activeRenderContexts.Remove(ContextsToDelete[i]);
                 }
                 ContextsToDelete.Clear();
             }
@@ -396,30 +397,24 @@ namespace CADability.Forms
         }
         void RemoveMainRenderContext(object sender, EventArgs e)
         {
-            // if (MainThread != Thread.CurrentThread) return; nutzt nichts
+            OpenGlList.FreeLists();
+            OpenGlList.FreeAllOpenLists();
             for (int i = 0; i < ContextsToDelete.Count; i++)
             {
                 bool ok = Wgl.wglDeleteContext(ContextsToDelete[i]);
-                // System.Diagnostics.Trace.WriteLine("RenderContext deleted: " + ContextsToDelete[i].ToString() + ", " + ok.ToString());
 #if DEBUG
-                // activeRenderContexts.Remove(ContextsToDelete[i]);
+                System.Diagnostics.Trace.WriteLine("RenderContext deleted: " + ContextsToDelete[i].ToString() + ", " + ok.ToString());
 #endif
+                activeRenderContexts.Remove(ContextsToDelete[i]);
             }
             ContextsToDelete.Clear();
-            if (MainRenderContext != IntPtr.Zero)
+            for (int i = 0; i < activeRenderContexts.Count; i++)
             {
+                bool ok = Wgl.wglDeleteContext(activeRenderContexts[i]);
+
+            }
                 try
                 {
-                    OpenGlList.FreeLists();
-                    bool ok = Wgl.wglMakeCurrent(deviceContext, MainRenderContext);
-                    try
-                    {
-                        Wgl.wglDeleteContext(MainRenderContext);
-#if DEBUG
-                        // activeRenderContexts.Remove(MainRenderContext);
-#endif
-                    }
-                    catch { }
                     // System.Diagnostics.Trace.WriteLine("RemoveMainRenderContext: " + MainRenderContext.ToString() + ", " + ok.ToString());
                     MainRenderContext = IntPtr.Zero;
                     fonts = new Dictionary<string, FontDisplayList>(); // löschen
@@ -431,16 +426,10 @@ namespace CADability.Forms
                         deviceContext = IntPtr.Zero;
                     }
                     // MessageBox.Show("RemoveMainRenderContext");
-                    IntPtr mh = Kernel.GetModuleHandle("msvcr71.dll");
-                    if (mh != IntPtr.Zero) Kernel.FreeLibrary(mh);
-                    mh = Kernel.GetModuleHandle("opengl32.dll");
-                    if (mh != IntPtr.Zero) Kernel.FreeLibrary(mh);
-                    mh = Kernel.GetModuleHandle("OCasToDotNet.dll");
+                    IntPtr mh = Kernel.GetModuleHandle("opengl32.dll");
                     if (mh != IntPtr.Zero) Kernel.FreeLibrary(mh);
                 }
                 catch { }
-            }
-
         }
 
         // Mit HashCode und Equals hat es folgende Bewandnis:
@@ -2075,9 +2064,7 @@ namespace CADability.Forms
     internal class OpenGlList : IPaintTo3DList
     {
         static List<int> toDelete = new List<int>();
-#if DEBUG
         static HashSet<int> openLists = new HashSet<int>();
-#endif
         public OpenGlList(int listNr)
         {
             ListNumber = listNr;
@@ -2088,11 +2075,9 @@ namespace CADability.Forms
             FreeLists();
             ListNumber = Gl.glGenLists(1); // genau eine Liste
             if (name != null) this.name = name;
-#if DEBUG
             openLists.Add(ListNumber);
+#if DEBUG
             System.Diagnostics.Trace.WriteLine("+++++ OpenGl List Nr.: " + ListNumber.ToString() + " (" + openLists.Count.ToString() + ") " + name);
-            if (ListNumber == 39 || ListNumber == 40)
-            { }
 #endif
             // Gl.glIsList()
         }
@@ -2113,8 +2098,8 @@ namespace CADability.Forms
                     {
 #if DEBUG
                         System.Diagnostics.Trace.WriteLine("----- OpenGl List Nr.: " + toDelete[i].ToString());
-                        openLists.Remove(toDelete[i]);
 #endif
+                        openLists.Remove(toDelete[i]);
                         try
                         {
                             Gl.glDeleteLists(toDelete[i], 1);
@@ -2134,6 +2119,13 @@ namespace CADability.Forms
                 }
                 System.Diagnostics.Trace.WriteLine(".");
 #endif
+            }
+        }
+        static public void FreeAllOpenLists()
+        {
+            foreach (int nr in openLists)
+            {
+                Gl.glDeleteLists(nr, 1);
             }
         }
         public int ListNumber { get; }
@@ -2176,7 +2168,8 @@ namespace CADability.Forms
         }
         public void Delete()
         {
-            //System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + ListNumber.ToString());
+            openLists.Remove(ListNumber);
+            System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + ListNumber.ToString());
             isDeleted = true;
             Gl.glDeleteLists(ListNumber, 1);
         }
@@ -2204,6 +2197,17 @@ namespace CADability.Forms
             set
             {
                 keepAlive = value;
+            }
+        }
+        public void Dispose()
+        {
+            Delete();
+            if (keepAlive!=null)
+            {
+                for (int i = 0; i < keepAlive.Count; i++)
+                {
+                    (keepAlive[i] as OpenGlList)?.Delete();
+                }
             }
         }
         #endregion

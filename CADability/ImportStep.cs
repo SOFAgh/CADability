@@ -1389,7 +1389,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
 
                     // there is the concept of "mappedItem", which is not respected with the "products" concept.
-                    // I am not sure how to handle this, so I am doing this as exclusive patterns. If we have mappeditems, we do not use the products.
+                    // I am not sure how to handle this, so I am doing this as exclusive patterns. If we have mappedItems, we do not use the products.
                     // The mappedItems seem also to appear in the products.
                     HashSet<Item> rootMappedItems = new HashSet<Item>(mappedItems);
                     if (mappedItems.Count > 0)
@@ -2349,7 +2349,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (291 == item.definingIndex || 41089 == item.definingIndex)
+                            if (3320 == item.definingIndex || 41089 == item.definingIndex)
                             {
                             }
 #endif

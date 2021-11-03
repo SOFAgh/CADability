@@ -46,6 +46,10 @@ namespace CADability.Forms
             {
                 set { }
             }
+            public void Dispose()
+            {
+                bitmap.Dispose();
+            }
             #endregion
         }
         protected Projection projection;

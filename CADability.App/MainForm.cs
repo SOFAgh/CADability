@@ -36,13 +36,6 @@ namespace CADability.App
             }
             if (toOpen == null) CadFrame.GenerateNewProject();
             else CadFrame.Project = toOpen;
-            Ellipse.Constructed += new Ellipse.ConstructedDelegate(OnEllipseConstructed);
-
-        }
-
-        private void OnEllipseConstructed(Ellipse justConstructed)
-        {
-            justConstructed.UserData.Add("Name", "Wert");
         }
 
         public override bool OnCommand(string MenuId)

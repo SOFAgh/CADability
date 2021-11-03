@@ -4194,7 +4194,7 @@ namespace CADability.GeoObject
             DebuggerContainer dc = new DebuggerContainer();
             for (int i = 0; i < toConnect.Length; i++)
             {
-                dc.Add(toConnect[i], toConnect[i].GetHashCode());
+                dc.Add(toConnect[i].Clone(), toConnect[i].GetHashCode()); // clone, so it doesn't change the color
             }
             foreach (Vertex vtx in mergedVertices)
             {
