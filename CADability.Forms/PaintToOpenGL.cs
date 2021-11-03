@@ -2169,7 +2169,9 @@ namespace CADability.Forms
         public void Delete()
         {
             openLists.Remove(ListNumber);
+#if DEBUG
             System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + ListNumber.ToString());
+#endif
             isDeleted = true;
             Gl.glDeleteLists(ListNumber, 1);
         }
