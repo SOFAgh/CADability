@@ -1266,6 +1266,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             roots[Item.ItemType.presentationLayerAssignment] = new List<int>();
             roots[Item.ItemType.shapeRepresentationRelationship] = new List<int>();
             roots[Item.ItemType.contextDependentShapeRepresentation] = new List<int>();
+            roots[Item.ItemType.draughtingModel] = new List<int>();
             Set<Item> productDefinitions = new Set<Item>();
 
             using (tk = new Tokenizer(filename))
@@ -1386,6 +1387,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 list[j].Layer = layer;
                             }
                         }
+                    }
+                    for (int i = 0; i < roots[Item.ItemType.draughtingModel].Count; i++)
+                    {
+                        Item item = definitions[roots[Item.ItemType.draughtingModel][i]];
+                        object o = CreateEntity(item);
                     }
 
                     // there is the concept of "mappedItem", which is not respected with the "products" concept.
@@ -1881,7 +1887,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (17287 == item.definingIndex)
+            if (23972 == item.definingIndex)
             {
 
             }
@@ -2051,6 +2057,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             item.val = CreateEntity(item.SubItem(2)); // TODO: clone(?) and use the name and styles
                             if (ovr is ColorDef) cd = ovr as ColorDef;
                             if (item.val is IColorDef && cd != null) (item.val as IColorDef).ColorDef = cd;
+                            if (item.val is IGeoObject[] goa)
+                            {
+                                for (int i = 0; i < goa.Length; i++)
+                                {
+                                    if (goa[i] is IColorDef icd) icd.ColorDef = cd;
+                                }
+                            }
                             if (item.val is Shell) (item.val as Shell).Name = nm;
                         }
                         break;
@@ -2268,14 +2281,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             Shell.connectFaces(faces.ToArray(), Precision.eps);
                             Shell shell = Shell.MakeShell(faces.ToArray());
                             shell.Name = item.SubString(0);
-                            if (Settings.GlobalSettings.GetBoolValue("StepImport.CombineFaces", true)) shell.CombineConnectedFaces();
+                            if (Settings.GlobalSettings.GetBoolValue("StepImport.CombineFaces", false)) shell.CombineConnectedFaces();
                             item.val = shell;
                         }
                         break;
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (740 == item.definingIndex)
+                            if (13014 == item.definingIndex || 13754 == item.definingIndex)
                             {
                             }
 #endif
@@ -2349,7 +2362,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (3320 == item.definingIndex || 41089 == item.definingIndex)
+                            if (13014 == item.definingIndex || 13754 == item.definingIndex)
                             {
                             }
 #endif
@@ -2378,11 +2391,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         defIndex = item.definingIndex;
                                     }
 #if DEBUG
-                                    if (15515 == item.definingIndex)
-                                    {
-                                        Face dbgfc = (item.val as Face[])[0];
-                                        dbgfc.AssureTriangles(0.12);
-                                    }
+                                        // Face dbgfc = (item.val as Face[])[0];
+                                        // dbgfc.AssureTriangles(0.12);
 #endif
 
                                 }
@@ -2406,6 +2416,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                             importProblems[item.definingIndex] = "inconsistent face";
                                         }
                                         ++faceCount;
+                                        if (2859 == item.definingIndex || 3219 == item.definingIndex)
+                                            (item.val as Face[])[i].AssureTriangles(0.004); // remove when done
+
                                         //foreach (Edge edg in (item.val as Face[])[i].AllEdgesIterated())
                                         //{
                                         //    if (edg.PrimaryFace != (item.val as Face[])[i]) edg.PrimaryFace.CheckConsistency();
@@ -3988,6 +4001,17 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                         break;
+                    case Item.ItemType.draughtingModel: // name,*items,context_of_items
+                        {
+                            string name = item.parameter["name"].sval;
+                            List<Item> items = item.parameter["items"].lval;
+                            for (int i = 0; i < items.Count; i++)
+                            {
+                                object o = CreateEntity(items[i]);
+                            }
+                            item.val = items;
+                            break;
+                        }
                     default:
                         {
 #if DEBUG
@@ -4323,10 +4347,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     {
                         poleLength += bsp.Poles[i] | bsp.Poles[i + 1];
                     }
+                    poleLength /= bsp.PoleCount;
                     int knotCount = bsp.Knots.Length;
-                    double knotLength = bsp.Knots[knotCount - 1] - bsp.Knots[0];
-                    if ((bsp.Poles[0] | bsp.Poles[1]) < poleLength * 1e-6 || (bsp.Poles[bsp.PoleCount - 1] | bsp.Poles[bsp.PoleCount - 2]) < poleLength * 1e-6 ||
-                        (bsp.Knots[1] - bsp.Knots[0]) < knotLength * 1e-6 || (bsp.Knots[knotCount - 1] - bsp.Knots[knotCount - 2]) < knotLength * 1e-6)
+                    double knotLength = (bsp.Knots[knotCount - 1] - bsp.Knots[0])/ knotCount;
+                    // the following corrects some BSplines, which have the first or last poles or knots very close to each other. This makes the start-direction or end-direction
+                    // very unstable, even opposite to the "real" direction. Since we rely on this direction, we need to correct these BSplines (like in MO21775-001-00.stp)
+                    if ((bsp.Poles[0] | bsp.Poles[1]) < poleLength * 1e-3 || (bsp.Poles[bsp.PoleCount - 1] | bsp.Poles[bsp.PoleCount - 2]) < poleLength * 1e-3 ||
+                        (bsp.Knots[1] - bsp.Knots[0]) < knotLength * 1e-3 || (bsp.Knots[knotCount - 1] - bsp.Knots[knotCount - 2]) < knotLength * 1e-3)
                     {
                         int n = bsp.PoleCount + bsp.degree;
                         GeoPoint[] throughPoints = new GeoPoint[n];
@@ -4337,7 +4364,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         BSpline res = BSpline.Construct();
                         if (res.ThroughPoints(throughPoints, 3, closed)) return res;
                     }
-
+                    if (closed) bsp.IsClosed = true;
                     return bsp;
             }
         }

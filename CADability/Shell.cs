@@ -2463,7 +2463,7 @@ namespace CADability.GeoObject
                     }
                 }
                 newFace.Set(surface.Clone(), sortedEdges, new List<List<Edge>>());
-                return new HashSet<Face>(new Face[] { newFace });
+                if (newFace.Area.Area>Precision.eps) return new HashSet<Face>(new Face[] { newFace });
             }
             ISurface surfaceOfEdges = null; // we look for a surface that all edges share
             ICurve[] crvs = new ICurve[sortedEdges.Count];

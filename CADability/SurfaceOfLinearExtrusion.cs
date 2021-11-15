@@ -351,20 +351,23 @@ namespace CADability.GeoObject
                 int i = l[k, 0];
                 int j = l[k, 1];
                 ICurve2D c2 = new Line2D(points2D[i], points2D[j]);
-                GeoPoint2DWithParameter[] list = c.Intersect(c2);
-                for (int m = 0; m < list.Length; ++m)
+                if (c2.Length > 0)
                 {
-                    GeoPoint2D d0 = list[m].p;
-                    double d1 = (points2D[i] - d0).Length;
-                    double d2 = (points2D[j] - d0).Length;
-                    double d3 = (points2D[i] - points2D[j]).Length;
-                    if (Math.Abs(d1 + d2 - d3) < Precision.eps)
+                    GeoPoint2DWithParameter[] list = c.Intersect(c2);
+                    for (int m = 0; m < list.Length; ++m)
                     {
-                        if (d3 < Precision.eps)
-                            throw new Exception();
-                        GeoPoint gp = points[i] + (d1 / d3) * (points[j] - points[i]);
-                        uv = PositionOf(gp);
-                        return true;
+                        GeoPoint2D d0 = list[m].p;
+                        double d1 = (points2D[i] - d0).Length;
+                        double d2 = (points2D[j] - d0).Length;
+                        double d3 = (points2D[i] - points2D[j]).Length;
+                        if (Math.Abs(d1 + d2 - d3) < Precision.eps)
+                        {
+                            if (d3 < Precision.eps)
+                                throw new Exception();
+                            GeoPoint gp = points[i] + (d1 / d3) * (points[j] - points[i]);
+                            uv = PositionOf(gp);
+                            return true;
+                        }
                     }
                 }
             }

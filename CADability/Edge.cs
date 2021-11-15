@@ -835,7 +835,7 @@ namespace CADability
             edgeKind = EdgeKind.unknown;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 6728)
+            if (hashCode == 1468)
             {
             }
 #endif
@@ -2019,7 +2019,7 @@ namespace CADability
         internal void SetSecondary(Face secondaryFace, ICurve2D curveOnSecondaryFace, bool forwardOnSecondaryFace)
         {
 #if DEBUG
-            if (hashCode == 2747 || hashCode == 2750 || hashCode == 2713)
+            if (hashCode == 1469 || hashCode == 1468)
             {
             }
 #endif
@@ -3066,6 +3066,8 @@ namespace CADability
                     //    (curveOnSecondaryFace as InterpolatedDualSurfaceCurve.ProjectedCurve).Reverse();
                     //}
                 }
+                if (curveOnPrimaryFace is ProjectedCurve pcp) pcp.IsReverse = !forwardOnPrimaryFace;
+                if (curveOnSecondaryFace is ProjectedCurve pcs) pcs.IsReverse = !forwardOnSecondaryFace;
             }
         }
         internal void Reverse(Face onThisFace)
@@ -3130,6 +3132,12 @@ namespace CADability
                     if (!forwardOnPrimaryFace) PrimaryCurve2D.Reverse();
                     this.owner = primaryFace;
                 }
+                else if (PrimaryCurve2D is ProjectedCurve)
+                {
+                    PrimaryCurve2D = primaryFace.Surface.GetProjectedCurve(curve3d, 0.0);
+                    if (!forwardOnPrimaryFace) PrimaryCurve2D.Reverse();
+                    this.owner = primaryFace;
+                }
                 else
                 {
                     PrimaryCurve2D = PrimaryCurve2D.GetModified(m);
@@ -3148,6 +3156,11 @@ namespace CADability
                 else if (m.IsNull)
                 {
                     SecondaryCurve2D = from.Surface.GetProjectedCurve(Curve3D, 0.0);
+                    if (!forwardOnSecondaryFace) SecondaryCurve2D.Reverse();
+                }
+                else if (PrimaryCurve2D is ProjectedCurve)
+                {
+                    SecondaryCurve2D = secondaryFace.Surface.GetProjectedCurve(curve3d, 0.0);
                     if (!forwardOnSecondaryFace) SecondaryCurve2D.Reverse();
                 }
                 else

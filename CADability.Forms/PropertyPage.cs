@@ -370,7 +370,7 @@ namespace CADability.Forms
                 delay = new Timer();
                 delay.Interval = 500;
                 delay.Tick += Delay_Tick;
-                delay.Tag = (toDisplay, mp);
+                delay.Tag = new object[] { toDisplay, mp };
                 delay.Start();
             }
         }
@@ -386,7 +386,9 @@ namespace CADability.Forms
         }
         private void Delay_Tick(object sender, EventArgs e)
         {
-            (string toDisplay, Point mp) = (ValueTuple<string, Point>)(sender as Timer).Tag;
+            object[] oa = (sender as Timer).Tag as object[];
+            string toDisplay = oa[0] as string;
+            Point mp = (Point)oa[1];
             toolTip.Show(toDisplay, this, mp);
             delay.Stop();
             delay.Tick -= Delay_Tick;

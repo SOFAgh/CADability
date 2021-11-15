@@ -201,7 +201,18 @@ namespace CADability.GeoObject
                 }
                 Plane pln = new Plane(p, axisDirection);
                 double[] ipar = curveToRotate.GetPlaneIntersection(pln);
-                if (ipar.Length == 1)
+                if (ipar.Length==0)
+                {   // the plane must intersect the curve, if not, we take the start or endpoint
+                    if (Math.Abs(pln.Distance(curveToRotate.StartPoint)) < Math.Abs(pln.Distance(curveToRotate.EndPoint)))
+                    {
+                        ipar = new double[] { 0.0 };
+                    }
+                    else
+                    {
+                        ipar = new double[] { 1.0 };
+                    }
+                }
+                if (ipar.Length >= 1)
                 {
                     GeoPoint onAxis = Geometry.DropPL(p, axisLocation, axisDirection);
                     SweepAngle sa = new SweepAngle(p - onAxis, curveToRotate.PointAt(ipar[0]) - onAxis);
