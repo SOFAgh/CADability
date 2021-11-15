@@ -108,6 +108,7 @@ namespace CADability
         string Name { get; }
         event ScrollPositionChanged ScrollPositionChangedEvent;
         void Connect(ICanvas canvas);
+        void Disconnect(ICanvas canvas);
         void OnPaint(PaintEventArgs e);
         void OnSizeChanged(Rectangle oldClientRectangle);
         void HScroll(double Position);
@@ -1318,6 +1319,10 @@ namespace CADability
         {
             this.canvas = canvas;
             projectedModel?.Connect(canvas.PaintTo3D);
+        }
+        void IView.Disconnect(ICanvas canvas)
+        {
+            projectedModel?.Disconnect(canvas.PaintTo3D);
         }
         GeoObjectList IView.GetDataPresent(object data)
         {

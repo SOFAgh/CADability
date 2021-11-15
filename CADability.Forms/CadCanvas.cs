@@ -227,6 +227,7 @@ namespace CADability.Forms
         protected override void Dispose(bool disposing)
         {
             if (view != null && paintTo3D != null) (paintTo3D as PaintToOpenGL)?.Disconnect(this);
+            view?.Disconnect(this);
             base.Dispose(disposing);
         }
         protected override void OnMouseClick(MouseEventArgs e)
