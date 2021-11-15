@@ -31,6 +31,7 @@ namespace CADability.DXF
 
         void IJsonSerialize.SetObjectData(IJsonReadData data)
         {
+            ApplicationName = data.GetStringProperty("ApplicationName");
             List<object> keys = data.GetProperty<List<object>>("Keys");
             List<object> values = data.GetProperty<List<object>>("Values");
             for (int i = 0; i < keys.Count; i++)
