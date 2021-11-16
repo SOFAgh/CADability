@@ -30,14 +30,16 @@ namespace CADability.MdiApp
         private void InitializeComponent()
         {
             this.panel1 = new System.Windows.Forms.Panel();
-            this.btnAddMdiChild = new System.Windows.Forms.Button();
-            this.btnAdd10MdiChild = new System.Windows.Forms.Button();
             this.btnCloseAllMdi = new System.Windows.Forms.Button();
+            this.btnAdd10MdiChild = new System.Windows.Forms.Button();
+            this.btnAddMdiChild = new System.Windows.Forms.Button();
+            this.btnEndlessLoop = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.btnEndlessLoop);
             this.panel1.Controls.Add(this.btnCloseAllMdi);
             this.panel1.Controls.Add(this.btnAdd10MdiChild);
             this.panel1.Controls.Add(this.btnAddMdiChild);
@@ -47,15 +49,15 @@ namespace CADability.MdiApp
             this.panel1.Size = new System.Drawing.Size(879, 100);
             this.panel1.TabIndex = 2;
             // 
-            // btnAddMdiChild
+            // btnCloseAllMdi
             // 
-            this.btnAddMdiChild.Location = new System.Drawing.Point(12, 14);
-            this.btnAddMdiChild.Name = "btnAddMdiChild";
-            this.btnAddMdiChild.Size = new System.Drawing.Size(75, 23);
-            this.btnAddMdiChild.TabIndex = 0;
-            this.btnAddMdiChild.Text = "Add 1x";
-            this.btnAddMdiChild.UseVisualStyleBackColor = true;
-            this.btnAddMdiChild.Click += new System.EventHandler(this.btnAddMdiChild_Click);
+            this.btnCloseAllMdi.Location = new System.Drawing.Point(93, 14);
+            this.btnCloseAllMdi.Name = "btnCloseAllMdi";
+            this.btnCloseAllMdi.Size = new System.Drawing.Size(75, 23);
+            this.btnCloseAllMdi.TabIndex = 2;
+            this.btnCloseAllMdi.Text = "Close All Mdi";
+            this.btnCloseAllMdi.UseVisualStyleBackColor = true;
+            this.btnCloseAllMdi.Click += new System.EventHandler(this.btnCloseAllMdi_Click);
             // 
             // btnAdd10MdiChild
             // 
@@ -67,15 +69,25 @@ namespace CADability.MdiApp
             this.btnAdd10MdiChild.UseVisualStyleBackColor = true;
             this.btnAdd10MdiChild.Click += new System.EventHandler(this.btnAdd10MdiChild_Click);
             // 
-            // btnCloseAllMdi
+            // btnAddMdiChild
             // 
-            this.btnCloseAllMdi.Location = new System.Drawing.Point(93, 14);
-            this.btnCloseAllMdi.Name = "btnCloseAllMdi";
-            this.btnCloseAllMdi.Size = new System.Drawing.Size(75, 23);
-            this.btnCloseAllMdi.TabIndex = 2;
-            this.btnCloseAllMdi.Text = "Close All Mdi";
-            this.btnCloseAllMdi.UseVisualStyleBackColor = true;
-            this.btnCloseAllMdi.Click += new System.EventHandler(this.btnCloseAllMdi_Click);
+            this.btnAddMdiChild.Location = new System.Drawing.Point(12, 14);
+            this.btnAddMdiChild.Name = "btnAddMdiChild";
+            this.btnAddMdiChild.Size = new System.Drawing.Size(75, 23);
+            this.btnAddMdiChild.TabIndex = 0;
+            this.btnAddMdiChild.Text = "Add 1x";
+            this.btnAddMdiChild.UseVisualStyleBackColor = true;
+            this.btnAddMdiChild.Click += new System.EventHandler(this.btnAddMdiChild_Click);
+            // 
+            // btnEndlessLoop
+            // 
+            this.btnEndlessLoop.Location = new System.Drawing.Point(93, 43);
+            this.btnEndlessLoop.Name = "btnEndlessLoop";
+            this.btnEndlessLoop.Size = new System.Drawing.Size(75, 23);
+            this.btnEndlessLoop.TabIndex = 3;
+            this.btnEndlessLoop.Text = "Endless Loop";
+            this.btnEndlessLoop.UseVisualStyleBackColor = true;
+            this.btnEndlessLoop.Click += new System.EventHandler(this.btnEndlessLoop_Click);
             // 
             // MainForm
             // 
@@ -97,6 +109,7 @@ namespace CADability.MdiApp
         private System.Windows.Forms.Button btnAddMdiChild;
         private System.Windows.Forms.Button btnCloseAllMdi;
         private System.Windows.Forms.Button btnAdd10MdiChild;
+        private System.Windows.Forms.Button btnEndlessLoop;
     }
 }
 
