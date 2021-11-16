@@ -401,7 +401,7 @@ namespace CADability.Forms
 
         private void ToolTipOff_Tick(object sender, EventArgs e)
         {
-            toolTip.Hide(this);
+            if (!IsDisposed) toolTip.Hide(this);
             (sender as Timer).Stop();
             (sender as Timer).Tick -= ToolTipOff_Tick;
             // currentToolTip = null; makes tooltip go on repeatedly
@@ -563,7 +563,7 @@ namespace CADability.Forms
         {
             if (rootProperties.Count > toRemove.Index)
             {
-                if (selected >= 0 && selected<entries.Length) (Parent.Parent as PropertiesExplorer).UnSelected(entries[selected]); // to close the textbox (if any) and call EndEdit
+                if (selected >= 0 && selected < entries.Length) (Parent.Parent as PropertiesExplorer).UnSelected(entries[selected]); // to close the textbox (if any) and call EndEdit
                 rootProperties.RemoveAt(toRemove.Index);
                 RefreshEntries(-1, 0);
                 Invalidate();
@@ -798,7 +798,7 @@ namespace CADability.Forms
         {
             if (toSelect == null) return;
             PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
-            if (pe!=null) pe.ShowPropertyPage(this.TitleId);
+            if (pe != null) pe.ShowPropertyPage(this.TitleId);
             (this as IPropertyPage).Selected = toSelect;
             // the following is not needed, it is part of ".Selected = toSelect"
             //if (toSelect == (this as IPropertyPage).Selected && !toSelect.Flags.HasFlag(PropertyEntryType.LabelEditable))

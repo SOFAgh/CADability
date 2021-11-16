@@ -282,6 +282,9 @@ namespace CADability
         {
             this.canvas = canvas;
         }
+        void IView.Disconnect(ICanvas canvas)
+        {
+        }
         ICanvas IView.Canvas => canvas;
         string IView.PaintType => "3D";
         public void OnPaint(PaintEventArgs e)
