@@ -1574,8 +1574,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 Object o = CreateEntity(rel.lval[k]);
                                 if (o is IGeoObject) res.Add(o as IGeoObject);
                                 else if (o is GeoObjectList) res.AddRange(o as GeoObjectList);
-                                if (o is Solid) (o as Solid).Name = name;
-                                if (o is Shell) (o as Shell).Name = name;
+                                if (!string.IsNullOrWhiteSpace(name))
+                                {
+                                    if (o is Solid sld && !string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
+                                    if (o is Shell shl && !string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
+                                }
                             }
                         }
                     }
@@ -1586,8 +1589,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             Object o = CreateEntity(assoc.lval[k]);
                             if (o is IGeoObject) res.Add(o as IGeoObject);
                             else if (o is GeoObjectList) res.AddRange(o as GeoObjectList);
-                            if (o is Solid) (o as Solid).Name = name;
-                            if (o is Shell) (o as Shell).Name = name;
+                            if (!string.IsNullOrWhiteSpace(name))
+                            {
+                                if (o is Solid sld && !string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
+                                if (o is Shell shl && !string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
+                            }
                         }
                     }
                 }
@@ -2152,6 +2158,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     }
                                 }
                             }
+                            if (item.parameter["outer"].val is Solid sld) sld.Name = item.parameter["name"].sval;
+                            if (item.parameter["outer"].val is Shell shl) shl.Name = item.parameter["name"].sval;
                             item.val = item.parameter["outer"].val;
                         }
                         break;
@@ -2288,7 +2296,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (13014 == item.definingIndex || 13754 == item.definingIndex)
+                            if (10365 == item.definingIndex || 10365 == item.definingIndex)
                             {
                             }
 #endif
@@ -2362,7 +2370,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (13014 == item.definingIndex || 13754 == item.definingIndex)
+                            if (10365 == item.definingIndex || 10365 == item.definingIndex)
                             {
                             }
 #endif
@@ -3741,13 +3749,15 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                         break;
-                    case Item.ItemType.presentationLayerAssignment: // name, decription, layer_item
+                    case Item.ItemType.presentationLayerAssignment: // name, description, assigned_items
                         {
-                            Layer layer = new Layer(item.parameter["name"].sval);
+                            string layerName = item.parameter["description"].sval;
+                            if (string.IsNullOrWhiteSpace(layerName)) layerName = item.parameter["name"].sval;
+                            Layer layer = new Layer(layerName);
                             GeoObjectList list = new GeoObjectList();
-                            if (item.parameter.ContainsKey("layer_item"))
+                            if (item.parameter.ContainsKey("assigned_items"))
                             {
-                                List<Item> sublist = item.parameter["layer_item"].lval;
+                                List<Item> sublist = item.parameter["assigned_items"].lval;
                                 for (int i = 0; i < sublist.Count; i++)
                                 {
                                     object o = CreateEntity(sublist[i]);

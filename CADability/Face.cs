@@ -1407,7 +1407,7 @@ namespace CADability.GeoObject
                         int last = loops[i].Count - 1;
                         if (loops[i][last].forward) ep = loops[i][last].curve.EndPoint;
                         else ep = loops[i][last].curve.StartPoint;
-                        if ((sp | ep) > precision * 100) closed = false; // added *100 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
+                        if ((sp | ep) > precision * 1000) closed = false; // added *100 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
                     }
                     if (Math.Abs(area) < (ext.Width + ext.Height) * 1e-8 || !closed)
                     {   // probably a seam: two curves going forth and back on the same path
@@ -10097,6 +10097,7 @@ namespace CADability.GeoObject
                     segments.Add(edg.Curve2D(this));
                 }
                 Border bdr = Border.FromOrientedList(segments.ToArray(), true);
+                bdr.forceConnect(true);
                 double a = bdr.Area;
                 if (a > maxArea)
                 {
