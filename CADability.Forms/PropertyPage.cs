@@ -878,6 +878,15 @@ namespace CADability.Forms
             return pe.ActivePropertyPage == this;
         }
         #endregion
+
+        protected override void Dispose(bool disposing)
+        {
+            for (int i = 0; i < entries.Length; i++)
+            {
+                entries[i].Removed(this);
+            }
+            base.Dispose(disposing);
+        }
     }
 }
 

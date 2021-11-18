@@ -48,7 +48,7 @@ namespace CADability.Forms
             tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl.SizeMode = TabSizeMode.Fixed;
             tabControl.ItemSize = new Size(27, 21);
-            tabControl.DrawItem += new DrawItemEventHandler(tabControl_DrawItem);
+            tabControl.DrawItem += tabControl_DrawItem;
             tabControl.ShowToolTips = true;
             
             Controls.Add(tabControl);
@@ -466,6 +466,24 @@ namespace CADability.Forms
         public IPropertyEntry EntryWithListBox { get; private set; }
         public IPropertyEntry EntryWithTextBox { get; private set; }
         public IPropertyEntry EntryWithLabelExtension { get; private set; }
+        protected override void Dispose(bool disposing)
+        {
+            listBox.LostFocus -= ListBox_LostFocus;
+            listBox.DrawItem -= ListBox_DrawItem;
+            textBox.KeyUp -= TextBox_KeyUp;
+            labelExtension.Paint -= LabelExtension_Paint;
+            tabControl.SelectedIndexChanged -= TabControl_SelectedIndexChanged;
+            tabControl.DrawItem -= tabControl_DrawItem;
+            listBox.Dispose();
+            textBox.Dispose();
+            labelExtension.Dispose();
+            for (int i = 0; i < tabPages.Count; i++)
+            {
+                tabPages[i].Dispose();
+            }
+            tabControl.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }
 

@@ -46,11 +46,14 @@ namespace CADability.MdiApp
         {
             foreach (var frm in this.MdiChildren)
                 frm.Close();
+            GC.Collect();
+            long totalMemory = GC.GetTotalMemory(true);
+            System.Diagnostics.Trace.WriteLine("CloseAllMdi, totalMemory: " + totalMemory.ToString());
         }
 
         private void btnEndlessLoop_Click(object sender, EventArgs e)
         {
-            while(true)
+            while(false)
             {
                 mdiCounter++;
 
@@ -64,6 +67,9 @@ namespace CADability.MdiApp
                     foreach (var frm in this.MdiChildren)
                         frm.Close();
 
+                    GC.Collect();
+                    long totalMemory = GC.GetTotalMemory(true);
+                    System.Diagnostics.Trace.WriteLine("CloseAllMdi, totalMemory: " + totalMemory.ToString());
                     Application.DoEvents();
                 }
             }

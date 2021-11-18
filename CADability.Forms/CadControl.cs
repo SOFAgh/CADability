@@ -190,6 +190,7 @@ namespace CADability.Forms
             ToolBars.SaveToolbarPositions(toolStripContainer);
             Settings.SaveGlobalSettings();
             // ToolStripManager.SaveSettings(this); // save the positions of the toolbars (doesn't work correctly)
+            cadFrame.Dispose();
             Application.Idle -= OnIdle;
         }
         #endregion PRIVATE/PROTECTED METHODS

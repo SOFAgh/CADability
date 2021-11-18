@@ -215,11 +215,12 @@ namespace CADability
         }
         public static void LoadGlobalSettings(string FileName)
         {
-            Stream stream = File.Open(FileName, FileMode.Open);
+            Stream stream = null;
             try
             {
+                stream = File.Open(FileName, FileMode.Open);
                 JsonSerialize jsonSerialize = new JsonSerialize();
-                if (GlobalSettings != null) GlobalSettings.Dispose();
+                if (globalSettings != null) globalSettings.Dispose();
                 GlobalSettings = (Settings)jsonSerialize.FromStream(stream);
                 // die Sprache muss vor DeserializationDone gesetzt sein, denn dort werden bereits Comboboxen generiert
                 int lid = GlobalSettings.GetLanguageId();
@@ -241,7 +242,7 @@ namespace CADability
             }
             finally
             {
-                stream.Close();
+                stream?.Close();
             }
         }
         static string GlobalSettingsFileName;
