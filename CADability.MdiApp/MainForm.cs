@@ -53,7 +53,7 @@ namespace CADability.MdiApp
 
         private void btnEndlessLoop_Click(object sender, EventArgs e)
         {
-            while(false)
+            while(true)
             {
                 mdiCounter++;
 
