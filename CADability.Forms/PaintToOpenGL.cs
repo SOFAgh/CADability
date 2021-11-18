@@ -1880,7 +1880,8 @@ namespace CADability.Forms
                 if (e is ThreadAbortException) throw (e);
             }
             CheckError();
-            Wgl.wglMakeCurrent(IntPtr.Zero, IntPtr.Zero);
+            //Wgl.wglMakeCurrent(IntPtr.Zero, IntPtr.Zero);
+            //CheckError();
         }
         class MoveFacesBehindEdgesOffset : IDisposable
         {
@@ -2126,6 +2127,7 @@ namespace CADability.Forms
             foreach (KeyValuePair<int, string> l in openLists)
             {
                 Gl.glDeleteLists(l.Key, 1);
+                int err = Gl.glGetError();
             }
             openLists.Clear();
         }
