@@ -292,6 +292,10 @@ namespace CADability
         }
         public void Disconnect(IPaintTo3D paintTo3D)
         {
+            PaintFacesCache?.Dispose();
+            PaintTransparentCache?.Dispose();
+            PaintCurvesCache?.Dispose();
+            PaintUnscaledCache?.Dispose();
             this.paintTo3D = null;
             Settings.GlobalSettings.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
         }
