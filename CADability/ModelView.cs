@@ -1656,9 +1656,9 @@ namespace CADability
         /// Overrides <see cref="IShowPropertyImpl.Removed"/>
         /// </summary>
         /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyTreeView)
         {
-            propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
+            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
             Projection.Grid.GridChangedEvent -= new CADability.Grid.GridChangedDelegate(OnGridChanged);
             Frame.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
             project.ModelsChangedEvent -= new CADability.Project.ModelsChangedDelegate(OnModelsChanged);
