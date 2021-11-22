@@ -321,7 +321,7 @@ namespace CADability
             {
                 if (curveColor == null)
                 {
-                    curveColor = new ColorDef("auto point", Color.DarkCyan);
+                    curveColor = new ColorDef("auto curve", Color.DarkCyan);
                 }
                 return curveColor;
             }
@@ -333,7 +333,7 @@ namespace CADability
             {
                 if (faceColor == null)
                 {
-                    faceColor = new ColorDef("auto point", Color.GreenYellow);
+                    faceColor = new ColorDef("auto face", Color.GreenYellow);
                 }
                 return faceColor;
             }

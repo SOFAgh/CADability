@@ -400,6 +400,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         HashSet<Item> mappedItems = new HashSet<Item>();
         private Dictionary<int, string> importProblems;
         private List<Item> notImportedFaces;
+        private Dictionary<string, ColorDef> definedColors;
         class Tokenizer : IDisposable
         {
             StreamReader sr;
@@ -1203,12 +1204,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             allNames = new SortedDictionary<string, int>();
             entityPattern = new Dictionary<string, HashSet<string>>();
 #endif
-            transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", true);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
+            transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", false);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
 
             // transformationMode = false;
             // for most files, transformationMode is not important.
-            // files, for which transformationMode must be false:
-            // ATTREZZATURA + GIRANTE.stp
+            // files, for which transformationMode must be false: ?? FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));
+            // ATTREZZATURA + GIRANTE.stp, AL_1180775_AL_1180775.stp
 
             // Assembly2.step doesn't work correctly with both methods!
             // edgeCollection = new StepEdgeCollection();
@@ -1257,8 +1258,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             // productRelatedProductCategory
             // presentationLayerAssignment
             // mechanicalDesignGeometricPresentationRepresentation
-
-            System.Diagnostics.Trace.WriteLine("Starting step read" + Environment.TickCount.ToString());
 
             roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation] = new List<int>(); // das scheint mir der root zu sein
             roots[Item.ItemType.shapeDefinitionRepresentation] = new List<int>(); // manchmal auch das
@@ -1482,10 +1481,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                     foreach (Face face in shell.Faces)
                     {
-                        foreach (Vertex  vtx in face.Vertices)
+                        foreach (Vertex vtx in face.Vertices)
                         {
                             double d = Math.Abs(face.Surface.GetDistance(vtx.Position));
-                            if (d>md)
+                            if (d > md)
                             {
                                 md = d;
                                 found = face;
@@ -2093,6 +2092,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     (item.val as IColorDef[])[i].SetTopLevel(cd, true);
                                 }
                             }
+                            if (item.val is GeoObjectList glst && cd != null)
+                            {
+                                for (int i = 0; i < glst.Count; i++)
+                                {
+                                    if (glst[i] is IColorDef cdi) cdi.SetTopLevel(cd, true);
+                                }
+                            }
                             if (item.val is Shell) (item.val as Shell).Name = nm;
                         }
                         break;
@@ -2130,6 +2136,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     break;
                             }
                             ColorDef cd = new ColorDef(nm, clr);
+                            AvoidDuplicateColorNames(cd);
                             item.val = cd;
                         }
                         break;
@@ -2399,8 +2406,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         defIndex = item.definingIndex;
                                     }
 #if DEBUG
-                                        // Face dbgfc = (item.val as Face[])[0];
-                                        // dbgfc.AssureTriangles(0.12);
+                                    // Face dbgfc = (item.val as Face[])[0];
+                                    // dbgfc.AssureTriangles(0.12);
 #endif
 
                                 }
@@ -3808,13 +3815,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.fillAreaStyleColour: //name, fill_colour
                         {
-                            string nm = item.SubString(0);
-                            ColorDef cd = CreateEntity(item.SubItem(1)) as ColorDef;
+                            string nm = item.parameter["name"].sval;
+                            ColorDef cd = CreateEntity(item.parameter["fill_colour"]) as ColorDef;
                             if (cd != null)
                             {
-                                if (!String.IsNullOrEmpty(nm))
+                                if (!String.IsNullOrWhiteSpace(nm))
                                 {
                                     item.val = new ColorDef(nm, cd.Color);
+                                    AvoidDuplicateColorNames(item.val as ColorDef);
                                 }
                                 else
                                 {
@@ -3829,8 +3837,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             int red = (int)(item.parameter["red"].fval * 255);
                             int green = (int)(item.parameter["green"].fval * 255);
                             int blue = (int)(item.parameter["blue"].fval * 255);
-                            if (string.IsNullOrEmpty(name)) name = "rgb:" + red.ToString() + "_" + green.ToString() + "_" + blue.ToString();
+                            if (string.IsNullOrWhiteSpace(name)) name = "rgb:" + red.ToString() + "_" + green.ToString() + "_" + blue.ToString();
                             item.val = new ColorDef(name, Color.FromArgb(red, green, blue));
+                            AvoidDuplicateColorNames(item.val as ColorDef);
                         }
                         break;
                     case Item.ItemType.pointStyle:
@@ -4039,6 +4048,23 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             } // end lock
         }
 
+        private void AvoidDuplicateColorNames(ColorDef cd)
+        {   // some step files name all their colors with the same name (e.g. "Colour"). The name is the key for the ColorDef, so all colors would be replaced by the first color with this name
+            if (definedColors == null) definedColors = new Dictionary<string, ColorDef>();
+            if (definedColors.TryGetValue(cd.Name, out ColorDef found))
+            {
+                if (found.Color != cd.Color)
+                {   // same name but different colors
+                    cd.Name = cd.Name + " (rgb:" + cd.Color.R.ToString() + "_" + cd.Color.G.ToString() + "_" + cd.Color.B.ToString() + ")";
+                    definedColors[cd.Name] = cd;
+                }
+            }
+            else
+            {
+                definedColors[cd.Name] = cd;
+            }
+        }
+
         private void CreatingFace()
         {
             ++createdFaces;
@@ -4114,14 +4140,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 FreeCoordSys FromA1 = trg;
                 FreeCoordSys ToA2 = org;
                 Matrix matrix = DenseMatrix.OfRowArrays(ToA2.DirectionX, ToA2.DirectionY, ToA2.DirectionZ);
-                Vector loc = new DenseVector(new double[] {  ToA2.Location.x ,  ToA2.Location.y ,  ToA2.Location.z });
+                Vector loc = new DenseVector(new double[] { ToA2.Location.x, ToA2.Location.y, ToA2.Location.z });
                 //matrix.Transpose();
                 loc = (Vector)(matrix * loc);
                 loc[0] = -loc[0]; loc[1] = -loc[1]; loc[2] = -loc[2];
 
                 Matrix MA1 = DenseMatrix.OfRowArrays(FromA1.DirectionX, FromA1.DirectionY, FromA1.DirectionZ);
                 MA1.Transpose();
-                Vector MA1loc = new DenseVector(new double[] {  FromA1.Location.x ,  FromA1.Location.y ,  FromA1.Location.z  });
+                Vector MA1loc = new DenseVector(new double[] { FromA1.Location.x, FromA1.Location.y, FromA1.Location.z });
                 MA1loc = (Vector)(matrix * MA1loc);
                 loc = (Vector)(loc + MA1loc);
                 matrix = (Matrix)(MA1 * matrix);
@@ -4151,7 +4177,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             GeoVector yt = zt ^ xt;
             Matrix B = DenseMatrix.OfRowArrays(xt, yt, zt);
             B = (Matrix)B.Transpose();
-            Matrix C = (Matrix)( B * A);
+            Matrix C = (Matrix)(B * A);
             GeoPoint t = (GeoPoint)origin.parameter["location"].val;
             GeoPoint u = (GeoPoint)target.parameter["location"].val;
             t.x *= lfo;
@@ -4160,7 +4186,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             u.x *= lft;
             u.y *= lft;
             u.z *= lft;
-            Vector v = (Vector)(C * new DenseVector(new double[] {  t.x ,  t.y ,  t.z  }));
+            Vector v = (Vector)(C * new DenseVector(new double[] { t.x, t.y, t.z }));
             GeoVector trs = new GeoVector(u.x - v[0], u.y - v[1], u.z - v[2]);
             res = new ModOp(C.ToArray(), trs);
             // return res;
@@ -4359,7 +4385,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                     poleLength /= bsp.PoleCount;
                     int knotCount = bsp.Knots.Length;
-                    double knotLength = (bsp.Knots[knotCount - 1] - bsp.Knots[0])/ knotCount;
+                    double knotLength = (bsp.Knots[knotCount - 1] - bsp.Knots[0]) / knotCount;
                     // the following corrects some BSplines, which have the first or last poles or knots very close to each other. This makes the start-direction or end-direction
                     // very unstable, even opposite to the "real" direction. Since we rely on this direction, we need to correct these BSplines (like in MO21775-001-00.stp)
                     if ((bsp.Poles[0] | bsp.Poles[1]) < poleLength * 1e-3 || (bsp.Poles[bsp.PoleCount - 1] | bsp.Poles[bsp.PoleCount - 2]) < poleLength * 1e-3 ||

@@ -2463,7 +2463,7 @@ namespace CADability.GeoObject
                     }
                 }
                 newFace.Set(surface.Clone(), sortedEdges, new List<List<Edge>>());
-                if (newFace.Area.Area>Precision.eps) return new HashSet<Face>(new Face[] { newFace });
+                if (newFace.Area.Area > Precision.eps) return new HashSet<Face>(new Face[] { newFace });
             }
             ISurface surfaceOfEdges = null; // we look for a surface that all edges share
             ICurve[] crvs = new ICurve[sortedEdges.Count];
@@ -4848,9 +4848,8 @@ namespace CADability.GeoObject
                         ModOp2D firstToSecond;
                         if (edge.SecondaryFace != null &&
                             edge.SecondaryFace.Surface.SameGeometry(edge.SecondaryFace.GetUVBounds(), edge.PrimaryFace.Surface, edge.PrimaryFace.GetUVBounds(), precision, out firstToSecond) &&
-                            edge.PrimaryFace != edge.SecondaryFace)
+                            edge.PrimaryFace != edge.SecondaryFace && firstToSecond.IsIsogonal && firstToSecond.Determinant > 0) // firstToSecond.IsIsogonal: non periodic surfaces or spheres with different axis are not implemented yet
                         {
-                            // wir wollen nicht zyklische Faces, die bereits gesplittet wurden, wieder zusammensetzen, also keine neuen Nähte erzeugen
 #if DEBUG
                             foreach (Edge dbgedg in edge.PrimaryFace.AllEdgesIterated())
                             {
@@ -4895,7 +4894,7 @@ namespace CADability.GeoObject
 
                             }
 #endif
-                            if (toRemove != null)
+                            if (toRemove != null && toRemove.Count > 0)
                             {
                                 combined = true;
                                 edges.RemoveMany(toRemove);

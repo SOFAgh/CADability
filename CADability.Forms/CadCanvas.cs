@@ -306,7 +306,24 @@ namespace CADability.Forms
             base.OnDragOver(drgevent);
         }
         #endregion
-
+        /* named main colors:
+        White
+        Silver
+        Gray	
+        Black
+        Red	#F
+        Maroon
+        Yellow
+        Olive
+        Lime	
+        Green
+        Aqua	
+        Teal	
+        Blue	
+        Navy	
+        Fuchsia
+        Purple
+        */
     }
 
 }
