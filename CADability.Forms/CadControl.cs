@@ -179,19 +179,20 @@ namespace CADability.Forms
                     parentForm.Menu = MenuManager.MakeMainMenu(mainMenu);
                     cadFrame.FormMenu = parentForm.Menu;
                 }
-                parentForm.KeyPreview = true; // used to filter the escape key (and maybe some more?)
-                parentForm.FormClosing += ParentForm_FormClosing;
+                parentForm.KeyPreview = true; // used to filter the escape key (and maybe some more?)                
+                parentForm.FormClosed += ParentForm_FormClosed;
             }
         }
 
-        private void ParentForm_FormClosing(object sender, FormClosingEventArgs e)
+        private void ParentForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             // maybe we need to save the project
             ToolBars.SaveToolbarPositions(toolStripContainer);
             Settings.SaveGlobalSettings();
             // ToolStripManager.SaveSettings(this); // save the positions of the toolbars (doesn't work correctly)
+            cadFrame.Dispose();
+            Application.Idle -= OnIdle;
         }
-
         #endregion PRIVATE/PROTECTED METHODS
 
     }

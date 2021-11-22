@@ -413,23 +413,23 @@ namespace CADability.Forms
                 bool ok = Wgl.wglDeleteContext(activeRenderContexts[i]);
 
             }
-                try
-                {
-                    // System.Diagnostics.Trace.WriteLine("RemoveMainRenderContext: " + MainRenderContext.ToString() + ", " + ok.ToString());
-                    MainRenderContext = IntPtr.Zero;
-                    fonts = new Dictionary<string, FontDisplayList>(); // löschen
+            try
+            {
+                // System.Diagnostics.Trace.WriteLine("RemoveMainRenderContext: " + MainRenderContext.ToString() + ", " + ok.ToString());
+                MainRenderContext = IntPtr.Zero;
+                fonts = new Dictionary<string, FontDisplayList>(); // löschen
 
-                    //Dispose of device context das ist der von MainRenderContext
-                    if (deviceContext != IntPtr.Zero)
-                    {
-                        if (sender is Control) User.ReleaseDC((sender as Control).Handle, deviceContext);
-                        deviceContext = IntPtr.Zero;
-                    }
-                    // MessageBox.Show("RemoveMainRenderContext");
-                    IntPtr mh = Kernel.GetModuleHandle("opengl32.dll");
-                    if (mh != IntPtr.Zero) Kernel.FreeLibrary(mh);
+                //Dispose of device context das ist der von MainRenderContext
+                if (deviceContext != IntPtr.Zero)
+                {
+                    if (sender is Control) User.ReleaseDC((sender as Control).Handle, deviceContext);
+                    deviceContext = IntPtr.Zero;
                 }
-                catch { }
+                // MessageBox.Show("RemoveMainRenderContext");
+                IntPtr mh = Kernel.GetModuleHandle("opengl32.dll");
+                if (mh != IntPtr.Zero) Kernel.FreeLibrary(mh);
+            }
+            catch { }
         }
 
         // Mit HashCode und Equals hat es folgende Bewandnis:
@@ -1825,10 +1825,12 @@ namespace CADability.Forms
                 if (sub != null)
                 {
                     Gl.glCallList((sub as OpenGlList).ListNumber);
+                    res.hasContents = true;
                 }
             }
             res.Close();
             (res as IPaintTo3DList).containedSubLists = sublists;
+            if (!res.hasContents) res.Delete();
             CheckError();
             //System.Diagnostics.Trace.WriteLine("make list: " + res.ListNumber.ToString());
             return res;
@@ -1878,7 +1880,8 @@ namespace CADability.Forms
                 if (e is ThreadAbortException) throw (e);
             }
             CheckError();
-            Wgl.wglMakeCurrent(IntPtr.Zero, IntPtr.Zero);
+            //Wgl.wglMakeCurrent(IntPtr.Zero, IntPtr.Zero);
+            //CheckError();
         }
         class MoveFacesBehindEdgesOffset : IDisposable
         {
@@ -2064,18 +2067,16 @@ namespace CADability.Forms
     internal class OpenGlList : IPaintTo3DList
     {
         static List<int> toDelete = new List<int>();
-        static HashSet<int> openLists = new HashSet<int>();
-        public OpenGlList(int listNr)
-        {
-            ListNumber = listNr;
-        }
+        static Dictionary<int, string> openLists = new Dictionary<int, string>();
+
         public bool hasContents, isDeleted;
         public OpenGlList(string name = null)
         {
             FreeLists();
-            ListNumber = Gl.glGenLists(1); // genau eine Liste
+            ListNumber = Gl.glGenLists(1); // make a single list
             if (name != null) this.name = name;
-            openLists.Add(ListNumber);
+            else this.name = "NoName_" + ListNumber.ToString();
+            openLists[ListNumber] = this.name;
 #if DEBUG
             System.Diagnostics.Trace.WriteLine("+++++ OpenGl List Nr.: " + ListNumber.ToString() + " (" + openLists.Count.ToString() + ") " + name);
 #endif
@@ -2113,9 +2114,9 @@ namespace CADability.Forms
                 }
 #if DEBUG
                 System.Diagnostics.Trace.Write("still open: ");
-                foreach (int l in openLists)
+                foreach (KeyValuePair<int,string> l in openLists)
                 {
-                    System.Diagnostics.Trace.Write(l.ToString() + ", ");
+                    System.Diagnostics.Trace.Write(l.Value + ", ");
                 }
                 System.Diagnostics.Trace.WriteLine(".");
 #endif
@@ -2123,10 +2124,12 @@ namespace CADability.Forms
         }
         static public void FreeAllOpenLists()
         {
-            foreach (int nr in openLists)
+            foreach (KeyValuePair<int, string> l in openLists)
             {
-                Gl.glDeleteLists(nr, 1);
+                Gl.glDeleteLists(l.Key, 1);
+                int err = Gl.glGetError();
             }
+            openLists.Clear();
         }
         public int ListNumber { get; }
         public void SetHasContents()
@@ -2136,27 +2139,6 @@ namespace CADability.Forms
         public bool HasContents()
         {
             return hasContents;
-        }
-        private class OpenList : IDisposable
-        {
-            public OpenList(int toOpen)
-            {
-                Gl.glNewList(toOpen, Gl.GL_COMPILE);
-            }
-
-            #region IDisposable Members
-
-            void IDisposable.Dispose()
-            {
-                Gl.glEndList();
-            }
-
-            #endregion
-        }
-
-        public IDisposable List()
-        {
-            return new OpenList(ListNumber);
         }
         public void Open()
         {
@@ -2204,7 +2186,7 @@ namespace CADability.Forms
         public void Dispose()
         {
             Delete();
-            if (keepAlive!=null)
+            if (keepAlive != null)
             {
                 for (int i = 0; i < keepAlive.Count; i++)
                 {
@@ -2213,16 +2195,5 @@ namespace CADability.Forms
             }
         }
         #endregion
-
-        internal static OpenGlList[] CreateMany(int num)
-        {
-            int start = Gl.glGenLists(num);
-            OpenGlList[] res = new OpenGlList[num];
-            for (int i = 0; i < num; ++i)
-            {
-                res[i] = new OpenGlList(start + i);
-            }
-            return res;
-        }
     }
 }

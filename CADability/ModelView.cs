@@ -108,6 +108,7 @@ namespace CADability
         string Name { get; }
         event ScrollPositionChanged ScrollPositionChangedEvent;
         void Connect(ICanvas canvas);
+        void Disconnect(ICanvas canvas);
         void OnPaint(PaintEventArgs e);
         void OnSizeChanged(Rectangle oldClientRectangle);
         void HScroll(double Position);
@@ -1319,6 +1320,10 @@ namespace CADability
             this.canvas = canvas;
             projectedModel?.Connect(canvas.PaintTo3D);
         }
+        void IView.Disconnect(ICanvas canvas)
+        {
+            projectedModel?.Disconnect(canvas.PaintTo3D);
+        }
         GeoObjectList IView.GetDataPresent(object data)
         {
             return Frame.UIService.GetDataPresent(data);
@@ -1651,9 +1656,9 @@ namespace CADability
         /// Overrides <see cref="IShowPropertyImpl.Removed"/>
         /// </summary>
         /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
+        public override void Removed(IPropertyPage propertyTreeView)
         {
-            propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
+            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
             Projection.Grid.GridChangedEvent -= new CADability.Grid.GridChangedDelegate(OnGridChanged);
             Frame.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
             project.ModelsChangedEvent -= new CADability.Project.ModelsChangedDelegate(OnModelsChanged);

@@ -545,6 +545,9 @@ namespace CADability
         {
             this.canvas = canvas;
         }
+        void IView.Disconnect(ICanvas canvas)
+        {
+        }
 
         GeoObjectList IView.GetDataPresent(object data)
         {
