@@ -218,6 +218,7 @@ namespace CADability.UserInterface
 
         public virtual void Selected(IPropertyEntry previousSelected)
         {
+            PropertyEntryChangedState(new StateChangedArgs(StateChangedArgs.State.Selected));
         }
 
         /// <summary>
@@ -231,7 +232,7 @@ namespace CADability.UserInterface
 
         public virtual void UnSelected(IPropertyEntry nowSelected)
         {
-
+            PropertyEntryChangedState(new StateChangedArgs(StateChangedArgs.State.UnSelected));
         }
         public virtual bool ReadOnly { get; set; }
         #endregion
