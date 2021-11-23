@@ -757,7 +757,7 @@ namespace CADability.Attribute
         /// </summary>
         /// <param name="MenuId"></param>
         /// <returns></returns>
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             switch (MenuId)
             {
@@ -789,7 +789,7 @@ namespace CADability.Attribute
         /// <param name="MenuId"></param>
         /// <param name="CommandState"></param>
         /// <returns></returns>
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;

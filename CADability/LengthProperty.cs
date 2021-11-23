@@ -66,12 +66,12 @@ namespace CADability.UserInterface
         public bool Hidden { get { return lengthProperty.ReadOnly; } }
         #endregion
 
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             return ((ICommandHandler)lengthProperty).OnCommand(MenuId);
         }
 
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             return ((ICommandHandler)lengthProperty).OnUpdateCommand(MenuId, CommandState);
         }

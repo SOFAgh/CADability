@@ -62,12 +62,12 @@ namespace CADability.UserInterface
         bool IHotSpot.Hidden { get { return angleProperty.ReadOnly; } }
         #endregion
 
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             return ((ICommandHandler)angleProperty).OnCommand(MenuId);
         }
 
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             return ((ICommandHandler)angleProperty).OnUpdateCommand(MenuId, CommandState);
         }

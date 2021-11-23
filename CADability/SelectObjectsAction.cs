@@ -191,7 +191,7 @@ namespace CADability.Actions
             this.selectObjectsAction = selectObjectsAction;
         }
 
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             switch (MenuId)
             {
@@ -205,11 +205,11 @@ namespace CADability.Actions
             return false;
         }
 
-        public void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
+        virtual public void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
         {
         }
 
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             switch (MenuId)
             {

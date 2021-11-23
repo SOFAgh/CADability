@@ -3301,7 +3301,7 @@ namespace CADability.GeoObject
             {
                 for (int i = 0; i < us.Length; i++)
                 {
-                    if (us[i] >= ext1.Left && us[i] <= ext1.Right)
+                    if ((us[i] >= ext1.Left && us[i] <= ext1.Right) || !uPeriodic)
                     {
                         ok = true;
                         if (us[i] < ext.Left) ext.Left = us[i];
@@ -3319,7 +3319,7 @@ namespace CADability.GeoObject
             {
                 for (int i = 0; i < vs.Length; i++)
                 {
-                    if (vs[i] >= ext1.Bottom && vs[i] <= ext1.Top)
+                    if ((vs[i] >= ext1.Bottom && vs[i] <= ext1.Top) || !vPeriodic) // e.g. a cone-like surface with a single bound
                     {
                         ok = true;
                         if (vs[i] < ext.Bottom) ext.Bottom = vs[i];

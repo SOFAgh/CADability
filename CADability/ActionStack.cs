@@ -377,7 +377,7 @@ namespace CADability
             if (Actions.Count > 0) return ((Action)Actions.Peek()).GetInfoProviderVerticalPosition(Index, View);
             return 0;
         }
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {   // OnUpdateCommand klappert rückwärts durch den Action Stack
             // und ruft die einzelnen OnUpdateCommand auf, bis einer reagiert
             // das ist notwendig, da SelectObjectsAction einiges ein und ausschaltet
@@ -400,7 +400,7 @@ namespace CADability
             }
             return false;
         }
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {   // siehe OnUpdateCommand ...
             try
             {

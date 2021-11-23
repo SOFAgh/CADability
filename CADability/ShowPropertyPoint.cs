@@ -99,7 +99,7 @@ namespace CADability.UserInterface
             point.UserData.UserDataRemovedEvent -= new UserData.UserDataRemovedDelegate(OnUserDataAdded);
             base.Removed(propertyPage);
         }
-#endregion
+        #endregion
         private GeoPoint OnGetLocation(GeoPointProperty sender)
         {
             return point.Location;
@@ -113,9 +113,9 @@ namespace CADability.UserInterface
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(locationProperty, point);
             frame.SetAction(gpa);
         }
-#region ICommandHandler Members
+        #region ICommandHandler Members
 
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             switch (MenuId)
             {
@@ -129,7 +129,7 @@ namespace CADability.UserInterface
             return false;
         }
 
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             switch (MenuId)
             {
@@ -153,8 +153,8 @@ namespace CADability.UserInterface
         {
             return "MenuId.Object.Point";
         }
-#endregion
-#region IDisplayHotSpots Members
+        #endregion
+        #region IDisplayHotSpots Members
         public event CADability.HotspotChangedDelegate HotspotChangedEvent;
         void IDisplayHotSpots.ReloadProperties()
         {
@@ -180,6 +180,6 @@ namespace CADability.UserInterface
                 }
             }
         }
-#endregion
+        #endregion
     }
 }

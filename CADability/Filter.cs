@@ -131,7 +131,7 @@ namespace CADability.Attribute
             }
         }
         #region ICommandHandler Members
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             switch (MenuId)
             {
@@ -165,7 +165,7 @@ namespace CADability.Attribute
             return false;
         }
 
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;
@@ -337,7 +337,7 @@ namespace CADability.Attribute
             }
         }
         #region ICommandHandler Members
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             switch (MenuId)
             {
@@ -379,7 +379,7 @@ namespace CADability.Attribute
             return false;
         }
 
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             // TODO:  Add CheckedAttributes.OnUpdateCommand implementation
             return false;

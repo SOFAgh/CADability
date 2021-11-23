@@ -5509,7 +5509,7 @@ namespace CADability.GeoObject
                     }
                 }
 #if DEBUG
-                if (hashCode == 3061) { }
+                if (hashCode == 176) { }
 #endif
                 // a surface extreme point in axis direction is also necessary to check
                 GeoPoint2D[] extrema = surface.GetExtrema();
@@ -6751,7 +6751,7 @@ namespace CADability.GeoObject
         {
             BoundingRect res = BoundingRect.EmptyBoundingRect;
             if (extentPrecision == ExtentPrecision.Raw)
-            {
+            {   // when we have closed edges, e.g. a non periodic cylinder defined by two circles, then testing vertices only is not a good idea
                 for (int i = 0; i < Vertices.Length; i++)
                 {
                     res.MinMax(projection.ProjectUnscaled(Vertices[i].Position));

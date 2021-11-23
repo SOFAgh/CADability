@@ -58,11 +58,11 @@ namespace CADability.UserInterface
         }
         public bool Hidden { get { return geoVectorProperty.ReadOnly; } }
         #endregion
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             return ((ICommandHandler)geoVectorProperty).OnCommand(MenuId);
         }
-                public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+                virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             return ((ICommandHandler)geoVectorProperty).OnUpdateCommand(MenuId, CommandState);
         }
