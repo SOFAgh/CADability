@@ -3301,7 +3301,7 @@ namespace CADability.GeoObject
             {
                 for (int i = 0; i < us.Length; i++)
                 {
-                    if (us[i] >= ext1.Left && us[i] <= ext1.Right)
+                    if ((us[i] >= ext1.Left && us[i] <= ext1.Right) || !uPeriodic)
                     {
                         ok = true;
                         if (us[i] < ext.Left) ext.Left = us[i];
@@ -3319,7 +3319,7 @@ namespace CADability.GeoObject
             {
                 for (int i = 0; i < vs.Length; i++)
                 {
-                    if (vs[i] >= ext1.Bottom && vs[i] <= ext1.Top)
+                    if ((vs[i] >= ext1.Bottom && vs[i] <= ext1.Top) || !vPeriodic) // e.g. a cone-like surface with a single bound
                     {
                         ok = true;
                         if (vs[i] < ext.Bottom) ext.Bottom = vs[i];
@@ -5010,7 +5010,7 @@ namespace CADability.GeoObject
                         }
                         if (Math.Abs(sp.x - ep.x) < uSpan * 1e-5 || Math.Abs(sp.y - ep.y) < vSpan * 1e-5) testLine = new Line2D(sp, ep);
                     }
-                    if (testLine != null && testLine.StartPoint.x >= uKnots[0] && testLine.StartPoint.x <= uKnots[uKnots.Length - 1] && testLine.StartPoint.y >= vKnots[0] && testLine.StartPoint.y <= vKnots[vKnots.Length - 1])
+                    if (testLine != null && testLine.StartPoint.x >= uKnots[0]- uSpan * 1e-5 && testLine.StartPoint.x <= uKnots[uKnots.Length - 1]+ uSpan * 1e-5 && testLine.StartPoint.y >= vKnots[0]- vSpan * 1e-5 && testLine.StartPoint.y <= vKnots[vKnots.Length - 1]+ vSpan * 1e-5)
                     {
                         ICurve crv = Make3dCurve(testLine);
                         if (crv != null)
@@ -5126,7 +5126,13 @@ namespace CADability.GeoObject
                         return null;
                     }
                 }
-            }
+                else if (curve is Line)
+                {
+                    GeoPoint2D sp = PositionOf(curve.StartPoint);
+                    GeoPoint2D ep = PositionOf(curve.EndPoint);
+                    if (Math.Abs(sp.x - ep.x) < uSpan * 1e-5 || Math.Abs(sp.y - ep.y) < vSpan * 1e-5) return new Line2D(sp, ep);
+                }
+            } 
             return base.GetProjectedCurve(curve, precision);
         }
         public override double MaxDist(GeoPoint2D sp, GeoPoint2D ep, out GeoPoint2D mp)

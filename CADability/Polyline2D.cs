@@ -88,6 +88,12 @@ namespace CADability.Curve2D
                 vertex[i] = m * vertex[i];
             }
         }
+        public override ICurve2D GetModified(ModOp2D m)
+        {
+            Polyline2D res = this.Clone() as Polyline2D;
+            res.Modify(m);
+            return res;
+        }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Clone ()"/>
         /// </summary>

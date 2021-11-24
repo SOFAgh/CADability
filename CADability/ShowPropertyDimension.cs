@@ -824,7 +824,7 @@ namespace CADability.UserInterface
         }
         #region ICommandHandler Members
 
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             switch (MenuId)
             {
@@ -850,7 +850,7 @@ namespace CADability.UserInterface
             return false;
         }
 
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             switch (MenuId)
             {

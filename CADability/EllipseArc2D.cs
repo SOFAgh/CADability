@@ -86,14 +86,16 @@ namespace CADability.Curve2D
                 if (endQuad == startQuad) crossingZero = sweepPar < -Math.PI;
             }
         }
-
+        /// <summary>
+        /// Is the point p on the arc and not on the gap
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
         private bool IsPointOnArc(GeoPoint2D p)
-        {	// geht davon aus, dass der gegebene Punkt auf dem Ellipsenumfang liegt
-            // und stellt fest, ob er auch auf dem Bogen liegt
-            if (sweepPar == SweepAngle.Full || sweepPar == SweepAngle.FullReverse) return true;
-            if (Math.Abs(sweepPar) < 0.1)
-            {   // das ist zwar langsamer, aber bei sehr kurzen Bögen wird das untere IsLeftOf zu wackelig
-                // und deshalb hier das aufwendigere:
+        {	// we assume that the point is on the (full) ellipse and test here, whether it is on the actual arc
+            if (Math.Abs(sweepPar - SweepAngle.Full) < 1e-10 || Math.Abs(sweepPar - SweepAngle.FullReverse) < 1e-10) return true;
+            if (Math.Abs(sweepPar) < 0.1 || Math.Abs(sweepPar) > SweepAngle.Full - 0.1)
+            {   // if start and endpoint are very close, then we cannot use "IsLeftOf", because it might be imprecise
                 return IsParameterOnCurve(PositionOf(p));
             }
             else

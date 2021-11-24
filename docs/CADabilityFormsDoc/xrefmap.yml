@@ -1751,14 +1751,14 @@ references:
   fullName: CADability.Forms.PaintToGDI.CADability.IPaintTo3D.Nurbs
   nameWithType: PaintToGDI.IPaintTo3D.Nurbs
   nameWithType.vb: PaintToGDI.CADability.IPaintTo3D.Nurbs
-- uid: CADability.Forms.PaintToGDI.CADability#IPaintTo3D#OpenList
-  name: IPaintTo3D.OpenList()
-  href: api/CADability.Forms.PaintToGDI.html#CADability_Forms_PaintToGDI_CADability_IPaintTo3D_OpenList
-  commentId: M:CADability.Forms.PaintToGDI.CADability#IPaintTo3D#OpenList
-  name.vb: CADability.IPaintTo3D.OpenList()
-  fullName: CADability.Forms.PaintToGDI.CADability.IPaintTo3D.OpenList()
-  nameWithType: PaintToGDI.IPaintTo3D.OpenList()
-  nameWithType.vb: PaintToGDI.CADability.IPaintTo3D.OpenList()
+- uid: CADability.Forms.PaintToGDI.CADability#IPaintTo3D#OpenList(System.String)
+  name: IPaintTo3D.OpenList(String)
+  href: api/CADability.Forms.PaintToGDI.html#CADability_Forms_PaintToGDI_CADability_IPaintTo3D_OpenList_System_String_
+  commentId: M:CADability.Forms.PaintToGDI.CADability#IPaintTo3D#OpenList(System.String)
+  name.vb: CADability.IPaintTo3D.OpenList(String)
+  fullName: CADability.Forms.PaintToGDI.CADability.IPaintTo3D.OpenList(System.String)
+  nameWithType: PaintToGDI.IPaintTo3D.OpenList(String)
+  nameWithType.vb: PaintToGDI.CADability.IPaintTo3D.OpenList(String)
 - uid: CADability.Forms.PaintToGDI.CADability#IPaintTo3D#OpenList*
   name: IPaintTo3D.OpenList
   href: api/CADability.Forms.PaintToGDI.html#CADability_Forms_PaintToGDI_CADability_IPaintTo3D_OpenList_
@@ -2455,6 +2455,12 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.PaintToOpenGL.PaintToOpenGL
   nameWithType: PaintToOpenGL.PaintToOpenGL
+- uid: CADability.Forms.PaintToOpenGL.activeRenderContexts
+  name: activeRenderContexts
+  href: api/CADability.Forms.PaintToOpenGL.html#CADability_Forms_PaintToOpenGL_activeRenderContexts
+  commentId: F:CADability.Forms.PaintToOpenGL.activeRenderContexts
+  fullName: CADability.Forms.PaintToOpenGL.activeRenderContexts
+  nameWithType: PaintToOpenGL.activeRenderContexts
 - uid: CADability.Forms.PaintToOpenGL.CADability#IPaintTo3D#Arc(CADability.GeoPoint,CADability.GeoVector,CADability.GeoVector,System.Double,System.Double)
   name: IPaintTo3D.Arc(GeoPoint, GeoVector, GeoVector, Double, Double)
   href: api/CADability.Forms.PaintToOpenGL.html#CADability_Forms_PaintToOpenGL_CADability_IPaintTo3D_Arc_CADability_GeoPoint_CADability_GeoVector_CADability_GeoVector_System_Double_System_Double_
@@ -2891,14 +2897,14 @@ references:
   fullName: CADability.Forms.PaintToOpenGL.CADability.IPaintTo3D.Nurbs
   nameWithType: PaintToOpenGL.IPaintTo3D.Nurbs
   nameWithType.vb: PaintToOpenGL.CADability.IPaintTo3D.Nurbs
-- uid: CADability.Forms.PaintToOpenGL.CADability#IPaintTo3D#OpenList
-  name: IPaintTo3D.OpenList()
-  href: api/CADability.Forms.PaintToOpenGL.html#CADability_Forms_PaintToOpenGL_CADability_IPaintTo3D_OpenList
-  commentId: M:CADability.Forms.PaintToOpenGL.CADability#IPaintTo3D#OpenList
-  name.vb: CADability.IPaintTo3D.OpenList()
-  fullName: CADability.Forms.PaintToOpenGL.CADability.IPaintTo3D.OpenList()
-  nameWithType: PaintToOpenGL.IPaintTo3D.OpenList()
-  nameWithType.vb: PaintToOpenGL.CADability.IPaintTo3D.OpenList()
+- uid: CADability.Forms.PaintToOpenGL.CADability#IPaintTo3D#OpenList(System.String)
+  name: IPaintTo3D.OpenList(String)
+  href: api/CADability.Forms.PaintToOpenGL.html#CADability_Forms_PaintToOpenGL_CADability_IPaintTo3D_OpenList_System_String_
+  commentId: M:CADability.Forms.PaintToOpenGL.CADability#IPaintTo3D#OpenList(System.String)
+  name.vb: CADability.IPaintTo3D.OpenList(String)
+  fullName: CADability.Forms.PaintToOpenGL.CADability.IPaintTo3D.OpenList(System.String)
+  nameWithType: PaintToOpenGL.IPaintTo3D.OpenList(String)
+  nameWithType.vb: PaintToOpenGL.CADability.IPaintTo3D.OpenList(String)
 - uid: CADability.Forms.PaintToOpenGL.CADability#IPaintTo3D#OpenList*
   name: IPaintTo3D.OpenList
   href: api/CADability.Forms.PaintToOpenGL.html#CADability_Forms_PaintToOpenGL_CADability_IPaintTo3D_OpenList_

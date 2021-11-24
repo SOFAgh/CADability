@@ -121,6 +121,10 @@ namespace CADability.Forms
         }
         void ICanvas.ShowView(IView toShow)
         {
+            if (paintTo3D is PaintToOpenGL openGL)
+            {
+                openGL.Disconnect(this);
+            }
             view = toShow;
             switch (toShow.PaintType)
             {
@@ -212,6 +216,7 @@ namespace CADability.Forms
         protected override void Dispose(bool disposing)
         {
             if (view != null && paintTo3D != null) (paintTo3D as PaintToOpenGL)?.Disconnect(this);
+            view?.Disconnect(this);
             base.Dispose(disposing);
         }
         protected override void OnMouseClick(MouseEventArgs e)
@@ -291,7 +296,24 @@ namespace CADability.Forms
             base.OnDragOver(drgevent);
         }
         #endregion
-
+        /* named main colors:
+        White
+        Silver
+        Gray	
+        Black
+        Red	#F
+        Maroon
+        Yellow
+        Olive
+        Lime	
+        Green
+        Aqua	
+        Teal	
+        Blue	
+        Navy	
+        Fuchsia
+        Purple
+        */
     }
 
 }

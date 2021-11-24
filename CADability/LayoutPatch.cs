@@ -540,7 +540,7 @@ namespace CADability
             horPos.Refresh();
             verPos.Refresh();
         }
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             if (MenuId.StartsWith("FromModelView_"))
             {
@@ -640,7 +640,7 @@ namespace CADability
             }
             return false;
         }
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             switch (MenuId)
             {

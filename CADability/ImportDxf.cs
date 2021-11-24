@@ -312,12 +312,16 @@ namespace CADability.DXF
         {
             foreach (KeyValuePair<string, XData> item in entity.XData)
             {
+                ExtendedEntityData xdata = new ExtendedEntityData();
+                xdata.ApplicationName = item.Value.ApplicationRegistry.Name;
+
                 string name = item.Value.ApplicationRegistry.Name + ":" + item.Key;
-                List<KeyValuePair<int, object>> xdata = new List<KeyValuePair<int, object>>();
+
                 for (int i = 0; i < item.Value.XDataRecord.Count; i++)
                 {
-                    xdata.Add(new KeyValuePair<int, object>((int)(item.Value.XDataRecord[i].Code), item.Value.XDataRecord[i].Value));
+                    xdata.Data.Add(new KeyValuePair<XDataCode, object>(item.Value.XDataRecord[i].Code, item.Value.XDataRecord[i].Value));
                 }
+
                 go.UserData.Add(name, xdata);
             }
             go.UserData["DxfImport.Handle"] = new UserInterface.StringProperty(entity.Handle, "DxfImport.Handle");
@@ -469,6 +473,7 @@ namespace CADability.DXF
                 BSpline bsp = BSpline.Construct();
                 if (bsp.SetData(degree, poles, weights, kn, null, spline.IsPeriodic))
                 {
+                    if (spline.IsPeriodic) bsp.IsClosed = true; // to remove strange behavior in hünfeld.dxf
                     return bsp;
                 }
                 // strange spline in "bspline-closed-periodic.dxf"

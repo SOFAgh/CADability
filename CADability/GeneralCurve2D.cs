@@ -3273,29 +3273,22 @@ namespace CADability.Curve2D
             for (int i = 0; i < interpol.Length; ++i)
             {
                 ext.MinMax(interpol[i]);
-                if (i < interpol.Length - 1)
+            }
+            double eps = ext.Size * 1e-6;
+            for (int i = 0; i < interpol.Length - 1; ++i)
+            {   // also add points where the curve changes horizontal or vertical direction
+                if ((Math.Sign(interdir[i].x) != Math.Sign(interdir[i + 1].x)) && (Math.Abs(interdir[i].x)+ Math.Abs(interdir[i+1].x)>eps))
                 {
-                    if (Math.Sign(interdir[i].x) != Math.Sign(interdir[i + 1].x))
+                    if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.XAxis, out double par))
                     {
-                        //if (TryPointDeriv2At((interparam[i] + interparam[i + 1]) / 2, out GeoPoint2D p, out GeoVector2D deriv1, out GeoVector2D deriv2))
-                        //{
-                        //    if (NewtonMaximum(interparam[i], interparam[i + 1], true, out double par))
-                        //    {
-                        //        ext.MinMax(PointAt(par));
-                        //    }
-                        //}
-                        //else
-                        if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.XAxis, out double par))
-                        {
-                            ext.MinMax(PointAt(par));
-                        }
+                        ext.MinMax(PointAt(par));
                     }
-                    if (Math.Sign(interdir[i].y) != Math.Sign(interdir[i + 1].y))
+                }
+                if ((Math.Sign(interdir[i].y) != Math.Sign(interdir[i + 1].y)) && (Math.Abs(interdir[i].y) + Math.Abs(interdir[i + 1].y) > eps))
+                {
+                    if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.YAxis, out double par))
                     {
-                        if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.YAxis, out double par))
-                        {
-                            ext.MinMax(PointAt(par));
-                        }
+                        ext.MinMax(PointAt(par));
                     }
                 }
             }
@@ -3332,6 +3325,8 @@ namespace CADability.Curve2D
                 par = 0.0;
                 return false;
             }
+            par = p1 + Math.Abs(d1) / (Math.Abs(d1) + Math.Abs(d2)) * (p2 - p1);
+            return true; // this is a good value without much iteration. This method is only used to find the extend and may be somewhat imprecise
             while (p2 - p1 > 1e-6)
             {
                 double p = (p1 + p2) / 2.0;

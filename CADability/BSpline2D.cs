@@ -2112,6 +2112,7 @@ namespace CADability.Curve2D
             ExplicitPCurve2D exc2d = (this as IExplicitPCurve2D).GetExplicitPCurve2D();
             double epos = exc2d.PositionOf(p, out double dist);
             if (dist < double.MaxValue) return (epos - startParam) / (endParam - startParam);
+            if (interpol == null) MakeTriangulation();
             int ind = -1;
             double bestdist = double.MaxValue;
             for (int i = 0; i < interpol.Length - 1; ++i)

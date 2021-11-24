@@ -661,6 +661,7 @@ namespace CADability
     {
         string Name { get; set; }
         List<IPaintTo3DList> containedSubLists { set; }
+        void Dispose();
     }
 
     /// <summary>

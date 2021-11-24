@@ -787,7 +787,7 @@ namespace CADability
 
             bool check = true;
             // the interpolation should be smooth. Max. bending between interpolation points 45°, which makes sure, the baseApproximation
-            // uses arcs, so that the start- and enddirection are correct
+            // uses arcs, so that the start- and end-direction are correct
             while (check && lpoints.Count < 100)
             {
                 check = false;

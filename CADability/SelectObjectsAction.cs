@@ -191,7 +191,7 @@ namespace CADability.Actions
             this.selectObjectsAction = selectObjectsAction;
         }
 
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             switch (MenuId)
             {
@@ -205,11 +205,11 @@ namespace CADability.Actions
             return false;
         }
 
-        public void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
+        virtual public void OnSelected(MenuWithHandler selectedMenuItem, bool selected)
         {
         }
 
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             switch (MenuId)
             {
@@ -224,12 +224,12 @@ namespace CADability.Actions
 
     /// <summary>
     /// The <see cref="Action"/> used to select GeoObjects of a (visible) <see cref="Model"/>.
-    /// Mouseclicks in the view are used to determine which objects should be selected. The user
+    /// Mouse-clicks in the view are used to determine which objects should be selected. The user
     /// can select a rectangular area by dragging the mouse while the left button is pushed. Dragging
     /// from left to right selects all objects completely inside the rectangle, dragging from right to left
-    /// selects all objects which are touched by the ractangle. The <see cref="PickMode"/> determins on which
+    /// selects all objects which are touched by the rectangle. The <see cref="PickMode"/> determines on which
     /// level the selection is performed, the <see cref="Project.FilterList"/> adds additional filtering
-    /// the the selection process.
+    /// to the selection process.
     /// </summary>
 
     public class SelectObjectsAction : Action

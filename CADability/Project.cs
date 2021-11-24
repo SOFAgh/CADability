@@ -1805,6 +1805,11 @@ namespace CADability
                     ImportStep importStep = new ImportStep();
                     GeoObjectList list = importStep.Read(FileName);
                     Project res = Project.CreateSimpleProject();
+                    foreach (IGeoObject go in list)
+                    {
+                        AttributeListContainer.UpdateObjectAttrinutes(res, go);
+                        go.UpdateAttributes(res);
+                    }
                     res.GetActiveModel().Add(list);
                     return res;
                 case "brep":

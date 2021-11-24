@@ -81,10 +81,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadCanvas.html",
-          "hash": "foEKBOIhQ1tCQE3IaE1bZA=="
+          "hash": "T40MfHmKAL6Us+iK+vBoQA=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -96,7 +96,7 @@
           "hash": "gOhwD9QMWN79Y0JQaw3RiQ=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -105,10 +105,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadForm.html",
-          "hash": "Y9cEAQQQvf5Z6cuHSPq7hQ=="
+          "hash": "88I8/82J667vN8TAvDQCng=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -120,7 +120,7 @@
           "hash": "3Se4IwQgWSc9B0VukAi4ng=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -129,10 +129,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToBitmap.html",
-          "hash": "iDwqECoX0izj/5mPGQQr2g=="
+          "hash": "w6pFaN86DdD8YykhnXeneQ=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -141,10 +141,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToGDI.html",
-          "hash": "mpoAbkdze9fVVFnG+NmtQw=="
+          "hash": "9XWB5lFmomkf3jmxQ7SX8g=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -153,10 +153,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGL.html",
-          "hash": "QA+0OmE1UJoKvqcb5vl9hg=="
+          "hash": "gNQFgivz1czswYRiw4dG/A=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -168,7 +168,7 @@
           "hash": "phuu03PVFgY4wHcwgPxJmQ=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -180,7 +180,7 @@
           "hash": "7uwAbZjo5DH9rJY0F7EynQ=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -192,7 +192,7 @@
           "hash": "8vyiplINVcEjKsnjI+gSoA=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -204,7 +204,7 @@
           "hash": "MpdRlQL1OSRJX7NS+MWD3A=="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -251,7 +251,7 @@
           "can_incremental": true,
           "incrementalPhase": "build",
           "total_file_count": 13,
-          "skipped_file_count": 13
+          "skipped_file_count": 3
         },
         "TocDocumentProcessor": {
           "can_incremental": false,

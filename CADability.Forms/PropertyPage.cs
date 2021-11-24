@@ -370,7 +370,7 @@ namespace CADability.Forms
                 delay = new Timer();
                 delay.Interval = 500;
                 delay.Tick += Delay_Tick;
-                delay.Tag = (toDisplay, mp);
+                delay.Tag = new object[] { toDisplay, mp };
                 delay.Start();
             }
         }
@@ -386,7 +386,9 @@ namespace CADability.Forms
         }
         private void Delay_Tick(object sender, EventArgs e)
         {
-            (string toDisplay, Point mp) = (ValueTuple<string, Point>)(sender as Timer).Tag;
+            object[] oa = (sender as Timer).Tag as object[];
+            string toDisplay = oa[0] as string;
+            Point mp = (Point)oa[1];
             toolTip.Show(toDisplay, this, mp);
             delay.Stop();
             delay.Tick -= Delay_Tick;
@@ -399,7 +401,7 @@ namespace CADability.Forms
 
         private void ToolTipOff_Tick(object sender, EventArgs e)
         {
-            toolTip.Hide(this);
+            if (!IsDisposed) toolTip.Hide(this);
             (sender as Timer).Stop();
             (sender as Timer).Tick -= ToolTipOff_Tick;
             // currentToolTip = null; makes tooltip go on repeatedly
@@ -561,7 +563,7 @@ namespace CADability.Forms
         {
             if (rootProperties.Count > toRemove.Index)
             {
-                if (selected >= 0 && selected<entries.Length) (Parent.Parent as PropertiesExplorer).UnSelected(entries[selected]); // to close the textbox (if any) and call EndEdit
+                if (selected >= 0 && selected < entries.Length) (Parent.Parent as PropertiesExplorer).UnSelected(entries[selected]); // to close the textbox (if any) and call EndEdit
                 rootProperties.RemoveAt(toRemove.Index);
                 RefreshEntries(-1, 0);
                 Invalidate();
@@ -796,7 +798,7 @@ namespace CADability.Forms
         {
             if (toSelect == null) return;
             PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
-            if (pe!=null) pe.ShowPropertyPage(this.TitleId);
+            if (pe != null) pe.ShowPropertyPage(this.TitleId);
             (this as IPropertyPage).Selected = toSelect;
             // the following is not needed, it is part of ".Selected = toSelect"
             //if (toSelect == (this as IPropertyPage).Selected && !toSelect.Flags.HasFlag(PropertyEntryType.LabelEditable))
@@ -878,6 +880,15 @@ namespace CADability.Forms
             return pe.ActivePropertyPage == this;
         }
         #endregion
+
+        protected override void Dispose(bool disposing)
+        {
+            for (int i = 0; i < entries.Length; i++)
+            {
+                entries[i].Removed(this);
+            }
+            base.Dispose(disposing);
+        }
     }
 }
 

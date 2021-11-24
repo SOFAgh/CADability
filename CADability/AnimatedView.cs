@@ -739,6 +739,9 @@ namespace CADability
             this.paintToOpenGl = canvas.PaintTo3D;
             this.canvas = canvas;
         }
+        void IView.Disconnect(ICanvas canvas)
+        {
+        }
         ICanvas IView.Canvas => canvas;
         string IView.PaintType => "3D";
         #region ICondorViewInternal Members

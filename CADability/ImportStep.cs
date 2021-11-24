@@ -400,6 +400,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         HashSet<Item> mappedItems = new HashSet<Item>();
         private Dictionary<int, string> importProblems;
         private List<Item> notImportedFaces;
+        private Dictionary<string, ColorDef> definedColors;
         class Tokenizer : IDisposable
         {
             StreamReader sr;
@@ -1203,12 +1204,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             allNames = new SortedDictionary<string, int>();
             entityPattern = new Dictionary<string, HashSet<string>>();
 #endif
-            transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", true);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
+            transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", false);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
 
             // transformationMode = false;
             // for most files, transformationMode is not important.
-            // files, for which transformationMode must be false:
-            // ATTREZZATURA + GIRANTE.stp
+            // files, for which transformationMode must be false: ?? FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));
+            // ATTREZZATURA + GIRANTE.stp, AL_1180775_AL_1180775.stp
 
             // Assembly2.step doesn't work correctly with both methods!
             // edgeCollection = new StepEdgeCollection();
@@ -1258,14 +1259,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             // presentationLayerAssignment
             // mechanicalDesignGeometricPresentationRepresentation
 
-            System.Diagnostics.Trace.WriteLine("Starting step read" + Environment.TickCount.ToString());
-
             roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation] = new List<int>(); // das scheint mir der root zu sein
             roots[Item.ItemType.shapeDefinitionRepresentation] = new List<int>(); // manchmal auch das
             roots[Item.ItemType.presentationStyleAssignment] = new List<int>();
             roots[Item.ItemType.presentationLayerAssignment] = new List<int>();
             roots[Item.ItemType.shapeRepresentationRelationship] = new List<int>();
             roots[Item.ItemType.contextDependentShapeRepresentation] = new List<int>();
+            roots[Item.ItemType.draughtingModel] = new List<int>();
             Set<Item> productDefinitions = new Set<Item>();
 
             using (tk = new Tokenizer(filename))
@@ -1387,9 +1387,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                     }
+                    for (int i = 0; i < roots[Item.ItemType.draughtingModel].Count; i++)
+                    {
+                        Item item = definitions[roots[Item.ItemType.draughtingModel][i]];
+                        object o = CreateEntity(item);
+                    }
 
                     // there is the concept of "mappedItem", which is not respected with the "products" concept.
-                    // I am not sure how to handle this, so I am doing this as exclusive patterns. If we have mappeditems, we do not use the products.
+                    // I am not sure how to handle this, so I am doing this as exclusive patterns. If we have mappedItems, we do not use the products.
                     // The mappedItems seem also to appear in the products.
                     HashSet<Item> rootMappedItems = new HashSet<Item>(mappedItems);
                     if (mappedItems.Count > 0)
@@ -1476,10 +1481,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                     foreach (Face face in shell.Faces)
                     {
-                        foreach (Vertex  vtx in face.Vertices)
+                        foreach (Vertex vtx in face.Vertices)
                         {
                             double d = Math.Abs(face.Surface.GetDistance(vtx.Position));
-                            if (d>md)
+                            if (d > md)
                             {
                                 md = d;
                                 found = face;
@@ -1568,8 +1573,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 Object o = CreateEntity(rel.lval[k]);
                                 if (o is IGeoObject) res.Add(o as IGeoObject);
                                 else if (o is GeoObjectList) res.AddRange(o as GeoObjectList);
-                                if (o is Solid) (o as Solid).Name = name;
-                                if (o is Shell) (o as Shell).Name = name;
+                                if (!string.IsNullOrWhiteSpace(name))
+                                {
+                                    if (o is Solid sld && !string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
+                                    if (o is Shell shl && !string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
+                                }
                             }
                         }
                     }
@@ -1580,8 +1588,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             Object o = CreateEntity(assoc.lval[k]);
                             if (o is IGeoObject) res.Add(o as IGeoObject);
                             else if (o is GeoObjectList) res.AddRange(o as GeoObjectList);
-                            if (o is Solid) (o as Solid).Name = name;
-                            if (o is Shell) (o as Shell).Name = name;
+                            if (!string.IsNullOrWhiteSpace(name))
+                            {
+                                if (o is Solid sld && !string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
+                                if (o is Shell shl && !string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
+                            }
                         }
                     }
                 }
@@ -1881,7 +1892,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (17287 == item.definingIndex)
+            if (23972 == item.definingIndex)
             {
 
             }
@@ -2051,6 +2062,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             item.val = CreateEntity(item.SubItem(2)); // TODO: clone(?) and use the name and styles
                             if (ovr is ColorDef) cd = ovr as ColorDef;
                             if (item.val is IColorDef && cd != null) (item.val as IColorDef).ColorDef = cd;
+                            if (item.val is IGeoObject[] goa)
+                            {
+                                for (int i = 0; i < goa.Length; i++)
+                                {
+                                    if (goa[i] is IColorDef icd) icd.ColorDef = cd;
+                                }
+                            }
                             if (item.val is Shell) (item.val as Shell).Name = nm;
                         }
                         break;
@@ -2072,6 +2090,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 for (int i = 0; i < (item.val as IColorDef[]).Length; i++)
                                 {
                                     (item.val as IColorDef[])[i].SetTopLevel(cd, true);
+                                }
+                            }
+                            if (item.val is GeoObjectList glst && cd != null)
+                            {
+                                for (int i = 0; i < glst.Count; i++)
+                                {
+                                    if (glst[i] is IColorDef cdi) cdi.SetTopLevel(cd, true);
                                 }
                             }
                             if (item.val is Shell) (item.val as Shell).Name = nm;
@@ -2111,6 +2136,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     break;
                             }
                             ColorDef cd = new ColorDef(nm, clr);
+                            AvoidDuplicateColorNames(cd);
                             item.val = cd;
                         }
                         break;
@@ -2139,6 +2165,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     }
                                 }
                             }
+                            if (item.parameter["outer"].val is Solid sld) sld.Name = item.parameter["name"].sval;
+                            if (item.parameter["outer"].val is Shell shl) shl.Name = item.parameter["name"].sval;
                             item.val = item.parameter["outer"].val;
                         }
                         break;
@@ -2268,14 +2296,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             Shell.connectFaces(faces.ToArray(), Precision.eps);
                             Shell shell = Shell.MakeShell(faces.ToArray());
                             shell.Name = item.SubString(0);
-                            if (Settings.GlobalSettings.GetBoolValue("StepImport.CombineFaces", true)) shell.CombineConnectedFaces();
+                            if (Settings.GlobalSettings.GetBoolValue("StepImport.CombineFaces", false)) shell.CombineConnectedFaces();
                             item.val = shell;
                         }
                         break;
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (740 == item.definingIndex)
+                            if (10365 == item.definingIndex || 10365 == item.definingIndex)
                             {
                             }
 #endif
@@ -2349,7 +2377,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (291 == item.definingIndex || 41089 == item.definingIndex)
+                            if (2000 == item.definingIndex || 10365 == item.definingIndex)
                             {
                             }
 #endif
@@ -2378,11 +2406,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         defIndex = item.definingIndex;
                                     }
 #if DEBUG
-                                    if (15515 == item.definingIndex)
-                                    {
-                                        Face dbgfc = (item.val as Face[])[0];
-                                        dbgfc.AssureTriangles(0.12);
-                                    }
+                                    // Face dbgfc = (item.val as Face[])[0];
+                                    // dbgfc.AssureTriangles(0.12);
 #endif
 
                                 }
@@ -2406,6 +2431,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                             importProblems[item.definingIndex] = "inconsistent face";
                                         }
                                         ++faceCount;
+                                        if (2859 == item.definingIndex || 3219 == item.definingIndex)
+                                            (item.val as Face[])[i].AssureTriangles(0.004); // remove when done
+
                                         //foreach (Edge edg in (item.val as Face[])[i].AllEdgesIterated())
                                         //{
                                         //    if (edg.PrimaryFace != (item.val as Face[])[i]) edg.PrimaryFace.CheckConsistency();
@@ -3728,13 +3756,15 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                         break;
-                    case Item.ItemType.presentationLayerAssignment: // name, decription, layer_item
+                    case Item.ItemType.presentationLayerAssignment: // name, description, assigned_items
                         {
-                            Layer layer = new Layer(item.parameter["name"].sval);
+                            string layerName = item.parameter["description"].sval;
+                            if (string.IsNullOrWhiteSpace(layerName)) layerName = item.parameter["name"].sval;
+                            Layer layer = new Layer(layerName);
                             GeoObjectList list = new GeoObjectList();
-                            if (item.parameter.ContainsKey("layer_item"))
+                            if (item.parameter.ContainsKey("assigned_items"))
                             {
-                                List<Item> sublist = item.parameter["layer_item"].lval;
+                                List<Item> sublist = item.parameter["assigned_items"].lval;
                                 for (int i = 0; i < sublist.Count; i++)
                                 {
                                     object o = CreateEntity(sublist[i]);
@@ -3785,13 +3815,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.fillAreaStyleColour: //name, fill_colour
                         {
-                            string nm = item.SubString(0);
-                            ColorDef cd = CreateEntity(item.SubItem(1)) as ColorDef;
+                            string nm = item.parameter["name"].sval;
+                            ColorDef cd = CreateEntity(item.parameter["fill_colour"]) as ColorDef;
                             if (cd != null)
                             {
-                                if (!String.IsNullOrEmpty(nm))
+                                if (!String.IsNullOrWhiteSpace(nm))
                                 {
                                     item.val = new ColorDef(nm, cd.Color);
+                                    AvoidDuplicateColorNames(item.val as ColorDef);
                                 }
                                 else
                                 {
@@ -3806,8 +3837,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             int red = (int)(item.parameter["red"].fval * 255);
                             int green = (int)(item.parameter["green"].fval * 255);
                             int blue = (int)(item.parameter["blue"].fval * 255);
-                            if (string.IsNullOrEmpty(name)) name = "rgb:" + red.ToString() + "_" + green.ToString() + "_" + blue.ToString();
+                            if (string.IsNullOrWhiteSpace(name)) name = "rgb:" + red.ToString() + "_" + green.ToString() + "_" + blue.ToString();
                             item.val = new ColorDef(name, Color.FromArgb(red, green, blue));
+                            AvoidDuplicateColorNames(item.val as ColorDef);
                         }
                         break;
                     case Item.ItemType.pointStyle:
@@ -3988,6 +4020,17 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                         break;
+                    case Item.ItemType.draughtingModel: // name,*items,context_of_items
+                        {
+                            string name = item.parameter["name"].sval;
+                            List<Item> items = item.parameter["items"].lval;
+                            for (int i = 0; i < items.Count; i++)
+                            {
+                                object o = CreateEntity(items[i]);
+                            }
+                            item.val = items;
+                            break;
+                        }
                     default:
                         {
 #if DEBUG
@@ -4003,6 +4046,23 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
                 return item.val; // has now been created
             } // end lock
+        }
+
+        private void AvoidDuplicateColorNames(ColorDef cd)
+        {   // some step files name all their colors with the same name (e.g. "Colour"). The name is the key for the ColorDef, so all colors would be replaced by the first color with this name
+            if (definedColors == null) definedColors = new Dictionary<string, ColorDef>();
+            if (definedColors.TryGetValue(cd.Name, out ColorDef found))
+            {
+                if (found.Color != cd.Color)
+                {   // same name but different colors
+                    cd.Name = cd.Name + " (rgb:" + cd.Color.R.ToString() + "_" + cd.Color.G.ToString() + "_" + cd.Color.B.ToString() + ")";
+                    definedColors[cd.Name] = cd;
+                }
+            }
+            else
+            {
+                definedColors[cd.Name] = cd;
+            }
         }
 
         private void CreatingFace()
@@ -4080,14 +4140,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 FreeCoordSys FromA1 = trg;
                 FreeCoordSys ToA2 = org;
                 Matrix matrix = DenseMatrix.OfRowArrays(ToA2.DirectionX, ToA2.DirectionY, ToA2.DirectionZ);
-                Vector loc = new DenseVector(new double[] {  ToA2.Location.x ,  ToA2.Location.y ,  ToA2.Location.z });
+                Vector loc = new DenseVector(new double[] { ToA2.Location.x, ToA2.Location.y, ToA2.Location.z });
                 //matrix.Transpose();
                 loc = (Vector)(matrix * loc);
                 loc[0] = -loc[0]; loc[1] = -loc[1]; loc[2] = -loc[2];
 
                 Matrix MA1 = DenseMatrix.OfRowArrays(FromA1.DirectionX, FromA1.DirectionY, FromA1.DirectionZ);
                 MA1.Transpose();
-                Vector MA1loc = new DenseVector(new double[] {  FromA1.Location.x ,  FromA1.Location.y ,  FromA1.Location.z  });
+                Vector MA1loc = new DenseVector(new double[] { FromA1.Location.x, FromA1.Location.y, FromA1.Location.z });
                 MA1loc = (Vector)(matrix * MA1loc);
                 loc = (Vector)(loc + MA1loc);
                 matrix = (Matrix)(MA1 * matrix);
@@ -4117,7 +4177,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             GeoVector yt = zt ^ xt;
             Matrix B = DenseMatrix.OfRowArrays(xt, yt, zt);
             B = (Matrix)B.Transpose();
-            Matrix C = (Matrix)( B * A);
+            Matrix C = (Matrix)(B * A);
             GeoPoint t = (GeoPoint)origin.parameter["location"].val;
             GeoPoint u = (GeoPoint)target.parameter["location"].val;
             t.x *= lfo;
@@ -4126,7 +4186,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             u.x *= lft;
             u.y *= lft;
             u.z *= lft;
-            Vector v = (Vector)(C * new DenseVector(new double[] {  t.x ,  t.y ,  t.z  }));
+            Vector v = (Vector)(C * new DenseVector(new double[] { t.x, t.y, t.z }));
             GeoVector trs = new GeoVector(u.x - v[0], u.y - v[1], u.z - v[2]);
             res = new ModOp(C.ToArray(), trs);
             // return res;
@@ -4323,10 +4383,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     {
                         poleLength += bsp.Poles[i] | bsp.Poles[i + 1];
                     }
+                    poleLength /= bsp.PoleCount;
                     int knotCount = bsp.Knots.Length;
-                    double knotLength = bsp.Knots[knotCount - 1] - bsp.Knots[0];
-                    if ((bsp.Poles[0] | bsp.Poles[1]) < poleLength * 1e-6 || (bsp.Poles[bsp.PoleCount - 1] | bsp.Poles[bsp.PoleCount - 2]) < poleLength * 1e-6 ||
-                        (bsp.Knots[1] - bsp.Knots[0]) < knotLength * 1e-6 || (bsp.Knots[knotCount - 1] - bsp.Knots[knotCount - 2]) < knotLength * 1e-6)
+                    double knotLength = (bsp.Knots[knotCount - 1] - bsp.Knots[0]) / knotCount;
+                    // the following corrects some BSplines, which have the first or last poles or knots very close to each other. This makes the start-direction or end-direction
+                    // very unstable, even opposite to the "real" direction. Since we rely on this direction, we need to correct these BSplines (like in MO21775-001-00.stp)
+                    if ((bsp.Poles[0] | bsp.Poles[1]) < poleLength * 1e-3 || (bsp.Poles[bsp.PoleCount - 1] | bsp.Poles[bsp.PoleCount - 2]) < poleLength * 1e-3 ||
+                        (bsp.Knots[1] - bsp.Knots[0]) < knotLength * 1e-3 || (bsp.Knots[knotCount - 1] - bsp.Knots[knotCount - 2]) < knotLength * 1e-3)
                     {
                         int n = bsp.PoleCount + bsp.degree;
                         GeoPoint[] throughPoints = new GeoPoint[n];
@@ -4337,7 +4400,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         BSpline res = BSpline.Construct();
                         if (res.ThroughPoints(throughPoints, 3, closed)) return res;
                     }
-
+                    if (closed) bsp.IsClosed = true;
                     return bsp;
             }
         }

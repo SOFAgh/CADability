@@ -1,6 +1,8 @@
 ﻿using CADability.Attribute;
+using CADability.GeoObject;
 using Microsoft.VisualStudio.DebuggerVisualizers;
 using System;
+using System.ComponentModel;
 using System.IO;
 
 namespace CADability.Forms
@@ -32,14 +34,14 @@ namespace CADability.Forms
     {
         public DebugForm() : base(new string[] { })
         {
-            Trace.WriteLine("DebugForm constructor");
+            // Trace.WriteLine("DebugForm constructor");
             Text = "CADability.Forms.DebugForm";
             CadFrame.GenerateNewProject();
         }
 
         protected override void OnShown(EventArgs e)
         {
-            Trace.WriteLine("DebugForm OnShown");
+            // Trace.WriteLine("DebugForm OnShown");
             base.OnShown(e);
             // zoom total and make all layers visible
             ((CadFrame as IFrame).ActiveView as ModelView).ZoomTotal(1.1);
@@ -50,6 +52,19 @@ namespace CADability.Forms
             }
             GeoPoint cnt = Model.Extent.GetCenter();
             ((CadFrame as IFrame).ActiveView as ModelView).FixPoint = cnt;
+        }
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            //foreach (IGeoObject go in Model)
+            //{
+            //    if (go is IColorDef cd) // resetting the colors to null, which where set in the DebuggerContainer
+            //    {
+            //        if (cd.ColorDef.Name == "auto point") cd.ColorDef = null;
+            //        if (cd.ColorDef.Name == "auto curve") cd.ColorDef = null;
+            //        if (cd.ColorDef.Name == "auto face") cd.ColorDef = null;
+            //    }
+            //}
+            base.OnClosing(e);
         }
         /// <summary>
         /// Gives the owner access to the model
@@ -67,7 +82,7 @@ namespace CADability.Forms
         /// <param name="windowService"></param>
         public void ShowDialog(IDialogVisualizerService windowService)
         {
-            Trace.WriteLine("DebugForm ShowDialog");
+            // Trace.WriteLine("DebugForm ShowDialog");
             windowService.ShowDialog(this);
         }
     }

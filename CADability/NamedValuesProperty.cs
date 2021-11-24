@@ -242,7 +242,7 @@ namespace CADability
                 }
             }
         }
-        public bool OnCommand(string MenuId)
+        virtual public bool OnCommand(string MenuId)
         {
             switch (MenuId)
             {
@@ -320,7 +320,7 @@ namespace CADability
             namedValues[Name] = 0.0;
             ReflectNewEntry(Name);
         }
-        public bool OnUpdateCommand(string MenuId, CommandState CommandState)
+        virtual public bool OnUpdateCommand(string MenuId, CommandState CommandState)
         {
             // TODO:  Add NamedValuesProperty.OnUpdateCommand implementation
             return false;

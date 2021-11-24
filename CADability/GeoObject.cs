@@ -98,11 +98,21 @@ namespace CADability.GeoObject
             this.geoObject = geoObject;
         }
     }
+    internal class LayerToDisplayListDictionary: Dictionary<Layer, IPaintTo3DList>
+    {
+        public new void Clear()
+        {
+            foreach (KeyValuePair<Layer, IPaintTo3DList> item in this)
+            {
+                if (item.Value != null) item.Value.Dispose();
+            }
+        }
+    }
     internal class CategorizedDislayLists : ICategorizedDislayLists
     {
-        internal Dictionary<Layer, IPaintTo3DList> layerFaceDisplayList; // Alle Faces, geordnet nach Layern
-        internal Dictionary<Layer, IPaintTo3DList> layerCurveDisplayList; // alle Curves etc. geordnet nach Layern
-        internal Dictionary<Layer, IPaintTo3DList> layerTransparentDisplayList; // Alle transparenten, geordnet nach Layern
+        internal LayerToDisplayListDictionary layerFaceDisplayList; // Alle Faces, geordnet nach Layern
+        internal LayerToDisplayListDictionary layerCurveDisplayList; // alle Curves etc. geordnet nach Layern
+        internal LayerToDisplayListDictionary layerTransparentDisplayList; // Alle transparenten, geordnet nach Layern
         internal Dictionary<Layer, GeoObjectList> layerUnscaledObjects; // die Liste aller UnscaledObjects
         internal Dictionary<Layer, List<IGeoObject>> layerFaceObjects; // temporär Alle Faces, geordnet nach Layern
         internal Dictionary<Layer, List<IGeoObject>> layerCurveObjects; // temporär alle Curves etc. geordnet nach Layern
@@ -110,9 +120,9 @@ namespace CADability.GeoObject
         public Layer NullLayer;
         public CategorizedDislayLists()
         {
-            layerFaceDisplayList = new Dictionary<Layer, IPaintTo3DList>();
-            layerCurveDisplayList = new Dictionary<Layer, IPaintTo3DList>();
-            layerTransparentDisplayList = new Dictionary<Layer, IPaintTo3DList>();
+            layerFaceDisplayList = new LayerToDisplayListDictionary();
+            layerCurveDisplayList = new LayerToDisplayListDictionary();
+            layerTransparentDisplayList = new LayerToDisplayListDictionary();
             layerUnscaledObjects = new Dictionary<Layer, GeoObjectList>();
             layerFaceObjects = new Dictionary<Layer, List<IGeoObject>>();
             layerCurveObjects = new Dictionary<Layer, List<IGeoObject>>();

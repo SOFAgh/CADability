@@ -228,7 +228,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 2509)
+            if (hashCode == 337)
             {
 
             }
@@ -1407,7 +1407,7 @@ namespace CADability.GeoObject
                         int last = loops[i].Count - 1;
                         if (loops[i][last].forward) ep = loops[i][last].curve.EndPoint;
                         else ep = loops[i][last].curve.StartPoint;
-                        if ((sp | ep) > precision * 10) closed = false; // added *10 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
+                        if ((sp | ep) > precision * 1000) closed = false; // added *100 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
                     }
                     if (Math.Abs(area) < (ext.Width + ext.Height) * 1e-8 || !closed)
                     {   // probably a seam: two curves going forth and back on the same path
@@ -5509,7 +5509,7 @@ namespace CADability.GeoObject
                     }
                 }
 #if DEBUG
-                if (hashCode == 3061) { }
+                if (hashCode == 176) { }
 #endif
                 // a surface extreme point in axis direction is also necessary to check
                 GeoPoint2D[] extrema = surface.GetExtrema();
@@ -5804,58 +5804,13 @@ namespace CADability.GeoObject
             // System.Diagnostics.Trace.WriteLine("Triangulate: " + hashCode.ToString() + ", prec: " + precision.ToString() + ", " + (System.Environment.TickCount / 100).ToString());
 #endif
             int tc0 = System.Environment.TickCount;
-            // 1. Area in Polygone aufteilen
+            // First step: split area into polylines
             List<GeoPoint2D[]> polylines = new List<GeoPoint2D[]>();
             List<GeoPoint2D> polyoutline = new List<GeoPoint2D>();
 
-            //for (int i = 0; i < ss.Outline.Count; ++i)
-            //{
-            //    Edge e = ss.Outline[i].UserData.GetData("CADability.Edge") as Edge;
-            //    GeoPoint2D[] points = e.GetTriangulationBasis(this, precision, ss.Outline[i]);
-            //    polyoutline.AddRange(points);
-            //}
-            // wir gehen mittlerweile davon aus, dass die 2d Kurven richtig orientiert sind
-            // kommen sie auch bei Nähten in der richtigen Reihenfolge?
             ICurve2D[] usedCurves = new ICurve2D[outline.Length];
-            //#if DEBUG
-            //            DebuggerContainer dc0 = new DebuggerContainer();
-            //            for (int i = 0; i < outline.Length; ++i)
-            //            {
-            //                usedCurves[i] = outline[i].Curve2D(this, usedCurves);
-            //                dc0.Add(usedCurves[i], System.Drawing.Color.Red, i);
-            //            }
-            //            usedCurves = new ICurve2D[outline.Length];
-            //#endif
 #if DEBUG
-            //if (hashCode==53 || hashCode == 52)
-            //{
-            //    for (int i = 0; i < outline.Length; ++i)
-            //    {
-            //        if (outline[i].Forward(this)==outline[i].Forward(outline[i].OtherFace(this)))
-            //        {
-            //            // Edge kaputt!!
-            //            outline[i].Vertex1 = new Vertex(outline[i].Vertex1.Position);
-            //            outline[i].Vertex1.AddEdge(outline[i]);
-            //            int prev = i - 1;
-            //            if (prev < 0) prev += outline.Length;
-            //            if (outline[prev].Forward(this)) outline[prev].Vertex2 = outline[i].Vertex1;
-            //            else outline[prev].Vertex1 = outline[i].Vertex1;
-            //            outline[i].Vertex1.AddEdge(outline[prev]);
-
-            //            outline[i].Vertex1.AdjustCoordinate(outline[i].Vertex1.Position);
-            //            outline[i].Vertex2.AdjustCoordinate(outline[i].Vertex2.Position);
-
-            //            outline[i].Orient();
-            //        }
-            //    }
-            //    for (int i = 0; i < outline.Length; ++i)
-            //    {
-            //        outline[i].RepairAdjust();
-            //    }
-            //}
-#endif
-#if DEBUG
-            if (hashCode == 11)
+            if (hashCode == 860 || hashCode == 736)
             { }
 #endif
             for (int i = 0; i < outline.Length; ++i)
@@ -6094,7 +6049,7 @@ namespace CADability.GeoObject
                 {
                     bc.MinMax(trianglePoint[i]);
                 }
-                if (bc.Zmin < -40.5)
+                if (bc.Ymin < -10)
                 { }
                 for (int i = 0; i < triangleIndex.Length; i += 3)
                 {
@@ -6796,7 +6751,7 @@ namespace CADability.GeoObject
         {
             BoundingRect res = BoundingRect.EmptyBoundingRect;
             if (extentPrecision == ExtentPrecision.Raw)
-            {
+            {   // when we have closed edges, e.g. a non periodic cylinder defined by two circles, then testing vertices only is not a good idea
                 for (int i = 0; i < Vertices.Length; i++)
                 {
                     res.MinMax(projection.ProjectUnscaled(Vertices[i].Position));
@@ -9422,6 +9377,10 @@ namespace CADability.GeoObject
 
         internal void CombineConnectedSameSurfaceEdges()
         {
+#if DEBUG
+            if (2430==hashCode)
+            { }
+#endif
             for (int i = 0; i < outline.Length; i++)
             {
                 int j = i + 1;
@@ -9468,6 +9427,7 @@ namespace CADability.GeoObject
             // now edg1 and edg2 are both forward oriented on this face and edg1 precedes edg2
             ICurve combined = Curves.Combine(edg1.Curve3D, edg2.Curve3D, Precision.eps);
             if (combined == null && edg1.Curve3D is BSpline && edg2.Curve3D is BSpline) return false; // BSplines need to be implemented in Curves.Combine, but make problems in the else case
+            if (combined == null) return false; // there is a bug with a NURBS surface which has a sharp bend (in 1264_14_M_el.stp) when we try to connect a spline with a line
             if (combined != null)
             {
                 ICurve2D c2dThis = this.surface.GetProjectedCurve(combined, Precision.eps);
@@ -10137,6 +10097,7 @@ namespace CADability.GeoObject
                     segments.Add(edg.Curve2D(this));
                 }
                 Border bdr = Border.FromOrientedList(segments.ToArray(), true);
+                bdr.forceConnect(true);
                 double a = bdr.Area;
                 if (a > maxArea)
                 {

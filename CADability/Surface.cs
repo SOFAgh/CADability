@@ -12123,14 +12123,14 @@ namespace CADability.GeoObject
                 mindist = d;
             }
             if (double.IsNaN(mindist)) return false;
-            // don't know why we should dismiss this case
-            //if (missed > 2)
-            //{
-            //    BoundingRect brcopy = found.uvPatch;
-            //    brcopy.Inflate(brcopy.Width / 100, brcopy.Height / 100);
-            //    bool ok = brcopy.Contains(res);
-            //    return ok;
-            //}
+            
+            if (missed > 2)
+            {   // need this case when an almost closed nurbs surface finds a wrong point on the other side of the domain (like in MO21775-001-00.stp)
+                BoundingRect brcopy = found.uvPatch;
+                brcopy.Inflate(brcopy.Width / 100, brcopy.Height / 100);
+                bool ok = brcopy.Contains(res);
+                return ok;
+            }
             return true;
         }
         private void SplitCubes(ParEpi[] cubes)

@@ -674,9 +674,13 @@ namespace CADability.Attribute
                 if (oldC == null) return;
                 ColorDef c = Find(oldC.Name);
                 if (c == null)
+                {
                     Add(oldC);
+                }
                 else
-                    (Object2Update as IColorDef).ColorDef = c;
+                {
+                    (Object2Update as IColorDef).SetTopLevel(c, true);
+                }
             }
         }
         INamedAttribute IAttributeList.Find(string Name)
