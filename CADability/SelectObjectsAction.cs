@@ -2447,7 +2447,10 @@ namespace CADability.Actions
                     CommandState.Enabled = selectedObjects.Count > 0;
                     return true;
                 case "MenuId.Edit.Paste":
-                    CommandState.Enabled = Frame.UIService.HasClipboardData(typeof(GeoObjectList));
+					if (!Settings.GlobalSettings.GetBoolValue("DontCheckClipboardContent", false))
+					{
+						CommandState.Enabled = Frame.UIService.HasClipboardData(typeof(GeoObjectList));
+					}
                     return true;
                 case "MenuId.SelectedObjects.Mode.All":
                     CommandState.Checked = pickMode == PickMode.normal;
