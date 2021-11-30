@@ -50,7 +50,7 @@ namespace CADability.Forms
             tabControl.ItemSize = new Size(27, 21);
             tabControl.DrawItem += tabControl_DrawItem;
             tabControl.ShowToolTips = true;
-            
+
             Controls.Add(tabControl);
             Controls.Add(listBox);
             Controls.Add(textBox);
@@ -168,6 +168,7 @@ namespace CADability.Forms
 
         #region textBox
         TextBox textBox; // there is only one TextBox for editing labels or values. It is normally hidden and moved, filled and activated when needed
+        bool endEidtCalled;
         public void ShowTextBox(Rectangle screenLocation, string initialText, IPropertyEntry sender, Point screenClickPos)
         {
             if (EntryWithTextBox != null) EntryWithTextBox.EndEdit(true, textBox.Modified, textBox.Text);
@@ -185,7 +186,7 @@ namespace CADability.Forms
             int charindex = textBox.GetCharIndexFromPosition(new Point(clickPos.X + charWidth / 2, clickPos.Y));
             if (clickPos.X > lastCharPos.X + charWidth)
             {   // clicked behind the last character: select all
-               textBox.SelectAll();
+                textBox.SelectAll();
             }
             else
             {   // clicked somewhere inside the text

@@ -31,7 +31,7 @@ namespace CADability.Attribute
     }
 
     /// <summary>
-    /// Interface used by named objects, like attributs (e.g. FilterList)
+    /// Interface used by named objects, like attributes (e.g. FilterList)
     /// </summary>
 
     public interface INameChange
@@ -102,9 +102,9 @@ namespace CADability.Attribute
         IAttributeList Clone();
         /// <summary>
         /// When attributes refer to other attributes these should be in the same
-        /// <see cref="AttributeListContainer"/>. This method checks this consitency,
+        /// <see cref="AttributeListContainer"/>. This method checks this consistency,
         /// changes the references where needed and adds new attributes to the corresponding
-        /// lists when necessery.
+        /// lists when necessary.
         /// </summary>
         /// <param name="AddMissingToList">true: add referenced attributes when not found in a list</param>
         void Update(bool AddMissingToList);
@@ -115,15 +115,15 @@ namespace CADability.Attribute
         void Update(IGeoObject Object2Update);
 
         /// <summary>
-        /// Determins, whether a named attribute may change its name. It may not change
-        /// its name if there is already an attribut with that desired name.
+        /// Determines, whether a named attribute may change its name. It may not change
+        /// its name if there is already an attribute with that desired name.
         /// </summary>
         /// <param name="attribute">the attribute that wants to change its name</param>
         /// <param name="newName">the new name</param>
         /// <returns>true, if name change is possible, false otherwise</returns>
         bool MayChangeName(INamedAttribute attribute, string newName);
         /// <summary>
-        /// Notifies the list, that an attribut changed ist name.
+        /// Notifies the list, that an attribute changed it's name.
         /// </summary>
         /// <param name="attribute">the attribute</param>
         /// <param name="oldName">the old name (the new name can be accessed from the attribute)</param>

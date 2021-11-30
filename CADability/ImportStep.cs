@@ -1204,7 +1204,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             allNames = new SortedDictionary<string, int>();
             entityPattern = new Dictionary<string, HashSet<string>>();
 #endif
-            transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", false);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
+            transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", true);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
 
             // transformationMode = false;
             // for most files, transformationMode is not important.
@@ -1361,7 +1361,31 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     {
                         Item item = definitions[roots[Item.ItemType.shapeRepresentationRelationship][i]];
                         GeoObjectList go = CreateEntity(item) as GeoObjectList;
-                        if (item.parameter["rep_2"].val is GeoObjectList) res.AddRange(item.parameter["rep_2"].val as GeoObjectList);
+                        string name = null;
+                        if (item.parameter["rep_1"].parameter.TryGetValue("name", out Item shapeRepresentation)) name = shapeRepresentation.sval;
+                        if (item.parameter["rep_2"].val is GeoObjectList gol)
+                        {
+                            if (gol.Count > 1)
+                            {
+                                Block blk = Block.Construct();
+                                if (string.IsNullOrWhiteSpace(name)) name = $"Item {item.definingIndex}";
+                                blk.Name = name;
+                                blk.Set(gol.CloneObjects());
+                                res.Add(blk);
+                            }
+                            else
+                            {
+                                if (!string.IsNullOrWhiteSpace(name))
+                                {
+                                    for (int j = 0; j < gol.Count; j++)
+                                    {
+                                        if (gol[j] is Solid sld) sld.Name = name;
+                                        if (gol[j] is Shell shl) shl.Name = name;
+                                    }
+                                }
+                                res.AddRange(gol);
+                            }
+                        }
                     }
                     for (int i = 0; i < roots[Item.ItemType.contextDependentShapeRepresentation].Count; i++)
                     {
@@ -1441,6 +1465,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             {
 #if DEBUG
                                 System.Diagnostics.Trace.WriteLine(ProductHierarchie(rootProduct, ""));
+                                Block blk = ProductToBlock(rootProduct);
 #endif
                                 if (rootProduct.parameter.ContainsKey("_geo"))
                                 {
@@ -1518,6 +1543,32 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             return res.ToString();
         }
 #endif
+        Block ProductToBlock(Item product)
+        {
+            Block blk = Block.Construct();
+            GeoObjectList collect = new GeoObjectList();
+            if (product.parameter["_geo"].val is GeoObjectList list) collect.AddRange(list);
+            blk.Name = product.parameter["id"].sval;
+            if (product.parameter.TryGetValue("_children", out Item children))
+            {
+                for (int i = 0; i < children.lval.Count; i++)
+                {
+                    Block blksub = ProductToBlock(children.lval[i].parameter["_referred"]);
+                    if (blksub.NumChildren == 1)
+                    {
+                        IGeoObject ch = blksub.Child(0);
+                        blksub.Remove(0);
+                        collect.Add(ch);
+                    }
+                    else if (blksub.NumChildren > 1)
+                    {
+                        collect.Add(blksub);
+                    }
+                }
+                blk.Set(collect);
+            }
+            return blk;
+        }
         private void CreateProduct(Item product)
         {
             //System.Diagnostics.Trace.Write(product.parameter["id"].sval + ": ");
@@ -2303,7 +2354,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (608583 == item.definingIndex || 10365 == item.definingIndex)
+                            if (806 == item.definingIndex || 806 == item.definingIndex)
                             {
                             }
 #endif
@@ -2377,7 +2428,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (608583 == item.definingIndex || 10365 == item.definingIndex)
+                            if (806 == item.definingIndex || 806 == item.definingIndex)
                             {
                             }
 #endif
