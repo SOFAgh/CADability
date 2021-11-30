@@ -283,12 +283,16 @@ namespace CADability.Forms
 
         public IPropertyPage AddPropertyPage(string titleId, int iconId)
         {
-            PropertyPage res = new PropertyPage(titleId, iconId);
+            PropertyPage res = new PropertyPage(titleId, iconId, this);
+			res.Dock = DockStyle.Fill;
+			TabPage tp = new TabPage();
+			tp.Controls.Add(res);
             tabPages.Add(res);
-            tabControl.TabPages.Add(res);
+            tabControl.TabPages.Add(tp);
             res.Frame = Frame;
-            res.ImageIndex = iconId;
-            res.ToolTipText = StringTable.GetString(titleId);
+			tp.Text = StringTable.GetString(titleId);
+			tp.ImageIndex = iconId;
+			tp.ToolTipText = StringTable.GetString(titleId);
 
             return res;
         }
@@ -296,7 +300,11 @@ namespace CADability.Forms
         {
             get
             {
-                PropertyPage selected = tabControl.SelectedTab as PropertyPage;
+				PropertyPage selected = null;
+				if (tabControl.SelectedIndex >= 0)
+				{
+					selected = tabPages[tabControl.SelectedIndex];
+				}
                 return selected;
             }
         }
