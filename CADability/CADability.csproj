@@ -6,7 +6,7 @@
     <Configurations>Debug;Release;RelWithDoc;WebDebug</Configurations>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>CADabilityKey.snk</AssemblyOriginatorKeyFile>
-    <AssemblyName>CADability</AssemblyName>
+    <AssemblyName>CADabilityCore</AssemblyName>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -87,7 +87,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MathNet.Numerics.Signed" Version="4.15.0" />
-    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="5.0.3" />
   </ItemGroup>
 
   <ItemGroup>
