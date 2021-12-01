@@ -291,9 +291,9 @@ namespace CADability.Forms
             tabPages.Add(res);
             tabControl.TabPages.Add(tp);
             res.Frame = Frame;
-			tp.Text = StringTable.GetString(titleId);
+            tp.Text = StringTable.GetString(titleId + "TabPage");
 			tp.ImageIndex = iconId;
-			tp.ToolTipText = StringTable.GetString(titleId);
+			tp.ToolTipText = StringTable.GetString(titleId + "TabPage", StringTable.Category.tip);
 
             return res;
         }

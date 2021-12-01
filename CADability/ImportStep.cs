@@ -1266,6 +1266,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             roots[Item.ItemType.shapeRepresentationRelationship] = new List<int>();
             roots[Item.ItemType.contextDependentShapeRepresentation] = new List<int>();
             roots[Item.ItemType.draughtingModel] = new List<int>();
+            roots[Item.ItemType.styledItem] = new List<int>();
             Set<Item> productDefinitions = new Set<Item>();
 
             using (tk = new Tokenizer(filename))
@@ -1414,6 +1415,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     for (int i = 0; i < roots[Item.ItemType.draughtingModel].Count; i++)
                     {
                         Item item = definitions[roots[Item.ItemType.draughtingModel][i]];
+                        object o = CreateEntity(item);
+                    }
+                    for (int i = 0; i < roots[Item.ItemType.styledItem].Count; i++)
+                    {   // in most cases the styled items are already created (e.g. as part of mechanicalDesignGeometricPresentationRepresentation), but in some files (e.g. SSSS4912PCAM.stp) 
+                        // there are unreferenced styledItems. Upon creation the objects referenced by the styled item are styled (color set)
+                        Item item = definitions[roots[Item.ItemType.styledItem][i]];
                         object o = CreateEntity(item);
                     }
 
@@ -1765,7 +1772,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             ignoreInSubTree.Add(Item.ItemType.orientedClosedShell);
 
             Item item = definitions[itemId];
-            // these should not be root items, but ometimes are:
+            // these should not be root items, but sometimes are:
             if (item.type == Item.ItemType.plane) return "";
             if (item.type == Item.ItemType.faceOuterBound) return "";
             if (item.type == Item.ItemType.fillAreaStyleColour) return "";
@@ -2132,7 +2139,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             {
                                 object o = CreateEntity(sublist[i]);
                                 if (o is ColorDef) cd = o as ColorDef;
-                                // there could also be linestyles
+                                // there could also be line styles
                             }
                             item.val = CreateEntity(item.SubItem(2));
                             if (item.val is IColorDef && cd != null) (item.val as IColorDef).SetTopLevel(cd, true);
@@ -2150,7 +2157,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     if (glst[i] is IColorDef cdi) cdi.SetTopLevel(cd, true);
                                 }
                             }
-                            if (item.val is Shell) (item.val as Shell).Name = nm;
+                            if (!string.IsNullOrWhiteSpace(nm))
+                            {
+                                if (item.val is Shell) (item.val as Shell).Name = nm;
+                                if (item.val is Solid) (item.val as Solid).Name = nm;
+                            }
                         }
                         break;
 
@@ -2428,7 +2439,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (806 == item.definingIndex || 806 == item.definingIndex)
+                            if (3320 == item.definingIndex || 3320 == item.definingIndex)
                             {
                             }
 #endif
