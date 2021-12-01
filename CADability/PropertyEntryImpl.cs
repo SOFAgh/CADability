@@ -208,7 +208,7 @@ namespace CADability.UserInterface
 
         public virtual void Removed(IPropertyPage pp)
         {
-            propertyPage?.Frame?.Project.Undo.ClearContext(); // not the best place to do this here, but needed in the following scenario:
+            propertyPage?.Frame?.Project?.Undo.ClearContext(); // not the best place to do this here, but needed in the following scenario:
             // a property of an IGeoObject is being edited and the user clicks into the canvas, which in turn removes this property without ending the context
             propertyPage = null;
         }
