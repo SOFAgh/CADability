@@ -108,7 +108,6 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="DebugForm.cs" />
-    <Compile Include="DebuggerPlayground.cs" />
     <Compile Include="MenuManager.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -131,7 +130,6 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ToolBars.cs" />
-    <Compile Include="Unfold.cs" />
     <EmbeddedResource Include="CadControl.resx">
       <DependentUpon>CadControl.cs</DependentUpon>
     </EmbeddedResource>
