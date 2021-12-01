@@ -334,7 +334,7 @@ namespace CADability.UserInterface
             if (isEditingValue)
             {
                 // ContextFrame: each keystroke results in a SetValue call. these calls all use the same context object (namely "this")
-                // to only create one undo step. With the first keystroke, the  object is also removed from the models octtree (continuos change)
+                // to only create one undo step. With the first keystroke, the  object is also removed from the models octTree (continuous change)
                 // and has to be inserted again, which is done by ClearContext. It would also be done with the next change with a different context,
                 // but it is clean and correct to do it here
                 using (Frame.Project.Undo.ContextFrame(this)) // all keystrokes belong to the same context frame
@@ -354,6 +354,5 @@ namespace CADability.UserInterface
                 if (!aborted) LabelChanged(newValue);
             }
         }
-
     }
 }

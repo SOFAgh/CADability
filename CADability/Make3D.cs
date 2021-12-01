@@ -1723,7 +1723,7 @@ namespace CADability.GeoObject
             {
                 Shell res = BRepOperation.RoundEdges(sh, edges, radius);
                 affectedShellsOrSolids = new IGeoObject[] { sh };
-                if (res!=null) return new IGeoObject[] { res };
+                if (res != null) return new IGeoObject[] { res };
                 //BRepRoundEdges brre = new BRepRoundEdges(sh, new Set<Edge>(edges));
                 //Shell shres = brre.Round(radius, true);
                 //affectedShellsOrSolids = new IGeoObject[] { sh };
@@ -2012,19 +2012,13 @@ namespace CADability.GeoObject
         }
         static public Solid MakeBox(GeoPoint location, GeoVector directionX, GeoVector directionY, GeoVector directionZ)
         {
-            //Import.ImportOCAS imp = Import.ImportOCAS.MakeBox(location.ToCndHlp(), directionX.ToCndHlp(), directionY.ToCndHlp(), directionZ.ToCndHlp());
-            //if (imp == null) return null;
-            //Make3D m3d = new Make3D(imp);
-            //IGeoObject shp = m3d.GetShape(null);
-            //return shp as Solid;
-
-            // ist es ein Rechtssystem (wichtig für die Orientierung der Flächen)
+            // the three provided vectors must be in a right handed system
             GeoVector dirz = directionX ^ directionY;
             Angle a = new Angle(directionZ, dirz);
             bool rh = a.Radian < Math.PI / 2.0;
             if (!rh)
             {
-                // dirx und diry vertauschen, das ist die einfachste Methode
+                // simply exchange directionX and directionY to make it right handed
                 dirz = directionX;
                 directionX = directionY;
                 directionY = dirz;
@@ -2037,7 +2031,7 @@ namespace CADability.GeoObject
             GeoPoint p6 = p5 + directionX;
             GeoPoint p7 = p5 + directionX + directionY;
             GeoPoint p8 = p5 + directionY;
-            // alle Ebenen so, dass der Normalenvektor nach außen orientiert ist
+            // construct the planes so that the normal vectors are outward oriented
             PlaneSurface pls1 = new PlaneSurface(p1, p4, p2);
             PlaneSurface pls2 = new PlaneSurface(p1, p2, p5);
             PlaneSurface pls3 = new PlaneSurface(p2, p3, p6);
@@ -2051,54 +2045,77 @@ namespace CADability.GeoObject
             Face fc5 = Face.Construct();
             Face fc6 = Face.Construct();
             Shell sh = Shell.Construct();
-            // Schneller machen: GetProjectedCurve könnte aufgelöst werden, Face.Set könnte gleich die Area
-            // mitgeliefert bekommen, das ist dort unnötig aufwendig.
+            // could improve the following, but probably wouldn't make a big difference
             Line l1 = Line.MakeLine(p1, p2);
-            Edge e1 = new Edge(fc1, l1, fc1, pls1.GetProjectedCurve(l1, 0.0), false, fc2, pls2.GetProjectedCurve(l1, 0.0), true);
+            Edge e1 = new Edge(fc1, l1, fc1, pls1.GetProjectedCurve(l1, 0.0).CloneReverse(true), false, fc2, pls2.GetProjectedCurve(l1, 0.0), true);
             Line l2 = Line.MakeLine(p2, p3);
-            Edge e2 = new Edge(fc1, l2, fc1, pls1.GetProjectedCurve(l2, 0.0), false, fc3, pls3.GetProjectedCurve(l2, 0.0), true);
+            Edge e2 = new Edge(fc1, l2, fc1, pls1.GetProjectedCurve(l2, 0.0).CloneReverse(true), false, fc3, pls3.GetProjectedCurve(l2, 0.0), true);
             Line l3 = Line.MakeLine(p3, p4);
-            Edge e3 = new Edge(fc1, l3, fc1, pls1.GetProjectedCurve(l3, 0.0), false, fc5, pls5.GetProjectedCurve(l3, 0.0), true);
+            Edge e3 = new Edge(fc1, l3, fc1, pls1.GetProjectedCurve(l3, 0.0).CloneReverse(true), false, fc5, pls5.GetProjectedCurve(l3, 0.0), true);
             Line l4 = Line.MakeLine(p4, p1);
-            Edge e4 = new Edge(fc1, l4, fc1, pls1.GetProjectedCurve(l4, 0.0), false, fc4, pls4.GetProjectedCurve(l4, 0.0), true);
+            Edge e4 = new Edge(fc1, l4, fc1, pls1.GetProjectedCurve(l4, 0.0).CloneReverse(true), false, fc4, pls4.GetProjectedCurve(l4, 0.0), true);
             Line l5 = Line.MakeLine(p5, p6);
-            Edge e5 = new Edge(fc6, l5, fc6, pls6.GetProjectedCurve(l5, 0.0), true, fc2, pls2.GetProjectedCurve(l5, 0.0), false);
+            Edge e5 = new Edge(fc6, l5, fc6, pls6.GetProjectedCurve(l5, 0.0), true, fc2, pls2.GetProjectedCurve(l5, 0.0).CloneReverse(true), false);
             Line l6 = Line.MakeLine(p6, p7);
-            Edge e6 = new Edge(fc6, l6, fc6, pls6.GetProjectedCurve(l6, 0.0), true, fc3, pls3.GetProjectedCurve(l6, 0.0), false);
+            Edge e6 = new Edge(fc6, l6, fc6, pls6.GetProjectedCurve(l6, 0.0), true, fc3, pls3.GetProjectedCurve(l6, 0.0).CloneReverse(true), false);
             Line l7 = Line.MakeLine(p7, p8);
-            Edge e7 = new Edge(fc6, l7, fc6, pls6.GetProjectedCurve(l7, 0.0), true, fc5, pls5.GetProjectedCurve(l7, 0.0), false);
+            Edge e7 = new Edge(fc6, l7, fc6, pls6.GetProjectedCurve(l7, 0.0), true, fc5, pls5.GetProjectedCurve(l7, 0.0).CloneReverse(true), false);
             Line l8 = Line.MakeLine(p8, p5);
-            Edge e8 = new Edge(fc6, l8, fc6, pls6.GetProjectedCurve(l8, 0.0), true, fc4, pls4.GetProjectedCurve(l8, 0.0), false);
+            Edge e8 = new Edge(fc6, l8, fc6, pls6.GetProjectedCurve(l8, 0.0), true, fc4, pls4.GetProjectedCurve(l8, 0.0).CloneReverse(true), false);
             Line l9 = Line.MakeLine(p1, p5);
-            Edge e9 = new Edge(fc4, l9, fc4, pls4.GetProjectedCurve(l9, 0.0), true, fc2, pls2.GetProjectedCurve(l9, 0.0), false);
+            Edge e9 = new Edge(fc4, l9, fc4, pls4.GetProjectedCurve(l9, 0.0), true, fc2, pls2.GetProjectedCurve(l9, 0.0).CloneReverse(true), false);
             Line l10 = Line.MakeLine(p2, p6);
-            Edge e10 = new Edge(fc2, l10, fc2, pls2.GetProjectedCurve(l10, 0.0), true, fc3, pls3.GetProjectedCurve(l10, 0.0), false);
+            Edge e10 = new Edge(fc2, l10, fc2, pls2.GetProjectedCurve(l10, 0.0), true, fc3, pls3.GetProjectedCurve(l10, 0.0).CloneReverse(true), false);
             Line l11 = Line.MakeLine(p3, p7);
-            Edge e11 = new Edge(fc3, l11, fc3, pls3.GetProjectedCurve(l11, 0.0), true, fc5, pls5.GetProjectedCurve(l11, 0.0), false);
+            Edge e11 = new Edge(fc3, l11, fc3, pls3.GetProjectedCurve(l11, 0.0), true, fc5, pls5.GetProjectedCurve(l11, 0.0).CloneReverse(true), false);
             Line l12 = Line.MakeLine(p4, p8);
-            Edge e12 = new Edge(fc5, l12, fc5, pls5.GetProjectedCurve(l12, 0.0), true, fc4, pls4.GetProjectedCurve(l12, 0.0), false);
+            Edge e12 = new Edge(fc5, l12, fc5, pls5.GetProjectedCurve(l12, 0.0), true, fc4, pls4.GetProjectedCurve(l12, 0.0).CloneReverse(true), false);
             fc1.Set(pls1, new Edge[] { e1, e4, e3, e2 }, null);
             fc2.Set(pls2, new Edge[] { e1, e10, e5, e9 }, null);
             fc3.Set(pls3, new Edge[] { e2, e11, e6, e10 }, null);
             fc4.Set(pls4, new Edge[] { e4, e9, e8, e12 }, null);
             fc5.Set(pls5, new Edge[] { e3, e12, e7, e11 }, null);
             fc6.Set(pls6, new Edge[] { e5, e6, e7, e8 }, null);
-            fc1.RepairConnected();
-            fc2.RepairConnected();
-            fc3.RepairConnected();
-            fc4.RepairConnected();
-            fc5.RepairConnected();
-            fc6.RepairConnected();
-            fc1.RepairConnected();
+            //fc1.RepairConnected();
+            //fc2.RepairConnected();
+            //fc3.RepairConnected();
+            //fc4.RepairConnected();
+            //fc5.RepairConnected();
+            //fc6.RepairConnected();
+            //fc1.RepairConnected();
             // sh = Shell.MakeShell(new Face[] { fc1, fc2, fc3, fc4, fc5, fc6 });
             sh.SetFaces(new Face[] { fc1, fc2, fc3, fc4, fc5, fc6 });
-            int dbg1 = sh.Vertices.Length;
-            sh.RecalcVertices();
-            int dbg2 = sh.Vertices.Length;
+            sh.RecalcVertices(); // maybe we have duplicate vertices
             Solid res = Solid.Construct();
             res.SetShell(sh);
             return res;
         }
+#if USENONPRIODICSURFACES
+        static public Solid MakeCylinder(GeoPoint location, GeoVector directionX, GeoVector directionZ)
+        {
+            GeoVector directionY = directionZ ^ directionX;
+            directionY = directionX.Length * directionY.Normalized;
+            Plane pln1 = new Plane(location, directionX, -directionY); // is oriented away from directionZ
+            PlaneSurface psbottom = new PlaneSurface(pln1);
+            Plane pln2 = new Plane(location + directionZ, directionX, directionY); // normal is directionZ
+            PlaneSurface pstop = new PlaneSurface(pln2);
+            Ellipse eb = Ellipse.Construct();
+            eb.SetCirclePlaneCenterRadius(psbottom.Plane, location, directionX.Length);
+            Ellipse et = Ellipse.Construct();
+            et.SetCirclePlaneCenterRadius(pstop.Plane, location + directionZ, directionX.Length);
+
+            CylindricalSurfaceNP cs = new CylindricalSurfaceNP(location, directionX.Length, directionZ, true, new ICurve[] { eb, et });
+            Border outline = new Border(cs.GetProjectedCurve(eb, 0.0));
+            Border hole = new Border(cs.GetProjectedCurve(et, 0.0).CloneReverse(true));
+            SimpleShape ss = new SimpleShape(outline, hole);
+            Face cyl = Face.MakeFace(cs, ss);
+
+            Face bottom = Face.MakeFace(psbottom, new SimpleShape(new Border(psbottom.GetProjectedCurve(eb, 0.0))));
+            Face top = Face.MakeFace(pstop, new SimpleShape(new Border(pstop.GetProjectedCurve(et, 0.0))));
+            Shell shell = Shell.FromFaces(cyl, bottom, top);
+            return Solid.MakeSolid(shell);
+        }
+#else
         static public Solid MakeCylinder(GeoPoint location, GeoVector directionX, GeoVector directionZ)
         {
             GeoVector directionY = directionZ ^ directionX;
@@ -2130,7 +2147,7 @@ namespace CADability.GeoObject
             Face top = Face.Construct();
             sh.SetFaces(new Face[] { cf1, cf2, btn, top });
             double height = directionZ.Length;
-            Line2D l2d1a = new Line2D(new GeoPoint2D(0.0, 0.0), new GeoPoint2D(0.0, height));
+            Line2D l2d1a = new Line2D(new GeoPoint2D(0.0, height), new GeoPoint2D(0.0, 0.0));
             Line2D l2d1b = new Line2D(new GeoPoint2D(2.0 * Math.PI, 0.0), new GeoPoint2D(2.0 * Math.PI, height));
             Line2D l2d2 = new Line2D(new GeoPoint2D(Math.PI, 0.0), new GeoPoint2D(Math.PI, height));
             Line2D leb1 = new Line2D(new GeoPoint2D(0.0, 0.0), new GeoPoint2D(Math.PI, 0.0));
@@ -2138,13 +2155,9 @@ namespace CADability.GeoObject
             Line2D let1 = new Line2D(new GeoPoint2D(Math.PI, height), new GeoPoint2D(0.0, height));
             Line2D let2 = new Line2D(new GeoPoint2D(Math.PI * 2.0, height), new GeoPoint2D(Math.PI, height));
             Edge e1 = new Edge(sh, l1, cf1, l2d1a, false, cf2, l2d1b, true);
-            Edge e2 = new Edge(sh, l2, cf1, l2d2.Clone(), true, cf2, l2d2, false); // es darf nicht die selbe 2d Kurve 2mal verwendet werden
-                                                                                   //Edge e3 = new Edge(sh, eb1, cf1, cs.GetProjectedCurve(eb1, 0.0), true, btn, psbottom.GetProjectedCurve(eb1, 0.0), true);
-                                                                                   //Edge e4 = new Edge(sh, eb2, cf2, cs.GetProjectedCurve(eb2, 0.0), true, btn, psbottom.GetProjectedCurve(eb2, 0.0), true);
-                                                                                   //Edge e5 = new Edge(sh, et1, cf1, cs.GetProjectedCurve(et1, 0.0), false, top, pstop.GetProjectedCurve(et1, 0.0), true);
-                                                                                   //Edge e6 = new Edge(sh, et2, cf2, cs.GetProjectedCurve(et2, 0.0), false, top, pstop.GetProjectedCurve(et2, 0.0), true);
-            Edge e3 = new Edge(sh, eb1, cf1, leb1, true, btn, psbottom.GetProjectedCurve(eb1, 0.0), true);
-            Edge e4 = new Edge(sh, eb2, cf2, leb2, true, btn, psbottom.GetProjectedCurve(eb2, 0.0), true);
+            Edge e2 = new Edge(sh, l2, cf1, l2d2, true, cf2, l2d2.CloneReverse(true), false); // we cannot use the same 2d curve in two different edges
+            Edge e3 = new Edge(sh, eb1, cf1, leb1, false, btn, psbottom.GetProjectedCurve(eb1, 0.0), true);
+            Edge e4 = new Edge(sh, eb2, cf2, leb2, false, btn, psbottom.GetProjectedCurve(eb2, 0.0), true);
             Edge e5 = new Edge(sh, et1, cf1, let1, false, top, pstop.GetProjectedCurve(et1, 0.0), true);
             Edge e6 = new Edge(sh, et2, cf2, let2, false, top, pstop.GetProjectedCurve(et2, 0.0), true);
 
@@ -2173,7 +2186,7 @@ namespace CADability.GeoObject
             //IGeoObject shp = m3d.GetShape(null);
             //return shp as Solid;
         }
-
+#endif
         static public Shell MakeCylinderShell(GeoPoint location, GeoVector directionX, GeoVector directionZ)
         {
             GeoVector directionY = directionZ ^ directionX;

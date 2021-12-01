@@ -50,7 +50,7 @@ namespace CADability.Forms
             tabControl.ItemSize = new Size(27, 21);
             tabControl.DrawItem += tabControl_DrawItem;
             tabControl.ShowToolTips = true;
-            
+
             Controls.Add(tabControl);
             Controls.Add(listBox);
             Controls.Add(textBox);
@@ -168,6 +168,7 @@ namespace CADability.Forms
 
         #region textBox
         TextBox textBox; // there is only one TextBox for editing labels or values. It is normally hidden and moved, filled and activated when needed
+        bool endEidtCalled;
         public void ShowTextBox(Rectangle screenLocation, string initialText, IPropertyEntry sender, Point screenClickPos)
         {
             if (EntryWithTextBox != null) EntryWithTextBox.EndEdit(true, textBox.Modified, textBox.Text);
@@ -185,7 +186,7 @@ namespace CADability.Forms
             int charindex = textBox.GetCharIndexFromPosition(new Point(clickPos.X + charWidth / 2, clickPos.Y));
             if (clickPos.X > lastCharPos.X + charWidth)
             {   // clicked behind the last character: select all
-               textBox.SelectAll();
+                textBox.SelectAll();
             }
             else
             {   // clicked somewhere inside the text
@@ -283,12 +284,16 @@ namespace CADability.Forms
 
         public IPropertyPage AddPropertyPage(string titleId, int iconId)
         {
-            PropertyPage res = new PropertyPage(titleId, iconId);
+            PropertyPage res = new PropertyPage(titleId, iconId, this);
+			res.Dock = DockStyle.Fill;
+			TabPage tp = new TabPage();
+			tp.Controls.Add(res);
             tabPages.Add(res);
-            tabControl.TabPages.Add(res);
+            tabControl.TabPages.Add(tp);
             res.Frame = Frame;
-            res.ImageIndex = iconId;
-            res.ToolTipText = StringTable.GetString(titleId);
+			tp.Text = StringTable.GetString(titleId);
+			tp.ImageIndex = iconId;
+			tp.ToolTipText = StringTable.GetString(titleId);
 
             return res;
         }
@@ -296,7 +301,11 @@ namespace CADability.Forms
         {
             get
             {
-                PropertyPage selected = tabControl.SelectedTab as PropertyPage;
+				PropertyPage selected = null;
+				if (tabControl.SelectedIndex >= 0)
+				{
+					selected = tabPages[tabControl.SelectedIndex];
+				}
                 return selected;
             }
         }

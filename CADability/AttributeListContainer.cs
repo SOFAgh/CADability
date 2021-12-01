@@ -58,7 +58,7 @@ namespace CADability.Attribute
 
 
     /// <summary>
-    /// static Funktions to manage IAttributeListContainer and IAttributeList objects
+    /// static functions to manage IAttributeListContainer and IAttributeList objects
     /// </summary>
 
     public class AttributeListContainer
@@ -91,7 +91,7 @@ namespace CADability.Attribute
                         toAdd = new LayerList();
                         break;
                     case "HatchStyleList":
-                        toAdd = new LayerList();
+                        toAdd = new HatchStyleList();
                         break;
                     case "DimensionStyleList":
                         toAdd = new DimensionStyleList();

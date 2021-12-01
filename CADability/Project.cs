@@ -1804,14 +1804,16 @@ namespace CADability
                 case "stp":
                     ImportStep importStep = new ImportStep();
                     GeoObjectList list = importStep.Read(FileName);
-                    Project res = Project.CreateSimpleProject();
+                    Project project = Project.CreateSimpleProject();
                     foreach (IGeoObject go in list)
                     {
-                        AttributeListContainer.UpdateObjectAttrinutes(res, go);
-                        go.UpdateAttributes(res);
+                        if (go is IColorDef icd && icd.ColorDef == null) icd.ColorDef = project.ColorList.CreateOrFind("Standard", Color.Red);
+                        if (go.Layer == null) go.Layer = project.LayerList.CreateOrFind("Standard");
+                        AttributeListContainer.UpdateObjectAttrinutes(project, go);
+                        go.UpdateAttributes(project);
                     }
-                    res.GetActiveModel().Add(list);
-                    return res;
+                    project.GetActiveModel().Add(list);
+                    return project;
                 case "brep":
                     break;
                 case "stl":

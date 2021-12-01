@@ -657,7 +657,21 @@ namespace CADability.GeoObject
                                     break;
                                 }
                             }
-                            if (!found) return null; // loop is not connected logically
+                            if (!found)
+                            {   // it should be connected, maybe a precision issue about the vertices
+                                foreach (StepEdgeDescriptor item in loopcurves)
+                                {
+                                    //item.createdEdges[0].UseVertices(loops[i][j].vertex1, loops[i][j].vertex2);
+                                    if ((item.forward && (item.vertex1.Position | lastVertex.Position)< minCurveLength*1e-5) || (!item.forward && (item.vertex2.Position | lastVertex.Position)< minCurveLength*1e-5))
+                                    {
+                                        loops[i].Add(item);
+                                        loopcurves.Remove(item);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) return null; // loop is not connected logically
+                            }
                         }
                     }
                 }

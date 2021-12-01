@@ -3292,8 +3292,13 @@ namespace CADability.GeoObject
             {
                 ext.MinMax(this.GetProjectedCurve(orientedCurves[i], 0.0).GetExtent());
             }
+            if (ext.Height<vSpan*1e-6)
+            {
+                ext.Bottom -= vSpan * 1e-4;
+                ext.Top += vSpan * 1e-4;
+            }
             BoundingRect ext1 = ext;
-            ext1.InflateRelative(1.001);
+            ext1.InflateRelative(1.01);
             bool ok = false; // when there are poles, we only need to make it non-periodic, when the pole is inside the extent
             double[] us = GetUSingularities();
             double[] vs = GetVSingularities();

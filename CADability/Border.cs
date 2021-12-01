@@ -3566,7 +3566,7 @@ namespace CADability.Shapes
                     GeoPoint2D res = l2d.PointAt(p);
                     if (GetPosition(res) == Position.Inside) return res;
                 }
-                if (area < Precision.eps) throw new BorderException("no inner point", BorderException.BorderExceptionType.General);
+                if (Area < Precision.eps) throw new BorderException("no inner point", BorderException.BorderExceptionType.General);
                 while (true)
                 {
                     Random rnd = new Random();

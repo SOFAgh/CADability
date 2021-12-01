@@ -258,10 +258,12 @@ namespace CADability
         }
         public static bool SameAxis(Axis a1, Axis a2)
         {
-            return IsPointOnLine(a1.Location, a2.Location, a2.Location + a2.Direction) && SameDirection(a1.Direction, a2.Direction, false);
+            return Geometry.DistPL(a1.Location,a2)<eps && Geometry.DistPL(a2.Location, a1) < eps && SameDirection(a1.Direction, a2.Direction, false);
+            // IsPointOnLine only checks in between start- and endpoint
+            //return IsPointOnLine(a1.Location, a2.Location, a2.Location + a2.Direction) && SameDirection(a1.Direction, a2.Direction, false);
         }
         /// <summary>
-        /// Determins, whether the given vector is in the given plane
+        /// Determines, whether the given vector is in the given plane
         /// </summary>
         /// <param name="dir">The direction</param>
         /// <param name="pl">The plane</param>

@@ -16,7 +16,7 @@ namespace CADability.Forms
      * Klick auf "TreeViewButton" geht an IPropertyPage
     */
 
-    public class PropertyPage : TabPage, IPropertyPage
+    public class PropertyPage : ScrollableControl, IPropertyPage
     {
         List<IPropertyEntry> rootProperties; // a list of all root entries (not including the subentries of opened entries)
         public string TitleId { get; }
@@ -30,13 +30,12 @@ namespace CADability.Forms
         private string currentToolTip;
         private bool dragMiddlePosition = false;  // true, when the user moves the middle position (between label and value) with the pressed mouse button
         private Timer delay;
+		private PropertiesExplorer propertiesExplorer;
 
-        public PropertyPage(string titleId, int iconId)
+        public PropertyPage(string titleId, int iconId, PropertiesExplorer propExplorer)
         {
             TitleId = titleId;
             IconId = iconId;
-            base.Text = StringTable.GetString(titleId);
-            base.ImageIndex = iconId;
 
             AutoScroll = true;
             //Font = new Font(Font.FontFamily, 20);
@@ -51,6 +50,7 @@ namespace CADability.Forms
             UpdateStyles();
             toolTip = new ToolTip();
             toolTip.InitialDelay = 500;
+			propertiesExplorer = propExplorer;
         }
         private Rectangle ItemArea(int index)
         {
@@ -330,7 +330,6 @@ namespace CADability.Forms
                 HideToolTip();
             }
             bool showLabelExtension = false;
-            PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
             switch (position)
             {
                 case EMousePos.onCancelButton:
@@ -345,7 +344,7 @@ namespace CADability.Forms
                     else Cursor = Cursors.Arrow;
                     if (labelNeedsExtension[index])
                     {
-                        pe.ShowLabelExtension(RectangleToScreen(IndentedItemArea(index)), entries[index].Label, entries[index]);
+						propertiesExplorer.ShowLabelExtension(RectangleToScreen(IndentedItemArea(index)), entries[index].Label, entries[index]);
                         showLabelExtension = true;
                     }
                     break;
@@ -360,7 +359,7 @@ namespace CADability.Forms
                     Cursor = Cursors.Arrow;
                     break;
             }
-            if (!showLabelExtension && pe.EntryWithLabelExtension != null) pe.HideLabelExtension();
+            if (!showLabelExtension && propertiesExplorer.EntryWithLabelExtension != null) propertiesExplorer.HideLabelExtension();
         }
 
         private void DelayShowToolTip(string toDisplay, Point mp)
@@ -427,7 +426,6 @@ namespace CADability.Forms
                     break;
                 case EMousePos.onDropDownButton:
                     {
-                        PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
                         ShowDropDown(index);
                     }
                     break;
@@ -450,8 +448,7 @@ namespace CADability.Forms
                     if (selected == index && entries[index].Flags.HasFlag(PropertyEntryType.LabelEditable))
                     {
                         SelectedIndex = index;
-                        PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
-                        if (pe.EntryWithTextBox == entries[index]) pe.HideTextBox(); // there is a textbox open for the value
+                        if (propertiesExplorer.EntryWithTextBox == entries[index]) propertiesExplorer.HideTextBox(); // there is a textbox open for the value
                         ShowTextBox(index, e.Location, false);
                     }
                     else
@@ -481,19 +478,17 @@ namespace CADability.Forms
         }
         private void ShowTextBox(int index, Point location, bool showValue)
         {
-            PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
-            if (pe.EntryWithTextBox == entries[index]) return; // is already shown (maybe this is beeing called twice)
+            if (propertiesExplorer.EntryWithTextBox == entries[index]) return; // is already shown (maybe this is beeing called twice)
             entries[index].StartEdit(showValue);
-            if (showValue) pe.ShowTextBox(RectangleToScreen(ValueArea(index)), entries[index].Value, entries[index], PointToScreen(location));
-            else pe.ShowTextBox(RectangleToScreen(LabelArea(index)), entries[index].Label, entries[index], PointToScreen(location));
+            if (showValue) propertiesExplorer.ShowTextBox(RectangleToScreen(ValueArea(index)), entries[index].Value, entries[index], PointToScreen(location));
+            else propertiesExplorer.ShowTextBox(RectangleToScreen(LabelArea(index)), entries[index].Label, entries[index], PointToScreen(location));
         }
         private void ShowDropDown(int index)
         {
-            PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
-            if (pe.EntryWithListBox == entries[index])
+            if (propertiesExplorer.EntryWithListBox == entries[index])
             {
                 // is already shown
-                pe.HideListBox();
+				propertiesExplorer.HideListBox();
             }
             else
             {
@@ -508,7 +503,7 @@ namespace CADability.Forms
                         break;
                     }
                 }
-                pe.ShowListBox(RectangleToScreen(ValueArea(index)), dropDownList, selind, entries[index]);
+				propertiesExplorer.ShowListBox(RectangleToScreen(ValueArea(index)), dropDownList, selind, entries[index]);
             }
         }
         private void OpenOrCloseSubEntries(int index)
@@ -563,7 +558,7 @@ namespace CADability.Forms
         {
             if (rootProperties.Count > toRemove.Index)
             {
-                if (selected >= 0 && selected < entries.Length) (Parent.Parent as PropertiesExplorer).UnSelected(entries[selected]); // to close the textbox (if any) and call EndEdit
+                if (selected >= 0 && selected < entries.Length) propertiesExplorer.UnSelected(entries[selected]); // to close the textbox (if any) and call EndEdit
                 rootProperties.RemoveAt(toRemove.Index);
                 RefreshEntries(-1, 0);
                 Invalidate();
@@ -617,7 +612,7 @@ namespace CADability.Forms
             List<IPropertyEntry> lentries = new List<IPropertyEntry>(entries);
             for (int i = lentries.Count - 1; i >= 0; --i)
             {
-                if ((Parent.Parent as PropertiesExplorer).isHidden(lentries[i].ResourceId)) lentries.RemoveAt(i);
+                if (propertiesExplorer.isHidden(lentries[i].ResourceId)) lentries.RemoveAt(i);
             }
             this.entries = lentries.ToArray();
             labelNeedsExtension = new bool[entries.Length]; // all set to false
@@ -633,7 +628,7 @@ namespace CADability.Forms
         public void Refresh(IPropertyEntry toRefresh)
         {
             int index = FindEntry(toRefresh);
-            (Parent.Parent as PropertiesExplorer).Refresh(toRefresh);
+            propertiesExplorer.Refresh(toRefresh);
             if (index >= 0)
             {
                 Refresh(index);
@@ -712,7 +707,7 @@ namespace CADability.Forms
                 if (wasSelected >= 0 && wasSelected < entries.Length)
                 {
                     entries[wasSelected].UnSelected(selected >= 0 ? entries[selected] : null);
-                    (Parent.Parent as PropertiesExplorer).UnSelected(entries[wasSelected]);
+                    propertiesExplorer.UnSelected(entries[wasSelected]);
                     Refresh(wasSelected);
                 }
                 if (selected >= 0 && selected < entries.Length)
@@ -730,7 +725,7 @@ namespace CADability.Forms
                     {
                         ShowDropDown(selected);
                     }
-                    (Parent.Parent as PropertiesExplorer).Selected(entries[selected]);
+                    propertiesExplorer.Selected(entries[selected]);
                 }
             }
         }
@@ -797,8 +792,7 @@ namespace CADability.Forms
         public void SelectEntry(IPropertyEntry toSelect)
         {
             if (toSelect == null) return;
-            PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
-            if (pe != null) pe.ShowPropertyPage(this.TitleId);
+            propertiesExplorer.ShowPropertyPage(this.TitleId);
             (this as IPropertyPage).Selected = toSelect;
             // the following is not needed, it is part of ".Selected = toSelect"
             //if (toSelect == (this as IPropertyPage).Selected && !toSelect.Flags.HasFlag(PropertyEntryType.LabelEditable))
@@ -853,11 +847,10 @@ namespace CADability.Forms
         public void StartEditLabel(IPropertyEntry ToEdit)
         {
             int index = FindEntry(ToEdit);
-            PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
-            if (pe.EntryWithTextBox == entries[index]) return; // is already shown (maybe this is beeing called twice)
+            if (propertiesExplorer.EntryWithTextBox == entries[index]) return; // is already shown (maybe this is beeing called twice)
             entries[index].StartEdit(false);
             Rectangle labelRect = LabelArea(index);
-            pe.ShowTextBox(RectangleToScreen(labelRect), entries[index].Label, entries[index], PointToScreen(new Point(labelRect.Right, labelRect.Top)));
+			propertiesExplorer.ShowTextBox(RectangleToScreen(labelRect), entries[index].Label, entries[index], PointToScreen(new Point(labelRect.Right, labelRect.Top)));
         }
 
         #region quick adaption to IPropertyTreeView, remove later
@@ -876,8 +869,7 @@ namespace CADability.Forms
         }
         public bool IsOnTop()
         {
-            PropertiesExplorer pe = Parent.Parent as PropertiesExplorer;
-            return pe.ActivePropertyPage == this;
+            return propertiesExplorer.ActivePropertyPage == this;
         }
         #endregion
 
