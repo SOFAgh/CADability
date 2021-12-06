@@ -7177,7 +7177,20 @@ namespace CADability.Actions
                     StateChangedEvent(this, new StateChangedArgs(StateChangedArgs.State.CollapseSubEntries));
             }
         }
-        PropertyEntryType IPropertyEntry.Flags => PropertyEntryType.Selectable | PropertyEntryType.OKButton | PropertyEntryType.CancelButton | PropertyEntryType.HasSubEntries;
+		public bool HideButtons { get; set; } = false;
+		PropertyEntryType IPropertyEntry.Flags
+		{
+			get
+			{
+				PropertyEntryType flags = PropertyEntryType.Selectable | PropertyEntryType.HasSubEntries;
+				if(!HideButtons)
+				{
+					flags |= PropertyEntryType.OKButton | PropertyEntryType.CancelButton;
+				}
+
+				return flags;
+			}
+		}
         bool IPropertyEntry.ReadOnly { get; set; }
         string IPropertyEntry.Label => StringTable.GetString(TitleId + ".Label");
         string IPropertyEntry.Value => null;
