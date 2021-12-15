@@ -68,19 +68,22 @@ namespace CADability.Forms
             entriesToHide = new HashSet<string>();
         }
 
-        private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (EntryWithTextBox != null && !ActivePropertyPage.ContainsEntry(EntryWithTextBox))
-            {
-                EntryWithTextBox.EndEdit(true, textBox.Modified, textBox.Text);
-                HideTextBox();
-            }
-            if (EntryWithListBox != null && !ActivePropertyPage.ContainsEntry(EntryWithTextBox))
-            {
-                HideListBox();
-            }
-            ActivePropertyPage.SelectEntry(ActivePropertyPage.GetCurrentSelection()); // this shows the text-box or list-box
-        }
+		private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (ActivePropertyPage != null) //Can be null if the selected tab is not a PropertyPage.
+			{
+				if (EntryWithTextBox != null && !ActivePropertyPage.ContainsEntry(EntryWithTextBox))
+				{
+					EntryWithTextBox.EndEdit(true, textBox.Modified, textBox.Text);
+					HideTextBox();
+				}
+				if (EntryWithListBox != null && !ActivePropertyPage.ContainsEntry(EntryWithTextBox))
+				{
+					HideListBox();
+				}
+				ActivePropertyPage.SelectEntry(ActivePropertyPage.GetCurrentSelection()); // this shows the text-box or list-box
+			}
+		}
         private static PropertyPage GetPropertyPage(IPropertyEntry propertyEntry)
         {
             IPropertyEntry pe = propertyEntry;
@@ -281,35 +284,43 @@ namespace CADability.Forms
             }
             catch (ArgumentException) { }
         }
-
-        public IPropertyPage AddPropertyPage(string titleId, int iconId)
-        {
-            PropertyPage res = new PropertyPage(titleId, iconId, this);
+		public IPropertyPage AddPropertyPage(string titleId, int iconId)
+		{
+			PropertyPage res = new PropertyPage(titleId, iconId, this);
+			tabPages.Add(res);
 			res.Dock = DockStyle.Fill;
+			res.Frame = Frame;
 			TabPage tp = new TabPage();
 			tp.Controls.Add(res);
-            tabPages.Add(res);
-            tabControl.TabPages.Add(tp);
-            res.Frame = Frame;
-            tp.Text = StringTable.GetString(titleId + "TabPage");
+			tabControl.TabPages.Add(tp);
+			tp.Text = StringTable.GetString(titleId);
 			tp.ImageIndex = iconId;
-			tp.ToolTipText = StringTable.GetString(titleId + "TabPage", StringTable.Category.tip);
+			tp.ToolTipText = StringTable.GetString(titleId);
+			tp.Tag = res;
 
-            return res;
-        }
-        public IPropertyPage ActivePropertyPage
-        {
-            get
-            {
-				PropertyPage selected = null;
-				if (tabControl.SelectedIndex >= 0)
+			return res;
+		}
+		public void AddTabPage(TabPage tp)
+		{
+			tabControl.TabPages.Add(tp);
+		}
+		public IPropertyPage ActivePropertyPage
+		{
+			get
+			{
+				IPropertyPage selected = null;
+				if (tabControl.SelectedTab != null)
 				{
-					selected = tabPages[tabControl.SelectedIndex];
+					selected = tabControl.SelectedTab.Tag as IPropertyPage;
 				}
-                return selected;
-            }
-        }
-        public bool SelectNextEntry(bool forward)
+				return selected;
+			}
+		}
+		public TabPage ActiveTabPage
+		{
+			get { return tabControl.SelectedTab; }
+		}
+		public bool SelectNextEntry(bool forward)
         {
             PropertyPage sel = ActivePropertyPage as PropertyPage;
             if (sel != null)
@@ -432,9 +443,9 @@ namespace CADability.Forms
                         EntryWithListBox.ListBoxSelected(listBox.SelectedIndex);
                         HideListBox();
                     }
-                    else
+                    else if(ActivePropertyPage is PropertyPage pp)
                     {
-                        (ActivePropertyPage as PropertyPage).OnEnter();
+                        pp.OnEnter();
                     }
                     e.Handled = true;
                     break;
