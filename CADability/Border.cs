@@ -5,6 +5,7 @@ using CADability.GeoObject;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading;
 using Wintellect.PowerCollections;
@@ -1151,13 +1152,13 @@ namespace CADability.Shapes
             // they make problems in BorderOperation since the position of the start/endpoint 0.0 ad 1.0 is ambiguous
             if (segment.Length == 1)
             {
-                ICurve2D orgSegment = segment[0].Clone();                
+                ICurve2D orgSegment = segment[0].Clone();
                 Segments = segment[0].Split(0.5);
 
                 //Save the userdata to the splitted
                 foreach (ICurve2D item in Segments)
                     item.UserData.Add(orgSegment.UserData);
-                                
+
                 Recalc(out _);
                 UnsplittedOutline = orgSegment;
             }
@@ -2053,6 +2054,56 @@ namespace CADability.Shapes
             return (Border[])res.ToArray(typeof(Border));
         }
         /// <summary>
+        /// Splits the border into parts according to <paramref name="positions"/>. 
+        /// </summary>
+        /// <param name="positions"></param>
+        /// <returns></returns>
+        private List<List<ICurve2D>> SplitCyclical(double[] positions)
+        {
+            List<List<ICurve2D>> res = new List<List<ICurve2D>>();
+            for (int i = 0; i < positions.Length; i++)
+            {
+                double startPos = positions[i];
+                double endPos = positions[(i + 1) % positions.Length];
+                int startIndex = (int)Math.Floor(startPos);
+                int endIndex = (int)Math.Floor(endPos);
+                if (startIndex == endIndex)
+                {
+                    if (startPos > endPos) endIndex += segment.Length; // crossing 0
+                }
+                else if (endIndex < startIndex) endIndex += segment.Length; // crossing 0
+                List<ICurve2D> part = new List<ICurve2D>();
+                startPos -= Math.Floor(startPos);
+                endPos -= Math.Floor(endPos);
+                for (int j = startIndex; j <= endIndex; j++)
+                {
+                    int index = j % segment.Length;
+                    ICurve2D seg = segment[index];
+                    if (j == startIndex && j == endIndex)
+                    {
+                        ICurve2D trimmed = seg.Trim(startPos, endPos);
+                        if (trimmed != null) part.Add(trimmed);
+                    }
+                    else if (j == startIndex)
+                    {
+                        ICurve2D trimmed = seg.Trim(startPos, 1.0);
+                        if (trimmed != null) part.Add(trimmed);
+                    }
+                    else if (j == endIndex)
+                    {
+                        ICurve2D trimmed = seg.Trim(0.0, endPos);
+                        if (trimmed != null) part.Add(trimmed);
+                    }
+                    else
+                    {
+                        part.Add(seg.Clone());
+                    }
+                }
+                res.Add(part);
+            }
+            return res;
+        }
+        /// <summary>
         /// Identisch mit Split weiter oben, jedoch werden die Punkte noch nachgebessert durch die gegebenen GeoPoint2D
         /// </summary>
         /// <param name="Parameter"></param>
@@ -2155,33 +2206,30 @@ namespace CADability.Shapes
             return (Border[])res.ToArray(typeof(Border));
         }
         /// <summary>
-        /// Liefert den Parameter des Punktes p auf den Bahnkurven des Borders. Für jede
-        /// Kurve durchläuft der Parameter Werte von 0.0 (Startpunkt) bis 1.0 (Endpunkt)
-        /// Das Ergebnis dieser Methode ist dieser Parameter + Index der betreffenden Kurve.
+        /// Returns the position of this point on the border.
+        /// The position is the index of the closest segment plus the position on this segment
         /// </summary>
-        /// <param name="p">Punkt, zu dem der Parameter gesucht ist, muss auf dem Rand liegen</param>
-        /// <returns>der Parameter</returns>
+        /// <param name="p">the point for which the position is returned</param>
+        /// <returns>the position between 0 and the number of segments</returns>
         public double GetParameter(GeoPoint2D p)
         {
-            throw new System.NotImplementedException();
-            //			if (segmentToIndex==null) CreateSegmentToIndexMap();
-            //			double precision = (extent.Width+extent.Height)*1e-8;
-            //			ICollection cl = quadTree.GetObjectsFromRect(new BoundingRect(p,precision,precision));
-            //			double dmin = double.MaxValue;
-            //			double posfound = -1.0;
-            //			foreach (ICurve2D curve in cl)
-            //			{
-            //				double d = curve.Distance(p);
-            //				if (d<precision && d<dmin) 
-            //				{
-            //					double pos = curve.PositionOf(p);
-            //					dmin = d;
-            //					int index = (int)segmentToIndex[curve];
-            //					posfound = index + pos; // keine Überprüfung auf 0.0 bis 1.0, der Kurvenabstand genügt
-            //				}
-            //			}
-            //			if (posfound!=-1.0) return posfound;
-            //			throw new BorderException("Border.GetParameter: point not on Border",BorderException.BorderExceptionType.PointNotOnBorder);
+            double mindist = double.MaxValue;
+            double res = double.MaxValue;
+            for (int i = 0; i < segment.Length; i++)
+            {
+                double d = segment[i].MinDistance(p);
+                if (d < mindist)
+                {
+                    double pos = segment[i].PositionOf(p);
+                    if (segment[i].IsParameterOnCurve(pos))
+                    {
+                        mindist = d;
+                        res = i + pos;
+                    }
+                }
+            }
+            if (res != double.MaxValue) return res;
+            throw new BorderException("Border.GetParameter: point not on Border", BorderException.BorderExceptionType.PointNotOnBorder);
         }
         public GeoPoint2D PointAt(double par)
         {
@@ -4119,6 +4167,307 @@ namespace CADability.Shapes
             }
             return new Border(segments);
         }
+        /// <summary>
+        /// Returns the convex hull of this Border
+        /// </summary>
+        /// <returns></returns>
+        public Border ConvexHull()
+        {
+            Border clone = this.Clone();
+            clone.flatten(); // to avoid polyLines
+            List<ICurve2D> segments = new List<ICurve2D>(clone.Segments);
+            // we cannot have segments with inflection points for the following algorithm, so we split those segments
+            for (int i = segments.Count - 1; i >= 0; --i)
+            {
+                double[] infl = segments[i].GetInflectionPoints();
+                if (infl != null && infl.Length > 0)
+                {
+                    Array.Sort(infl);
+                    double lastPos = 1.0;
+                    for (int j = infl.Length - 1; j >= 0; --j)
+                    {
+                        ICurve2D part = segments[i].Trim(infl[j], lastPos);
+                        if (part != null) segments.Insert(i + 1, part);
+                        lastPos = infl[j];
+                    }
+                    segments[i] = segments[i].Trim(0, infl[0]);
+                }
+            }
+            // 1. remove segments, which are an inner bulge
+            for (int i = 0; i < segments.Count; i++)
+            {
+                if (segments[i].Sweep < 0)
+                {
+                    segments[i] = new Line2D(segments[i].StartPoint, segments[i].EndPoint);
+                }
+            }
+            bool found = false;
+            do
+            {
+                found = false;
+                // 2. from segments, which represent an outer bulge 
+                for (int i = 0; i < segments.Count; i++)
+                {
+                    if (segments[i].Sweep > 0)
+                    {   // this is some kind of a bulge to the outside
+                        // find objects which lie to the right of the beam [startPoint,startDirection] or [endPoint,endDirection]
+                        double endPos = 1.0; // minimal position of segments that touch the beam [pointAt(endPos), directionAt(endPos)] in the forward direction
+                        int endSegment = -1; // the segment to endPos
+                        double onEndSegment = 0.0; // the position on the endSegment
+                        double startPos = 0.0;
+                        int startSegment = -1;
+                        double onStartSegment = 0.0;
+                        for (int j = 0; j < segments.Count; j++)
+                        {
+                            if (i == j) continue;
+                            if (!Geometry.OnLeftSide(segments[j].StartPoint, segments[i].EndPoint, segments[i].EndDirection) ||
+                                !Geometry.OnLeftSide(segments[j].StartPoint, segments[i].StartPoint, segments[i].StartDirection))
+                            {   // check the startPoint of segment j (the endpoint is not checked, since it is the startpoint of j+1)
+                                GeoPoint2D[] tps = segments[i].TangentPoints(segments[j].StartPoint, segments[i].PointAt(0.5));
+                                for (int k = 0; k < tps.Length; k++)
+                                {
+                                    double pos = segments[i].PositionOf(tps[k]);
+                                    if (pos > 1e-6 && pos < 1 - 1e-6)
+                                    {
+                                        GeoVector2D dir = segments[i].DirectionAt(pos);
+                                        double lpos = Geometry.LinePar(tps[k], dir, segments[j].StartPoint);
+                                        if (lpos > 0)
+                                        {
+                                            if (pos < endPos)
+                                            {
+                                                endPos = pos;
+                                                endSegment = j;
+                                                onEndSegment = 0.0; // startpoint of segment j
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (pos > startPos)
+                                            {
+                                                startPos = pos;
+                                                startSegment = j;
+                                                onStartSegment = 0.0;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (!(segments[j] is Line2D))
+                            {   // if segment j is not a line, try to find a tangent line between segment i and segment j
+                                // to enhance performance we could check, whether segments[j] is party to the right side of the two beams, don't know what is faster
+                                GeoPoint2D[] tps = Curves2D.TangentLines(segments[i], segments[j]);
+                                for (int k = 0; k < tps.Length; k += 2)
+                                {
+                                    double pos = segments[i].PositionOf(tps[k]);
+                                    if (pos > 0 && pos < 1)
+                                    {
+                                        double posj = segments[j].PositionOf(tps[k + 1]);
+                                        if (posj > 0 && posj < 1)
+                                        {
+                                            GeoVector2D dir = segments[i].DirectionAt(pos);
+                                            double lpos = Geometry.LinePar(tps[k], dir, tps[k + 1]);
+                                            if (lpos > 0)
+                                            {
+                                                if (pos < endPos)
+                                                {
+                                                    endPos = pos;
+                                                    endSegment = j;
+                                                    onEndSegment = posj; // startpoint of segment j
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (pos > startPos)
+                                                {
+                                                    startPos = pos;
+                                                    startSegment = j;
+                                                    onStartSegment = posj;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (startSegment >= 0)
+                        {
+                            GeoPoint2D sp = segments[startSegment].PointAt(onStartSegment);
+                            GeoPoint2D ep = segments[i].PointAt(startPos);
+                            for (int ii = 0; ii < segments.Count; ii++)
+                            {
+                                int nn = (startSegment + ii) % segments.Count;
+                                if (nn == i) break;
+                                if (Geometry.DistPL(segments[nn].EndPoint, ep, sp) > Precision.eps)
+                                {   // there is a vertex between startSegment and current segment (i, segment with bulge to the outside) which is on the right side of the new line
+                                    startSegment = -1; // startSegment is not valid
+                                    break;
+                                }
+                            }
+                        }
+                        if (endSegment >= 0)
+                        {
+                            GeoPoint2D sp = segments[i].PointAt(endPos);
+                            GeoPoint2D ep = segments[endSegment].PointAt(onEndSegment);
+                            for (int ii = 0; ii < segments.Count; ii++)
+                            {
+                                int nn = (i + ii) % segments.Count;
+                                if (nn == endSegment) break;
+                                if (Geometry.DistPL(segments[nn].EndPoint, ep, sp) > Precision.eps)
+                                {   // there is a vertex between startSegment and current segment (i, segment with bulge to the outside) which is on the right side of the new line
+                                    endSegment = -1; // startSegment is not valid
+                                    break;
+                                }
+                            }
+                        }
+                        if (endSegment >= 0 && startSegment >= 0)
+                        {
+                            if (endPos > startPos)
+                            {
+                                // the segment j is a bulge which has two tangents. We need the inner part of segment j and the part of the border from onEndSegment to onStartSegment
+                                // and the two tangents to make a new Border
+                                // Make a border from the segments, split it at 4 positions, take the first and third part plus the two tangents and make a new segment array
+                                Border tmp = new Border(segments.ToArray());
+                                double[] positions = new double[4];
+                                positions[0] = tmp.GetParameter(segments[i].PointAt(endPos));
+                                positions[1] = tmp.GetParameter(segments[endSegment].PointAt(onEndSegment));
+                                positions[2] = tmp.GetParameter(segments[startSegment].PointAt(onStartSegment));
+                                positions[3] = tmp.GetParameter(segments[i].PointAt(startPos));
+                                List<List<ICurve2D>> parts = tmp.SplitCyclical(positions);
+                                if (parts.Count == 4)
+                                {
+                                    segments.Clear();
+                                    segments.AddRange(parts[1]);
+                                    segments.Add(new Line2D(parts[1].Last().EndPoint, parts[3].First().StartPoint));
+                                    segments.AddRange(parts[3]);
+                                    segments.Add(new Line2D(parts[3].Last().EndPoint, parts[1].First().StartPoint));
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        else if (endSegment >= 0)
+                        {
+                            Border tmp = new Border(segments.ToArray());
+                            double[] positions = new double[2];
+                            positions[0] = tmp.GetParameter(segments[i].PointAt(endPos));
+                            positions[1] = tmp.GetParameter(segments[endSegment].PointAt(onEndSegment));
+                            List<List<ICurve2D>> parts = tmp.SplitCyclical(positions);
+                            if (parts.Count == 2)
+                            {
+                                segments.Clear();
+                                segments.AddRange(parts[1]);
+                                segments.Add(new Line2D(parts[1].Last().EndPoint, parts[1].First().StartPoint));
+                                found = true;
+                                break;
+                            }
+                        }
+                        else if (startSegment >= 0)
+                        {
+                            GeoPoint2D sp = segments[startSegment].PointAt(onStartSegment);
+                            GeoPoint2D ep = segments[i].PointAt(startPos);
+                            Border tmp = new Border(segments.ToArray());
+                            double[] positions = new double[2];
+                            positions[0] = tmp.GetParameter(segments[startSegment].PointAt(onStartSegment));
+                            positions[1] = tmp.GetParameter(segments[i].PointAt(startPos));
+                            List<List<ICurve2D>> parts = tmp.SplitCyclical(positions);
+                            if (parts.Count == 2)
+                            {
+                                segments.Clear();
+                                segments.AddRange(parts[1]);
+                                segments.Add(new Line2D(parts[1].Last().EndPoint, parts[1].First().StartPoint));
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } while (found);
+            do
+            {   // now remove all line pairs which have include concave angle
+                found = false;
+                for (int seg1 = 0; seg1 < segments.Count; seg1++)
+                {
+                    int seg2 = (seg1 + 1) % segments.Count;
+                    if (segments[seg1] is Line2D && segments[seg2] is Line2D)
+                    {
+                        if (new SweepAngle(segments[seg1].EndDirection, segments[seg2].StartDirection) < 0)
+                        {
+                            segments[seg1] = new Line2D(segments[seg1].StartPoint, segments[seg2].EndPoint);
+                            segments.RemoveAt(seg2);
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            } while (found);
+            return new Border(segments.ToArray());
+        }
+        /// <summary>
+        /// Finds the rectangle with the smallest area enclosing this Border.
+        /// </summary>
+        /// <param name="fixPoint">Point of the rectangle</param>
+        /// <param name="basisDir">Direction from <paramref name="fixPoint"/> specifying the basis of the rectangle</param>
+        /// <param name="height">Height of the rectangle (to the left of <paramref name="basisDir"/>)</param>
+        public void SmallestEnclosingRectangle(out GeoPoint2D fixPoint, out GeoVector2D basisDir, out double height)
+        {
+            Border ch = this.ConvexHull();
+            double minSize = double.MaxValue;
+            ModOp2D toMinSize = ModOp2D.Null;
+            BoundingRect ext = BoundingRect.EmptyBoundingRect;
+            for (int i = 0; i < ch.segment.Length; i++)
+            {
+                if (ch.segment[i] is Line2D l && l.Length > Precision.eps)
+                {
+                    ModOp2D m = ModOp2D.Fit(new GeoPoint2D[] { l.StartPoint, l.EndPoint }, new GeoPoint2D[] { GeoPoint2D.Origin, new GeoPoint2D(1, 0) }, false);
+                    BoundingRect br = ch.GetModified(m).Extent;
+                    double size = br.Size;
+                    if (size < minSize)
+                    {
+                        minSize = size;
+                        toMinSize = m;
+                        ext = br;
+                    }
+                }
+            }
+            if (toMinSize.IsNull)
+            {   // there are no lines in the convex hull, i.e. it is only convex arcs or curves, no idea how to find minimum rectangle except for iteration
+                ext = ch.Extent;
+                fixPoint = ext.GetLowerLeft();
+                basisDir = ext.Width * GeoVector2D.XAxis;
+                height = ext.Height;
+            }
+            else
+            {
+                ModOp2D mi = toMinSize.GetInverse();
+                fixPoint = mi * ext.GetLowerLeft();
+                basisDir = mi * (ext.Width * GeoVector2D.XAxis);
+                height = mi.Factor * ext.Height;
+            }
+        }
+        //private static double MaxDistance(ICurve2D curve1, ICurve2D curve2)
+        //{
+        //    double d1 = curve1.MinDistance()
+        //}
+        //public double SmallestEnclosingRectangle(out GeoPoint point, out GeoVector length, out GeoVector width)
+        //{
+        //    for (int j = 0; j < segment.Length; j++)
+        //    {
+        //        double maxdist = 0.0;
+        //        for (int i = j+1; i < segment.Length; i++)
+        //        {
+        //            segment[i]
+        //        }
+        //        GeoPoint2D p = segment[j].StartPoint;
+        //        double minDist = double.MaxValue;
+        //        for (int i = 0; i < segment.Length; ++i)
+        //        {
+        //            minDist = Math.Min(minDist, segment[i].MinDistance(p));
+        //        }
+
+        //    }
+        //    return minDist;
+
+        //}
     }
 
 

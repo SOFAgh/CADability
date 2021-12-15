@@ -6,6 +6,7 @@ using netDxf.Entities;
 using netDxf.Tables;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Net.WebSockets;
 using System.Text;
 
@@ -279,7 +280,25 @@ namespace CADability.DXF
         {
             if (go is IColorDef cd && cd.ColorDef != null)
             {
-                AciColor clr = AciColor.FromTrueColor(cd.ColorDef.Color.ToArgb());
+                AciColor clr;
+                if (cd.ColorDef.Color.ToArgb().Equals(Color.White.ToArgb()) || cd.ColorDef.Color.ToArgb().Equals(Color.Black.ToArgb()))
+                {
+                    clr = AciColor.Default;
+                }
+                else
+                {
+                    clr = AciColor.FromTrueColor(cd.ColorDef.Color.ToArgb());
+                    if (clr.Index > 0 && clr.Index < 256)
+                    {
+                        var indexColor = AciColor.FromCadIndex(clr.Index);
+                        if (indexColor.ToColor().ToArgb().Equals(cd.ColorDef.Color.ToArgb()))
+                        {
+                            // if the color matches the index color exactly
+                            // we don't need to use TruColor
+                            clr.UseTrueColor = false;
+                        }
+                    }
+                }
                 entity.Color = clr;
             }
             if (go.Layer != null)

@@ -1718,6 +1718,15 @@ namespace CADability.Curve2D
         {
             return interpol != null;
         }
+
+        virtual public void GetTriangulationPoints(out GeoPoint2D[] basisPoints, out GeoPoint2D[] vertices, out GeoVector2D[] directions, out double[] parameters)
+        {
+            if (interpol == null) MakeTringulation();
+            basisPoints = interpol.Clone() as GeoPoint2D[];
+            directions = interdir.Clone() as GeoVector2D[];
+            parameters = interparam.Clone() as double[];
+            vertices = tringulation.Clone() as GeoPoint2D[];
+        }
         private double FindInflectionPoint(GeoPoint2D sp, GeoPoint2D ep, GeoVector2D sdir, GeoVector2D edir, double spar, double epar)
         {
             GeoVector2D dir = ep - sp;
@@ -1765,7 +1774,7 @@ namespace CADability.Curve2D
             return (par1 + par2) / 2.0;
         }
 #if DEBUG
-        internal DebuggerContainer Debug
+        internal DebuggerContainer DebugTriangulation
         {
             get
             {
@@ -1784,7 +1793,7 @@ namespace CADability.Curve2D
                 return res;
             }
         }
-        public void DebugTriangulation()
+        public void DebugMakeTriangulation()
         {
             MakeTringulation();
         }
@@ -3277,7 +3286,7 @@ namespace CADability.Curve2D
             double eps = ext.Size * 1e-6;
             for (int i = 0; i < interpol.Length - 1; ++i)
             {   // also add points where the curve changes horizontal or vertical direction
-                if ((Math.Sign(interdir[i].x) != Math.Sign(interdir[i + 1].x)) && (Math.Abs(interdir[i].x)+ Math.Abs(interdir[i+1].x)>eps))
+                if ((Math.Sign(interdir[i].x) != Math.Sign(interdir[i + 1].x)) && (Math.Abs(interdir[i].x) + Math.Abs(interdir[i + 1].x) > eps))
                 {
                     if (BisectPerpendicular(interparam[i], interparam[i + 1], GeoVector2D.XAxis, out double par))
                     {

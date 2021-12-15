@@ -659,7 +659,7 @@ namespace CADability
 #if PARALLEL
             Parallel.ForEach(s2.Edges, (Edge edge) =>
 #else
-            foreach (Edge edge in s1.Edges)
+            foreach (Edge edge in s2.Edges)
 #endif
             {
                 if (edge.Curve3D != null && (checkAllFaces || !collisionDetected))
