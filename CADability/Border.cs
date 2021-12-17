@@ -4405,10 +4405,7 @@ namespace CADability.Shapes
         /// <summary>
         /// Finds the rectangle with the smallest area enclosing this Border.
         /// </summary>
-        /// <param name="fixPoint">Point of the rectangle</param>
-        /// <param name="basisDir">Direction from <paramref name="fixPoint"/> specifying the basis of the rectangle</param>
-        /// <param name="height">Height of the rectangle (to the left of <paramref name="basisDir"/>)</param>
-        public void SmallestEnclosingRectangle(out GeoPoint2D fixPoint, out GeoVector2D basisDir, out double height)
+        public SmallestEnclosingRect GetSmallestEnclosingRectangle()
         {
             Border ch = this.ConvexHull();
             double minSize = double.MaxValue;
@@ -4430,20 +4427,26 @@ namespace CADability.Shapes
                 }
             }
             if (toMinSize.IsNull)
-            {   // there are no lines in the convex hull, i.e. it is only convex arcs or curves, no idea how to find minimum rectangle except for iteration
+            {
+                // there are no lines in the convex hull, i.e. it is only convex arcs or curves, no idea how to find minimum rectangle except for iteration                
                 ext = ch.Extent;
-                fixPoint = ext.GetLowerLeft();
-                basisDir = ext.Width * GeoVector2D.XAxis;
-                height = ext.Height;
+                SmallestEnclosingRect sbr = new SmallestEnclosingRect(ext.GetLowerLeft(),
+                                                                      ext.Width * GeoVector2D.XAxis,
+                                                                      ext.Height,
+                                                                      ext.Width);
+                return sbr;
             }
             else
             {
                 ModOp2D mi = toMinSize.GetInverse();
-                fixPoint = mi * ext.GetLowerLeft();
-                basisDir = mi * (ext.Width * GeoVector2D.XAxis);
-                height = mi.Factor * ext.Height;
+                SmallestEnclosingRect sbr = new SmallestEnclosingRect(mi * ext.GetLowerLeft(),
+                                                                      mi * (ext.Width * GeoVector2D.XAxis),
+                                                                      mi.Factor * ext.Height,
+                                                                      mi.Factor * ext.Width);
+                return sbr;
             }
         }
+
         //private static double MaxDistance(ICurve2D curve1, ICurve2D curve2)
         //{
         //    double d1 = curve1.MinDistance()
@@ -4468,6 +4471,49 @@ namespace CADability.Shapes
         //    return minDist;
 
         //}
+    }
+
+    /// <summary>
+    /// Contains information about the smallest enclosing rect
+    /// </summary>
+    public readonly struct SmallestEnclosingRect
+    {
+        /// <summary>
+        /// Fill class with information about enclosing rect
+        /// </summary>
+        /// <param name="fixPoint">Fixpoint</param>
+        /// <param name="basisDir">Basis Direction</param>
+        /// <param name="height">Height</param>
+        /// <param name="width">Width</param>
+        internal SmallestEnclosingRect(GeoPoint2D fixPoint, GeoVector2D basisDir, double height, double width)
+        {
+            this.FixPoint = fixPoint;
+            this.BasisDir = basisDir;
+            this.Height = height;
+            this.Width = width;
+            this.Area = height * width;
+        }
+
+        /// <summary>
+        /// Fix point of the bounding rect (lower left)
+        /// </summary>
+        public GeoPoint2D FixPoint { get; }
+        /// <summary>
+        /// Basis direction
+        /// </summary>
+        public GeoVector2D BasisDir { get; }
+        /// <summary>
+        /// Height
+        /// </summary>
+        public double Height { get; }
+        /// <summary>
+        /// Width
+        /// </summary>
+        public double Width { get; }
+        /// <summary>
+        /// Area
+        /// </summary>
+        public double Area { get; }
     }
 
 
