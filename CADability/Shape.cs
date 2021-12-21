@@ -1226,7 +1226,7 @@ namespace CADability.Shapes
             return res;
         }
 
-        internal static Path2D ConnectPaths(Path2D outline, Path2D hole)
+        public static Path2D ConnectPaths(Path2D outline, Path2D hole)
         {
             GeoPoint2D p1, p2;
             Curves2D.SimpleMinimumDistance(outline, hole, out p1, out p2);
