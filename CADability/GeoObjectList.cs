@@ -505,16 +505,5 @@ namespace CADability.GeoObject
         {
             return list.GetEnumerator();            
         }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerable<ICurve> GetICurves()
-        {
-            foreach (IGeoObject geo in this)
-                if (geo is ICurve geoCruve)
-                    yield return geoCruve;
-        }
     }
 }
