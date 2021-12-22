@@ -496,7 +496,7 @@ namespace CADability
                     zoomTo = BoundingRect.Interpolate(animStartRect, middleRect, (0.5 - f) * 2.0);
                 else
                     zoomTo = BoundingRect.Interpolate(animEndRect, middleRect, (f - 0.5) * 2.0);
-                System.Diagnostics.Trace.WriteLine("ZoomTo: " + zoomTo.Left.ToString() + ", " + zoomTo.Right.ToString() + ", " + zoomTo.Bottom.ToString() + ", " + zoomTo.Top.ToString());
+                //System.Diagnostics.Trace.WriteLine("ZoomTo: " + zoomTo.Left.ToString() + ", " + zoomTo.Right.ToString() + ", " + zoomTo.Bottom.ToString() + ", " + zoomTo.Top.ToString());
             }
             else
             {

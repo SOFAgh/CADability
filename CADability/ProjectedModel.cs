@@ -547,28 +547,8 @@ namespace CADability
         }
         internal void RecalcAll(bool temporary)
         {
-            // Berechnen im Hintergrund:
-            // 1.9.06: Es funktioniert jetzt sicher, jedoch darf in der Hintergrundtask kein opencascade
-            // verwendet werden. Für HiddenLine ist das noch problematisch, denn dort wird Face.Split
-            // aufgerufen und das ruft seinerseits Surface.MakeCurve3D. Dieses ist aber bis jetzt nur in
-            // Spezialfällen implementiert, d.h. Surface.MakeCurve3D muss vollständig in CADability implementiert werden.
-            // Dazu muss aber zuerst ein NURBS Kurve aus Punkten und Tangenten implementiert werden
-            //bool recalcInBackground = DoBackgroundPaint && !projection.ShowFaces; // projection.ShowFaces heißt hidden line
-            //if (recalcInBackground)
-            //{
-            //    if (calcNormalQuadTreeThreadIsRunning) calcNormalQuadTreeThread.Abort();
-            //}
-            //// So setzt man den WaitCursor, ausgeschaltet wird er ja automatisch bei der nächsten
-            //// Mausbewegung
-            //if (recalcInBackground)
-            //{
-            //    gdiResources.DisplayMode = GDIResources.EDisplayMode.raw;
-            //}
-            //else
-            //{
-            //    gdiResources.DisplayMode = GDIResources.EDisplayMode.normal;
-            //}
-            FrameImpl.MainFrame.ActiveView.Canvas.Cursor = "WaitCursor";
+            if (FrameImpl.MainFrame != null && FrameImpl.MainFrame.ActiveView != null && FrameImpl.MainFrame.ActiveView.Canvas != null)
+                FrameImpl.MainFrame.ActiveView.Canvas.Cursor = "WaitCursor";
 
             for (int i = 0; i < model.Count; ++i)
             {
@@ -578,118 +558,8 @@ namespace CADability
                 Add(go);
             }
 
-            //foreach (IGeoObject go in geoObjects2D.Keys)
-            //{
-            //    go.WillChangeEvent -= new ChangeDelegate(GeoObjectWillChange);
-            //    go.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
-            //}
-            //geoObjects2D.Clear();
-            //if (recalcInBackground)
-            //{
-            //    quadTree = null;
-            //    for (int i = 0; i < model.Count; ++i)
-            //    {
-            //        IGeoObject go = model[i];
-            //        I2DRepresentation[] rep = go.Get2DRepresentation(projection, gdiResources);
-            //        bool forceVisible = visibleLayers.Count == 0; // keine visible layers: alles sichtbar!
-            //        for (int j = 0; j < rep.Length; ++j)
-            //        {
-            //            if (rep[j].Layer != null && !forceVisible)
-            //            {
-            //                rep[j].IsVisible = visibleLayers.ContainsKey(rep[j].Layer);
-            //            }
-            //            else
-            //            {
-            //                rep[j].IsVisible = true;
-            //            }
-            //        }
-            //        geoObjects2D[go] = rep;
-            //    }
-            //}
-            //else
-            //{
-            //    quadTree = new QuadTree();
-            //    for (int i = 0; i < model.Count; ++i)
-            //    {
-            //        IGeoObject go = model[i];
-            //        Add(go);
-            //    }
-            //}
-            //gdiResources.DisplayMode = GDIResources.EDisplayMode.normal;
-
-            //if (recalcInBackground)
-            //{
-            //    // TODO: Kopie der ModelListe und visibleLayerliste hier erstellen, denn asynchron ist gefährlich!
-            //    if (calcNormalQuadTreeThreadIsRunning) calcNormalQuadTreeThread.Join();
-            //    calcNormalQuadTreeThread = new Thread(new ThreadStart(calcNormalQuadTree));
-            //    calcNormalQuadTreeThread.Start();
-            //    calcNormalQuadTreeThreadIsRunning = true;
-            //}
-            //else
-            //{
-            //    // TestHiddenLines(geoObjects2D);
-            //}
         }
-        //        private void calcNormalQuadTree()
-        //        {
-        //            try
-        //            {
-        //                backgroundThreadQuadTree = new QuadTree();
-        //                backgroundThreadGeoObjects2D = new Dictionary<IGeoObject, I2DRepresentation[]>();
-        //                GDIResources normalGDIResources = gdiResources.Clone();
-        //                normalGDIResources.DisplayMode = GDIResources.EDisplayMode.normal;
-        //                Hashtable locVisibleLayers = (Hashtable)visibleLayers.Clone(); // wir müssen auf einer Kopie arbeiten, sonst müsste man das locken
-        //                bool forceVisible = locVisibleLayers.Count == 0; // keine visible layers: alles sichtbar!
-        //                GeoObjectList allObjects = model.AllObjects; // auf einer Kopie, denn es könnte was entfernt werden
-        //                // Thread.Sleep(3000);
-        //                for (int i = 0; i < allObjects.Count; ++i)
-        //                {
-        //                    IGeoObject go = allObjects[i];
-        //                    I2DRepresentation[] rep = go.Get2DRepresentation(projection, normalGDIResources);
-        //                    for (int j = 0; j < rep.Length; ++j)
-        //                    {
-        //                        if (rep[j].Layer != null && !forceVisible)
-        //                        {
-        //                            rep[j].IsVisible = locVisibleLayers.ContainsKey(rep[j].Layer);
-        //                        }
-        //                        else
-        //                        {
-        //                            rep[j].IsVisible = true;
-        //                        }
-        //                        backgroundThreadQuadTree.AddObject(rep[j]);
-        //                    }
-        //                    backgroundThreadGeoObjects2D[go] = rep;
-        //                }
-        //                TestHiddenLines(backgroundThreadGeoObjects2D);
-        //                // wenn man hier ankommt, dann sind die neuen Daten berechnet und das Bild kann neu gezeichnet werden
-        //                if (NeedsRepaintEvent != null)
-        //                {
-        //                    lock (this)
-        //                    {   // jeder Zugriff auf quadTree und geoObjects2D muss gelockt werden
-        //                        // Daten übernehmen
-        //                        quadTree = backgroundThreadQuadTree;
-        //                        geoObjects2D = backgroundThreadGeoObjects2D;
-        //                    }
-        //                    // und Zeichnen
-        //                    NeedsRepaintEventArg arg = new NeedsRepaintEventArg(Rectangle.Empty);
-        //                    arg.needSynchronize = true; // damit im ModelView das Invalidate synchronisiert wird
-        //                    NeedsRepaintEvent(this, arg);
-        //                }
-        //            }
-        //            catch (ThreadAbortException)
-        //            {   // alles vergessen
-        //                backgroundThreadQuadTree = null;
-        //                backgroundThreadGeoObjects2D = null;
-        //            }
-        //#if !DEBUG // im DEBUG Fall soll es einen echten Absturz geben
-        //            catch (System.Exception e) // wenn hier irgendwas schief geht, dann nicht mehr asynchron laufen lassen
-        //            {
-        //                if (e is ThreadAbortException) throw (e);
-        //                DoBackgroundPaint = false;
-        //            }
-        //#endif
-        //            calcNormalQuadTreeThreadIsRunning = false;
-        //        }
+
         public void AdjustPoint(SnapPointFinder spf)
         {	// alle relevanten Objekte zunächst im Quadtree suchen
             //BoundingRect br = new BoundingRect(spf.SourceBeam, spf.MaxDist, spf.MaxDist);

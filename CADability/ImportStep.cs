@@ -389,6 +389,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         long elapsedMs = 0;
         int defIndex = 0;
         private bool transformationMode;
+        private bool makeBlocks = false;
 
         Tokenizer tk;
         List<Item> definitions;
@@ -690,12 +691,17 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 }
             }
 #endif
+#if DEBUG
+            static int counter = 0;
+#endif
             public Item(ItemType type, object val)
             {
                 this.type = type;
                 this.val = val;
                 parameter = new Dictionary<string, Item>();
 #if DEBUG
+                this.definingIndex = --counter;
+                if (definingIndex == -206838) { }
                 usedBy = new List<Item>();
 #endif
             }
@@ -1210,7 +1216,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", false);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
 
-            // transformationMode = false;
+            // transformationMode = true;
             // for most files, transformationMode is not important.
             // files, for which transformationMode must be false: ?? FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));
             // ATTREZZATURA + GIRANTE.stp, AL_1180775_AL_1180775.stp, SSSS4912PCAM.stp
@@ -1241,6 +1247,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             {
                 return importProblems;
             }
+        }
+        /// <summary>
+        /// Convert the hierarchy of objects into a hierarchy of <see cref="Block"/>s.
+        /// </summary>
+        public bool HierarchyToBlocks
+        {
+            set { makeBlocks = value; }
         }
         public GeoObjectList Read(string filename)
         {
@@ -1375,6 +1388,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         GeoObjectList go = CreateEntity(item) as GeoObjectList;
                         string name = null;
                         if (item.parameter["rep_1"].parameter.TryGetValue("name", out Item shapeRepresentation)) name = shapeRepresentation.sval;
+                        object dbg1 = CreateEntity(item.parameter["rep_1"]);
+                        object dbg2 = CreateEntity(item.parameter["rep_2"]);
                         if (item.parameter["rep_2"].val is GeoObjectList gol)
                         {
                             if (gol.Count > 1)
@@ -1396,6 +1411,29 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     }
                                 }
                                 res.AddRange(gol);
+                            }
+                        }
+                        else if (item.parameter["rep_1"].val is GeoObjectList gol1)
+                        {
+                            if (gol1.Count > 1)
+                            {
+                                Block blk = Block.Construct();
+                                if (string.IsNullOrWhiteSpace(name)) name = $"Item {item.definingIndex}";
+                                blk.Name = name;
+                                blk.Set(gol1.CloneObjects());
+                                res.Add(blk);
+                            }
+                            else
+                            {
+                                if (!string.IsNullOrWhiteSpace(name))
+                                {
+                                    for (int j = 0; j < gol1.Count; j++)
+                                    {
+                                        if (gol1[j] is Solid sld) sld.Name = name;
+                                        if (gol1[j] is Shell shl) shl.Name = name;
+                                    }
+                                }
+                                res.AddRange(gol1);
                             }
                         }
                     }
@@ -1523,7 +1561,20 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (rootProduct.parameter.ContainsKey("_geo"))
                                 {
                                     GeoObjectList l = rootProduct.parameter["_geo"].val as GeoObjectList;
-                                    if (l != null) prodlist.AddRange(l);
+                                    if (l != null)
+                                    {
+                                        if (l.Count > 1 && makeBlocks)
+                                        {
+                                            Block prodblk = Block.Construct();
+                                            prodblk.Name = rootProduct.parameter["name"].sval;
+                                            prodblk.Set(l);
+                                            prodlist.Add(prodblk);
+                                        }
+                                        else
+                                        {
+                                            prodlist.AddRange(l);
+                                        }
+                                    }
                                 }
                             }
                             if (prodlist.Count > 0) res = prodlist;
@@ -1600,24 +1651,37 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         {
             Block blk = Block.Construct();
             GeoObjectList collect = new GeoObjectList();
-            if (product.parameter["_geo"].val is GeoObjectList list) collect.AddRange(list);
+            // if (product.parameter["_geo"].val is GeoObjectList list) collect.AddRange(list);
             blk.Name = product.parameter["id"].sval;
             if (product.parameter.TryGetValue("_children", out Item children))
             {
                 for (int i = 0; i < children.lval.Count; i++)
                 {
                     Block blksub = ProductToBlock(children.lval[i].parameter["_referred"]);
-                    if (blksub.NumChildren == 1)
+                    if (blksub.NumChildren > 0)
                     {
-                        IGeoObject ch = blksub.Child(0);
-                        blksub.Remove(0);
-                        collect.Add(ch);
-                    }
-                    else if (blksub.NumChildren > 1)
-                    {
+                        for (int j = 0; j < blksub.Count; j++)
+                        {
+                            collect.Remove(blksub.Child(j));
+                        }
                         collect.Add(blksub);
                     }
+                    //if (blksub.NumChildren == 1)
+                    //{
+                    //    IGeoObject ch = blksub.Child(0);
+                    //    blksub.Remove(0);
+                    //    collect.Add(ch);
+                    //}
+                    //else if (blksub.NumChildren > 1)
+                    //{
+                    //    collect.Add(blksub);
+                    //}
                 }
+                blk.Set(collect);
+            }
+            else
+            {
+                if (product.parameter["_geo"].val is GeoObjectList list) collect.AddRange(list);
                 blk.Set(collect);
             }
             return blk;
@@ -1642,24 +1706,27 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         ModOp m = (ModOp)children.lval[i].parameter["_transformation"].val;
                         CreateProduct(children.lval[i].parameter["_referred"]);
                         GeoObjectList list = children.lval[i].parameter["_referred"].parameter["_geo"].val as GeoObjectList;
-                        for (int j = 0; j < list.Count; j++)
+                        Block blk = Block.Construct();
+                        blk.Name = children.lval[i].parameter["_referred"].parameter["name"].sval;
+                        if (list.Count > 1 && makeBlocks)
                         {
-                            IGeoObject sub = list[j].Clone();
-                            sub.Modify(m);
-                            res.Add(sub);
-#if DEBUG
-                            string name = null;
-                            if (list[j] is Solid) name = (list[j] as Solid).Name;
-                            if (list[j] is Shell) name = (list[j] as Shell).Name;
-                            if (!string.IsNullOrEmpty(name))
+                            for (int j = 0; j < list.Count; j++)
                             {
-                                //if (!allObjects.TryGetValue(name, out GeoObjectList l))
-                                //{
-                                //    allObjects[name] = new GeoObjectList(); ;
-                                //}
-                                //allObjects[name].Add(sub);
+                                IGeoObject sub = list[j].Clone();
+                                sub.Modify(m);
+                                //res.Add(sub);
+                                blk.Add(sub);
                             }
-#endif
+                            if (blk.NumChildren > 0) res.Add(blk);
+                        }
+                        else
+                        {
+                            for (int j = 0; j < list.Count; j++)
+                            {
+                                IGeoObject sub = list[j].Clone();
+                                sub.Modify(m);
+                                res.Add(sub);
+                            }
                         }
                     }
                 }
@@ -1679,8 +1746,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 else if (o is GeoObjectList) res.AddRange(o as GeoObjectList);
                                 if (!string.IsNullOrWhiteSpace(name))
                                 {
-                                    if (o is Solid sld && !string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
-                                    if (o is Shell shl && !string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
+                                    if (o is Solid sld && string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
+                                    if (o is Shell shl && string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
                                 }
                             }
                         }
@@ -1996,7 +2063,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (22099 == item.definingIndex)
+            if (327330 == item.definingIndex)
             {
 
             }
@@ -3553,6 +3620,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 FreeCoordSys fcs1 = (FreeCoordSys)o1;
                                 FreeCoordSys fcs2 = (FreeCoordSys)o2;
                                 item.val = ModOp.Fit(fcs1.Location, new GeoVector[] { fcs1.DirectionX, fcs1.DirectionY, fcs1.DirectionZ }, fcs2.Location, new GeoVector[] { fcs2.DirectionX, fcs2.DirectionY, fcs2.DirectionZ });
+#if DEBUG
+                                System.Diagnostics.Trace.WriteLine("Transformation " + item.definingIndex.ToString() + ", " + ((ModOp)item.val).Matrix[0, 0].ToString() + ", " + ((ModOp)item.val).Matrix[0, 1].ToString() + ", " + ((ModOp)item.val).Matrix[0, 2].ToString()
+                                    + ", " + ((ModOp)item.val).Matrix[1, 0].ToString() + ", " + ((ModOp)item.val).Matrix[1, 1].ToString() + ", " + ((ModOp)item.val).Matrix[1, 2].ToString()
+                                    + ", " + ((ModOp)item.val).Matrix[2, 0].ToString() + ", " + ((ModOp)item.val).Matrix[2, 1].ToString() + ", " + ((ModOp)item.val).Matrix[2, 2].ToString());
+#endif
                             }
                             else
                                 item.val = null;
@@ -4182,7 +4254,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         }
 
         private ModOp GetTransformation(Item origin, Item target, Item origContext, Item targContext)
-        {   // implemented analoguous to OpenCascade: STEPControl_ActorRead::ComputeTransformation 
+        {   // implemented analogous to OpenCascade: STEPControl_ActorRead::ComputeTransformation 
             FreeCoordSys org = (FreeCoordSys)CreateEntity(origin);
             FreeCoordSys trg = (FreeCoordSys)CreateEntity(target);
             int code1 = 0, code2 = 0;
@@ -4260,7 +4332,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 Vector MA1loc = new DenseVector(new double[] { FromA1.Location.x, FromA1.Location.y, FromA1.Location.z });
                 MA1loc = (Vector)(matrix * MA1loc);
                 loc = (Vector)(loc + MA1loc);
-                matrix = (Matrix)(MA1 * matrix);
+                matrix = (Matrix)(MA1 * matrix).Transpose(); // introduced ".Transpose()" because of "FMC1_Rev2.0.stp"
                 res = new ModOp(matrix.ToArray(), new GeoVector(loc[0], loc[1], loc[2]));
             }
             if (transformationMode) //trg.Location == GeoPoint.Origin)

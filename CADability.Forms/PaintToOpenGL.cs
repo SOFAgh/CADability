@@ -2113,7 +2113,7 @@ namespace CADability.Forms
                     toDelete.Clear();
                 }
 #if DEBUG
-                System.Diagnostics.Trace.Write("still open: ");
+                //System.Diagnostics.Trace.Write("still open: ");
                 foreach (KeyValuePair<int,string> l in openLists)
                 {
                     //System.Diagnostics.Trace.Write(l.Value + ", ");
@@ -2128,6 +2128,9 @@ namespace CADability.Forms
             {
                 Gl.glDeleteLists(l.Key, 1);
                 int err = Gl.glGetError();
+#if DEBUG
+                if (err != 0) { }
+#endif
             }
             openLists.Clear();
         }
