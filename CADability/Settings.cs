@@ -236,10 +236,6 @@ namespace CADability
                 GlobalSettings.resourceId = "GlobalSettings";
                 GlobalSettings.modified = false;
             }
-            catch (Exception e)
-            {
-                if (e is ThreadAbortException) throw (e);
-            }
             finally
             {
                 stream?.Close();
@@ -277,32 +273,19 @@ namespace CADability
             {
                 InitGlobalSettingsFileName();
                 LoadGlobalSettings(GlobalSettingsFileName);
-
-                // Assembly ThisAssembly = Assembly.GetExecutingAssembly();
-                //int lastSlash = ThisAssembly.Location.LastIndexOf('\\');
-                //LoadGlobalSettings(ThisAssembly.Location.Substring(0, lastSlash + 1) + "CADability.GlobalSettings.bin");
             }
-            catch (FileNotFoundException)
-            {	// hier müssen die Standard Einstellungen vorgegeben werden
-                GlobalSettings = new Settings();
-            }
-            catch (System.Runtime.Serialization.SerializationException)
+            catch(Exception ex)
             {
-                GlobalSettings = new Settings();
+                if (ex is ThreadAbortException)
+                    throw;
+                else                
+                    globalSettings = new Settings();                
             }
-            catch (TargetInvocationException)
-            {
-                GlobalSettings = new Settings();
-            }
-            catch (Exception e) // wenn hier irgendwas schief geht, dann nicht mehr asynchron laufen lassen
-            {
-                if (e is ThreadAbortException) throw (e);
-                GlobalSettings = new Settings();
-            }
-            if (GlobalSettings == null)
+            
+            if (globalSettings == null)
             {
                 // LoadGlobalSettings fängt exceptions ab, deshalb hier nochmal der test
-                GlobalSettings = new Settings();
+                globalSettings = new Settings();
             }
             // nach dem Laden oder neu Erstellen der GlobalSettings wird sichergestellt, dass
             // alle gewünschten Settings darin enthalten sind.
