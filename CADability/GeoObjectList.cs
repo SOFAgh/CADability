@@ -437,7 +437,7 @@ namespace CADability.GeoObject
             get { return (IGeoObject)list[Index]; }
             set { list[Index] = value; }
         }
-        public static implicit operator IGeoObject[] (GeoObjectList l)
+        public static implicit operator IGeoObject[](GeoObjectList l)
         {
             return (IGeoObject[])l.list.ToArray(typeof(IGeoObject));
         }
@@ -503,7 +503,7 @@ namespace CADability.GeoObject
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return list.GetEnumerator();
+            return list.GetEnumerator();            
         }
     }
 }

@@ -467,9 +467,7 @@ namespace CADability.GeoObject
                             pnts[1] = c1.EndPoint;
                             pnts[2] = c2.StartPoint;
                             pnts[3] = c2.EndPoint;
-                            double maxDist;
-                            bool isLinear;
-                            p = Plane.FromPoints(pnts, out maxDist, out isLinear);
+                            p = Plane.FromPoints(pnts, out double maxDist, out bool isLinear);
                             if (maxDist < Precision.eps)
                             {
                                 CommonPlane = p;
@@ -534,14 +532,14 @@ namespace CADability.GeoObject
         /// <summary>
         /// Tries to find a plane that contains most of the given curves.
         /// </summary>
-        /// <param name="curves"></param>
-        /// <param name="CommonPlane"></param>
-        /// <returns></returns>
-        public static bool GetCommonPlane(ICurve[] curves, out Plane CommonPlane)
+        /// <param name="curves">List of ICurves</param>
+        /// <param name="CommonPlane">Returns common plane</param>
+        /// <returns>Returns wether a common plan was found or not</returns>
+        public static bool GetCommonPlane(IList<ICurve> curves, out Plane CommonPlane)
         {
             CommonPlane = new Plane(Plane.StandardPlane.XYPlane, 0.0);
-            if (curves.Length == 0) return false;
-            if (curves.Length == 1)
+            if (curves.Count == 0) return false;
+            if (curves.Count == 1)
             {
                 if (curves[0].GetPlanarState() == PlanarState.Planar)
                 {
@@ -550,14 +548,14 @@ namespace CADability.GeoObject
                 }
                 return false;
             }
-            for (int i = 0; i < curves.Length; ++i)
+            for (int i = 0; i < curves.Count; ++i)
             {   // schneller Vorstest, geht halt nicht bei nur Linien
                 if (curves[i].GetPlanarState() == PlanarState.Planar)
                 {   // nimm die erste ebene Kurve
                     // und teste ob die anderen alle drin sind
                     Plane pln = curves[i].GetPlane();
                     bool ok = true;
-                    for (int j = 0; j < curves.Length; ++j)
+                    for (int j = 0; j < curves.Count; ++j)
                     {
                         if (i != j)
                         {
@@ -574,15 +572,13 @@ namespace CADability.GeoObject
                     return true; // fertig, alle sind drin.
                 }
             }
-            GeoPoint[] pnts = new GeoPoint[curves.Length * 2];
-            for (int i = 0; i < curves.Length; ++i)
+            GeoPoint[] pnts = new GeoPoint[curves.Count * 2];
+            for (int i = 0; i < curves.Count; ++i)
             {
                 pnts[2 * i] = curves[i].StartPoint;
                 pnts[2 * i + 1] = curves[i].EndPoint;
             }
-            double maxdist;
-            bool isLinear;
-            CommonPlane = Plane.FromPoints(pnts, out maxdist, out isLinear);
+            CommonPlane = Plane.FromPoints(pnts, out double maxdist, out bool isLinear);
             if (isLinear)
             {
                 Plane pln = new Plane(pnts[0], curves[0].StartDirection);
@@ -591,39 +587,11 @@ namespace CADability.GeoObject
             }
             // if (isLinear) return true; // liefert halt eine passende Ebene (von vielen möglichen)
             if (maxdist > 10 * Precision.eps) return false;
-            for (int i = 0; i < curves.Length; ++i)
+            for (int i = 0; i < curves.Count; ++i)
             {
                 if (!curves[i].IsInPlane(CommonPlane)) return false;
             }
-            return true;
-            // alter text zu zeitaufwendig
-            //int bestResult = int.MaxValue;
-            //for (int i=0; i<curves.Length; ++i)
-            //{
-            //    for (int j=i+1; j<curves.Length; ++j)
-            //    {
-            //        Plane pln;
-            //        if (Curves.GetCommonPlane(curves[i],curves[j],out pln))
-            //        {
-            //            int outside = 0;
-            //            for (int k=0; k<curves.Length; ++k)
-            //            {
-            //                if (k!=i && k!=j && !curves[k].IsInPlane(pln)) ++outside;
-            //            }
-            //            if (outside==0)
-            //            {
-            //                CommonPlane = pln;
-            //                return true;
-            //            } 
-            //            else if (outside<bestResult)
-            //            {
-            //                CommonPlane = pln;
-            //                bestResult = outside;
-            //            }
-            //        }
-            //    }
-            //}
-            //return bestResult<int.MaxValue;;
+            return true;            
         }
         /// <summary>
         /// Returns the parameters of the intersection points of curve1 with curve2.
@@ -637,8 +605,7 @@ namespace CADability.GeoObject
         public static double[] Intersect(ICurve curve1, ICurve curve2, bool onlyInside)
         {
             ArrayList res = new ArrayList();
-            Plane pl;
-            if (GetCommonPlane(curve1, curve2, out pl))
+            if (GetCommonPlane(curve1, curve2, out Plane pl))
             {
                 ICurve2D c12d = curve1.GetProjectedCurve(pl);
                 ICurve2D c22d = curve2.GetProjectedCurve(pl);
@@ -667,8 +634,7 @@ namespace CADability.GeoObject
         public static int Intersect(ICurve curve1, ICurve curve2, out double[] par1, out double[] par2, out GeoPoint[] intersection)
         {
             // wenn es eine gemeinsame Ebene gibt, dann in dieser Ebene schneiden
-            Plane pln;
-            if (GetCommonPlane(curve1, curve2, out pln))
+            if (GetCommonPlane(curve1, curve2, out Plane pln))
             {
                 ICurve2D c2d1 = curve1.GetProjectedCurve(pln);
                 ICurve2D c2d2 = curve2.GetProjectedCurve(pln);
@@ -722,7 +688,7 @@ namespace CADability.GeoObject
             TetraederHull th2 = new TetraederHull(curve2);
             return th1.Intersect(th2, out par1, out par2, out intersection);
         }
-        private static void approxPoints(ArrayList al, ICurve curve, double par1, double par2, double maxError)
+        private static void ApproxPoints(ArrayList al, ICurve curve, double par1, double par2, double maxError)
         {
             GeoPoint p1 = curve.PointAt(par1);
             GeoPoint p2 = curve.PointAt(par2);
@@ -734,8 +700,8 @@ namespace CADability.GeoObject
             }
             else
             {
-                approxPoints(al, curve, par1, par, maxError);
-                approxPoints(al, curve, par, par2, maxError);
+                ApproxPoints(al, curve, par1, par, maxError);
+                ApproxPoints(al, curve, par, par2, maxError);
             }
         }
         internal static ICurve ApproximateLinear(ICurve curve, double maxError)
@@ -746,7 +712,7 @@ namespace CADability.GeoObject
             al.Add(curve.StartPoint);
             for (int i = 0; i < 4; ++i)
             {
-                approxPoints(al, curve, i * d, (i + 1) * d, maxError);
+                ApproxPoints(al, curve, i * d, (i + 1) * d, maxError);
             }
             Polyline pl = Polyline.Construct();
             pl.SetPoints((GeoPoint[])al.ToArray(typeof(GeoPoint)), false);
@@ -759,7 +725,7 @@ namespace CADability.GeoObject
             al.Add(curve.StartPoint);
             for (int i = 0; i < positions.Length - 1; ++i)
             {
-                approxPoints(al, curve, positions[i], positions[i + 1], maxError);
+                ApproxPoints(al, curve, positions[i], positions[i + 1], maxError);
             }
             try
             {
@@ -767,7 +733,7 @@ namespace CADability.GeoObject
                 pl.SetPoints((GeoPoint[])al.ToArray(typeof(GeoPoint)), false);
                 return pl;
             }
-            catch (PolylineException pe)
+            catch (PolylineException)
             {
                 Line l = Line.Construct();
                 l.SetTwoPoints(curve.StartPoint, curve.EndPoint);
@@ -825,11 +791,10 @@ namespace CADability.GeoObject
         {
             if (crv1 == null || crv2 == null) return null;
             if ((crv1.EndPoint | crv2.StartPoint) > precision) return null;
-            Plane pln;
             if (crv1 is InterpolatedDualSurfaceCurve ip1 && crv2 is InterpolatedDualSurfaceCurve ip2)
             {
-                if ((ip1.Surface1.SameGeometry(ip1.Domain1, ip2.Surface1, ip2.Domain1, precision, out ModOp2D dumy) && ip1.Surface2.SameGeometry(ip1.Domain2, ip2.Surface2, ip2.Domain2, precision, out dumy)) ||
-                    (ip1.Surface1.SameGeometry(ip1.Domain1, ip2.Surface2, ip2.Domain2, precision, out dumy) && ip1.Surface2.SameGeometry(ip1.Domain2, ip2.Surface1, ip2.Domain1, precision, out dumy)))
+                if ((ip1.Surface1.SameGeometry(ip1.Domain1, ip2.Surface1, ip2.Domain1, precision, out _) && ip1.Surface2.SameGeometry(ip1.Domain2, ip2.Surface2, ip2.Domain2, precision, out _)) ||
+                    (ip1.Surface1.SameGeometry(ip1.Domain1, ip2.Surface2, ip2.Domain2, precision, out _) && ip1.Surface2.SameGeometry(ip1.Domain2, ip2.Surface1, ip2.Domain1, precision, out _)))
                 {
                     List<GeoPoint> basepoints = new List<GeoPoint>();
                     basepoints.AddRange(ip1.BasePoints);
@@ -838,7 +803,7 @@ namespace CADability.GeoObject
                     return new InterpolatedDualSurfaceCurve(ip1.Surface1, ip1.Domain1, ip1.Surface2, ip1.Domain2, basepoints); // the domains are too small, but this is not a problem
                 }
             }
-            if (GetCommonPlane(crv1, crv2, out pln))
+            if (GetCommonPlane(crv1, crv2, out Plane pln))
             {
                 ICurve2D e2d1 = crv1.GetProjectedCurve(pln);
                 ICurve2D e2d2 = crv2.GetProjectedCurve(pln);
@@ -975,8 +940,7 @@ namespace CADability.GeoObject
                 GeoVector d1 = curve1.DirectionAt(par1);
                 GeoPoint s2 = curve2.PointAt(par2);
                 GeoVector d2 = curve2.DirectionAt(par2);
-                double pp1, pp2;
-                double d = Geometry.DistLL(s1, d1, s2, d2, out pp1, out pp2);
+                double d = Geometry.DistLL(s1, d1, s2, d2, out double pp1, out double pp2);
                 par1 += pp1;
                 par2 += pp2;
                 if (curve1.IsClosed)
