@@ -1651,7 +1651,131 @@ namespace CADability
             double lambda = -((s.x - p.x) * v.x + (s.y - p.y) * v.y) / d;
             return s + lambda * v;
         }
+        public static GeoPoint2D[] TangentPointCircle(GeoPoint2D p, GeoPoint2D c, double radius)
+        {
+            // from https://stackoverflow.com/questions/1351746/find-a-tangent-point-on-circle
+            var dx = c.x - p.x;
+            var dy = c.y - p.y;
+            if (dx == 0 && dy == 0) return new GeoPoint2D[0]; // no solution
 
+            // PC is distance between P and C, pc2 is PC^2
+            var pc2 = dx * dx + dy * dy;
+            var pc = Math.Sqrt(pc2);
+            if (pc < radius) return new GeoPoint2D[0]; // no solution
+
+            // R is radius of  circle centered in P, r2 is R^2
+            var r2 = pc2 - radius * radius;
+            // d is the P => X0 distance (demonstration is here https://mathworld.wolfram.com/Circle-CircleIntersection.html where PC is named 'd' in there)
+            var d = r2 / pc;
+            // h is the X0 => X1 (and X0 => X2) distance
+            var h = Math.Sqrt(r2 - d * d);
+            return new GeoPoint2D[] { new GeoPoint2D(p.x + (dx * d - dy * h) / pc, p.y + (dy * d + dx * h) / pc),
+                                      new GeoPoint2D(p.x + (dx * d + dy * h) / pc, p.y + (dy * d - dx * h) / pc) };
+
+        }
+        static GeoPoint2D[] TangentPointCircleOld(GeoPoint2D fromHere, GeoPoint2D center, double radius)
+        {
+            //GeoVector2D d = center - fromHere;
+            //double dd = d.Length;
+            //if (radius > dd) return new GeoPoint2D[0];
+            //double a = Math.Asin(radius / dd);
+            //double b = Math.Atan2(d.y, d.x);
+            //GeoPoint2D[] res = new GeoPoint2D[2];
+            //double t = b - a;
+            //res[0] = new GeoPoint2D(radius * Math.Sin(t), radius * -Math.Cos(t));
+            //t = b + a;
+            //res[1] = new GeoPoint2D(radius * -Math.Sin(t), radius * Math.Cos(t));
+            //return res;
+            GeoPoint2D center2 = new GeoPoint2D(fromHere, center); // center between fromHere and center
+            GeoPoint2D[] res = Geometry.IntersectCC(center2, Geometry.Dist(center2, center), center, radius);
+            return res;
+        }
+
+        /// <summary>
+        /// Tangential lines to two circles, returned as pairs of points
+        /// </summary>
+        /// <param name="center1"></param>
+        /// <param name="radius1"></param>
+        /// <param name="center2"></param>
+        /// <param name="radius2"></param>
+        /// <returns></returns>
+        public static GeoPoint2D[] TangentCC(GeoPoint2D center1, double radius1, GeoPoint2D center2, double radius2)
+        {
+            double d = center1 | center2;
+            if (d < radius1 || d < radius2) return new GeoPoint2D[0];
+            GeoPoint2D[] res;
+            if (d > radius1 + radius2) res = new GeoPoint2D[8];
+            else res = new GeoPoint2D[4];
+            bool exchange;
+            if (radius1 > radius2)
+            {
+                double tmp = radius1;
+                radius1 = radius2;
+                radius2 = tmp;
+                GeoPoint2D tmpc = center1;
+                center1 = center2;
+                center2 = tmpc;
+                exchange = true;
+            }
+            else exchange = false;
+#if DEBUG
+            DebuggerContainer dc = new DebuggerContainer();
+            dc.Add(new Circle2D(center1, radius1));
+            dc.Add(new Circle2D(center2, radius2));
+#endif
+            GeoPoint2D[] tan = TangentPointCircle(center1, center2, radius2 - radius1); // must be two points
+            // must be 2 points
+            GeoVector2D v = tan[0] - center2;
+            v.Length = radius1;
+            res[0] = center1 + v;
+            v.Length = radius2;
+            res[1] = center2 + v;
+            v = tan[1] - center2;
+            v.Length = radius1;
+            res[2] = center1 + v;
+            v.Length = radius2;
+            res[3] = center2 + v;
+            if (d > radius1 + radius2)
+            {
+                // two more tangents
+                v = center2 - center1;
+                v.Length = radius1 * d / (radius1 + radius2);
+                GeoPoint2D c = center1 + v; // homothetic center 
+                GeoPoint2D[] tan1 = TangentPointCircle(c, center1, radius1);
+                GeoPoint2D[] tan2 = TangentPointCircle(c, center2, radius2);
+                // must be two points for each
+                if (Geometry.OnSameSide(tan1[0], tan2[0], center1, center2))
+                {
+                    res[4] = tan1[0];
+                    res[5] = tan2[1];
+                    res[6] = tan1[1];
+                    res[7] = tan2[0];
+                }
+                else
+                {
+                    res[4] = tan1[0];
+                    res[5] = tan2[0];
+                    res[6] = tan1[1];
+                    res[7] = tan2[1];
+                }
+            }
+            if (exchange)
+            {
+                for (int i = 0; i < res.Length; i += 2)
+                {
+                    GeoPoint2D tmp = res[i];
+                    res[i] = res[i + 1];
+                    res[i + 1] = tmp;
+                }
+            }
+#if DEBUG
+            for (int i = 0; i < res.Length; i += 2)
+            {
+                dc.Add(new Line2D(res[i], res[i + 1]));
+            }
+#endif
+            return res;
+        }
         /// <summary>
         /// Returns the intersection points of two circles in 2d.
         /// The result may contain 0 to 2 points.

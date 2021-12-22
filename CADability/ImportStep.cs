@@ -971,7 +971,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                 }
             }
-            public void Resolve(List<Item> definitions)
+            public void Resolve(List<Item> definitions, Dictionary<ItemType, List<int>> roots)
             {
 
                 if (IsEntity)
@@ -1060,6 +1060,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                         this.val = new List<Item>(); // better would be null, but for now, we need a List<Item> to mark it as valid entity
+                        if (roots.TryGetValue(this.type, out List<int> indices))
+                        {
+                            indices.Add(this.definingIndex);
+                        }
                     }
                 }
 
@@ -1069,7 +1073,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 ItemType res;
                 if (!TypeOfName.TryGetValue(name, out res))
                 {
-                    return ItemType.invalid; // shoule never happen
+                    return ItemType.invalid; // should never happen
                 }
                 return res;
             }
@@ -1204,15 +1208,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             allNames = new SortedDictionary<string, int>();
             entityPattern = new Dictionary<string, HashSet<string>>();
 #endif
-            transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", true);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
+            transformationMode = Settings.GlobalSettings.GetBoolValue("StepImport.Transformation", false);  // one of two ways to make the transformation, I cannot distinguish the cases when to use which
 
             // transformationMode = false;
             // for most files, transformationMode is not important.
             // files, for which transformationMode must be false: ?? FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));
-            // ATTREZZATURA + GIRANTE.stp, AL_1180775_AL_1180775.stp
+            // ATTREZZATURA + GIRANTE.stp, AL_1180775_AL_1180775.stp, SSSS4912PCAM.stp
 
             // Assembly2.step doesn't work correctly with both methods!
-            // edgeCollection = new StepEdgeCollection();
             Item.Init();
         }
 
@@ -1264,8 +1267,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             roots[Item.ItemType.presentationStyleAssignment] = new List<int>();
             roots[Item.ItemType.presentationLayerAssignment] = new List<int>();
             roots[Item.ItemType.shapeRepresentationRelationship] = new List<int>();
+            roots[Item.ItemType.representationRelationship] = new List<int>();
             roots[Item.ItemType.contextDependentShapeRepresentation] = new List<int>();
             roots[Item.ItemType.draughtingModel] = new List<int>();
+            roots[Item.ItemType.styledItem] = new List<int>();
+            roots[Item.ItemType.itemDefinedTransformation] = new List<int>();
             Set<Item> productDefinitions = new Set<Item>();
 
             using (tk = new Tokenizer(filename))
@@ -1283,7 +1289,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         if (definitions[i] != null)
                         {
                             definitions[i].definingIndex = i;
-                            definitions[i].Resolve(definitions);
+                            definitions[i].Resolve(definitions, roots);
                             if (definitions[i].type == Item.ItemType.productDefinition) productDefinitions.Add(definitions[i]);
                             if (definitions[i].type == Item.ItemType.advancedFace || definitions[i].type == Item.ItemType.faceSurface
                                 || definitions[i].type == Item.ItemType.curveBoundedSurface) ++numFaces; // for progress
@@ -1357,6 +1363,42 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         object so = CreateEntity(item);
                     }
 #endif
+                    for (int i = 0; i < roots[Item.ItemType.representationRelationship].Count; i++)
+                    {
+                        Item item = definitions[roots[Item.ItemType.representationRelationship][i]];
+                        ModOp tranMop = ModOp.Identity;
+                        if (item.parameter.TryGetValue("transformation_operator", out Item transformation))
+                        {
+                            object o = CreateEntity(transformation);
+                            if (o is ModOp) tranMop = (ModOp)o;
+                        }
+                        GeoObjectList go = CreateEntity(item) as GeoObjectList;
+                        string name = null;
+                        if (item.parameter["rep_1"].parameter.TryGetValue("name", out Item shapeRepresentation)) name = shapeRepresentation.sval;
+                        if (item.parameter["rep_2"].val is GeoObjectList gol)
+                        {
+                            if (gol.Count > 1)
+                            {
+                                Block blk = Block.Construct();
+                                if (string.IsNullOrWhiteSpace(name)) name = $"Item {item.definingIndex}";
+                                blk.Name = name;
+                                blk.Set(gol.CloneObjects());
+                                res.Add(blk);
+                            }
+                            else
+                            {
+                                if (!string.IsNullOrWhiteSpace(name))
+                                {
+                                    for (int j = 0; j < gol.Count; j++)
+                                    {
+                                        if (gol[j] is Solid sld) sld.Name = name;
+                                        if (gol[j] is Shell shl) shl.Name = name;
+                                    }
+                                }
+                                res.AddRange(gol);
+                            }
+                        }
+                    }
                     for (int i = 0; i < roots[Item.ItemType.shapeRepresentationRelationship].Count; i++)
                     {
                         Item item = definitions[roots[Item.ItemType.shapeRepresentationRelationship][i]];
@@ -1414,6 +1456,17 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     for (int i = 0; i < roots[Item.ItemType.draughtingModel].Count; i++)
                     {
                         Item item = definitions[roots[Item.ItemType.draughtingModel][i]];
+                        object o = CreateEntity(item);
+                    }
+                    for (int i = 0; i < roots[Item.ItemType.styledItem].Count; i++)
+                    {   // in most cases the styled items are already created (e.g. as part of mechanicalDesignGeometricPresentationRepresentation), but in some files (e.g. SSSS4912PCAM.stp) 
+                        // there are unreferenced styledItems. Upon creation the objects referenced by the styled item are styled (color set)
+                        Item item = definitions[roots[Item.ItemType.styledItem][i]];
+                        object o = CreateEntity(item);
+                    }
+                    for (int i = 0; i < roots[Item.ItemType.itemDefinedTransformation].Count; i++)
+                    {  
+                        Item item = definitions[roots[Item.ItemType.itemDefinedTransformation][i]];
                         object o = CreateEntity(item);
                     }
 
@@ -1765,7 +1818,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             ignoreInSubTree.Add(Item.ItemType.orientedClosedShell);
 
             Item item = definitions[itemId];
-            // these should not be root items, but ometimes are:
+            // these should not be root items, but sometimes are:
             if (item.type == Item.ItemType.plane) return "";
             if (item.type == Item.ItemType.faceOuterBound) return "";
             if (item.type == Item.ItemType.fillAreaStyleColour) return "";
@@ -1943,7 +1996,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (23972 == item.definingIndex)
+            if (22099 == item.definingIndex)
             {
 
             }
@@ -2132,7 +2185,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             {
                                 object o = CreateEntity(sublist[i]);
                                 if (o is ColorDef) cd = o as ColorDef;
-                                // there could also be linestyles
+                                // there could also be line styles
                             }
                             item.val = CreateEntity(item.SubItem(2));
                             if (item.val is IColorDef && cd != null) (item.val as IColorDef).SetTopLevel(cd, true);
@@ -2150,7 +2203,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     if (glst[i] is IColorDef cdi) cdi.SetTopLevel(cd, true);
                                 }
                             }
-                            if (item.val is Shell) (item.val as Shell).Name = nm;
+                            if (!string.IsNullOrWhiteSpace(nm))
+                            {
+                                if (item.val is Shell) (item.val as Shell).Name = nm;
+                                if (item.val is Solid) (item.val as Solid).Name = nm;
+                            }
                         }
                         break;
 
@@ -2428,7 +2485,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (806 == item.definingIndex || 806 == item.definingIndex)
+                            if (3320 == item.definingIndex || 3320 == item.definingIndex)
                             {
                             }
 #endif
@@ -3444,6 +3501,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.representationRelationship: // name, description, rep_1, rep_2
                     case Item.ItemType.shapeRepresentationRelationship:
+                    case Item.ItemType.representationRelationshipWithTransformation: // name, description, rep_1, rep_2, transformation_operator
                         {
                             CreateEntity(item.parameter["rep_1"] as Item);
                             CreateEntity(item.parameter["rep_2"] as Item);
@@ -3451,6 +3509,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             List<Item> rep2list = item.parameter["rep_2"].parameter["items"].lval;
                             Item context1 = item.parameter["rep_1"].parameter["context_of_items"];
                             Item context2 = item.parameter["rep_2"].parameter["context_of_items"];
+                            if (item.parameter.TryGetValue("transformation_operator", out Item transformationOperator))
+                            {
+                            }
                             if (!context1.parameter.TryGetValue("_relationship", out Item rel1))
                             {
                                 context1.parameter["_relationship"] = rel1 = new Item(Item.ItemType.created, new List<Item>());
@@ -3482,8 +3543,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             //    else (item.parameter["rep_1"] as Item).val = rep2;
                             //}
                         }
-                        break;
-                    case Item.ItemType.representationRelationshipWithTransformation: // name, description, rep_1, rep_2, transformation_operator
                         break;
                     case Item.ItemType.itemDefinedTransformation: // name, description, transform_item_1, transform_item_2
                         {
@@ -4651,6 +4710,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         {
             int start, length;
             string line;
+#if DEBUG
+            if (index==22099)
+            { }
+#endif
             if (!tk.NextToken(out line, out start, out length)) return;
             Expect('=', line, start);
             if (!tk.NextToken(out line, out start, out length)) return;
@@ -4659,8 +4722,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             {
                 Item entity = Entity(line.Substring(start, length));
                 AppendDefinition(index, entity);
-                List<int> indices;
-                if (roots.TryGetValue(entity.type, out indices))
+                if (roots.TryGetValue(entity.type, out List<int> indices))
                 {
                     indices.Add(index);
                 }

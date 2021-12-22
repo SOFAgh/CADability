@@ -624,7 +624,7 @@ namespace CADability.DXF
                 //}
                 if (i == 0)
                 {
-                    if (!Curves.GetCommonPlane(boundaryEntities.ToArray(), out pln)) return null; // there must be a common plane
+                    if (!Curves.GetCommonPlane(boundaryEntities, out pln)) return null; // there must be a common plane
                 }
                 ICurve2D[] bdr = new ICurve2D[boundaryEntities.Count];
                 for (int j = 0; j < bdr.Length; j++)
@@ -756,7 +756,7 @@ namespace CADability.DXF
                 IGeoObject res = block.Clone();
                 ModOp tranform = ModOp.Translate(GeoVector(insert.Position)) *
                     ModOp.Translate(block.RefPoint.ToVector()) *
-                    ModOp.Rotate(CADability.GeoVector.ZAxis, insert.Rotation) *
+                    ModOp.Rotate(CADability.GeoVector.ZAxis, SweepAngle.Deg(insert.Rotation)) *
                     ModOp.Scale(insert.Scale.X, insert.Scale.Y, insert.Scale.Z) *
                     ModOp.Translate(CADability.GeoPoint.Origin - block.RefPoint);
                 res.Modify(tranform);

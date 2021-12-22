@@ -708,8 +708,8 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Access to the <see cref="OctTree"/> containing all geometrical objects of the model. Do not modify the octtree to avoid inconsitencies
-        /// between model and octtree. Use the octtree for fast access to the objects in the model from geometrical constraints.
+        /// Access to the <see cref="OctTree"/> containing all geometrical objects of the model. Do not modify the octTree to avoid inconsistencies
+        /// between model and octTree. Use the octTree for fast access to the objects in the model from geometrical constraints.
         /// </summary>
         public OctTree<IGeoObject> OctTree
         {

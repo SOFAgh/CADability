@@ -199,6 +199,23 @@ namespace CADability.Curve2D
                 return Math.Abs(sweep.Radian) > Math.PI && Precision.IsEqual(StartPoint, EndPoint);
             }
         }
+        public override bool TryPointDeriv2At(double position, out GeoPoint2D point, out GeoVector2D deriv, out GeoVector2D deriv2)
+        {
+            double par = start + position * sweep.Radian;
+            if (sweep.Radian > 0)
+            {
+                point = new GeoPoint2D(Center.x + Radius * Math.Cos(par), Center.y + Radius * Math.Sin(par));
+                deriv = (sweep.Radian) * new GeoVector2D(-Radius * Math.Sin(par), Radius * Math.Cos(par));
+                deriv2 = (sweep.Radian) * (sweep.Radian) * new GeoVector2D(-Radius * Math.Cos(par), -Radius * Math.Sin(par));
+            }
+            else
+            {
+                point = new GeoPoint2D(Center.x + Radius * Math.Cos(-par), Center.y + Radius * Math.Sin(-par));
+                deriv = Math.Abs(sweep.Radian) * new GeoVector2D(Radius * Math.Sin(-par), -Radius * Math.Cos(-par));
+                deriv2 = (sweep.Radian) * (sweep.Radian) * new GeoVector2D(-Radius * Math.Cos(-par), -Radius * Math.Sin(-par));
+            }
+            return true;
+        }
         internal void Close()
         {
             if (sweep > 0) sweep = Math.PI * 2.0;
