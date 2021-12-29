@@ -1503,7 +1503,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         object o = CreateEntity(item);
                     }
                     for (int i = 0; i < roots[Item.ItemType.itemDefinedTransformation].Count; i++)
-                    {  
+                    {
                         Item item = definitions[roots[Item.ItemType.itemDefinedTransformation][i]];
                         object o = CreateEntity(item);
                     }
@@ -2063,7 +2063,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (327330 == item.definingIndex)
+            if (72730 == item.definingIndex || 27507 == item.definingIndex)
             {
 
             }
@@ -2552,7 +2552,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (3320 == item.definingIndex || 3320 == item.definingIndex)
+                            if (9778 == item.definingIndex || 9783 == item.definingIndex)
                             {
                             }
 #endif
@@ -4592,7 +4592,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         {
             // some NURBS surfaces come with extreme small uKnots or vKnots span. For better numerical behavior we normalize it here
             // this doesn't change the surface but only the 2d parameter space of the surface
-            if (uKnots[uKnots.Length - 1] - uKnots[0] < 0.5)
+            // an other case were we need to modify the knots span is with periodic surfaces that do not start with 0 as the first knot.
+            if (uKnots[uKnots.Length - 1] - uKnots[0] < 0.5 || (uClosed && uKnots[0] != 0.0))
             {
                 double f = 1.0 / (uKnots[uKnots.Length - 1] - uKnots[0]);
                 double u0 = uKnots[0];
@@ -4601,7 +4602,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     uKnots[i] = (uKnots[i] - u0) * f;
                 }
             }
-            if (vKnots[vKnots.Length - 1] - vKnots[0] < 0.5)
+            if (vKnots[vKnots.Length - 1] - vKnots[0] < 0.5 || (vClosed && vKnots[0] != 0.0))
             {
                 double f = 1.0 / (vKnots[vKnots.Length - 1] - vKnots[0]);
                 double v0 = vKnots[0];
@@ -4783,7 +4784,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             int start, length;
             string line;
 #if DEBUG
-            if (index==22099)
+            if (index == 22099)
             { }
 #endif
             if (!tk.NextToken(out line, out start, out length)) return;
