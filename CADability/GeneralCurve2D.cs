@@ -2734,9 +2734,9 @@ namespace CADability.Curve2D
                         dx = (fromHere - point) * deriv2 - deriv1 * deriv1;
 
                     }, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance);
-                    if (par != double.MaxValue) return true;
+                    if (par != double.MaxValue && Math.Abs((PointAt(par) - fromHere) * DirectionAt(par)) < Precision.eps) return true;
                 }
-                else if (NewtonPerpendicular(fromHere, ref par))
+                if (NewtonPerpendicular(fromHere, ref par))
                 {
                     return true;
                 }
