@@ -263,7 +263,7 @@ namespace CADability.GeoObject
                         listToLock.Add(loops[i][j]);
                     }
                 }
-                // we need exclusive acces to all edges of the loop, because they might be modified during the creation
+                // we need exclusive access to all edges of the loop, because they might be modified during the creation
                 listToLock.Sort(delegate (StepEdgeDescriptor s1, StepEdgeDescriptor s2) { return s1.id.CompareTo(s2.id); });
             }
 #endif
@@ -277,24 +277,48 @@ namespace CADability.GeoObject
                     {
                         if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 0)
                         {
+                            if (loops[i][j].curve != null) dcLoops.Add(loops[i][j].curve.Clone() as IGeoObject, System.Drawing.Color.Green, i * 1000 + j);
                             for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
                             {
-                                dcLoops.Add(loops[i][j].createdEdges[k].Curve3D as IGeoObject, System.Drawing.Color.Blue, i * 1000 + j * 10 + k);
+                                if (loops[i][j].createdEdges[k] != null) dcLoops.Add(loops[i][j].createdEdges[k].Curve3D.Clone() as IGeoObject, System.Drawing.Color.Blue, i * 1000 + j * 10 + k);
                             }
                         }
                         else
                         {
-                            dcLoops.Add(loops[i][j].curve as IGeoObject, System.Drawing.Color.Red, i * 1000 + j);
+                            if (loops[i][j].curve != null) dcLoops.Add(loops[i][j].curve.Clone() as IGeoObject, System.Drawing.Color.Red, i * 1000 + j);
                         }
                     }
                 }
 #endif
                 if (!sameSense)
                 {   // in CADability the surfaces can be oriented both ways, in step, the standard surfaces (cylinder, sphere, torus, cone) are always "outward" oriented
-                    // and if necessary the sameSense is false. Here we convert the surface to the CADability requirenments
+                    // and if necessary the sameSense is false. Here we convert the surface to the CADability requirements
                     sameSense = true;
                     surface = surface.Clone();
                     surface.ReverseOrientation(); // 2d modification is not relevant here
+                }
+                for (int i = 0; i < loops.Count; i++)
+                {
+                    for (int j = loops[i].Count - 1; j >= 0; --j)
+                    {
+                        int next = j - 1;
+                        if (next < 0) next = loops[i].Count - 1;
+                        if (loops[i][next].vertex1 == loops[i][j].vertex1 && loops[i][next].vertex2 == loops[i][j].vertex2 && loops[i][j].forward != loops[i][next].forward
+                            && loops[i][j].curve.SameGeometry(loops[i][next].curve, precision))
+                        {   // two adjacent edges are exactly opposite curves: makes no sense, remove both (e.g. "171_Sch-AufsORIG.stp")
+                            if (j == 0)
+                            {
+                                loops[i].RemoveAt(next);
+                                loops[i].RemoveAt(j);
+                            }
+                            else
+                            {
+                                loops[i].RemoveAt(j);
+                                loops[i].RemoveAt(next);
+                            }
+                        }
+
+                    }
                 }
                 // if a loop contains two identical edges, which are back and forth, we remove this pair and split the loop into two parts
                 for (int i = loops.Count - 1; i >= 0; --i)
@@ -615,17 +639,18 @@ namespace CADability.GeoObject
                     {
                         if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 1)
                         {
-                            //Vertex sv = null;
-                            //if (loops[i][j].forward) sv = loops[i][j].vertex1;
-                            //else sv = loops[i][j].vertex2;
-                            //if (loops[i][j].createdEdges[0].EndVertex(loops[i][j].createdEdges[0].PrimaryFace) != sv)
-                            //{
-                            //    loops[i][j].createdEdges.Reverse();
-                            //}
+                            double vertexDist = minCurveLength / 10.0;
+                            for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
+                            {
+                                vertexDist = Math.Min(vertexDist, loops[i][j].createdEdges[k].Curve3D.Length / 10.0);
+                            }
                             List<StepEdgeDescriptor> toInsert = new List<StepEdgeDescriptor>();
                             for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
                             {
-                                loops[i][j].createdEdges[k].UseVertices(loops[i][j].vertex1, loops[i][j].vertex2);
+                                Set<Vertex> toUse = new Set<Vertex>();
+                                toUse.Add(loops[i][j].vertex1);
+                                toUse.Add(loops[i][j].vertex2);
+                                loops[i][j].createdEdges[k].UseVertices(toUse, vertexDist);
                                 StepEdgeDescriptor se = new StepEdgeDescriptor(loops[i][j].createdEdges[k], loops[i][j].forward);
                                 toInsert.Add(se);
                             }
@@ -662,7 +687,7 @@ namespace CADability.GeoObject
                                 foreach (StepEdgeDescriptor item in loopcurves)
                                 {
                                     //item.createdEdges[0].UseVertices(loops[i][j].vertex1, loops[i][j].vertex2);
-                                    if ((item.forward && (item.vertex1.Position | lastVertex.Position)< minCurveLength*1e-5) || (!item.forward && (item.vertex2.Position | lastVertex.Position)< minCurveLength*1e-5))
+                                    if ((item.forward && (item.vertex1.Position | lastVertex.Position) < minCurveLength * 1e-5) || (!item.forward && (item.vertex2.Position | lastVertex.Position) < minCurveLength * 1e-5))
                                     {
                                         loops[i].Add(item);
                                         loopcurves.Remove(item);
@@ -1093,7 +1118,7 @@ namespace CADability.GeoObject
                         }
                     }
                 }
-                // Poles (typically with sphere, cone and sometimes nurbes) lead to missing 2d connections.
+                // Poles (typically with sphere, cone and sometimes nurbs) lead to missing 2d connections.
                 // these edges are inserted here with no 3d curve but valid vertices
                 double[] us = surface.GetUSingularities();
                 double[] vs = surface.GetVSingularities();
@@ -9392,7 +9417,7 @@ namespace CADability.GeoObject
         internal void CombineConnectedSameSurfaceEdges()
         {
 #if DEBUG
-            if (2430==hashCode)
+            if (2430 == hashCode)
             { }
 #endif
             for (int i = 0; i < outline.Length; i++)

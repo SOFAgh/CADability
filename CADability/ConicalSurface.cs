@@ -1669,7 +1669,7 @@ namespace CADability.GeoObject
                                 res = s2cx;
                             }
                         }
-                        return res;
+                        if (minDist<Precision.eps) return res;
                     }
 
                 }
