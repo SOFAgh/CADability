@@ -865,7 +865,7 @@ namespace CADability.GeoObject
             uniqueId = ++UniqueIdCounter; // kann der Counter überlaufen? Wie geht das Increment mit Überlauf?
             visible = true;
 #if DEBUG
-            if (67144 == uniqueId || 274267 == uniqueId || 284249 == uniqueId || 274106==uniqueId)
+            if (5845 == uniqueId)
             {
 
             }

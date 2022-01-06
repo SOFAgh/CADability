@@ -843,8 +843,8 @@ namespace CADability.GeoObject
                     }
                 }
                 edges[i + 1].SetFace(face, cvs2d[0], true);
-                upper.SetFace(face, cvs2d[1], false);
-                edges[i].SetFace(face, cvs2d[2], false);
+                upper.SetFace(face, cvs2d[1].CloneReverse(true), false); // .CloneReverse(true) is necessary, since SetFace reverses it again due to "forward==false"
+                edges[i].SetFace(face, cvs2d[2].CloneReverse(true), false);
                 lower.SetFace(face, cvs2d[3], true);
                 face.Set(rs, new Edge[] { edges[i + 1], upper, edges[i], lower }, null);
                 faces.Add(face);

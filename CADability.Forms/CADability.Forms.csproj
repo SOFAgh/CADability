@@ -108,6 +108,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="DebugForm.cs" />
+    <Compile Include="DebuggerPlayground.cs" />
     <Compile Include="MenuManager.cs">
       <SubType>Component</SubType>
     </Compile>

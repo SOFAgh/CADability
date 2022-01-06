@@ -4863,7 +4863,10 @@ namespace CADability.GeoObject
                             {   // do not combine two faces, which are periodic and in the combination fill the whole period
                                 // these faces are explicitly kept separate
                                 // firstToSecond may move by a whole period. This is not respected here. but with the non periodic surfaces we want to get rid of periodic surfaces anyhow.
-                                Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
+                                Border outline = edge.PrimaryFace.Area.Outline; // three lines to check performance
+                                ModOp2D inverse = firstToSecond.GetInverse();
+                                Border firstoutline = outline.GetModified(inverse);
+                                // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
                                 BoundingRect ext = firstoutline.Extent;
                                 ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
                                 if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;

@@ -630,6 +630,12 @@ namespace CADability.Shapes
                                 removed = false;
                                 for (int i = 0; i < parts.Count; i++)
                                 {
+                                    if (parts[i].SubCurvesCount==0)
+                                    {
+                                        parts.RemoveAt(i);
+                                        removed = true;
+                                        break;
+                                    }
                                     Path2D part1 = parts[i].CloneReverse(true) as Path2D;
                                     if (part1.IsClosed)
                                     {   // ein in sich zurückkehrendes Stückchen?

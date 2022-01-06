@@ -83,7 +83,17 @@ namespace CADability
         public bool forward;
         public bool isSeam = false; // is part of a seam, the same edge exists in different directions on the same face
         public ICurve2D curve2d;
-        public List<Edge> createdEdges; // With periodic surfaces the edge might be splitted. Then we have two (ore even more) edges corresponding to a single step edge.
+        public List<Edge> createdEdges; // With periodic surfaces the edge might be split. Then we have two (ore even more) edges corresponding to a single step edge.
+        public class Locker
+        {
+            public StepEdgeDescriptor original;
+            public Locker(StepEdgeDescriptor original)
+            {
+                this.original = original;
+            }
+        }
+        public Locker locker;
+
         public StepEdgeDescriptor(ICurve curve)
         {
             this.curve = curve;
@@ -95,6 +105,7 @@ namespace CADability
             {
                 this.id = idCounter++;
             }
+            locker = new Locker(this);
         }
         public StepEdgeDescriptor(ICurve curve, Vertex vertex1, Vertex vertex2, bool forward)
         {
@@ -107,30 +118,7 @@ namespace CADability
             {
                 id = idCounter++;
             }
-#if DEBUG
-            // don't make functional code conditional!
-            //if (curve != null)
-            //{
-            //    if (curve.IsClosed)
-            //    {
-            //        if ((curve.StartPoint | vertex1.Position) > 1e-6)
-            //        {
-            //            curve = curve.CloneModified(ModOp.Translate(vertex1.Position - curve.StartPoint));
-            //        }
-            //    }
-            //    else
-            //    {
-            //        if ((curve.StartPoint | vertex1.Position) > 1e-6)
-            //        {
-            //            curve.StartPoint = vertex1.Position;
-            //        }
-            //        if ((curve.EndPoint | vertex2.Position) > 1e-6)
-            //        {
-            //            curve.EndPoint = vertex2.Position;
-            //        }
-            //    }
-            //}
-#endif
+            locker = new Locker(this);
         }
         public StepEdgeDescriptor(StepEdgeDescriptor toClone, Vertex vertex1, Vertex vertex2, bool forward)
         {
@@ -146,26 +134,7 @@ namespace CADability
             {
                 id = idCounter++;
             }
-#if DEBUG
-            //if (curve.IsClosed)
-            //{
-            //    if ((curve.StartPoint | vertex1.Position) > 1e-6)
-            //    {
-            //        curve = curve.CloneModified(ModOp.Translate(vertex1.Position - curve.StartPoint));
-            //    }
-            //}
-            //else
-            //{
-            //    if ((curve.StartPoint | vertex1.Position) > 1e-6)
-            //    {
-            //        curve.StartPoint = vertex1.Position;
-            //    }
-            //    if ((curve.EndPoint | vertex2.Position) > 1e-6)
-            //    {
-            //        curve.EndPoint = vertex2.Position;
-            //    }
-            //}
-#endif
+            locker = toClone.locker;
         }
         public StepEdgeDescriptor(Edge edge, bool forward)
         {
@@ -179,11 +148,28 @@ namespace CADability
             {
                 id = idCounter++;
             }
+            locker = new Locker(this);
         }
         internal void MakeVertices()
         {
             vertex1 = new Vertex(curve.StartPoint);
             vertex2 = new Vertex(curve.EndPoint);
+        }
+        public Vertex FirstVertex
+        {
+            get
+            {
+                if (forward) return vertex1;
+                else return vertex2;
+            }
+        }
+        public Vertex LastVertex
+        {
+            get
+            {
+                if (forward) return vertex2;
+                else return vertex1;
+            }
         }
     }
 
@@ -3068,6 +3054,8 @@ namespace CADability
                 }
                 if (curveOnPrimaryFace is ProjectedCurve pcp) pcp.IsReverse = !forwardOnPrimaryFace;
                 if (curveOnSecondaryFace is ProjectedCurve pcs) pcs.IsReverse = !forwardOnSecondaryFace;
+                PrimaryFace?.InvalidateArea();
+                SecondaryFace?.InvalidateArea();
             }
         }
         internal void Reverse(Face onThisFace)

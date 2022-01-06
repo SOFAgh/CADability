@@ -2058,12 +2058,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             {
                 defind = item.definingIndex = (int)item.val;
             }
-#if DEBUG
-            definitionStack.Push(item.definingIndex);
-#endif
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (72730 == item.definingIndex || 27507 == item.definingIndex)
+            if (50134 == item.definingIndex)
             {
 
             }
@@ -2074,6 +2071,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             lock (item)
 #endif
             {
+#if DEBUG
+                lock (definitionStack) definitionStack.Push(item.definingIndex);
+#endif
                 if (!(item.val is List<Item>)) return item.val; // already created, maybe null
                 if (item.type == Item.ItemType.advancedFace || item.type == Item.ItemType.faceSurface || item.type == Item.ItemType.curveBoundedSurface) CreatingFace();
                 switch (item.type)
@@ -2164,7 +2164,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 {
                                     BoundingRect ext;
                                     nurbsSurface.GetNaturalBounds(out ext.Left, out ext.Right, out ext.Bottom, out ext.Top);
-                                    // TODO: non periodic!!!
                                     Face face = Face.MakeFace(nurbsSurface, ext);
                                     if (face != null)
                                     {
@@ -2478,7 +2477,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (806 == item.definingIndex || 806 == item.definingIndex)
+                            if (26145 == item.definingIndex || 806 == item.definingIndex)
                             {
                             }
 #endif
@@ -2506,7 +2505,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #if DEBUG
                                         if (faceCount % 1000 == 0)
                                         {
-                                            System.Diagnostics.Trace.WriteLine("hashCount, memory: " + (item.val as Face[])[i].GetHashCode().ToString() + ", " + System.GC.GetTotalMemory(true).ToString());
+                                            //System.Diagnostics.Trace.WriteLine("hashCount, memory: " + (item.val as Face[])[i].GetHashCode().ToString() + ", " + System.GC.GetTotalMemory(true).ToString());
                                         }
                                         (item.val as Face[])[i].UserData["StepImport.ItemNumber"] = new UserInterface.IntegerProperty(item.definingIndex, "StepImport.ItemNumber");
                                         if (!(item.val as Face[])[i].CheckConsistency())
@@ -2552,7 +2551,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (9778 == item.definingIndex || 9783 == item.definingIndex)
+                            if (49935 == item.definingIndex || 103821 == item.definingIndex)
                             {
                             }
 #endif
@@ -2597,7 +2596,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #if DEBUG
                                         if (faceCount % 1000 == 0)
                                         {
-                                            System.Diagnostics.Trace.WriteLine("hashCount, memory: " + (item.val as Face[])[i].GetHashCode().ToString() + ", " + System.GC.GetTotalMemory(true).ToString());
+                                            //System.Diagnostics.Trace.WriteLine("hashCount, memory: " + (item.val as Face[])[i].GetHashCode().ToString() + ", " + System.GC.GetTotalMemory(true).ToString());
                                         }
                                         (item.val as Face[])[i].UserData["StepImport.ItemNumber"] = new UserInterface.IntegerProperty(item.definingIndex, "StepImport.ItemNumber");
                                         if (!(item.val as Face[])[i].CheckConsistency())
@@ -2995,7 +2994,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 vKnots = CreateFloatList(item.parameter["v_knots"].lval);
                                 Knot_Type knotSpec = ParseEnum<Knot_Type>(item.parameter["knot_spec"].sval);
 #if DEBUG
-                                if (vKnots.Count == 204) { }
+                                if (item.definingIndex == 7227) { }
 #endif
                             }
                             else
@@ -3063,8 +3062,19 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             Vertex v1 = CreateEntity(item.parameter["edge_start"]) as Vertex;
                             Vertex v2 = CreateEntity(item.parameter["edge_end"]) as Vertex;
-                            ICurve crv = CreateEntity(item.parameter["edge_geometry"]) as ICurve;
                             bool sameSense = item.parameter["same_sense"].bval;
+                            // before creating the curve, we add the startpoint and endpoint of that curve to the item, so we can decide, whether to use the 3d or 2d representation
+                            if (sameSense)
+                            {
+                                item.parameter["edge_geometry"].parameter["_startpoint"] = item.parameter["edge_start"];
+                                item.parameter["edge_geometry"].parameter["_endpoint"] = item.parameter["edge_end"];
+                            }
+                            else
+                            {
+                                item.parameter["edge_geometry"].parameter["_startpoint"] = item.parameter["edge_end"];
+                                item.parameter["edge_geometry"].parameter["_endpoint"] = item.parameter["edge_start"];
+                            }
+                            ICurve crv = CreateEntity(item.parameter["edge_geometry"]) as ICurve;
                             if (v1 != null && v2 != null && crv != null)
                             {
                                 if (v1 != null && v1 == v2 && crv is BSpline && (crv.StartPoint | crv.EndPoint) > Precision.eps)
@@ -3197,10 +3207,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.orientedEdge: // name, edge_start, edge_end, edge_element, orientation
                         {
-                            Item edge_start = item.SubItem(1);
-                            Item edge_end = item.SubItem(2);
-                            StepEdgeDescriptor ec = CreateEntity(item.SubItem(3)) as StepEdgeDescriptor;
-                            bool fwd = item.SubBool(4);
+                            Item edge_start = item.parameter["edge_start"];
+                            Item edge_end = item.parameter["edge_end"];
+                            StepEdgeDescriptor ec = CreateEntity(item.parameter["edge_element"]) as StepEdgeDescriptor;
+                            bool fwd = item.parameter["orientation"].bval;
                             item.val = null;
                             if (ec != null)
                             {
@@ -3857,7 +3867,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                     case Item.ItemType.seamCurve:
                     case Item.ItemType.surfaceCurve: // name, curve_3d, associated_geometry, master_representation
-                    case Item.ItemType.boundedCurve: // this is only a supertype with no additional properties
+                    case Item.ItemType.boundedCurve: // this is only a super-type with no additional properties
                     case Item.ItemType.geometricRepresentationItem:
                     case Item.ItemType.curve: // name, curve_3d, associated_geometry, master_representation
                         {
@@ -3871,6 +3881,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     {
                                         object o = CreateEntity(item.parameter["associated_geometry"].lval[0]);
                                         if (o is ICurve) item.val = o;
+                                        else if (item.parameter.ContainsKey("curve_3d")) item.val = CreateEntity(item.parameter["curve_3d"]);
                                     }
                                     break;
                                 case "PCURVE_S2":
@@ -3878,10 +3889,27 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     {
                                         object o = CreateEntity(item.parameter["associated_geometry"].lval[1]);
                                         if (o is ICurve) item.val = o;
+                                        else if (item.parameter.ContainsKey("curve_3d")) item.val = CreateEntity(item.parameter["curve_3d"]);
                                     }
                                     break;
                             }
+                            if (item.parameter.TryGetValue("_startpoint", out Item startPoint) && item.parameter.TryGetValue("_endpoint", out Item endPoint) && item.parameter["master_representation"].sval != "CURVE_3D")
+                            {   // the curve was created as a PCURVE on the surface, but maybe the 3d curve would have been better
+                                // In some cases the step data suggest to use the 2d (PCURVE) representation, but the 3d representation is actually better. Then we choose to use the 3d representation.
+                                // _startpoint and _enpoint parameters have been added to the item in the edgeCurve creation.
+                                // maybe there is a bug with the conical surface 2d system, in v direction
+                                ICurve c3d = CreateEntity(item.parameter["curve_3d"]) as ICurve;
+                                if (c3d != null && c3d != item.val)
+                                {
+                                    GeoPoint sp = (startPoint.val as Vertex).Position;
+                                    GeoPoint ep = (endPoint.val as Vertex).Position;
+                                    double dist3d = (c3d.StartPoint | sp) + (c3d.EndPoint | ep);
+                                    if (c3d.IsClosed) dist3d = c3d.DistanceTo(sp) + c3d.DistanceTo(ep); // e.g. a circle on a conical surface
+                                    double distPCurve = ((item.val as ICurve).StartPoint | sp) + ((item.val as ICurve).EndPoint | ep);
+                                    if (dist3d < distPCurve) item.val = c3d;
+                                }
 
+                            }
                         }
                         break;
                     case Item.ItemType.pcurve: // basis_surface, reference_to_curve
@@ -3901,7 +3929,18 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                             if (o is ICurve2D c2d)
                             {
-                                item.val = srf.Make3dCurve(c2d);
+                                if (c2d is Line2D l2d)
+                                {
+                                    if (srf is NurbsSurface nsrf)
+                                    {
+                                        BoundingRect ext = nsrf.GetMaximumExtent();
+                                        if (!ext.Contains(l2d.StartPoint) && !ext.Contains(l2d.EndPoint))
+                                        {
+                                            item.val = null; // this happens e.g. with "C.I6.30.000_6.stp". We better would use the 3d curve then
+                                        }
+                                    }
+                                }
+                                if (item.val != null) item.val = srf.Make3dCurve(c2d);
                             }
                             else if (o is ICurve c3d)
                             {
@@ -4224,7 +4263,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         break;
                 }
 #if DEBUG
-                definitionStack.Pop();
+                lock (definitionStack) definitionStack.Pop();
 #endif
                 return item.val; // has now been created
             } // end lock
