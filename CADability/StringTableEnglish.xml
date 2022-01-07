@@ -7187,4 +7187,24 @@
   <data name="Constr.Parametrics.DistanceTo">
     <label>Change the distance between two parts of a solid</label>
   </data>
+  <data name="StepImport">
+    <label>STEP file import</label>
+    <tip>Settings for STEP file import</tip>
+    <info>Settings for STEP file import</info>
+  </data>
+  <data name="StepImport.Parallel">
+    <label>Multi threading</label>
+    <tip>use multi threading when importing</tip>
+    <info>use multi threading when importing</info>
+  </data>
+  <data name="StepImport.CombineFaces">
+    <label>Combine similar faces</label>
+    <tip>combine adjacent faces with the same surface to a single face</tip>
+    <info>combine adjacent faces with the same surface to a single face</info>
+  </data>
+  <data name="StepImport.Blocks">
+    <label>Compose Blocks</label>
+    <tip>Compose assemblies and products to blocks</tip>
+    <info>Compose assemblies and products to blocks</info>
+  </data>
 </root>

@@ -254,26 +254,27 @@ namespace CADability.GeoObject
         internal static Face[] MakeFacesFromStepAdvancedFace(ISurface surface, List<List<StepEdgeDescriptor>> loops, bool sameSense, double precision)
         {
             List<object> toLock = new List<object>();
-#if PARALLEL
-            List<StepEdgeDescriptor> allEdgeDescriptors = new List<StepEdgeDescriptor>();
+            if (Settings.GlobalSettings.GetBoolValue("StepImport.CombineFaces", false))
             {
-                for (int i = 0; i < loops.Count; i++)
+                List<StepEdgeDescriptor> allEdgeDescriptors = new List<StepEdgeDescriptor>();
                 {
-                    for (int j = loops[i].Count - 1; j >= 0; --j)
+                    for (int i = 0; i < loops.Count; i++)
                     {
-                        allEdgeDescriptors.Add(loops[i][j]);
+                        for (int j = loops[i].Count - 1; j >= 0; --j)
+                        {
+                            allEdgeDescriptors.Add(loops[i][j]);
+                        }
+                    }
+                    // we need exclusive access to all edges of the loop, because they might be modified during the creation
+                    allEdgeDescriptors.Sort(delegate (StepEdgeDescriptor s1, StepEdgeDescriptor s2) { return s1.locker.original.id.CompareTo(s2.locker.original.id); });
+                    // each StepEdgeDescriptor describes an edge in respect to a distinct face. Typically we have two different StepEdgeDescriptors for a single edge,
+                    // one for each face, but they contain the same (maybe empty) list "createdEdges", and that is the object we need to lock here
+                    for (int i = 0; i < allEdgeDescriptors.Count; i++)
+                    {
+                        toLock.Add(allEdgeDescriptors[i].locker);
                     }
                 }
-                // we need exclusive access to all edges of the loop, because they might be modified during the creation
-                allEdgeDescriptors.Sort(delegate (StepEdgeDescriptor s1, StepEdgeDescriptor s2) { return s1.locker.original.id.CompareTo(s2.locker.original.id); });
-                // each StepEdgeDescriptor describes an edge in respect to a distinct face. Typically we have two different StepEdgeDescriptors for a single edge,
-                // one for each face, but they contain the same (maybe empty) list "createdEdges", and that is the object we need to lock here
-                for (int i = 0; i < allEdgeDescriptors.Count; i++)
-                {
-                    toLock.Add(allEdgeDescriptors[i].locker);
-                }
             }
-#endif
             using (ParallelHelper.LockMultipleObjects(toLock.ToArray())) // toLock is empty in case of not parallel
             {
 #if DEBUG

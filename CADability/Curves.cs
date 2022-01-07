@@ -101,7 +101,7 @@ namespace CADability.GeoObject
         /// </summary>
         GeoVector EndDirection { get; }
         /// <summary>
-        /// Returns the direction of the curve at a specified point. The parameter prosition of the start-point
+        /// Returns the direction of the curve at a specified point. The parameter position of the start-point
         /// is 0.0, the parameter position of the endpoint is 1.0. Directions of a position outside
         /// this interval may be undefined.
         /// </summary>
@@ -109,9 +109,9 @@ namespace CADability.GeoObject
         /// <returns>The requested direction</returns>
         GeoVector DirectionAt(double Position);
         /// <summary>
-        /// Returns the point of the given position. The parameter prosition of the start-point
+        /// Returns the point of the given position. The parameter position of the start-point
         /// is 0.0, the parameter position of the endpoint is 1.0. Points of a position outside
-        /// this interval may be undefined. The correlatioon between the parameter Position and the
+        /// this interval may be undefined. The correlation between the parameter Position and the
         /// resulting point may be not linear.
         /// </summary>
         /// <param name="Position">Position on the curve</param>
@@ -119,26 +119,26 @@ namespace CADability.GeoObject
         GeoPoint PointAt(double Position);
         /// <summary>
         /// Returns the parameter of the point at the given position. The position must be in the interval [0, Length].
-        /// The correlatioon between the parameter Position and the
+        /// The correlation between the parameter Position and the
         /// resulting position is linear. The result is usually used for <see cref="PointAt"/> or <see cref="DirectionAt"/>.
         /// </summary>
         /// <param name="position">Position on the curve</param>
         /// <returns>The requested position</returns>
         double PositionAtLength(double position);
         /// <summary>
-        /// Returns the parametric position of the point on the curve. This function is invers to
+        /// Returns the parametric position of the point on the curve. This function is inverse to
         /// <seealso cref="DirectionAt"/>. If the given point is not on the curve, the result is the
         /// position of a point on the curve, that is close to the given point, but not necessary
         /// of the closest point.
         /// </summary>
-        /// <param name="p">Point, whos position is requested</param>
+        /// <param name="p">Point, for which the position is requested</param>
         /// <returns>the requested position</returns>
         double PositionOf(GeoPoint p);
         /// <summary>
         /// Similar to <see cref="PositionOf(GeoPoint)"/>. If the point is not on the curve and there are several
         /// solutions then the solution closest to the parameter prefer will be returned.
         /// </summary>
-        /// <param name="p">Point, whos position is requested</param>
+        /// <param name="p">Point, for which the position is requested</param>
         /// <param name="prefer">preferable solution close to this value</param>
         /// <returns>the requested position</returns>
         double PositionOf(GeoPoint p, double prefer);

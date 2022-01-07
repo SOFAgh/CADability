@@ -370,10 +370,14 @@ namespace CADability
                     }
 
                     octTree = new OctTree<IGeoObject>(Extent, displayListPrecision);
-                    for (int i = 0; i < geoObjects.Count; ++i)
+                    //for (int i = 0; i < geoObjects.Count; ++i)
+                    //{
+                    //    AddOctreeObjects(geoObjects[i], octTree);
+                    //}
+                    Parallel.For(0, geoObjects.Count, i =>
                     {
-                        AddOctreeObjects(geoObjects[i], octTree);
-                    }
+                        AddOctreeObjectsParallel(geoObjects[i], octTree);
+                    });
                     int time = Environment.TickCount - tcstart;
                 }
             }
@@ -481,17 +485,10 @@ namespace CADability
                 }
 
                 octTree = new OctTree<IGeoObject>(Extent, displayListPrecision);
-#if PARALLEL
                 Parallel.For(0, geoObjects.Count, i =>
                 {
                     AddOctreeObjectsParallel(geoObjects[i], octTree);
                 });
-#else
-                for (int i = 0; i < geoObjects.Count; ++i)
-                {
-                    AddOctreeObjects(geoObjects[i], octTree);
-                }
-#endif
             }
         }
         /// <summary>

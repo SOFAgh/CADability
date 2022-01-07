@@ -376,8 +376,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         public double uncertainty; // from UNCERTAINTY_MEASURE_WITH_UNIT
         public double factor = 1.0;
     }
-
-    // #if DEBUG
+    /// <summary>
+    /// CImport and conversion of STEP files into CADability objects.
+    /// there are some global settings, which influence the import:
+    /// <list type="bullet">
+    /// <item>StepImport.Parallel: uses multi-threading during import</item>
+    /// <item>StepImport.CombineFaces: adjacent faces with the same surface may be combined to a single face</item>
+    /// </list>
+    /// </summary>
     public class ImportStep
     {
 #if DEBUG
@@ -1363,19 +1369,22 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     // *shapeRepresentation* muss sich das Objekt merken, denn contextDependentShapeRepresentation(5490)->representationRelationship(5489)->shapeRepresentation(5473)
                     // ist das Einfügen selbst. Das sind die wichtigen roots: shapeDefinitionRepresentation, contextDependentShapeRepresentation, shapeRepresentationRelationship
 #endif
-#if PARALLEL
-                    Parallel.For(0, roots[Item.ItemType.shapeDefinitionRepresentation].Count, i =>
+                    if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", true))
                     {
-                        Item item = definitions[roots[Item.ItemType.shapeDefinitionRepresentation][i]];
-                        object so = CreateEntity(item);
-                    });
-#else
-                    for (int i = 0; i < roots[Item.ItemType.shapeDefinitionRepresentation].Count; i++)
-                    {
-                        Item item = definitions[roots[Item.ItemType.shapeDefinitionRepresentation][i]];
-                        object so = CreateEntity(item);
+                        Parallel.For(0, roots[Item.ItemType.shapeDefinitionRepresentation].Count, i =>
+                        {
+                            Item item = definitions[roots[Item.ItemType.shapeDefinitionRepresentation][i]];
+                            object so = CreateEntity(item);
+                        });
                     }
-#endif
+                    else
+                    {
+                        for (int i = 0; i < roots[Item.ItemType.shapeDefinitionRepresentation].Count; i++)
+                        {
+                            Item item = definitions[roots[Item.ItemType.shapeDefinitionRepresentation][i]];
+                            object so = CreateEntity(item);
+                        }
+                    }
                     for (int i = 0; i < roots[Item.ItemType.representationRelationship].Count; i++)
                     {
                         Item item = definitions[roots[Item.ItemType.representationRelationship][i]];
@@ -1629,6 +1638,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 }
             }
 #endif
+            if (!Settings.GlobalSettings.GetBoolValue("StepImport.Blocks", true)) res.DecomposeBlocks();
             return res;
         }
 #if DEBUG
@@ -2067,9 +2077,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 #endif
             if (!(item.val is List<Item>)) return item.val; // already created, maybe null
             if (defind >= 0) item.definingIndex = defind;
-#if PARALLEL
-            lock (item)
-#endif
+            lock (item) // no problem is not parallel
             {
 #if DEBUG
                 lock (definitionStack) definitionStack.Push(item.definingIndex);
@@ -2356,24 +2364,32 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             List<Item> lst = item.SubList(1);
                             List<Face> faces = new List<Face>();
-#if PARALLEL
-                            Parallel.For(0, lst.Count, i =>
+                            if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", true))
                             {
-                                object o = CreateEntity(lst[i]);
-                                lock (faces)
+                                Parallel.For(0, lst.Count, i =>
                                 {
+                                    object o = CreateEntity(lst[i]);
+                                    lock (faces)
+                                    {
+                                        if (o is Face) faces.Add(o as Face);
+                                        if (o is Face[]) faces.AddRange(o as Face[]);
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                for (int i = 0; i < lst.Count; i++)
+                                {
+                                    object o = CreateEntity(lst[i]);
                                     if (o is Face) faces.Add(o as Face);
                                     if (o is Face[]) faces.AddRange(o as Face[]);
                                 }
-                            });
-#else
-                            for (int i = 0; i < lst.Count; i++)
-                            {
-                                object o = CreateEntity(lst[i]);
-                                if (o is Face) faces.Add(o as Face);
-                                if (o is Face[]) faces.AddRange(o as Face[]);
                             }
-#endif
+                            if (faces.Count == 0)
+                            {
+                                item.val = null; // nothing to do
+                                break;
+                            }
                             Shell.connectFaces(faces.ToArray(), Precision.eps);
                             Shell shell = Shell.MakeShell(faces.ToArray());
                             shell.Name = item.SubString(0);
@@ -2449,24 +2465,27 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             List<Item> lst = item.SubList(1);
                             List<Face> faces = new List<Face>();
-#if PARALLEL
-                            Parallel.For(0, lst.Count, i =>
+                            if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", true))
                             {
-                                object o = CreateEntity(lst[i]);
-                                lock (faces)
+                                Parallel.For(0, lst.Count, i =>
                                 {
+                                    object o = CreateEntity(lst[i]);
+                                    lock (faces)
+                                    {
+                                        if (o is Face) faces.Add(o as Face);
+                                        if (o is Face[]) faces.AddRange(o as Face[]);
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                for (int i = 0; i < lst.Count; i++)
+                                {
+                                    object o = CreateEntity(lst[i]);
                                     if (o is Face) faces.Add(o as Face);
                                     if (o is Face[]) faces.AddRange(o as Face[]);
                                 }
-                            });
-#else
-                            for (int i = 0; i < lst.Count; i++)
-                            {
-                                object o = CreateEntity(lst[i]);
-                                if (o is Face) faces.Add(o as Face);
-                                if (o is Face[]) faces.AddRange(o as Face[]);
                             }
-#endif
                             Shell.connectFaces(faces.ToArray(), Precision.eps);
                             Shell shell = Shell.MakeShell(faces.ToArray());
                             shell.Name = item.SubString(0);
@@ -2477,7 +2496,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (26145 == item.definingIndex || 806 == item.definingIndex)
+                            if (19216 == item.definingIndex || 19216 == item.definingIndex)
                             {
                             }
 #endif
@@ -2502,12 +2521,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     for (int i = 0; i < (item.val as Face[]).Length; i++)
                                     {
                                         (item.val as Face[])[i].Name = item.SubString(0);
+                                        (item.val as Face[])[i].UserData["StepImport.ItemNumber"] = new UserInterface.IntegerProperty(item.definingIndex, "StepImport.ItemNumber");
 #if DEBUG
                                         if (faceCount % 1000 == 0)
                                         {
                                             //System.Diagnostics.Trace.WriteLine("hashCount, memory: " + (item.val as Face[])[i].GetHashCode().ToString() + ", " + System.GC.GetTotalMemory(true).ToString());
                                         }
-                                        (item.val as Face[])[i].UserData["StepImport.ItemNumber"] = new UserInterface.IntegerProperty(item.definingIndex, "StepImport.ItemNumber");
                                         if (!(item.val as Face[])[i].CheckConsistency())
                                         {
                                             System.Diagnostics.Trace.WriteLine("invalid Face: " + item.definingIndex.ToString());
@@ -2551,7 +2570,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (49935 == item.definingIndex || 103821 == item.definingIndex)
+                            if (19216 == item.definingIndex || 19216 == item.definingIndex)
                             {
                             }
 #endif
@@ -2592,13 +2611,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     {
                                         Face fc = (item.val as Face[])[i];
                                         fc.Name = item.SubString(0);
-
+                                        (item.val as Face[])[i].UserData["StepImport.ItemNumber"] = new UserInterface.IntegerProperty(item.definingIndex, "StepImport.ItemNumber");
 #if DEBUG
                                         if (faceCount % 1000 == 0)
                                         {
                                             //System.Diagnostics.Trace.WriteLine("hashCount, memory: " + (item.val as Face[])[i].GetHashCode().ToString() + ", " + System.GC.GetTotalMemory(true).ToString());
                                         }
-                                        (item.val as Face[])[i].UserData["StepImport.ItemNumber"] = new UserInterface.IntegerProperty(item.definingIndex, "StepImport.ItemNumber");
                                         if (!(item.val as Face[])[i].CheckConsistency())
                                         {
                                             System.Diagnostics.Trace.WriteLine("invalid Face: " + item.definingIndex.ToString());
@@ -3625,15 +3643,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             object o1 = CreateEntity(item.parameter["transform_item_1"]);
                             object o2 = CreateEntity(item.parameter["transform_item_2"]);
-                            if (o1 is FreeCoordSys && o2 is FreeCoordSys)
+                            if (o1 is FreeCoordSys fcs1 && o2 is FreeCoordSys fcs2)
                             {
-                                FreeCoordSys fcs1 = (FreeCoordSys)o1;
-                                FreeCoordSys fcs2 = (FreeCoordSys)o2;
                                 item.val = ModOp.Fit(fcs1.Location, new GeoVector[] { fcs1.DirectionX, fcs1.DirectionY, fcs1.DirectionZ }, fcs2.Location, new GeoVector[] { fcs2.DirectionX, fcs2.DirectionY, fcs2.DirectionZ });
 #if DEBUG
-                                System.Diagnostics.Trace.WriteLine("Transformation " + item.definingIndex.ToString() + ", " + ((ModOp)item.val).Matrix[0, 0].ToString() + ", " + ((ModOp)item.val).Matrix[0, 1].ToString() + ", " + ((ModOp)item.val).Matrix[0, 2].ToString()
-                                    + ", " + ((ModOp)item.val).Matrix[1, 0].ToString() + ", " + ((ModOp)item.val).Matrix[1, 1].ToString() + ", " + ((ModOp)item.val).Matrix[1, 2].ToString()
-                                    + ", " + ((ModOp)item.val).Matrix[2, 0].ToString() + ", " + ((ModOp)item.val).Matrix[2, 1].ToString() + ", " + ((ModOp)item.val).Matrix[2, 2].ToString());
+                                //System.Diagnostics.Trace.WriteLine("Transformation " + item.definingIndex.ToString() + ", " + ((ModOp)item.val).Matrix[0, 0].ToString() + ", " + ((ModOp)item.val).Matrix[0, 1].ToString() + ", " + ((ModOp)item.val).Matrix[0, 2].ToString()
+                                //    + ", " + ((ModOp)item.val).Matrix[1, 0].ToString() + ", " + ((ModOp)item.val).Matrix[1, 1].ToString() + ", " + ((ModOp)item.val).Matrix[1, 2].ToString()
+                                //    + ", " + ((ModOp)item.val).Matrix[2, 0].ToString() + ", " + ((ModOp)item.val).Matrix[2, 1].ToString() + ", " + ((ModOp)item.val).Matrix[2, 2].ToString());
 #endif
                             }
                             else
