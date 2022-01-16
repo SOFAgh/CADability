@@ -100,12 +100,13 @@ namespace CADability.GeoObject
     }
     internal class LayerToDisplayListDictionary: Dictionary<Layer, IPaintTo3DList>
     {
-        public new void Clear()
+        public void ClearAndDispose()
         {
             foreach (KeyValuePair<Layer, IPaintTo3DList> item in this)
             {
                 if (item.Value != null) item.Value.Dispose();
             }
+            this.Clear();
         }
     }
     internal class CategorizedDislayLists : ICategorizedDislayLists
@@ -132,9 +133,9 @@ namespace CADability.GeoObject
 
         public void Finish(IPaintTo3D paintTo3D)
         {
-            layerFaceDisplayList.Clear();
-            layerCurveDisplayList.Clear();
-            layerTransparentDisplayList.Clear();
+            layerFaceDisplayList.ClearAndDispose();
+            layerCurveDisplayList.ClearAndDispose();
+            layerTransparentDisplayList.ClearAndDispose();
             paintTo3D.PaintFaces(PaintTo3D.PaintMode.FacesOnly);
             foreach (KeyValuePair<Layer, List<IGeoObject>> kv in layerFaceObjects)
             {

@@ -293,9 +293,9 @@ namespace CADability
                 }
                 try
                 {
-                    layerFaceDisplayList.Clear();
-                    layerTransparentDisplayList.Clear();
-                    layerCurveDisplayList.Clear();
+                    layerFaceDisplayList.ClearAndDispose();
+                    layerTransparentDisplayList.ClearAndDispose();
+                    layerCurveDisplayList.ClearAndDispose();
                     layerUnscaledObjects.Clear();
                     // nur zum Test, wieder entfernen!
                     //System.GC.Collect();
