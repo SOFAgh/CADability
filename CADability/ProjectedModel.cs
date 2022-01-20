@@ -84,10 +84,10 @@ namespace CADability
         private Dictionary<int, IGeoObject> geoObjects;
         // die beiden folgenden werden im Hintergrundthread gesetzt
 
-        private IPaintTo3DList PaintFacesCache;
-        private IPaintTo3DList PaintTransparentCache;
-        private IPaintTo3DList PaintCurvesCache;
-        private IPaintTo3DList PaintUnscaledCache;
+        private List<IPaintTo3DList> allFaces = new List<IPaintTo3DList>(); // a cache of the current display list per layer and kind of object (curve, face, transparent, unscaled)
+        private List<IPaintTo3DList> allTransparent = new List<IPaintTo3DList>();
+        private List<IPaintTo3DList> allCurves = new List<IPaintTo3DList>();
+        private List<IPaintTo3DList> allUnscaled = new List<IPaintTo3DList>();
         private double currentUnscaledScale;
 
         private string name; // Name des ProjectedModel
@@ -292,10 +292,10 @@ namespace CADability
         }
         public void Disconnect(IPaintTo3D paintTo3D)
         {
-            PaintFacesCache?.Dispose();
-            PaintTransparentCache?.Dispose();
-            PaintCurvesCache?.Dispose();
-            PaintUnscaledCache?.Dispose();
+            foreach (IPaintTo3DList plist in allCurves) plist.Dispose();
+            foreach (IPaintTo3DList plist in allFaces) plist.Dispose();
+            foreach (IPaintTo3DList plist in allTransparent) plist.Dispose();
+            foreach (IPaintTo3DList plist in allUnscaled) plist.Dispose();
             this.paintTo3D = null;
             Settings.GlobalSettings.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
         }
@@ -1311,7 +1311,7 @@ namespace CADability
             //System.Diagnostics.Trace.WriteLine("ProjectedModel.Paint: dirty == " + dirty.ToString());
             if (dirty || recalcVisibility)
             {
-                List<IPaintTo3DList> allFaces = new List<IPaintTo3DList>();
+                allFaces.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerFaceDisplayList)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
@@ -1319,8 +1319,8 @@ namespace CADability
                         allFaces.Add(kv.Value);
                     }
                 }
-                PaintFacesCache = paintTo3D.MakeList(allFaces);
-                List<IPaintTo3DList> allTransparent = new List<IPaintTo3DList>();
+                
+                allTransparent.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerTransparentDisplayList)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
@@ -1328,8 +1328,7 @@ namespace CADability
                         allTransparent.Add(kv.Value);
                     }
                 }
-                PaintTransparentCache = paintTo3D.MakeList(allTransparent);
-                List<IPaintTo3DList> allCurves = new List<IPaintTo3DList>();
+                allCurves.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerCurveDisplayList)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
@@ -1337,37 +1336,37 @@ namespace CADability
                         allCurves.Add(kv.Value);
                     }
                 }
-                PaintCurvesCache = paintTo3D.MakeList(allCurves);
             }
             if (dirty || recalcVisibility || paintTo3D.PixelToWorld != currentUnscaledScale)
             {
                 currentUnscaledScale = paintTo3D.PixelToWorld;
-                paintTo3D.OpenList("unscaled");
+                allUnscaled.Clear();
                 foreach (KeyValuePair<Layer, GeoObjectList> kv in model.layerUnscaledObjects)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
                     {
+                        paintTo3D.OpenList("unscaled_" + kv.Key.Name);
                         foreach (IGeoObject go in kv.Value)
                         {
                             go.PaintTo3D(paintTo3D);
                         }
+                        allUnscaled.Add(paintTo3D.CloseList());
                     }
                 }
-                PaintUnscaledCache = paintTo3D.CloseList();
             }
 
-            paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly); // macht den Faces versatz wieder rückgängig
-            paintTo3D.List(PaintCurvesCache); // das ganze Modell auf einen Schlag
+            paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly); // moves the curves a small distance to the front
+            foreach (IPaintTo3DList plist in allCurves) paintTo3D.List(plist);
             if (projection.ShowFaces)
-            {   // beim Drahtmodell keine Faces
-                paintTo3D.PaintFaces(PaintTo3D.PaintMode.FacesOnly); // versetzt die Faces ein kleines Stück nach hinten
-                paintTo3D.List(PaintFacesCache); // das ganze Modell auf einen Schlag
+            {   
+                paintTo3D.PaintFaces(PaintTo3D.PaintMode.FacesOnly); // moves the faces a small distance to the back
+                foreach (IPaintTo3DList plist in allFaces) paintTo3D.List(plist);
                 paintTo3D.Blending(true);
-                paintTo3D.List(PaintTransparentCache);
+                foreach (IPaintTo3DList plist in allTransparent) paintTo3D.List(plist);
                 paintTo3D.Blending(false);
             }
             paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly); // macht den Faces versatz wieder rückgängig
-            paintTo3D.List(PaintUnscaledCache);
+            foreach (IPaintTo3DList plist in allUnscaled) paintTo3D.List(plist);
 
             dirty = false;
             recalcVisibility = false;

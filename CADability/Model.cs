@@ -297,10 +297,6 @@ namespace CADability
                     layerTransparentDisplayList.Clear();
                     layerCurveDisplayList.Clear();
                     layerUnscaledObjects.Clear();
-                    // nur zum Test, wieder entfernen!
-                    //System.GC.Collect();
-                    //System.GC.WaitForPendingFinalizers();
-                    // bis hier hin entfernen
                     for (int i = 0; i < geoObjects.Count; ++i)
                     {
                         if (geoObjects[i].IsVisible)
