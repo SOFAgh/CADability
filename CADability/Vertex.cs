@@ -304,6 +304,7 @@ namespace CADability
             foreach (Face srf in surfaces)
             {
                 GeoVector n = srf.Surface.GetNormal(srf.Surface.PositionOf(mp));
+                if (n.IsNullVector()) continue; // a pole
                 bool found = false;
                 foreach (KeyValuePair<GeoVector, Face> kv in nonTangentialSurfaces)
                 {

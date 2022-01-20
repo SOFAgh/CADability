@@ -254,7 +254,7 @@ namespace CADability.GeoObject
         internal static Face[] MakeFacesFromStepAdvancedFace(ISurface surface, List<List<StepEdgeDescriptor>> loops, bool sameSense, double precision)
         {
             List<object> toLock = new List<object>();
-            if (Settings.GlobalSettings.GetBoolValue("StepImport.CombineFaces", false))
+            if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", false))
             {
                 List<StepEdgeDescriptor> allEdgeDescriptors = new List<StepEdgeDescriptor>();
                 {
@@ -305,7 +305,7 @@ namespace CADability.GeoObject
                     surface = surface.Clone();
                     surface.ReverseOrientation(); // 2d modification is not relevant here
                 }
-                for (int i = 0; i < loops.Count; i++)
+                for (int i = loops.Count-1; i >=0; --i)
                 {
                     for (int j = loops[i].Count - 1; j >= 0; --j)
                     {
@@ -323,10 +323,11 @@ namespace CADability.GeoObject
                             {
                                 loops[i].RemoveAt(j);
                                 loops[i].RemoveAt(next);
+                                --j;
                             }
                         }
-
                     }
+                    if (loops[i].Count == 0) loops.RemoveAt(i);
                 }
                 // if a loop contains two identical edges, which are back and forth, we remove this pair and split the loop into two parts
                 for (int i = loops.Count - 1; i >= 0; --i)
@@ -10221,6 +10222,7 @@ namespace CADability.GeoObject
         internal Edge GetNextEdge(Edge edge)
         {
             Vertex v = edge.EndVertex(this);
+            if (v == null) return null;
             List<Edge> onThisFace = v.EdgesOnFace(this);
             if (onThisFace.Count < 2) return edge; // there is only one (closed) edge. This should not be the case with proper (non periodic) faces
             if (onThisFace.Count > 2)

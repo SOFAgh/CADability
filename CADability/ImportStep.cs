@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Wintellect.PowerCollections;
+using System.Threading;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
@@ -2570,7 +2571,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (19216 == item.definingIndex || 19216 == item.definingIndex)
+                            if (34947 == item.definingIndex || 37368 == item.definingIndex)
                             {
                             }
 #endif
@@ -4304,7 +4305,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 
         private void CreatingFace()
         {
-            ++createdFaces;
+            Interlocked.Increment(ref createdFaces);
             FrameImpl.MainFrame?.UIService.ShowProgressBar(true, 100.0 * createdFaces / numFaces);
         }
 

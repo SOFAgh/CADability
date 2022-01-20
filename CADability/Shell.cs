@@ -4801,7 +4801,13 @@ namespace CADability.GeoObject
         /// <returns>Number of faces that have been combined</returns>
         public int CombineConnectedFaces()
         {
-            RecalcVertices(); // kommt in DWG Dateien vor, dass identische Vertices mehrfach existieren
+#if DEBUG
+            if (!CheckConsistency()) { }
+#endif
+            RecalcVertices(); 
+#if DEBUG
+            if (!CheckConsistency()) { }
+#endif
             IGeoObjectImpl changingObject = this;
             if (Owner is Solid) changingObject = Owner as IGeoObjectImpl;
             // hier wird ein deep clone der Faces gemacht, denn copyGeometry geht nicht als undo, da die Anzahl der Faces sich ändert
@@ -4817,7 +4823,7 @@ namespace CADability.GeoObject
             Face dbgface = null;
             foreach (Face fcdbg in allFaces)
             {
-                if (fcdbg.GetHashCode() == 2154) dbgface = fcdbg;
+                if (fcdbg.GetHashCode() == 5879) dbgface = fcdbg;
                 if (fcdbg.Vertices.Length != fcdbg.AllEdges.Length)
                 {
                     DebuggerContainer dc = new DebuggerContainer();
@@ -4903,7 +4909,8 @@ namespace CADability.GeoObject
                                 edges.RemoveMany(toRemove);
                                 allFaces.Remove(faceToRemove);
 #if DEBUG
-                                bool ok = combinedFace.CheckConsistency();
+                                if (!combinedFace.CheckConsistency())
+                                { }
 #endif
                                 ++res;
                                 break;
