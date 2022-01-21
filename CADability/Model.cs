@@ -293,9 +293,9 @@ namespace CADability
                 }
                 try
                 {
-                    layerFaceDisplayList.ClearAndDispose();
-                    layerTransparentDisplayList.ClearAndDispose();
-                    layerCurveDisplayList.ClearAndDispose();
+                    layerFaceDisplayList.Clear();
+                    layerTransparentDisplayList.Clear();
+                    layerCurveDisplayList.Clear();
                     layerUnscaledObjects.Clear();
                     for (int i = 0; i < geoObjects.Count; ++i)
                     {
