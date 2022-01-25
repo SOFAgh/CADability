@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 
 namespace CADability
@@ -8,10 +10,12 @@ namespace CADability
 #if DEBUG
         private static string lmfa = ""; // to have an object to lock access to maxFailedAttempts
         static int maxFailedAttempts = 0;
+        static HashSet<string> debug = new HashSet<string>();
 #endif
         class LockMultiple : IDisposable
         {
             object[] lockedObjects;
+            string lockdbg;
             //            public LockMultiple(params object[] toLock)
             //            {
             //                lockedObjects = (object[])toLock.Clone();
@@ -54,17 +58,38 @@ namespace CADability
             //                } while (!success);
             //            }
             public LockMultiple(params object[] toLock)
-            {   // very simple aproach, assuming the objects are sorted.
-                // There is following deadlock scenarion: object A needs exclusive access to object 1, 2 and 3 and object B needs exclusive access to object 2, 1 and 4
+            {   // very simple approach, assuming the objects are sorted.
+                // There is following deadlock scenario: object A needs exclusive access to object 1, 2 and 3 and object B needs exclusive access to object 2, 1 and 4
                 // then A locks 1 and B locks 2, then A waits for 2 and B waits for 1 to get unlocked.
                 // But when the objects are sorted, such a deadlock cannot happen (whatever sorting mechanism is used, as long as it is the same for both A and B)
                 if (toLock != null)
                 {
                     lockedObjects = (object[])toLock.Clone();
-                    for (int i = 0; i < toLock.Length; i++)
+#if DEBUG
+                    StringBuilder sb = new StringBuilder("locking: ");
+                    for (int i = 0; i < lockedObjects.Length; i++)
                     {
-                        Monitor.Enter(toLock[i]);
+                        if (lockedObjects[i] is StepEdgeDescriptor.Locker locker)
+                        {
+                            sb.Append(locker.original.id.ToString() + " ");
+                        }
                     }
+                    lockdbg = sb.ToString();
+                    lock (debug) debug.Add(lockdbg);
+#endif
+                    for (int i = 0; i < lockedObjects.Length; i++)
+                    {
+                        Monitor.Enter(lockedObjects[i]);
+                    }
+#if DEBUG
+                    lock (debug)
+                    {
+                        debug.Remove(lockdbg);
+                        sb.Replace("locking", "locked");
+                        lockdbg = sb.ToString();
+                        debug.Add(lockdbg);
+                    }
+#endif
                 }
             }
             public void Dispose()
@@ -75,6 +100,9 @@ namespace CADability
                     {
                         Monitor.Exit(lockedObjects[i]);
                     }
+#if DEBUG
+                    lock (debug) debug.Remove(lockdbg);
+#endif
                 }
             }
         }

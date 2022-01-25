@@ -2387,6 +2387,7 @@ namespace CADability
                             // System.Diagnostics.Trace.WriteLine("Starting ParallelTriangulation " + Environment.TickCount.ToString());
                             fromTop.SetPlacement(mv.DisplayRectangle, ext);
                             double precision = 1.0 / fromTop.WorldToDeviceFactor;
+                            // mv.Model.SerialTriangulation(precision); // for easier Debugging
                             mv.Model.ParallelTriangulation(precision);
                             // System.Diagnostics.Trace.WriteLine("Starting OctTree " + Environment.TickCount.ToString());
                             mv.Model.InitOctTree();

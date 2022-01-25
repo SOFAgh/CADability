@@ -2025,8 +2025,12 @@ namespace CADability.Curve2D
             GeoPoint2D[] ft = PerpendicularFoot(p);
             for (int i = 0; i < ft.Length; ++i)
             {
-                double d = ft[i] | p;
-                if (d < res) res = d;
+                double pos = PositionOf(ft[i]); // we need to check, whether the foot point is inside the curve, not on it's extension
+                if (pos >= 0 && pos <= 1)
+                {
+                    double d = ft[i] | p;
+                    if (d < res) res = d;
+                }
             }
             return res;
         }
@@ -2736,7 +2740,7 @@ namespace CADability.Curve2D
                     }, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance);
                     if (par != double.MaxValue && Math.Abs((PointAt(par) - fromHere) * DirectionAt(par)) < Precision.eps) return true;
                 }
-                if (NewtonPerpendicular(fromHere, ref par))
+                if (NewtonPerpendicular(fromHere, ref par) && !double.IsNaN(par) && par != double.MaxValue)
                 {
                     return true;
                 }

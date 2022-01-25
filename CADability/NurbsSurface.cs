@@ -1333,19 +1333,23 @@ namespace CADability.GeoObject
                             IArray<GeoPoint> l2 = uIsLine ? samples.Row(3) : samples.Column(3);
                             if (IsLine(l1, precision) && IsLine(l2, precision))
                             {
-                                GeoPoint apex = Geometry.IntersectLL(l1.First, l1.Last - l1.First, l2.First, l2.Last - l2.First); // they are not parallel
-                                GeoVector axis = centers[4] - centers[0];
-                                double a = axis.Length;
-                                double x = a * radii[0] / (radii[0] - radii[4]);
-                                GeoPoint a1 = centers[0] + x * axis.Normalized;
-                                double openingAngle = Math.Atan2(Math.Abs(radii[0] - radii[4]), centers[0] | centers[4]);
-                                double minerror = GaussNewtonMinimizer.ConeFit(samples.Linear(), a1, axis, openingAngle, precision, out ConicalSurface cs);
-                                if (minerror < precision) found = cs;
-                                if (Math.Abs(radii[0] - radii[4]) < 10 * precision)
-                                {   // could still be a cylinder
-                                    double minerrorcyl = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cyls);
-                                    if (minerrorcyl < precision && minerrorcyl < minerror) found = cyls;
+                                try
+                                {
+                                    GeoPoint apex = Geometry.IntersectLL(l1.First, l1.Last - l1.First, l2.First, l2.Last - l2.First); // they are not parallel
+                                    GeoVector axis = centers[4] - centers[0];
+                                    double a = axis.Length;
+                                    double x = a * radii[0] / (radii[0] - radii[4]);
+                                    GeoPoint a1 = centers[0] + x * axis.Normalized;
+                                    double openingAngle = Math.Atan2(Math.Abs(radii[0] - radii[4]), centers[0] | centers[4]);
+                                    double minerror = GaussNewtonMinimizer.ConeFit(samples.Linear(), a1, axis, openingAngle, precision, out ConicalSurface cs);
+                                    if (minerror < precision) found = cs;
+                                    if (Math.Abs(radii[0] - radii[4]) < 10 * precision)
+                                    {   // could still be a cylinder
+                                        double minerrorcyl = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cyls);
+                                        if (minerrorcyl < precision && minerrorcyl < minerror) found = cyls;
+                                    }
                                 }
+                                catch (Geometry.GeometryException) { }
                             }
                         }
                     }

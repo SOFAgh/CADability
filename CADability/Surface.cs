@@ -8884,7 +8884,7 @@ namespace CADability.GeoObject
             if (num > maxCnt)
             {
                 maxCnt = num;
-                System.Diagnostics.Trace.WriteLine("BoxedSurfaceEx, count: " + maxCnt.ToString());
+                // System.Diagnostics.Trace.WriteLine("BoxedSurfaceEx, count: " + maxCnt.ToString());
             }
             //ParEpi[] allParEpis = octtree.GetAllObjects();
             //double maxVloume = 0;
