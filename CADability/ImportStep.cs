@@ -2439,6 +2439,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     }
                                 }
                                 shell.CloseOpenEdges(edgesToRepair);
+                                if (shell.OpenEdgesExceptPoles.Length > 0) shell.CloseOpenEdges(); // not sure why we sometimes need two calls
                             }
 
                             if (shell.OpenEdgesExceptPoles.Length == 0)

@@ -3109,6 +3109,7 @@ namespace CADability
         {
             if (from == primaryFace)
             {
+                GeoPoint2D expmp2d = m * PrimaryCurve2D.PointAt(0.5); // the expected middle point used to find correct period for periodic surfaces
                 primaryFace = to;
                 if (Curve3D is InterpolatedDualSurfaceCurve)
                 {
@@ -3132,10 +3133,39 @@ namespace CADability
                     this.owner = primaryFace;
                     if (m.Determinant < 0) forwardOnPrimaryFace = !forwardOnPrimaryFace;
                 }
+                if (primaryFace.Surface.IsUPeriodic)
+                {
+                    GeoPoint2D mp2d = PrimaryCurve2D.PointAt(0.5);
+                    while (mp2d.x > expmp2d.x + primaryFace.Surface.UPeriod * 0.5)
+                    {
+                        PrimaryCurve2D.Move(-primaryFace.Surface.UPeriod, 0);
+                        mp2d = PrimaryCurve2D.PointAt(0.5);
+                    }
+                    while (mp2d.x < expmp2d.x - primaryFace.Surface.UPeriod * 0.5)
+                    {
+                        PrimaryCurve2D.Move(primaryFace.Surface.UPeriod, 0);
+                        mp2d = PrimaryCurve2D.PointAt(0.5);
+                    }
+                }
+                if (primaryFace.Surface.IsVPeriodic)
+                {
+                    GeoPoint2D mp2d = PrimaryCurve2D.PointAt(0.5);
+                    while (mp2d.y > expmp2d.y + primaryFace.Surface.VPeriod * 0.5)
+                    {
+                        PrimaryCurve2D.Move(0, -primaryFace.Surface.VPeriod);
+                        mp2d = PrimaryCurve2D.PointAt(0.5);
+                    }
+                    while (mp2d.y < expmp2d.y - primaryFace.Surface.VPeriod * 0.5)
+                    {
+                        PrimaryCurve2D.Move(0, primaryFace.Surface.VPeriod);
+                        mp2d = PrimaryCurve2D.PointAt(0.5);
+                    }
+                }
                 return true;
             }
             else if (from == secondaryFace)
             {
+                GeoPoint2D expmp2d = m * SecondaryCurve2D.PointAt(0.5); // the expected middle point used to find correct period for periodic surfaces
                 secondaryFace = to;
                 if (Curve3D is InterpolatedDualSurfaceCurve)
                 {
@@ -3155,6 +3185,34 @@ namespace CADability
                 {
                     SecondaryCurve2D = SecondaryCurve2D.GetModified(m);
                     if (m.Determinant < 0) forwardOnSecondaryFace = !forwardOnSecondaryFace;
+                }
+                if (secondaryFace.Surface.IsUPeriodic)
+                {
+                    GeoPoint2D mp2d = SecondaryCurve2D.PointAt(0.5);
+                    while (mp2d.x > expmp2d.x + secondaryFace.Surface.UPeriod * 0.5)
+                    {
+                        SecondaryCurve2D.Move(-secondaryFace.Surface.UPeriod, 0);
+                        mp2d = SecondaryCurve2D.PointAt(0.5);
+                    }
+                    while (mp2d.x < expmp2d.x - secondaryFace.Surface.UPeriod * 0.5)
+                    {
+                        SecondaryCurve2D.Move(secondaryFace.Surface.UPeriod, 0);
+                        mp2d = SecondaryCurve2D.PointAt(0.5);
+                    }
+                }
+                if (secondaryFace.Surface.IsVPeriodic)
+                {
+                    GeoPoint2D mp2d = SecondaryCurve2D.PointAt(0.5);
+                    while (mp2d.y > expmp2d.y + secondaryFace.Surface.VPeriod * 0.5)
+                    {
+                        SecondaryCurve2D.Move(0, -secondaryFace.Surface.VPeriod);
+                        mp2d = SecondaryCurve2D.PointAt(0.5);
+                    }
+                    while (mp2d.y < expmp2d.y - secondaryFace.Surface.VPeriod * 0.5)
+                    {
+                        SecondaryCurve2D.Move(0, secondaryFace.Surface.VPeriod);
+                        mp2d = SecondaryCurve2D.PointAt(0.5);
+                    }
                 }
                 return true;
             }

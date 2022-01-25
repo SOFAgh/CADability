@@ -506,20 +506,23 @@ namespace CADability.GeoObject
         }
         private void InvalidateSecondaryData()
         {
-            nurbsHelper = false;
-            nubs3d = null;
-            nurbs3d = null;
-            nubs2d = null;
-            nurbs2d = null;
-            plane = null;
-            interpol = null;
-            interdir = null;
-            interparam = null;
-            approximation = null;
-            maxInterpolError = 0.0;
-            extent = BoundingCube.EmptyBoundingCube;
-            tetraederHull = null;
-            extrema = null;
+            lock (this)
+            {
+                nurbsHelper = false;
+                nubs3d = null;
+                nurbs3d = null;
+                nubs2d = null;
+                nurbs2d = null;
+                plane = null;
+                interpol = null;
+                interdir = null;
+                interparam = null;
+                approximation = null;
+                maxInterpolError = 0.0;
+                extent = BoundingCube.EmptyBoundingCube;
+                tetraederHull = null;
+                extrema = null;
+            }
         }
         private TetraederHull TetraederHull
         {   // alle Kurven sollte zusätzlich ein Interface implementieren ITetraederHull, die genau diese Property überschreibt

@@ -4823,7 +4823,7 @@ namespace CADability.GeoObject
             Face dbgface = null;
             foreach (Face fcdbg in allFaces)
             {
-                if (fcdbg.GetHashCode() == 5879) dbgface = fcdbg;
+                // if (fcdbg.GetHashCode() == 5879) dbgface = fcdbg;
                 if (fcdbg.Vertices.Length != fcdbg.AllEdges.Length)
                 {
                     DebuggerContainer dc = new DebuggerContainer();
@@ -4857,6 +4857,7 @@ namespace CADability.GeoObject
                             edge.PrimaryFace != edge.SecondaryFace && firstToSecond.IsIsogonal && firstToSecond.Determinant > 0) // firstToSecond.IsIsogonal: non periodic surfaces or spheres with different axis are not implemented yet
                         {
 #if DEBUG
+                            if (edge.GetHashCode() == 20260) { }
                             foreach (Edge dbgedg in edge.PrimaryFace.AllEdgesIterated())
                             {
                                 if (edge.Curve3D is InterpolatedDualSurfaceCurve)

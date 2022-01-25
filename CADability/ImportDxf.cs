@@ -7,7 +7,6 @@ using CADability.GeoObject;
 using System.Runtime.CompilerServices;
 using CADability.Shapes;
 using CADability.Curve2D;
-using System.Net.Http.Headers;
 using CADability.Attribute;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
@@ -35,7 +34,7 @@ namespace CADability.DXF
         private Dictionary<netDxf.Tables.Layer, ColorDef> layerColorTable;
         private Dictionary<netDxf.Tables.Layer, Attribute.Layer> layerTable;
         /// <summary>
-        /// Create the Import instance. The document is beeing read and converted to netDXF objects.
+        /// Create the Import instance. The document is being read and converted to netDXF objects.
         /// </summary>
         /// <param name="fileName"></param>
         public Import(string fileName)
@@ -123,10 +122,6 @@ namespace CADability.DXF
         }
         private IGeoObject GeoObjectFromEntity(EntityObject item)
         {
-            //if (item.Handle == "561E")
-            //{
-
-            //}
             IGeoObject res = null;
             switch (item)
             {
