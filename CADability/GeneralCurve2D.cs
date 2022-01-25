@@ -1628,8 +1628,15 @@ namespace CADability.Curve2D
             List<double> linterparam = new List<double>();
             List<GeoPoint2D> ltringulation = new List<GeoPoint2D>();
             linterpol.Add(points[0]);
-            if (directions[0].IsNullVector()) linterdir.Add((points[1] - points[0]).Normalized);
-            else linterdir.Add(directions[0].Normalized);
+            try
+            {
+                if (directions[0].IsNullVector()) linterdir.Add((points[1] - points[0]).Normalized);
+                else linterdir.Add(directions[0].Normalized);
+            }
+            catch (GeoVectorException ex)
+            {
+                linterdir.Add(GeoVector2D.XAxis);
+            }
             linterparam.Add(parameters[0]);
             if (points.Length > 1)
             {
@@ -2727,9 +2734,9 @@ namespace CADability.Curve2D
                         dx = (fromHere - point) * deriv2 - deriv1 * deriv1;
 
                     }, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance);
-                    if (par != double.MaxValue) return true;
+                    if (par != double.MaxValue && Math.Abs((PointAt(par) - fromHere) * DirectionAt(par)) < Precision.eps) return true;
                 }
-                else if (NewtonPerpendicular(fromHere, ref par))
+                if (NewtonPerpendicular(fromHere, ref par))
                 {
                     return true;
                 }

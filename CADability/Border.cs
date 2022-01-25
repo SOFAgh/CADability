@@ -4259,10 +4259,10 @@ namespace CADability.Shapes
                                 for (int k = 0; k < tps.Length; k += 2)
                                 {
                                     double pos = segments[i].PositionOf(tps[k]);
-                                    if (pos > 0 && pos < 1)
+                                    if (pos > 1e-6 && pos < 1 - 1e-6)
                                     {
                                         double posj = segments[j].PositionOf(tps[k + 1]);
-                                        if (posj > 0 && posj < 1)
+                                        if (posj > 1e-6 && posj < 1 - 1e-6)
                                         {
                                             GeoVector2D dir = segments[i].DirectionAt(pos);
                                             double lpos = Geometry.LinePar(tps[k], dir, tps[k + 1]);

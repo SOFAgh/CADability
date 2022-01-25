@@ -2068,7 +2068,7 @@ namespace CADability.Forms
     {
         static List<int> toDelete = new List<int>();
         static Dictionary<int, string> openLists = new Dictionary<int, string>();
-
+        private readonly object deletedLock = new object();
         public bool hasContents, isDeleted;
         public OpenGlList(string name = null)
         {
@@ -2077,6 +2077,7 @@ namespace CADability.Forms
             if (name != null) this.name = name;
             else this.name = "NoName_" + ListNumber.ToString();
             openLists[ListNumber] = this.name;
+            System.Diagnostics.Debug.WriteLine($"Add new List. Count:{openLists.Count}");
 #if DEBUG
             //System.Diagnostics.Trace.WriteLine("+++++ OpenGl List Nr.: " + ListNumber.ToString() + " (" + openLists.Count.ToString() + ") " + name);
 #endif
@@ -2097,6 +2098,7 @@ namespace CADability.Forms
                 {
                     for (int i = 0; i < toDelete.Count; ++i)
                     {
+                        System.Diagnostics.Debug.WriteLine($"Delete List. Count:{openLists.Count}");
 #if DEBUG
                         //System.Diagnostics.Trace.WriteLine("----- OpenGl List Nr.: " + toDelete[i].ToString());
 #endif
@@ -2113,7 +2115,7 @@ namespace CADability.Forms
                     toDelete.Clear();
                 }
 #if DEBUG
-                System.Diagnostics.Trace.Write("still open: ");
+                //System.Diagnostics.Trace.Write("still open: ");
                 foreach (KeyValuePair<int,string> l in openLists)
                 {
                     //System.Diagnostics.Trace.Write(l.Value + ", ");
@@ -2128,6 +2130,9 @@ namespace CADability.Forms
             {
                 Gl.glDeleteLists(l.Key, 1);
                 int err = Gl.glGetError();
+#if DEBUG
+                if (err != 0) { }
+#endif
             }
             openLists.Clear();
         }
@@ -2150,11 +2155,17 @@ namespace CADability.Forms
         }
         public void Delete()
         {
+            lock (deletedLock)
+            {
+                if (isDeleted)
+                    return;
+
+                isDeleted = true;                
+            }
             openLists.Remove(ListNumber);
 #if DEBUG
             //System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + ListNumber.ToString());
-#endif
-            isDeleted = true;
+#endif            
             Gl.glDeleteLists(ListNumber, 1);
         }
         #region IPaintTo3DList Members
@@ -2186,13 +2197,13 @@ namespace CADability.Forms
         public void Dispose()
         {
             Delete();
-            if (keepAlive != null)
-            {
-                for (int i = 0; i < keepAlive.Count; i++)
-                {
-                    (keepAlive[i] as OpenGlList)?.Delete();
-                }
-            }
+            //if (keepAlive != null)
+            //{
+            //    for (int i = 0; i < keepAlive.Count; i++)
+            //    {
+            //        (keepAlive[i] as OpenGlList)?.Delete();
+            //    }
+            //}
         }
         #endregion
     }

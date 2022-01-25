@@ -106,6 +106,7 @@ namespace CADability.GeoObject
             {
                 if (item.Value != null) item.Value.Dispose();
             }
+            base.Clear();
         }
     }
     internal class CategorizedDislayLists : ICategorizedDislayLists

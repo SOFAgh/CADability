@@ -293,12 +293,12 @@ namespace CADability.Forms
 			TabPage tp = new TabPage();
 			tp.Controls.Add(res);
 			tabControl.TabPages.Add(tp);
-			tp.Text = StringTable.GetString(titleId);
+			tp.Text = StringTable.GetString(titleId + "TabPage");
 			tp.ImageIndex = iconId;
-			tp.ToolTipText = StringTable.GetString(titleId);
-			tp.Tag = res;
+			tp.ToolTipText = StringTable.GetString(titleId + "TabPage", StringTable.Category.tip);
+            tp.Tag = res;
 
-			return res;
+            return res;
 		}
 		public void AddTabPage(TabPage tp)
 		{
