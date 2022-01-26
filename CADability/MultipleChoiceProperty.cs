@@ -173,8 +173,9 @@ namespace CADability.UserInterface
             {
                 selectedText = Choices[selectedIndex];
                 OnSelectionChanged(selectedText);
-                SelectionChangedEvent?.Invoke(this, EventArgs.Empty);
-                ValueChangedEvent?.Invoke(this, selectedText);
+                // the following is already done by OnSelectionChanged
+                //SelectionChangedEvent?.Invoke(this, EventArgs.Empty);
+                //ValueChangedEvent?.Invoke(this, selectedText);
             }
             if (propertyPage != null) propertyPage.Refresh(this);
         }
