@@ -22,125 +22,97 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public static GeoPoint2D[] TangentLines(ICurve2D first, ICurve2D second)
         {
-            double a1, b1, c1, c2, p, n, eps1, eps2, epsm;
-            double[] m = new double[4];
-            GeoPoint2D pt, la, le, lat, let;
-            GeoPoint2D[] temp = new GeoPoint2D[16]; // Zwischenspeicher aller Lösungspunkte
-            ArrayList res = new ArrayList();
-
-            GeoPoint2D p1, p2; // Ausgangsmittelpunkte
-            double r1, r2; // Ausgangsradien
-
-            if (first is Circle2D) // Circle2D ist Basis für ARc2D
-            {
-                p1 = (first as Circle2D).Center;
-                r1 = (first as Circle2D).Radius;
+            if (first is Circle2D c1 && second is Circle2D c2)
+            {   // Circle2D also includes Arc2D
+                return Geometry.TangentCC(c1.Center, c1.Radius, c2.Center, c2.Radius);
             }
-            else return new GeoPoint2D[0];
-            if (second is Circle2D) // Circle2D ist Basis für ARc2D
-            {
-                p2 = (second as Circle2D).Center;
-                r2 = (second as Circle2D).Radius;
-            }
-            else return new GeoPoint2D[0];
-
-            // die beiden Kreise werden so manipuliert, dass der eine im Ursprung
-            // liegt, der andere auf der X-Achse
-            ModOp2D hm1 = ModOp2D.Rotate(-new SweepAngle(p2, p1)) * ModOp2D.Translate(-p1.x, -p1.y);
-            ModOp2D hm2 = ModOp2D.Translate(p1.x, p1.y) * ModOp2D.Rotate(new SweepAngle(p2, p1));
-            // hm2 ist das inverse von hm1
-            a1 = Geometry.sqr(r1);
-            pt = hm1 * p2;
-            b1 = -2.0 * pt.x;
-            // b2 = 0.0; eigentlich  b2 := -2*pt.y, welches 0 sein sollte wird aber nicht weiter verwendet
-            if (r1 == r2)
-            {
-                c1 = -4 * Geometry.sqr(pt.x);
-                c2 = 0;
-            }
-            else
-            {
-                p = Geometry.sqr(pt.x) - Geometry.sqr(r2);
-                c1 = -4 * a1 - 4 * p;
-                c2 = Geometry.sqr(b1) + c1;
-            }
-            int nl = Geometry.ragle4(16 * a1 * Geometry.sqr(b1) - Geometry.sqr(c1), 0, 16 * a1 * Geometry.sqr(b1) - 2 * c1 * c2, 0, -Geometry.sqr(c2), m);
-            int k = 0;
-            eps1 = r1 * 10e-10; // komisch, soll bestimmt 1e-9 heißen
-            eps2 = r2 * 10e-10;
-            epsm = (eps1 + eps2) / 2;
-            for (int i = 0; i < nl; i++)
-            {	   // y=m*x+n, welches n ist richtig 
-                n = Math.Sqrt(a1 + a1 * Geometry.sqr(m[i]));
-                pt.x = 0; pt.y = n;
-                lat = hm2 * pt;
-                pt.x = 1; pt.y = m[i] + n;
-                let = hm2 * pt;
-                la = Geometry.DropPL(p1, lat, let);
-                le = Geometry.DropPL(p2, lat, let);
-                // la = IntersectLCTang(lat,let,p1,r1);
-                // le = IntersectLCTang(lat,let,p2,r2);
-                // double deb1 = fabs(dist(le,p2)-r2);
-                // double deb2 = fabs(dist(la,p1)-r1);
-                if (Math.Abs(Geometry.Dist(la, p1) - r1) < eps1)
+            if (first is GeneralCurve2D g1 && second is GeneralCurve2D g2)
+            {   // all ICurve2D curves in CADability are derived from GeneralCurve2D. We use the triangulation.
+                // basisPoints are the points on the curve. vertices are outside the curve and vertices[i] is the apex of the triangle with the basis basisPoints[i], basisPoint[i+1].
+                // When the connection of the two triangle apexes doesn't cross the base line of the triangle, then there could be a tangent to both curves close to that line
+                g1.GetTriangulationPoints(out GeoPoint2D[] basisPoints1, out GeoPoint2D[] vertices1, out GeoVector2D[] directions1, out double[] parameters1);
+                g2.GetTriangulationPoints(out GeoPoint2D[] basisPoints2, out GeoPoint2D[] vertices2, out GeoVector2D[] directions2, out double[] parameters2);
+                for (int i = 0; i < vertices1.Length; i++)
                 {
-                    if (Math.Abs(Geometry.Dist(le, p2) - r2) < eps2)
+                    for (int j = 0; j < vertices2.Length; j++)
                     {
-                        if (Geometry.Dist(la, le) > epsm)
+                        if (Geometry.OnSameSide(basisPoints1[i], basisPoints1[i + 1], vertices1[i], vertices2[j]) &&
+                            Geometry.OnSameSide(basisPoints2[j], basisPoints2[j + 1], vertices1[i], vertices2[j]))
                         {
-                            temp[k] = la;
-                            temp[k + 1] = le;
-                            k = k + 2;
-                        }
-                    }
-                }
-                pt.x = 0; pt.y = -n;
-                lat = hm2 * pt;
-                pt.x = 1; pt.y = m[i] - n;
-                let = hm2 * pt;
-                la = Geometry.DropPL(p1, lat, let);
-                le = Geometry.DropPL(p2, lat, let);
-                // la = IntersectLCTang(lat,let,p1,r1);
-                // le = IntersectLCTang(lat,let,p2,r2);
-                // deb1 = Math.Abs(Geometry.dist(le,p2)-r2);
-                // deb2 = Math.Abs(Geometry.dist(la,p1)-r1);
-                if (Math.Abs(Geometry.Dist(la, p1) - r1) < eps1)
-                {
-                    if (Math.Abs(Geometry.Dist(le, p2) - r2) < eps2)
-                    {
-                        if (Geometry.Dist(la, le) > epsm)
-                        {
-                            temp[k] = la;
-                            temp[k + 1] = le;
-                            k = k + 2;
+                            bool outerTangent = Geometry.OnSameSide(basisPoints1[i], basisPoints2[j], vertices1[i], vertices2[j]);
+                            // with two circles the outer tangent lines don't cross, the inner tangent lines do cross
+                            double par1, par2; // we need good start positions for the parameters.
+                            double fi = directions1[i] * (vertices1[i] - vertices2[j]).ToLeft();
+                            double fi1 = directions1[i + 1] * (vertices1[i] - vertices2[j]).ToLeft();
+                            double fj = directions2[j] * (vertices1[i] - vertices2[j]).ToLeft();
+                            double fj1 = directions2[j + 1] * (vertices1[i] - vertices2[j]).ToLeft();
+                            double par1m = (1 - fi / (fi - fi1)) * parameters1[i] + (1 - fi1 / (fi1 - fi)) * parameters1[i + 1];
+                            double par2m = (1 - fj / (fj - fj1)) * parameters2[j] + (1 - fj1 / (fj1 - fj)) * parameters2[j + 1];
+                            for (int k = 0; k < 4; k++)
+                            {
+                                switch (k) // it is difficult to find good start values for the parameters, here we try different guesses
+                                {
+                                    default:
+                                    case 0: par1 = par1m; par2 = par2m; break;
+                                    case 1: par1 = parameters1[i]; par2 = parameters2[j]; break;
+                                    case 2: par1 = parameters1[i + 1]; par2 = parameters2[j]; break;
+                                    case 3: par1 = parameters1[i]; par2 = parameters2[j + 1]; break;
+                                    case 4: par1 = parameters1[i + 1]; par2 = parameters2[j + 1]; break;
+                                }
+                                double mindist = Math.Abs(Geometry.DistPL(first.PointAt(par1), vertices1[i], vertices2[j])) + Math.Abs(Geometry.DistPL(second.PointAt(par2), vertices1[i], vertices2[j]));
+                                while (mindist > Precision.eps)
+                                {
+                                    if (first.TryPointDeriv2At(par1, out GeoPoint2D loc1, out GeoVector2D deriv11, out GeoVector2D deriv12) &&
+                                        second.TryPointDeriv2At(par2, out GeoPoint2D loc2, out GeoVector2D deriv21, out GeoVector2D deriv22))
+                                    {
+                                        double d = (deriv11.x * deriv12.y - deriv12.x * deriv11.y);
+                                        double s = (deriv11.x * deriv11.x + deriv11.y * deriv11.y);
+                                        GeoPoint2D cnt1 = new GeoPoint2D(loc1.x - deriv11.y * s / d, loc1.y + deriv11.x * s / d);
+                                        double r1 = cnt1 | loc1;
+                                        d = (deriv21.x * deriv22.y - deriv22.x * deriv21.y);
+                                        s = (deriv21.x * deriv21.x + deriv21.y * deriv21.y);
+                                        GeoPoint2D cnt2 = new GeoPoint2D(loc2.x - deriv21.y * s / d, loc2.y + deriv21.x * s / d);
+                                        double r2 = cnt2 | loc2;
+                                        GeoPoint2D[] t = Geometry.TangentCC(cnt1, r1, cnt2, r2);
+                                        // the first 4 points are the two outer tangent lines, which are maybe followed by another 4 points of the crossing inner tangent lines
+                                        // each pair of points is in the order of the circles
+                                        if (outerTangent && t.Length >= 4)
+                                        {
+                                            if ((t[0] | loc1) + (t[1] | loc2) < (t[2] | loc1) + (t[3] | loc2))
+                                            {
+                                                par1 = first.PositionOf(t[0]);
+                                                par2 = second.PositionOf(t[1]);
+                                                double dd = (first.PointAt(par1) | t[0]) + (second.PointAt(par2) | t[1]);
+                                                if (dd < mindist) mindist = dd;
+                                                else break;
+                                            }
+                                            else
+                                            {
+                                                par1 = first.PositionOf(t[2]);
+                                                par2 = second.PositionOf(t[3]);
+                                                double dd = (first.PointAt(par1) | t[2]) + (second.PointAt(par2) | t[3]);
+                                                if (dd < mindist) mindist = dd;
+                                                else break;
+                                            }
+                                        }
+                                        else if (!outerTangent && t.Length == 8)
+                                        {
+                                            throw new NotImplementedException("implement crossing tangent lines of two curves!");
+                                        }
+                                        else break; // no solution
+                                    }
+                                    else break;
+                                }
+                                if (mindist <= Precision.eps)
+                                {
+                                    return new GeoPoint2D[] { first.PointAt(par1), second.PointAt(par2) };
+                                }
+                            }
                         }
                     }
                 }
             }
-            k = k / 2;
-            if (k > 0)
-            {
-                for (int i = 0; i < k; i++)
-                {
-                    bool b = true;
-                    for (int j = i + 1; j < k; j++)
-                    {
-                        b = b && (!((Geometry.Dist(temp[i * 2], temp[j * 2]) < epsm) &&
-                            (Geometry.Dist(temp[i * 2 + 1], temp[j * 2 + 1]) < epsm)));
-                    }
-
-                    if (b)
-                    {
-                        res.Add(temp[i * 2]);
-                        res.Add(temp[i * 2 + 1]);
-                        // LinePoints[h] = temp[i*2];
-                        // LinePoints[h+1] = temp[i*2+1];
-                    }
-
-                }
-            }
-
-            return (GeoPoint2D[])res.ToArray(typeof(GeoPoint2D));
+            return new GeoPoint2D[0];
         }
         /// <summary>
         /// Calculates the start- and endpoints of lines that are tangential to the given

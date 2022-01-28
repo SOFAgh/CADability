@@ -253,21 +253,29 @@ namespace CADability.GeoObject
         /// <returns></returns>
         internal static Face[] MakeFacesFromStepAdvancedFace(ISurface surface, List<List<StepEdgeDescriptor>> loops, bool sameSense, double precision)
         {
-            List<StepEdgeDescriptor> listToLock = new List<StepEdgeDescriptor>();
-#if PARALLEL
+            List<object> toLock = new List<object>();
+            if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", false))
             {
-                for (int i = 0; i < loops.Count; i++)
+                List<StepEdgeDescriptor> allEdgeDescriptors = new List<StepEdgeDescriptor>();
                 {
-                    for (int j = loops[i].Count - 1; j >= 0; --j)
+                    for (int i = 0; i < loops.Count; i++)
                     {
-                        listToLock.Add(loops[i][j]);
+                        for (int j = loops[i].Count - 1; j >= 0; --j)
+                        {
+                            allEdgeDescriptors.Add(loops[i][j]);
+                        }
+                    }
+                    // we need exclusive access to all edges of the loop, because they might be modified during the creation
+                    allEdgeDescriptors.Sort(delegate (StepEdgeDescriptor s1, StepEdgeDescriptor s2) { return s1.locker.original.id.CompareTo(s2.locker.original.id); });
+                    // each StepEdgeDescriptor describes an edge in respect to a distinct face. Typically we have two different StepEdgeDescriptors for a single edge,
+                    // one for each face, but they contain the same (maybe empty) list "createdEdges", and that is the object we need to lock here
+                    for (int i = 0; i < allEdgeDescriptors.Count; i++)
+                    {
+                        toLock.Add(allEdgeDescriptors[i].locker);
                     }
                 }
-                // we need exclusive acces to all edges of the loop, because they might be modified during the creation
-                listToLock.Sort(delegate (StepEdgeDescriptor s1, StepEdgeDescriptor s2) { return s1.id.CompareTo(s2.id); });
             }
-#endif
-            using (ParallelHelper.LockMultipleObjects(listToLock.ToArray())) // listToLock is empty in case of not parallel
+            using (ParallelHelper.LockMultipleObjects(toLock.ToArray())) // toLock is empty in case of not parallel
             {
 #if DEBUG
                 DebuggerContainer dcLoops = new DebuggerContainer();
@@ -277,24 +285,49 @@ namespace CADability.GeoObject
                     {
                         if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 0)
                         {
+                            if (loops[i][j].curve != null) dcLoops.Add(loops[i][j].curve.Clone() as IGeoObject, System.Drawing.Color.Green, i * 1000 + j);
                             for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
                             {
-                                dcLoops.Add(loops[i][j].createdEdges[k].Curve3D as IGeoObject, System.Drawing.Color.Blue, i * 1000 + j * 10 + k);
+                                if (loops[i][j].createdEdges[k] != null) dcLoops.Add(loops[i][j].createdEdges[k].Curve3D.Clone() as IGeoObject, System.Drawing.Color.Blue, i * 1000 + j * 10 + k);
                             }
                         }
                         else
                         {
-                            dcLoops.Add(loops[i][j].curve as IGeoObject, System.Drawing.Color.Red, i * 1000 + j);
+                            if (loops[i][j].curve != null) dcLoops.Add(loops[i][j].curve.Clone() as IGeoObject, System.Drawing.Color.Red, i * 1000 + j);
                         }
                     }
                 }
 #endif
                 if (!sameSense)
                 {   // in CADability the surfaces can be oriented both ways, in step, the standard surfaces (cylinder, sphere, torus, cone) are always "outward" oriented
-                    // and if necessary the sameSense is false. Here we convert the surface to the CADability requirenments
+                    // and if necessary the sameSense is false. Here we convert the surface to the CADability requirements
                     sameSense = true;
                     surface = surface.Clone();
                     surface.ReverseOrientation(); // 2d modification is not relevant here
+                }
+                for (int i = loops.Count-1; i >=0; --i)
+                {
+                    for (int j = loops[i].Count - 1; j >= 0; --j)
+                    {
+                        int next = j - 1;
+                        if (next < 0) next = loops[i].Count - 1;
+                        if (loops[i][next].vertex1 == loops[i][j].vertex1 && loops[i][next].vertex2 == loops[i][j].vertex2 && loops[i][j].forward != loops[i][next].forward
+                            && loops[i][j].curve.SameGeometry(loops[i][next].curve, precision))
+                        {   // two adjacent edges are exactly opposite curves: makes no sense, remove both (e.g. "171_Sch-AufsORIG.stp")
+                            if (j == 0)
+                            {
+                                loops[i].RemoveAt(next);
+                                loops[i].RemoveAt(j);
+                            }
+                            else
+                            {
+                                loops[i].RemoveAt(j);
+                                loops[i].RemoveAt(next);
+                                --j;
+                            }
+                        }
+                    }
+                    if (loops[i].Count == 0) loops.RemoveAt(i);
                 }
                 // if a loop contains two identical edges, which are back and forth, we remove this pair and split the loop into two parts
                 for (int i = loops.Count - 1; i >= 0; --i)
@@ -356,13 +389,13 @@ namespace CADability.GeoObject
                                 bool added = false;
                                 for (int k = 0; k < newLoops.Count; k++)
                                 {
-                                    if (newLoops[k][newLoops[k].Count - 1].vertex2 == loops[i][j].vertex1)
+                                    if (newLoops[k][newLoops[k].Count - 1].LastVertex == loops[i][j].FirstVertex)
                                     {
                                         newLoops[k].Add(loops[i][j]);
                                         added = true;
                                         break;
                                     }
-                                    else if (newLoops[k][0].vertex1 == loops[i][j].vertex2)
+                                    else if (newLoops[k][0].FirstVertex == loops[i][j].LastVertex)
                                     {
                                         newLoops[k].Insert(0, loops[i][j]);
                                         added = true;
@@ -470,6 +503,10 @@ namespace CADability.GeoObject
                                 Connect3dCurves(loops[i][j].curve, loops[i][j].forward, loops[i][jn].curve, loops[i][jn].forward);
                             if (loops[i][j].curve != null) minCurveLength = Math.Min(minCurveLength, loops[i][j].curve.Length);
                         }
+                    }
+                    else
+                    {
+                        if (loops[i][0].curve != null) minCurveLength = Math.Min(minCurveLength, loops[i][0].curve.Length);
                     }
                     if (loops[i].Count == 1 && loops[i][0].curve is Ellipse && loops[i][0].curve.IsClosed && loops[i][0].vertex1 == loops[i][0].vertex2)
                     {
@@ -615,17 +652,18 @@ namespace CADability.GeoObject
                     {
                         if (loops[i][j].createdEdges != null && loops[i][j].createdEdges.Count > 1)
                         {
-                            //Vertex sv = null;
-                            //if (loops[i][j].forward) sv = loops[i][j].vertex1;
-                            //else sv = loops[i][j].vertex2;
-                            //if (loops[i][j].createdEdges[0].EndVertex(loops[i][j].createdEdges[0].PrimaryFace) != sv)
-                            //{
-                            //    loops[i][j].createdEdges.Reverse();
-                            //}
+                            double vertexDist = minCurveLength / 10.0;
+                            for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
+                            {
+                                vertexDist = Math.Min(vertexDist, loops[i][j].createdEdges[k].Curve3D.Length / 10.0);
+                            }
                             List<StepEdgeDescriptor> toInsert = new List<StepEdgeDescriptor>();
                             for (int k = 0; k < loops[i][j].createdEdges.Count; k++)
                             {
-                                loops[i][j].createdEdges[k].UseVertices(loops[i][j].vertex1, loops[i][j].vertex2);
+                                Set<Vertex> toUse = new Set<Vertex>();
+                                toUse.Add(loops[i][j].vertex1);
+                                toUse.Add(loops[i][j].vertex2);
+                                loops[i][j].createdEdges[k].UseVertices(toUse, vertexDist);
                                 StepEdgeDescriptor se = new StepEdgeDescriptor(loops[i][j].createdEdges[k], loops[i][j].forward);
                                 toInsert.Add(se);
                             }
@@ -662,7 +700,7 @@ namespace CADability.GeoObject
                                 foreach (StepEdgeDescriptor item in loopcurves)
                                 {
                                     //item.createdEdges[0].UseVertices(loops[i][j].vertex1, loops[i][j].vertex2);
-                                    if ((item.forward && (item.vertex1.Position | lastVertex.Position)< minCurveLength*1e-5) || (!item.forward && (item.vertex2.Position | lastVertex.Position)< minCurveLength*1e-5))
+                                    if ((item.forward && (item.vertex1.Position | lastVertex.Position) < minCurveLength * 1e-5) || (!item.forward && (item.vertex2.Position | lastVertex.Position) < minCurveLength * 1e-5))
                                     {
                                         loops[i].Add(item);
                                         loopcurves.Remove(item);
@@ -1093,7 +1131,7 @@ namespace CADability.GeoObject
                         }
                     }
                 }
-                // Poles (typically with sphere, cone and sometimes nurbes) lead to missing 2d connections.
+                // Poles (typically with sphere, cone and sometimes nurbs) lead to missing 2d connections.
                 // these edges are inserted here with no 3d curve but valid vertices
                 double[] us = surface.GetUSingularities();
                 double[] vs = surface.GetVSingularities();
@@ -2040,8 +2078,8 @@ namespace CADability.GeoObject
                             vSplitPositions = lPositions.ToArray();
                         }
                     }
-                    // if edges already exist AND already have been splitted because the other face also was periodic
-                    // then we make two edge descriptors in order to prevent the same edge beeing splitted differently on two faces
+                    // if edges already exist AND already have been split because the other face also was periodic
+                    // then we make two edge descriptors in order to prevent the same edge being split differently on two faces
                     for (int i = 0; i < loops.Count; i++)
                     {
                         for (int j = 0; j < loops[i].Count; j++)
@@ -2066,7 +2104,7 @@ namespace CADability.GeoObject
                             }
                         }
                     }
-                    List<ICurve2D> crvs2d = new List<ICurve2D>(); // all 2d curves (split and un-split)
+                    List<ICurve2D> crvs2d = new List<ICurve2D>(); // all 2d curves (split and unsplit)
                     List<ICurve> crvs3d = new List<ICurve>(); // synchronous list of 3d curves
                     List<int> loopSpan = new List<int>(); // indices in crvs2d where a new loop begins
                     allVertices = new Set<Vertex>();
@@ -2087,7 +2125,7 @@ namespace CADability.GeoObject
                                 allVertices.Add(loops[i][j].vertex1);
                                 allVertices.Add(loops[i][j].vertex2);
                                 List<double> ispPos = new List<double>();
-                                // cut the edges by the plane(s) to make un-periodic parts
+                                // cut the edges by the plane(s) to make non-periodic parts
                                 ICurve forwardOrientedCurve = loops[i][j].curve.Clone();
                                 if (!loops[i][j].forward) forwardOrientedCurve.Reverse(); // this 3d curve is forward oriented for this surface
                                                                                           // we need the orientation to get the 2d curves in the correct order
@@ -2813,7 +2851,37 @@ namespace CADability.GeoObject
                                     if (replacementEdges.Count > 1)
                                     {
                                         Edge[] replacementEdgesA = replacementEdges.ToArray();
-                                        SortEdges(onOtherFace.PrimaryFace, onOtherFace.StartVertex(onOtherFace.PrimaryFace), onOtherFace.EndVertex(onOtherFace.PrimaryFace), replacementEdgesA);
+                                        if (!SortEdges(onOtherFace.PrimaryFace, onOtherFace.StartVertex(onOtherFace.PrimaryFace), onOtherFace.EndVertex(onOtherFace.PrimaryFace), replacementEdgesA))
+                                        {   // maybe we have a imprecision with the vertices
+                                            BoundingCube vext = BoundingCube.EmptyBoundingCube;
+                                            foreach (Vertex vertex in allVertices)
+                                            {
+                                                vext.MinMax(vertex.Position);
+                                            }
+                                            double minDist = double.MaxValue;
+                                            Vertex mv1 = null, mv2 = null;
+                                            foreach (Vertex v1 in toUse)
+                                            {
+                                                foreach (Vertex v2 in toUse)
+                                                {
+                                                    if (v1 != v2)
+                                                    {
+                                                        double d = v1.Position | v2.Position;
+                                                        if (d < minDist)
+                                                        {
+                                                            minDist = d;
+                                                            mv1 = v1;
+                                                            mv2 = v2;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if (minDist < vext.Size * 1e-3)
+                                            {
+                                                mv1.MergeWith(mv2);
+                                                bool ok = SortEdges(onOtherFace.PrimaryFace, onOtherFace.StartVertex(onOtherFace.PrimaryFace), onOtherFace.EndVertex(onOtherFace.PrimaryFace), replacementEdgesA);
+                                            }
+                                        }
                                         replacementEdges = new List<Edge>(replacementEdgesA);
                                     }
                                     GeoVector2D dir1 = replacementEdges[0].Curve2D(replacementEdges[0].SecondaryFace).StartDirection;
@@ -2889,7 +2957,7 @@ namespace CADability.GeoObject
         /// <param name="fromVertex"></param>
         /// <param name="toVertex"></param>
         /// <param name="edges"></param>
-        private static void SortEdges(Face onThisFace, Vertex fromVertex, Vertex toVertex, Edge[] edges)
+        private static bool SortEdges(Face onThisFace, Vertex fromVertex, Vertex toVertex, Edge[] edges)
         {
             bool ok = true;
             List<Edge> sorted = new List<Edge>(edges);
@@ -2932,10 +3000,11 @@ namespace CADability.GeoObject
                             break;
                         }
                     }
-                    if (sorted.Count + ind + 1 != edges.Length) throw new ApplicationException("Unable to sort edges");
+                    if (sorted.Count + ind + 1 != edges.Length) return false; // Unable to sort edges
                 }
-                if (edges[edges.Length - 1].EndVertex(onThisFace) != toVertex) throw new ApplicationException("Unable to sort edges");
+                if (edges[edges.Length - 1].EndVertex(onThisFace) != toVertex) return false; //Unable to sort edges
             }
+            return true;
         }
 
         /// <summary>
@@ -5985,13 +6054,6 @@ namespace CADability.GeoObject
             }
             try
             {
-                //if (this.hashCode == 20) // && precision < 0.13)
-                //{
-                //    Triangulation t1 = new Triangulation(polylines, surface, precision, 0.17);
-                //    t1.GetTriangles(out triangleUVPoint, out trianglePoint, out triangleIndex);
-                //    t1 = new Triangulation(polylines, surface, precision, 0.17);
-                //    t1.GetTriangles(out triangleUVPoint, out trianglePoint, out triangleIndex);
-                //}
 
 #if DEBUG
                 DebuggerContainer dc = new DebuggerContainer();
@@ -6012,144 +6074,90 @@ namespace CADability.GeoObject
                 // double dbga = this.area.Area;
 #endif
                 Triangulation t = new Triangulation(polylines.ToArray(), surface, precision * 5.0, 0.17);
-                // Genauigkeit für innere Punkte nur halbsoviel wie für den Rand, dort fallen die Knicke nicht so auf
-                GeoPoint2D[] tmpTriUv;
-                GeoPoint[] tmpTriPoint;
-                int[] tmpTriInd;
-                // innerPoints werden nicht mehr verwendet, das spart bei NURBS echt Zeit!!
-                //GeoPoint2D[] innerPoints = null;
-                //if (surface is NurbsSurface)
-                //{
-                //    double[] intu, intv;
-                //    double umin, umax, vmin, vmax;
-                //    surface.GetNaturalBounds(out umin, out umax, out vmin, out vmax);
-                //    surface.GetSafeParameterSteps(umin, umax, vmin, vmax, out intu, out intv);
-                //    List<GeoPoint2D> iplist = new List<GeoPoint2D>();
-                //    // erste und letzte weglassen, es interessieren nur die inneren
-                //    for (int i = 1; i < intu.Length - 1; i++)
-                //    {
-                //        for (int j = 1; j < intv.Length - 1; j++)
-                //        {
-                //            GeoPoint2D ip2d = new GeoPoint2D(intu[i], intv[j]);
-                //            if (ss.Contains(ip2d, false))
-                //            {
-                //                iplist.Add(ip2d);
-                //            }
-                //            else
-                //            {
-                //            }
-                //        }
-                //    }
-                //    innerPoints = iplist.ToArray();
-                //}
-                // t.GetTriangles(innerPoints, out tmpTriUv, out tmpTriPoint, out tmpTriInd); // DEBUG ersetzt durch folgende Zeile
-                // ACHTUNG: seit 17.11.2015 steht hier GetSimpleTriangles. Das sollte schneller gehen und bei NURBS bessere Ergebnisse liefern. Erfahrung fehlt nocht
-                t.GetSimpleTriangles(out tmpTriUv, out tmpTriPoint, out tmpTriInd, true);
-                int tc1 = System.Environment.TickCount - tc0;
-                // Console.WriteLine("Triangulierung: " + this.hashCode.ToString() + ", " + tc1.ToString());
-                // System.Diagnostics.Trace.WriteLine(tc1.ToString("D5") + " Triangulierung: " + this.hashCode.ToString());
+                // precision*5: inside the face we don't need the same hight precision as on the bounds
+                if (!t.innerIntersection)
+                {
+                    GeoPoint2D[] tmpTriUv;
+                    GeoPoint[] tmpTriPoint;
+                    int[] tmpTriInd;
+                    t.GetSimpleTriangles(out tmpTriUv, out tmpTriPoint, out tmpTriInd, true);
+                    int tc1 = System.Environment.TickCount - tc0;
 
-                lock (lockTriangulationData)
-                {
-                    triangleUVPoint = tmpTriUv;
-                    trianglePoint = tmpTriPoint;
-                    triangleIndex = tmpTriInd;
-                }
-#if DEBUG
-                DebuggerContainer dc3d = new DebuggerContainer();
-                DebuggerContainer dc2d = new DebuggerContainer();
-                BoundingCube bc = BoundingCube.EmptyBoundingCube;
-                for (int i = 0; i < trianglePoint.Length; i++)
-                {
-                    bc.MinMax(trianglePoint[i]);
-                }
-                if (bc.Ymin < -10)
-                { }
-                for (int i = 0; i < triangleIndex.Length; i += 3)
-                {
-                    GeoPoint2D tr1 = new GeoPoint2D(triangleUVPoint[triangleIndex[i]].x / ext.Width, triangleUVPoint[triangleIndex[i]].y / ext.Height);
-                    GeoPoint2D tr2 = new GeoPoint2D(triangleUVPoint[triangleIndex[i + 1]].x / ext.Width, triangleUVPoint[triangleIndex[i + 1]].y / ext.Height);
-                    GeoPoint2D tr3 = new GeoPoint2D(triangleUVPoint[triangleIndex[i + 2]].x / ext.Width, triangleUVPoint[triangleIndex[i + 2]].y / ext.Height);
-                    dc2d.Add(new Line2D(tr1, tr2), System.Drawing.Color.Blue, i);
-                    dc2d.Add(new Line2D(tr2, tr3), System.Drawing.Color.Blue, i);
-                    dc2d.Add(new Line2D(tr3, tr1), System.Drawing.Color.Blue, i);
-                    GeoPoint2D cnt = new GeoPoint2D(tr1, tr2, tr3);
-                    if ((new GeoVector(tr2 - tr1) ^ new GeoVector(tr3 - tr1)).z > 0) dc2d.Add(cnt, System.Drawing.Color.Red, i);
-                    else dc2d.Add(cnt, System.Drawing.Color.Green, i);
-                    Line ln = Line.Construct();
-                    ln.SetTwoPoints(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]]);
-                    dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i]);
-                    ln = Line.Construct();
-                    ln.SetTwoPoints(trianglePoint[triangleIndex[i + 1]], trianglePoint[triangleIndex[i + 2]]);
-                    dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i + 1]);
-                    ln = Line.Construct();
-                    ln.SetTwoPoints(trianglePoint[triangleIndex[i + 2]], trianglePoint[triangleIndex[i]]);
-                    dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i + 2]);
-                    GeoPoint cnt3d = new GeoPoint(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]], trianglePoint[triangleIndex[i + 2]]);
-                    GeoVector n = (trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]]) ^ (trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
-                    n.Length = bc.Size * 0.1;
-                    ln = Line.Construct();
-                    ln.SetTwoPoints(cnt3d, cnt3d + n);
-                    dc3d.Add(ln, System.Drawing.Color.Red, triangleIndex[i]);
-                }
-#endif
-            }
-            catch (ApplicationException e)
-            {   // Selbstüberschneidungen von Löchern und Rand oder in den Rändern selbst
-#if DEBUG
-                DebuggerContainer dc = new DebuggerContainer();
-                for (int j = 0; j < polylines.Count; ++j)
-                {
-                    for (int i = 0; i < polylines[j].Length; ++i)
+                    lock (lockTriangulationData)
                     {
-                        int next = i + 1;
-                        if (i == polylines[j].Length - 1)
-                            next = 0;
-                        GeoPoint2D sp = new GeoPoint2D(polylines[j][i].x / ext.Width, polylines[j][i].y / ext.Height);
-                        GeoPoint2D ep = new GeoPoint2D(polylines[j][next].x / ext.Width, polylines[j][next].y / ext.Height);
-                        Line2D l2d = new Line2D(sp, ep);
-                        dc.Add(l2d);
+                        triangleUVPoint = tmpTriUv;
+                        trianglePoint = tmpTriPoint;
+                        triangleIndex = tmpTriInd;
                     }
-                }
+#if DEBUG
+                    DebuggerContainer dc3d = new DebuggerContainer();
+                    DebuggerContainer dc2d = new DebuggerContainer();
+                    BoundingCube bc = BoundingCube.EmptyBoundingCube;
+                    for (int i = 0; i < trianglePoint.Length; i++)
+                    {
+                        bc.MinMax(trianglePoint[i]);
+                    }
+                    if (bc.Ymin < -10)
+                    { }
+                    for (int i = 0; i < triangleIndex.Length; i += 3)
+                    {
+                        GeoPoint2D tr1 = new GeoPoint2D(triangleUVPoint[triangleIndex[i]].x / ext.Width, triangleUVPoint[triangleIndex[i]].y / ext.Height);
+                        GeoPoint2D tr2 = new GeoPoint2D(triangleUVPoint[triangleIndex[i + 1]].x / ext.Width, triangleUVPoint[triangleIndex[i + 1]].y / ext.Height);
+                        GeoPoint2D tr3 = new GeoPoint2D(triangleUVPoint[triangleIndex[i + 2]].x / ext.Width, triangleUVPoint[triangleIndex[i + 2]].y / ext.Height);
+                        dc2d.Add(new Line2D(tr1, tr2), System.Drawing.Color.Blue, i);
+                        dc2d.Add(new Line2D(tr2, tr3), System.Drawing.Color.Blue, i);
+                        dc2d.Add(new Line2D(tr3, tr1), System.Drawing.Color.Blue, i);
+                        GeoPoint2D cnt = new GeoPoint2D(tr1, tr2, tr3);
+                        if ((new GeoVector(tr2 - tr1) ^ new GeoVector(tr3 - tr1)).z > 0) dc2d.Add(cnt, System.Drawing.Color.Red, i);
+                        else dc2d.Add(cnt, System.Drawing.Color.Green, i);
+                        Line ln = Line.Construct();
+                        ln.SetTwoPoints(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]]);
+                        dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i]);
+                        ln = Line.Construct();
+                        ln.SetTwoPoints(trianglePoint[triangleIndex[i + 1]], trianglePoint[triangleIndex[i + 2]]);
+                        dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i + 1]);
+                        ln = Line.Construct();
+                        ln.SetTwoPoints(trianglePoint[triangleIndex[i + 2]], trianglePoint[triangleIndex[i]]);
+                        dc3d.Add(ln, System.Drawing.Color.Blue, triangleIndex[i + 2]);
+                        GeoPoint cnt3d = new GeoPoint(trianglePoint[triangleIndex[i]], trianglePoint[triangleIndex[i + 1]], trianglePoint[triangleIndex[i + 2]]);
+                        GeoVector n = (trianglePoint[triangleIndex[i + 1]] - trianglePoint[triangleIndex[i]]) ^ (trianglePoint[triangleIndex[i + 2]] - trianglePoint[triangleIndex[i]]);
+                        n.Length = bc.Size * 0.1;
+                        ln = Line.Construct();
+                        ln.SetTwoPoints(cnt3d, cnt3d + n);
+                        dc3d.Add(ln, System.Drawing.Color.Red, triangleIndex[i]);
+                    }
 #endif
-                List<GeoPoint2D> sumTriUv = new List<GeoPoint2D>();
-                List<GeoPoint> sumTriPoint = new List<GeoPoint>();
-                List<int> sumTriInd = new List<int>();
-                try
-                {
+                }
+                else
+                {   // there are inner intersections: we need to split the outline and holes to make several non intersecting areas
+#if DEBUG
+                    DebuggerContainer dc1 = new DebuggerContainer();
+                    for (int j = 0; j < polylines.Count; ++j)
+                    {
+                        for (int i = 0; i < polylines[j].Length; ++i)
+                        {
+                            int next = i + 1;
+                            if (i == polylines[j].Length - 1)
+                                next = 0;
+                            GeoPoint2D sp = new GeoPoint2D(polylines[j][i].x / ext.Width, polylines[j][i].y / ext.Height);
+                            GeoPoint2D ep = new GeoPoint2D(polylines[j][next].x / ext.Width, polylines[j][next].y / ext.Height);
+                            Line2D l2d = new Line2D(sp, ep);
+                            dc1.Add(l2d);
+                        }
+                    }
+#endif
+                    List<GeoPoint2D> sumTriUv = new List<GeoPoint2D>();
+                    List<GeoPoint> sumTriPoint = new List<GeoPoint>();
+                    List<int> sumTriInd = new List<int>();
                     GeoPoint2D[][][] multiPolyLines = SubdevidePolylines(polylines.ToArray(), eps);
                     for (int i = 0; i < multiPolyLines.Length; ++i)
-
                     {
-                        try
+                        GeoPoint2D[] tmpTriUv;
+                        GeoPoint[] tmpTriPoint;
+                        int[] tmpTriInd;
+                        t = new Triangulation(multiPolyLines[i], surface, precision, 0.17);
+                        if (!t.innerIntersection)
                         {
-                            GeoPoint2D[] tmpTriUv;
-                            GeoPoint[] tmpTriPoint;
-                            int[] tmpTriInd;
-                            Triangulation t = new Triangulation(multiPolyLines[i], surface, precision, 0.17);
-                            GeoPoint2D[] innerPoints = null;
-                            if (surface is NurbsSurface)
-                            {
-                                double[] intu, intv;
-                                double umin, umax, vmin, vmax;
-                                surface.GetNaturalBounds(out umin, out umax, out vmin, out vmax);
-                                surface.GetSafeParameterSteps(umin, umax, vmin, vmax, out intu, out intv);
-                                List<GeoPoint2D> iplist = new List<GeoPoint2D>();
-                                // erste und letzte weglassen, es interessieren nur die inneren
-                                for (int k = 1; k < intu.Length - 1; k++)
-                                {
-                                    for (int j = 1; j < intv.Length - 1; j++)
-                                    {
-                                        GeoPoint2D ip2d = new GeoPoint2D(intu[k], intv[j]);
-                                        if (ss.Contains(ip2d, false))
-                                        {
-                                            iplist.Add(ip2d);
-                                        }
-                                    }
-                                }
-                                innerPoints = iplist.ToArray();
-                            }
-                            // t.GetTriangles(innerPoints, out tmpTriUv, out tmpTriPoint, out tmpTriInd); // DEBUG ersetzt durch folgende Zeile
                             t.GetSimpleTriangles(out tmpTriUv, out tmpTriPoint, out tmpTriInd, true);
                             for (int j = 0; j < tmpTriInd.Length; ++j)
                             {
@@ -6158,6 +6166,7 @@ namespace CADability.GeoObject
                             sumTriPoint.AddRange(tmpTriPoint);
                             sumTriUv.AddRange(tmpTriUv);
                             sumTriInd.AddRange(tmpTriInd);
+
 #if DEBUG
                             BoundingCube bc = BoundingCube.EmptyBoundingCube;
                             for (int k = 0; k < tmpTriPoint.Length; k++)
@@ -6168,25 +6177,19 @@ namespace CADability.GeoObject
                             { }
 #endif
                         }
-                        catch (ApplicationException)
-                        {
-                        }
+                    }
+                    lock (lockTriangulationData)
+                    {
+                        triangleUVPoint = sumTriUv.ToArray();
+                        trianglePoint = sumTriPoint.ToArray();
+                        triangleIndex = sumTriInd.ToArray();
                     }
                 }
-                catch (ApplicationException)
-                {
-                }
-                catch (IndexOutOfRangeException)
-                {
-                }
-                lock (lockTriangulationData)
-                {
-                    triangleUVPoint = sumTriUv.ToArray();
-                    trianglePoint = sumTriPoint.ToArray();
-                    triangleIndex = sumTriInd.ToArray();
-                }
             }
-            triangleExtent = BoundingCube.EmptyBoundingCube; // muss neu berechnet werden
+            catch (ApplicationException e)
+            {   // something went wrong with the triangulation. This should not happen and needs to be debugged and fixed
+            }
+            triangleExtent = BoundingCube.EmptyBoundingCube; // needs to be recalculated
         }
         /// <summary>
         /// Returns true, when the <paramref name="otherFace"/> has a geometrically equal surface
@@ -9392,7 +9395,7 @@ namespace CADability.GeoObject
         internal void CombineConnectedSameSurfaceEdges()
         {
 #if DEBUG
-            if (2430==hashCode)
+            if (2430 == hashCode)
             { }
 #endif
             for (int i = 0; i < outline.Length; i++)
@@ -9470,6 +9473,7 @@ namespace CADability.GeoObject
                 edg2.Vertex1.RemoveEdge(edg2);
                 edg2.Vertex2.RemoveEdge(edg2);
                 vertices = null;
+                area = null;
                 return true;
             }
             else if (otherface != null)
@@ -9543,6 +9547,7 @@ namespace CADability.GeoObject
                         edg2.Vertex1.RemoveEdge(edg2);
                         edg2.Vertex2.RemoveEdge(edg2);
                         vertices = null;
+                        area = null;
                         return true;
                     }
                 }
@@ -10217,6 +10222,7 @@ namespace CADability.GeoObject
         internal Edge GetNextEdge(Edge edge)
         {
             Vertex v = edge.EndVertex(this);
+            if (v == null) return null;
             List<Edge> onThisFace = v.EdgesOnFace(this);
             if (onThisFace.Count < 2) return edge; // there is only one (closed) edge. This should not be the case with proper (non periodic) faces
             if (onThisFace.Count > 2)

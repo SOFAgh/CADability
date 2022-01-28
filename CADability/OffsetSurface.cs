@@ -472,6 +472,8 @@ namespace CADability.GeoObject
                 return baseSurface.IsVPeriodic;
             }
         }
+        public override double UPeriod => baseSurface.UPeriod;
+        public override double VPeriod => baseSurface.VPeriod;
         public override RuledSurfaceMode IsRuled
         {
             get

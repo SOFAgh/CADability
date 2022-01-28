@@ -237,14 +237,12 @@ namespace CADability.GeoObject
         {
             for (int i = list.Count - 1; i >= 0; --i)
             {
-                if (this[i] is Hatch)
+                if (this[i] is Hatch hatch)
                 {
-                    Hatch hatch = (this[i] as Hatch);
                     hatch.ConditionalRecalc();
                 }
-                else if (this[i] is Block)
+                else if (this[i] is Block blk)
                 {
-                    Block blk = this[i] as Block;
                     Remove(i);
                     for (int j = 0; j < blk.Count; ++j)
                     {
@@ -437,7 +435,7 @@ namespace CADability.GeoObject
             get { return (IGeoObject)list[Index]; }
             set { list[Index] = value; }
         }
-        public static implicit operator IGeoObject[] (GeoObjectList l)
+        public static implicit operator IGeoObject[](GeoObjectList l)
         {
             return (IGeoObject[])l.list.ToArray(typeof(IGeoObject));
         }
@@ -503,7 +501,7 @@ namespace CADability.GeoObject
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return list.GetEnumerator();
+            return list.GetEnumerator();            
         }
     }
 }

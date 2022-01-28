@@ -731,11 +731,11 @@ namespace CADability.GeoObject
         }
         internal static IGeoObject MakeRuledShellX(Path firstPath, Path secondPath, bool makeSolid, Project project) // ersetzt später obiges
         {
-            firstPath.Flatten(); // Flatten wirft zu kurze segmente hoffentlich raus
-            secondPath.Flatten(); // und zerlegt polygone
+            firstPath.Flatten(); // Flatten hopefully removes too short segments
+            secondPath.Flatten(); // and splits polylines to its segments
             if (firstPath.CurveCount != secondPath.CurveCount)
-            {   // wenn einer der Pfade aus nur einem Objekt besteht, dann gleichmäßig aufteilen
-                // man könnte natürlich auch der Länge nach aufteilen
+            {   // if one of the paths has only a single segment, we split it, so there are the same number of segments
+                // We could also split it according to the length
                 if (firstPath.Count == 1)
                 {
                     double dp = 1.0 / secondPath.CurveCount;
@@ -758,7 +758,14 @@ namespace CADability.GeoObject
                     }
                     secondPath.Set(splitted);
                 }
-                else return null;
+                else
+                {   // two path with different number of segments
+                    // we would need a general rule how to split the paths
+                    // if the user needs more control, she should split the two paths in part so we always have a single segment path for firstPath or second path
+                    // (firstPath as ICurve).PositionAtLength(0);
+                    // (firstPath as ICurve).Split()
+                    return null;
+                }
             }
             if (firstPath.IsClosed && firstPath.Count == 1)
             {
@@ -768,8 +775,9 @@ namespace CADability.GeoObject
             {
                 secondPath.Set(secondPath.Split(0.5));
             }
-            if (firstPath.IsClosed)
-            {   // ersten Pfad so verdrehen, dass kürzeste Verbindungen zwischen den Ecken entstehen
+            if (firstPath.IsClosed && secondPath.IsClosed)
+            {   // find the shortest connection of the vertices of the two paths. 
+                // 
                 double mindist = double.MaxValue;
                 int secondStartInd = -1;
                 for (int i = 0; i < firstPath.CurveCount; ++i)
@@ -843,8 +851,8 @@ namespace CADability.GeoObject
                     }
                 }
                 edges[i + 1].SetFace(face, cvs2d[0], true);
-                upper.SetFace(face, cvs2d[1], false);
-                edges[i].SetFace(face, cvs2d[2], false);
+                upper.SetFace(face, cvs2d[1].CloneReverse(true), false); // .CloneReverse(true) is necessary, since SetFace reverses it again due to "forward==false"
+                edges[i].SetFace(face, cvs2d[2].CloneReverse(true), false);
                 lower.SetFace(face, cvs2d[3], true);
                 face.Set(rs, new Edge[] { edges[i + 1], upper, edges[i], lower }, null);
                 faces.Add(face);

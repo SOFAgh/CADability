@@ -635,7 +635,7 @@ namespace CADability
             GeoPoint ep = curve3D.EndPoint;
             double[] us = surface.GetUSingularities();
             double prec = precision;
-            if (prec==0.0) prec = curve3D.Length * 1e-3; // changed to 1e-3, it is used to snap endpoints to poles
+            if (prec == 0.0) prec = curve3D.Length * 1e-3; // changed to 1e-3, it is used to snap endpoints to poles
             startPoint2d = surface.PositionOf(curve3D.StartPoint);
             endPoint2d = surface.PositionOf(curve3D.EndPoint);
             bool distinctStartEndPoint = false;
@@ -665,7 +665,7 @@ namespace CADability
                 for (int i = 0; i < 10; i++)
                 {
                     GeoVector2D offset = GeoVector2D.NullVector;
-                    if (surface.IsUPeriodic && Math.Abs(point2Ds[i+1].x-point2Ds[i].x)>surface.UPeriod/2.0)
+                    if (surface.IsUPeriodic && Math.Abs(point2Ds[i + 1].x - point2Ds[i].x) > surface.UPeriod / 2.0)
                     {
                         if ((point2Ds[i + 1].x - point2Ds[i].x) < 0) offset.x = surface.UPeriod;
                         else offset.x = -surface.UPeriod;
@@ -852,7 +852,7 @@ namespace CADability
                     if (startParam == 0.0 && endParam == 1.0) return res;
                     else
                     {
-                        res.Trim(endParam, startParam);
+                        res.Trim(1 - startParam, 1 - endParam);
                         return res;
                     }
                 }
@@ -881,9 +881,9 @@ namespace CADability
                 return surface;
             }
         }
-        public bool IsReverse 
-        { 
-            get => endParam < startParam; 
+        public bool IsReverse
+        {
+            get => endParam < startParam;
             internal set
             {
                 if (value != IsReverse)

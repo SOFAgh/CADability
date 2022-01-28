@@ -84,10 +84,10 @@ namespace CADability
         private Dictionary<int, IGeoObject> geoObjects;
         // die beiden folgenden werden im Hintergrundthread gesetzt
 
-        private IPaintTo3DList PaintFacesCache;
-        private IPaintTo3DList PaintTransparentCache;
-        private IPaintTo3DList PaintCurvesCache;
-        private IPaintTo3DList PaintUnscaledCache;
+        private List<IPaintTo3DList> allFaces = new List<IPaintTo3DList>(); // a cache of the current display list per layer and kind of object (curve, face, transparent, unscaled)
+        private List<IPaintTo3DList> allTransparent = new List<IPaintTo3DList>();
+        private List<IPaintTo3DList> allCurves = new List<IPaintTo3DList>();
+        private List<IPaintTo3DList> allUnscaled = new List<IPaintTo3DList>();
         private double currentUnscaledScale;
 
         private string name; // Name des ProjectedModel
@@ -292,10 +292,10 @@ namespace CADability
         }
         public void Disconnect(IPaintTo3D paintTo3D)
         {
-            PaintFacesCache?.Dispose();
-            PaintTransparentCache?.Dispose();
-            PaintCurvesCache?.Dispose();
-            PaintUnscaledCache?.Dispose();
+            foreach (IPaintTo3DList plist in allCurves) plist.Dispose();
+            foreach (IPaintTo3DList plist in allFaces) plist.Dispose();
+            foreach (IPaintTo3DList plist in allTransparent) plist.Dispose();
+            foreach (IPaintTo3DList plist in allUnscaled) plist.Dispose();
             this.paintTo3D = null;
             Settings.GlobalSettings.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
         }
@@ -547,28 +547,8 @@ namespace CADability
         }
         internal void RecalcAll(bool temporary)
         {
-            // Berechnen im Hintergrund:
-            // 1.9.06: Es funktioniert jetzt sicher, jedoch darf in der Hintergrundtask kein opencascade
-            // verwendet werden. Für HiddenLine ist das noch problematisch, denn dort wird Face.Split
-            // aufgerufen und das ruft seinerseits Surface.MakeCurve3D. Dieses ist aber bis jetzt nur in
-            // Spezialfällen implementiert, d.h. Surface.MakeCurve3D muss vollständig in CADability implementiert werden.
-            // Dazu muss aber zuerst ein NURBS Kurve aus Punkten und Tangenten implementiert werden
-            //bool recalcInBackground = DoBackgroundPaint && !projection.ShowFaces; // projection.ShowFaces heißt hidden line
-            //if (recalcInBackground)
-            //{
-            //    if (calcNormalQuadTreeThreadIsRunning) calcNormalQuadTreeThread.Abort();
-            //}
-            //// So setzt man den WaitCursor, ausgeschaltet wird er ja automatisch bei der nächsten
-            //// Mausbewegung
-            //if (recalcInBackground)
-            //{
-            //    gdiResources.DisplayMode = GDIResources.EDisplayMode.raw;
-            //}
-            //else
-            //{
-            //    gdiResources.DisplayMode = GDIResources.EDisplayMode.normal;
-            //}
-            FrameImpl.MainFrame.ActiveView.Canvas.Cursor = "WaitCursor";
+            if (FrameImpl.MainFrame != null && FrameImpl.MainFrame.ActiveView != null && FrameImpl.MainFrame.ActiveView.Canvas != null)
+                FrameImpl.MainFrame.ActiveView.Canvas.Cursor = "WaitCursor";
 
             for (int i = 0; i < model.Count; ++i)
             {
@@ -578,118 +558,8 @@ namespace CADability
                 Add(go);
             }
 
-            //foreach (IGeoObject go in geoObjects2D.Keys)
-            //{
-            //    go.WillChangeEvent -= new ChangeDelegate(GeoObjectWillChange);
-            //    go.DidChangeEvent -= new ChangeDelegate(GeoObjectDidChange);
-            //}
-            //geoObjects2D.Clear();
-            //if (recalcInBackground)
-            //{
-            //    quadTree = null;
-            //    for (int i = 0; i < model.Count; ++i)
-            //    {
-            //        IGeoObject go = model[i];
-            //        I2DRepresentation[] rep = go.Get2DRepresentation(projection, gdiResources);
-            //        bool forceVisible = visibleLayers.Count == 0; // keine visible layers: alles sichtbar!
-            //        for (int j = 0; j < rep.Length; ++j)
-            //        {
-            //            if (rep[j].Layer != null && !forceVisible)
-            //            {
-            //                rep[j].IsVisible = visibleLayers.ContainsKey(rep[j].Layer);
-            //            }
-            //            else
-            //            {
-            //                rep[j].IsVisible = true;
-            //            }
-            //        }
-            //        geoObjects2D[go] = rep;
-            //    }
-            //}
-            //else
-            //{
-            //    quadTree = new QuadTree();
-            //    for (int i = 0; i < model.Count; ++i)
-            //    {
-            //        IGeoObject go = model[i];
-            //        Add(go);
-            //    }
-            //}
-            //gdiResources.DisplayMode = GDIResources.EDisplayMode.normal;
-
-            //if (recalcInBackground)
-            //{
-            //    // TODO: Kopie der ModelListe und visibleLayerliste hier erstellen, denn asynchron ist gefährlich!
-            //    if (calcNormalQuadTreeThreadIsRunning) calcNormalQuadTreeThread.Join();
-            //    calcNormalQuadTreeThread = new Thread(new ThreadStart(calcNormalQuadTree));
-            //    calcNormalQuadTreeThread.Start();
-            //    calcNormalQuadTreeThreadIsRunning = true;
-            //}
-            //else
-            //{
-            //    // TestHiddenLines(geoObjects2D);
-            //}
         }
-        //        private void calcNormalQuadTree()
-        //        {
-        //            try
-        //            {
-        //                backgroundThreadQuadTree = new QuadTree();
-        //                backgroundThreadGeoObjects2D = new Dictionary<IGeoObject, I2DRepresentation[]>();
-        //                GDIResources normalGDIResources = gdiResources.Clone();
-        //                normalGDIResources.DisplayMode = GDIResources.EDisplayMode.normal;
-        //                Hashtable locVisibleLayers = (Hashtable)visibleLayers.Clone(); // wir müssen auf einer Kopie arbeiten, sonst müsste man das locken
-        //                bool forceVisible = locVisibleLayers.Count == 0; // keine visible layers: alles sichtbar!
-        //                GeoObjectList allObjects = model.AllObjects; // auf einer Kopie, denn es könnte was entfernt werden
-        //                // Thread.Sleep(3000);
-        //                for (int i = 0; i < allObjects.Count; ++i)
-        //                {
-        //                    IGeoObject go = allObjects[i];
-        //                    I2DRepresentation[] rep = go.Get2DRepresentation(projection, normalGDIResources);
-        //                    for (int j = 0; j < rep.Length; ++j)
-        //                    {
-        //                        if (rep[j].Layer != null && !forceVisible)
-        //                        {
-        //                            rep[j].IsVisible = locVisibleLayers.ContainsKey(rep[j].Layer);
-        //                        }
-        //                        else
-        //                        {
-        //                            rep[j].IsVisible = true;
-        //                        }
-        //                        backgroundThreadQuadTree.AddObject(rep[j]);
-        //                    }
-        //                    backgroundThreadGeoObjects2D[go] = rep;
-        //                }
-        //                TestHiddenLines(backgroundThreadGeoObjects2D);
-        //                // wenn man hier ankommt, dann sind die neuen Daten berechnet und das Bild kann neu gezeichnet werden
-        //                if (NeedsRepaintEvent != null)
-        //                {
-        //                    lock (this)
-        //                    {   // jeder Zugriff auf quadTree und geoObjects2D muss gelockt werden
-        //                        // Daten übernehmen
-        //                        quadTree = backgroundThreadQuadTree;
-        //                        geoObjects2D = backgroundThreadGeoObjects2D;
-        //                    }
-        //                    // und Zeichnen
-        //                    NeedsRepaintEventArg arg = new NeedsRepaintEventArg(Rectangle.Empty);
-        //                    arg.needSynchronize = true; // damit im ModelView das Invalidate synchronisiert wird
-        //                    NeedsRepaintEvent(this, arg);
-        //                }
-        //            }
-        //            catch (ThreadAbortException)
-        //            {   // alles vergessen
-        //                backgroundThreadQuadTree = null;
-        //                backgroundThreadGeoObjects2D = null;
-        //            }
-        //#if !DEBUG // im DEBUG Fall soll es einen echten Absturz geben
-        //            catch (System.Exception e) // wenn hier irgendwas schief geht, dann nicht mehr asynchron laufen lassen
-        //            {
-        //                if (e is ThreadAbortException) throw (e);
-        //                DoBackgroundPaint = false;
-        //            }
-        //#endif
-        //            calcNormalQuadTreeThreadIsRunning = false;
-        //        }
+
         public void AdjustPoint(SnapPointFinder spf)
         {	// alle relevanten Objekte zunächst im Quadtree suchen
             //BoundingRect br = new BoundingRect(spf.SourceBeam, spf.MaxDist, spf.MaxDist);
@@ -1441,7 +1311,7 @@ namespace CADability
             //System.Diagnostics.Trace.WriteLine("ProjectedModel.Paint: dirty == " + dirty.ToString());
             if (dirty || recalcVisibility)
             {
-                List<IPaintTo3DList> allFaces = new List<IPaintTo3DList>();
+                allFaces.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerFaceDisplayList)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
@@ -1449,8 +1319,8 @@ namespace CADability
                         allFaces.Add(kv.Value);
                     }
                 }
-                PaintFacesCache = paintTo3D.MakeList(allFaces);
-                List<IPaintTo3DList> allTransparent = new List<IPaintTo3DList>();
+                
+                allTransparent.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerTransparentDisplayList)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
@@ -1458,8 +1328,7 @@ namespace CADability
                         allTransparent.Add(kv.Value);
                     }
                 }
-                PaintTransparentCache = paintTo3D.MakeList(allTransparent);
-                List<IPaintTo3DList> allCurves = new List<IPaintTo3DList>();
+                allCurves.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerCurveDisplayList)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
@@ -1467,37 +1336,37 @@ namespace CADability
                         allCurves.Add(kv.Value);
                     }
                 }
-                PaintCurvesCache = paintTo3D.MakeList(allCurves);
             }
             if (dirty || recalcVisibility || paintTo3D.PixelToWorld != currentUnscaledScale)
             {
                 currentUnscaledScale = paintTo3D.PixelToWorld;
-                paintTo3D.OpenList("unscaled");
+                allUnscaled.Clear();
                 foreach (KeyValuePair<Layer, GeoObjectList> kv in model.layerUnscaledObjects)
                 {
                     if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
                     {
+                        paintTo3D.OpenList("unscaled_" + kv.Key.Name);
                         foreach (IGeoObject go in kv.Value)
                         {
                             go.PaintTo3D(paintTo3D);
                         }
+                        allUnscaled.Add(paintTo3D.CloseList());
                     }
                 }
-                PaintUnscaledCache = paintTo3D.CloseList();
             }
 
-            paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly); // macht den Faces versatz wieder rückgängig
-            paintTo3D.List(PaintCurvesCache); // das ganze Modell auf einen Schlag
+            paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly); // moves the curves a small distance to the front
+            foreach (IPaintTo3DList plist in allCurves) paintTo3D.List(plist);
             if (projection.ShowFaces)
-            {   // beim Drahtmodell keine Faces
-                paintTo3D.PaintFaces(PaintTo3D.PaintMode.FacesOnly); // versetzt die Faces ein kleines Stück nach hinten
-                paintTo3D.List(PaintFacesCache); // das ganze Modell auf einen Schlag
+            {   
+                paintTo3D.PaintFaces(PaintTo3D.PaintMode.FacesOnly); // moves the faces a small distance to the back
+                foreach (IPaintTo3DList plist in allFaces) paintTo3D.List(plist);
                 paintTo3D.Blending(true);
-                paintTo3D.List(PaintTransparentCache);
+                foreach (IPaintTo3DList plist in allTransparent) paintTo3D.List(plist);
                 paintTo3D.Blending(false);
             }
             paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly); // macht den Faces versatz wieder rückgängig
-            paintTo3D.List(PaintUnscaledCache);
+            foreach (IPaintTo3DList plist in allUnscaled) paintTo3D.List(plist);
 
             dirty = false;
             recalcVisibility = false;

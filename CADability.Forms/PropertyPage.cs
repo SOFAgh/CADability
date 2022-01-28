@@ -147,7 +147,7 @@ namespace CADability.Forms
                 DrawString(graphics, entries[index].Value, Font, SystemBrushes.ControlText, valueRect, false);
             }
             if (entries[index].Flags.HasFlag(PropertyEntryType.ContextMenu))
-            {   // draw three vertical dots (maybe we could also use the unicode "⁞" character
+            {   // draw three vertical dots (maybe we could also use the Unicode "⁞" character
                 Rectangle buttonRect = new Rectangle(area.Right - buttonWidth, area.Top, buttonWidth, area.Height);
                 ControlPaint.DrawButton(graphics, buttonRect, ButtonState.Flat);
                 int d = Math.Max(area.Height / 9, 2);
@@ -441,14 +441,14 @@ namespace CADability.Forms
                         throw new NotImplementedException("implement ContextMenu of " + entries[index].GetType().ToString() + ", " + entries[index].ResourceId);
                     }
                     ContextMenuWithHandler cm = MenuManager.MakeContextMenu(entries[index].ContextMenu);
-                    cm.UpdateCommand(); // ContextMenu OnPopup is not beeing called
+                    cm.UpdateCommand(); // ContextMenu OnPopup is not being called
                     cm.Show(this, e.Location);
                     break;
                 case EMousePos.onLabel:
                     if (selected == index && entries[index].Flags.HasFlag(PropertyEntryType.LabelEditable))
                     {
                         SelectedIndex = index;
-                        if (propertiesExplorer.EntryWithTextBox == entries[index]) propertiesExplorer.HideTextBox(); // there is a textbox open for the value
+                        if (propertiesExplorer.EntryWithTextBox == entries[index]) propertiesExplorer.HideTextBox(); // there is a textBox open for the value
                         ShowTextBox(index, e.Location, false);
                     }
                     else
@@ -459,7 +459,7 @@ namespace CADability.Forms
                 case EMousePos.onValue:
                     if (entries[index].Flags.HasFlag(PropertyEntryType.ValueEditable))
                     {
-                        SelectedIndex = index; // before ShowTextBox, because this calls unselected and thus updates the currently textbox or listbox (if any)
+                        SelectedIndex = index; // before ShowTextBox, because this calls unselected and thus updates the currently textBox or listBox (if any)
                         ShowTextBox(index, e.Location, true);
                     }
                     else
@@ -792,14 +792,9 @@ namespace CADability.Forms
         public void SelectEntry(IPropertyEntry toSelect)
         {
             if (toSelect == null) return;
-            propertiesExplorer.ShowPropertyPage(this.TitleId);
+            // propertiesExplorer.ShowPropertyPage(this.TitleId);
+            // do not switch the top property page here
             (this as IPropertyPage).Selected = toSelect;
-            // the following is not needed, it is part of ".Selected = toSelect"
-            //if (toSelect == (this as IPropertyPage).Selected && !toSelect.Flags.HasFlag(PropertyEntryType.LabelEditable))
-            //{
-            //    if (toSelect.Flags.HasFlag(PropertyEntryType.ValueEditable)) ShowTextBox(toSelect.Index, Point.Empty, true);
-            //    if (toSelect.Flags.HasFlag(PropertyEntryType.DropDown)) ShowDropDown(toSelect.Index);
-            //}
         }
         private bool ReflectNewSelection(IPropertyEntry NewSelection, IPropertyEntry current)
         {   // currently not used

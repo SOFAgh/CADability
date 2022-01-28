@@ -133,14 +133,14 @@ namespace CADability.Curve2D
             if (counterClock)
             {
                 point = new GeoPoint2D(center.x + radius * Math.Cos(par), center.y + radius * Math.Sin(par));
-                deriv = new GeoVector2D(-radius * Math.Sin(par), radius * Math.Cos(par));
-                deriv2 = new GeoVector2D(-radius * Math.Cos(par), -radius * Math.Sin(par));
+                deriv = (Math.PI * 2.0) * new GeoVector2D(-radius * Math.Sin(par), radius * Math.Cos(par));
+                deriv2 = (Math.PI * 2.0) * (Math.PI * 2.0) * new GeoVector2D(-radius * Math.Cos(par), -radius * Math.Sin(par));
             }
             else
             {
                 point = new GeoPoint2D(center.x + radius * Math.Cos(-par), center.y + radius * Math.Sin(-par));
-                deriv = new GeoVector2D(radius * Math.Sin(-par), -radius * Math.Cos(-par));
-                deriv2 = new GeoVector2D(-radius * Math.Cos(-par), -radius * Math.Sin(-par));
+                deriv = (Math.PI * 2.0) * new GeoVector2D(radius * Math.Sin(-par), -radius * Math.Cos(-par));
+                deriv2 = (Math.PI * 2.0) * (Math.PI * 2.0) * new GeoVector2D(-radius * Math.Cos(-par), -radius * Math.Sin(-par));
             }
             return true;
         }

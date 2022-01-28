@@ -1803,6 +1803,7 @@ namespace CADability
                 case "step":
                 case "stp":
                     ImportStep importStep = new ImportStep();
+                    importStep.HierarchyToBlocks = Settings.GlobalSettings.GetBoolValue("ImportStep.UseHierarchy", true);
                     GeoObjectList list = importStep.Read(FileName);
                     Project project = Project.CreateSimpleProject();
                     foreach (IGeoObject go in list)

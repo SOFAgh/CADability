@@ -297,10 +297,6 @@ namespace CADability
                     layerTransparentDisplayList.Clear();
                     layerCurveDisplayList.Clear();
                     layerUnscaledObjects.Clear();
-                    // nur zum Test, wieder entfernen!
-                    //System.GC.Collect();
-                    //System.GC.WaitForPendingFinalizers();
-                    // bis hier hin entfernen
                     for (int i = 0; i < geoObjects.Count; ++i)
                     {
                         if (geoObjects[i].IsVisible)
@@ -370,10 +366,14 @@ namespace CADability
                     }
 
                     octTree = new OctTree<IGeoObject>(Extent, displayListPrecision);
-                    for (int i = 0; i < geoObjects.Count; ++i)
+                    //for (int i = 0; i < geoObjects.Count; ++i)
+                    //{
+                    //    AddOctreeObjects(geoObjects[i], octTree);
+                    //}
+                    Parallel.For(0, geoObjects.Count, i =>
                     {
-                        AddOctreeObjects(geoObjects[i], octTree);
-                    }
+                        AddOctreeObjectsParallel(geoObjects[i], octTree);
+                    });
                     int time = Environment.TickCount - tcstart;
                 }
             }
@@ -381,7 +381,7 @@ namespace CADability
         private void AddOctreeObjects(IGeoObject go, OctTree<IGeoObject> octTree)
         {   // hier werden die EInzelteile eingehängt, damit das Picken von Face oder Edge
             // schnell geht. Oft hat man ja nur ein einziges solid mit vielen Faces
-            if (octTree == null || go==null) return;
+            if (octTree == null || go == null) return;
             IGeoObject[] subEntities = go.OwnedItems;
             if (subEntities != null && subEntities.Length > 0)
             {
@@ -481,17 +481,10 @@ namespace CADability
                 }
 
                 octTree = new OctTree<IGeoObject>(Extent, displayListPrecision);
-#if PARALLEL
                 Parallel.For(0, geoObjects.Count, i =>
                 {
                     AddOctreeObjectsParallel(geoObjects[i], octTree);
                 });
-#else
-                for (int i = 0; i < geoObjects.Count; ++i)
-                {
-                    AddOctreeObjects(geoObjects[i], octTree);
-                }
-#endif
             }
         }
         /// <summary>
@@ -708,8 +701,8 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Access to the <see cref="OctTree"/> containing all geometrical objects of the model. Do not modify the octtree to avoid inconsitencies
-        /// between model and octtree. Use the octtree for fast access to the objects in the model from geometrical constraints.
+        /// Access to the <see cref="OctTree"/> containing all geometrical objects of the model. Do not modify the octTree to avoid inconsistencies
+        /// between model and octTree. Use the octTree for fast access to the objects in the model from geometrical constraints.
         /// </summary>
         public OctTree<IGeoObject> OctTree
         {
@@ -1201,6 +1194,49 @@ namespace CADability
             {
                 ParallelTriangulation(geoObjects[i], precision);
             });
+        }
+        private void SerialTriangulation(IGeoObject go, double precision)
+        {
+            if (go is Solid sld)
+            {
+                for (int i = 0; i < sld.Shells.Length; i++)
+                {
+                    SerialTriangulation(sld.Shells[i], precision);
+                }
+            }
+            else if (go is Shell shl)
+            {
+                for (int i = 0; i < shl.Faces.Length; ++i)
+                {
+                    try
+                    {
+                        shl.Faces[i].AssureTriangles(precision);
+                    }
+                    catch { }
+                };
+            }
+            else if (go is Face fc)
+            {
+                try
+                {
+                    fc.AssureTriangles(precision);
+                }
+                catch { }
+            }
+            else if (go is Block blk)
+            {
+                for (int i = 0; i < blk.NumChildren; ++i)
+                {
+                    SerialTriangulation(blk.Child(i), precision);
+                };
+            }
+        }
+        public void SerialTriangulation(double precision)
+        {
+            for (int i = 0; i < geoObjects.Count; ++i)
+            {
+                SerialTriangulation(geoObjects[i], precision);
+            };
         }
         internal BoundingRect GetExtentForZoomTotal(Projection pr)
         {
@@ -2063,7 +2099,7 @@ namespace CADability
                         if (go.HitTest(area, false))
                         {
                             double z = go.Position(area.FrontCenter, area.Direction, displayListPrecision);
-                            if (z <= zmin+Precision.eps)
+                            if (z <= zmin + Precision.eps)
                             {
                                 IGeoObject toInsert = go;
                                 while (toInsert.Owner is IGeoObject) toInsert = (toInsert.Owner as IGeoObject);
@@ -2072,7 +2108,7 @@ namespace CADability
                                 // jedoch die einzelnen Objekte schon. Deshalb wurde in der Abfrage
                                 // "|| filterList.Accept(go) " ergänzt
                                 if ((filterList == null || filterList.Accept(toInsert) || filterList.Accept(go)) &&
-                                    (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.Contains(toInsert.Layer) || visibleLayers.Contains(go.Layer)) )
+                                    (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.Contains(toInsert.Layer) || visibleLayers.Contains(go.Layer)))
                                 {
                                     if (toInsert.Owner is Model)
                                     {   // sonst werden auch edges gefunden, was hier bei single click nicht gewünscht

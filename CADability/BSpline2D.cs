@@ -2631,6 +2631,7 @@ namespace CADability.Curve2D
         public override GeoPoint2D[] TangentPoints(GeoPoint2D FromHere, GeoPoint2D CloseTo)
         {   // wenn eine Linie vom Ausgangspunkt durch eine Dreiecksspitze nicht durch die Basislinie geht,
             // dann ist es eine Tangente.
+            if (tringulation == null) MakeTriangulation();
             List<GeoPoint2D> res = new List<GeoPoint2D>();
             for (int i = 0; i < tringulation.Length; ++i)
             {
@@ -3004,11 +3005,11 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public override BoundingRect GetExtent()
         {
+            if (nubs == null && nurbs == null) Init(); // this is sometimes the case when a file is read
             return base.GetExtent();
             if (!extendIsValid)
             {
                 // erstmaliges berechnen:
-                if (nubs == null && nurbs == null) Init(); // nach dem Einlesen ist dies leider manchmal der Fall (Reihenfolge von IDeserializationCallback)
                 if (tringulation == null) MakeTriangulation();
                 BoundingRect res = BoundingRect.EmptyBoundingRect;
                 for (int i = 0; i < interpol.Length; ++i)

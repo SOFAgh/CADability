@@ -36,43 +36,58 @@ namespace CADability
         }
         internal void AddEdge(Edge edge)
         {
-            edges.Add(edge);
-            if (edge.PrimaryFace != null && edge.PrimaryFace.Surface != null && !uvposition.ContainsKey(edge.PrimaryFace))
+            lock (edges)
             {
-                uvposition[edge.PrimaryFace] = edge.PrimaryFace.PositionOf(position);
-            }
-            if (edge.SecondaryFace != null && edge.SecondaryFace.Surface != null && !uvposition.ContainsKey(edge.SecondaryFace))
-            {
-                uvposition[edge.SecondaryFace] = edge.SecondaryFace.PositionOf(position);
+                edges.Add(edge);
+                if (edge.PrimaryFace != null && edge.PrimaryFace.Surface != null && !uvposition.ContainsKey(edge.PrimaryFace))
+                {
+                    uvposition[edge.PrimaryFace] = edge.PrimaryFace.PositionOf(position);
+                }
+                if (edge.SecondaryFace != null && edge.SecondaryFace.Surface != null && !uvposition.ContainsKey(edge.SecondaryFace))
+                {
+                    uvposition[edge.SecondaryFace] = edge.SecondaryFace.PositionOf(position);
+                }
             }
         }
         internal void AddEdge(Edge edge, GeoPoint2D pruv, GeoPoint2D scuv)
         {
-            edges.Add(edge);
-            if (!uvposition.ContainsKey(edge.PrimaryFace))
+            lock (edges)
             {
-                uvposition[edge.PrimaryFace] = pruv;
-            }
-            if (!uvposition.ContainsKey(edge.SecondaryFace))
-            {
-                uvposition[edge.SecondaryFace] = scuv;
+                edges.Add(edge);
+                if (!uvposition.ContainsKey(edge.PrimaryFace))
+                {
+                    uvposition[edge.PrimaryFace] = pruv;
+                }
+                if (!uvposition.ContainsKey(edge.SecondaryFace))
+                {
+                    uvposition[edge.SecondaryFace] = scuv;
+                }
             }
         }
         internal void AddEdge(Edge edge, GeoPoint2D pruv)
         {
-            edges.Add(edge);
-            if (!uvposition.ContainsKey(edge.PrimaryFace))
+            lock (edges)
             {
-                uvposition[edge.PrimaryFace] = pruv;
+                edges.Add(edge);
+                if (!uvposition.ContainsKey(edge.PrimaryFace))
+                {
+                    uvposition[edge.PrimaryFace] = pruv;
+                }
             }
         }
         internal void RemoveEdge(Edge edge)
         {
-            edges.Remove(edge);
+            lock (edges)
+            {
+                edges.Remove(edge);
+            }
         }
         internal void RemoveAllEdges()
         {
-            edges.Clear();
+            lock (edges)
+            {
+                edges.Clear();
+            }
         }
         internal void Modify(ModOp m)
         {
@@ -99,7 +114,10 @@ namespace CADability
         {
             get
             {
-                return edges.ToArray();
+                lock (edges)
+                {
+                    return edges.ToArray();
+                }
             }
         }
         public List<Edge> EdgesOnFace(Face onThisFace)
@@ -120,16 +138,18 @@ namespace CADability
         public List<Edge> ConditionalEdges(Predicate<Edge> pr)
         {
 
-            List<Edge> res = new List<Edge>(edges.FindAll(pr));
-            //foreach (Edge edge in edges)
-            //{
-            //    if (pr(edge)) res.Add(edge);
-            //}
-            return res;
+            lock (edges)
+            {
+                List<Edge> res = new List<Edge>(edges.FindAll(pr));
+                return res;
+            }
         }
         public Set<Edge> ConditionalEdgesSet(Predicate<Edge> pr)
         {
-            return new Set<Edge>(edges.FindAll(pr));
+            lock (edges)
+            {
+                return new Set<Edge>(edges.FindAll(pr));
+            }
         }
         internal void AddPositionOnFace(Face fc, GeoPoint2D uv)
         {
@@ -193,13 +213,19 @@ namespace CADability
         #endregion
         public static IEnumerable<Edge> ConnectingEdges(Vertex v1, Vertex v2)
         {
-            return (v1.edges.Intersection(v2.edges));
+            lock (v1.edges)
+            {
+                return (v1.edges.Intersection(v2.edges));
+            }
         }
         public static Edge SingleConnectingEdge(Vertex v1, Vertex v2)
         {
-            Set<Edge> ce = (v1.edges.Intersection(v2.edges));
-            if (ce.Count == 1) return ce.GetAny();
-            return null;
+            lock (v1.edges)
+            {
+                Set<Edge> ce = (v1.edges.Intersection(v2.edges));
+                if (ce.Count == 1) return ce.GetAny();
+                return null;
+            }
         }
 #if DEBUG
         public IGeoObject DebugPoint
@@ -278,6 +304,7 @@ namespace CADability
             foreach (Face srf in surfaces)
             {
                 GeoVector n = srf.Surface.GetNormal(srf.Surface.PositionOf(mp));
+                if (n.IsNullVector()) continue; // a pole
                 bool found = false;
                 foreach (KeyValuePair<GeoVector, Face> kv in nonTangentialSurfaces)
                 {
@@ -379,11 +406,14 @@ namespace CADability
         internal Edge FindOutgoing(Face onThisFace)
         {
             Set<Edge> edgOnFace = onThisFace.AllEdgesSet;
-            foreach (Edge edg in edges.Intersection(edgOnFace))
+            lock (edges)
             {
-                if (edg.StartVertex(onThisFace) == this) return edg;
+                foreach (Edge edg in edges.Intersection(edgOnFace))
+                {
+                    if (edg.StartVertex(onThisFace) == this) return edg;
+                }
+                return null;
             }
-            return null;
         }
 
         /// <summary>

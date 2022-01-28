@@ -7,7 +7,6 @@ using CADability.GeoObject;
 using System.Runtime.CompilerServices;
 using CADability.Shapes;
 using CADability.Curve2D;
-using System.Net.Http.Headers;
 using CADability.Attribute;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
@@ -35,7 +34,7 @@ namespace CADability.DXF
         private Dictionary<netDxf.Tables.Layer, ColorDef> layerColorTable;
         private Dictionary<netDxf.Tables.Layer, Attribute.Layer> layerTable;
         /// <summary>
-        /// Create the Import instance. The document is beeing read and converted to netDXF objects.
+        /// Create the Import instance. The document is being read and converted to netDXF objects.
         /// </summary>
         /// <param name="fileName"></param>
         public Import(string fileName)
@@ -123,10 +122,6 @@ namespace CADability.DXF
         }
         private IGeoObject GeoObjectFromEntity(EntityObject item)
         {
-            //if (item.Handle == "561E")
-            //{
-
-            //}
             IGeoObject res = null;
             switch (item)
             {
@@ -624,7 +619,7 @@ namespace CADability.DXF
                 //}
                 if (i == 0)
                 {
-                    if (!Curves.GetCommonPlane(boundaryEntities.ToArray(), out pln)) return null; // there must be a common plane
+                    if (!Curves.GetCommonPlane(boundaryEntities, out pln)) return null; // there must be a common plane
                 }
                 ICurve2D[] bdr = new ICurve2D[boundaryEntities.Count];
                 for (int j = 0; j < bdr.Length; j++)
@@ -756,7 +751,7 @@ namespace CADability.DXF
                 IGeoObject res = block.Clone();
                 ModOp tranform = ModOp.Translate(GeoVector(insert.Position)) *
                     ModOp.Translate(block.RefPoint.ToVector()) *
-                    ModOp.Rotate(CADability.GeoVector.ZAxis, insert.Rotation) *
+                    ModOp.Rotate(CADability.GeoVector.ZAxis, SweepAngle.Deg(insert.Rotation)) *
                     ModOp.Scale(insert.Scale.X, insert.Scale.Y, insert.Scale.Z) *
                     ModOp.Translate(CADability.GeoPoint.Origin - block.RefPoint);
                 res.Modify(tranform);

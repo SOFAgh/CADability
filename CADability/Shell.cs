@@ -4801,7 +4801,13 @@ namespace CADability.GeoObject
         /// <returns>Number of faces that have been combined</returns>
         public int CombineConnectedFaces()
         {
-            RecalcVertices(); // kommt in DWG Dateien vor, dass identische Vertices mehrfach existieren
+#if DEBUG
+            if (!CheckConsistency()) { }
+#endif
+            RecalcVertices(); 
+#if DEBUG
+            if (!CheckConsistency()) { }
+#endif
             IGeoObjectImpl changingObject = this;
             if (Owner is Solid) changingObject = Owner as IGeoObjectImpl;
             // hier wird ein deep clone der Faces gemacht, denn copyGeometry geht nicht als undo, da die Anzahl der Faces sich ändert
@@ -4817,7 +4823,7 @@ namespace CADability.GeoObject
             Face dbgface = null;
             foreach (Face fcdbg in allFaces)
             {
-                if (fcdbg.GetHashCode() == 2154) dbgface = fcdbg;
+                // if (fcdbg.GetHashCode() == 5879) dbgface = fcdbg;
                 if (fcdbg.Vertices.Length != fcdbg.AllEdges.Length)
                 {
                     DebuggerContainer dc = new DebuggerContainer();
@@ -4851,6 +4857,7 @@ namespace CADability.GeoObject
                             edge.PrimaryFace != edge.SecondaryFace && firstToSecond.IsIsogonal && firstToSecond.Determinant > 0) // firstToSecond.IsIsogonal: non periodic surfaces or spheres with different axis are not implemented yet
                         {
 #if DEBUG
+                            if (edge.GetHashCode() == 20260) { }
                             foreach (Edge dbgedg in edge.PrimaryFace.AllEdgesIterated())
                             {
                                 if (edge.Curve3D is InterpolatedDualSurfaceCurve)
@@ -4863,7 +4870,10 @@ namespace CADability.GeoObject
                             {   // do not combine two faces, which are periodic and in the combination fill the whole period
                                 // these faces are explicitly kept separate
                                 // firstToSecond may move by a whole period. This is not respected here. but with the non periodic surfaces we want to get rid of periodic surfaces anyhow.
-                                Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
+                                Border outline = edge.PrimaryFace.Area.Outline; // three lines to check performance
+                                ModOp2D inverse = firstToSecond.GetInverse();
+                                Border firstoutline = outline.GetModified(inverse);
+                                // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
                                 BoundingRect ext = firstoutline.Extent;
                                 ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
                                 if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
@@ -4900,7 +4910,8 @@ namespace CADability.GeoObject
                                 edges.RemoveMany(toRemove);
                                 allFaces.Remove(faceToRemove);
 #if DEBUG
-                                bool ok = combinedFace.CheckConsistency();
+                                if (!combinedFace.CheckConsistency())
+                                { }
 #endif
                                 ++res;
                                 break;
