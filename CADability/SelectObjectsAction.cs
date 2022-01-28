@@ -1007,7 +1007,7 @@ namespace CADability.Actions
                     break;
                 case PickMode.onlyFaces:
                     if (single)
-                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.singleFace, filterList, selectedObjects);
+                        fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.singleFace, filterList);
                     else
                         fromquadtree = vw.Model.GetObjectsFromRect(pa, new Set<Layer>(pm.GetVisibleLayers()), PickMode.onlyFaces, filterList);
                     // fromquadtree = pm.GetObjectsFromRect(pickrect, PickMode.singleFace, filterList);

@@ -1638,12 +1638,12 @@ namespace CADability
                 res.curve3d = curve3d.Clone();
                 (res.curve3d as IGeoObject).Owner = res;
             }
-            if (!clonedVertices.TryGetValue(v1, out Vertex cv1))
+            if (!clonedVertices.TryGetValue(Vertex1, out Vertex cv1))
             {
                 cv1 = new Vertex(v1.Position);
                 clonedVertices[v1] = cv1;
             }
-            if (!clonedVertices.TryGetValue(v2, out Vertex cv2))
+            if (!clonedVertices.TryGetValue(Vertex2, out Vertex cv2))
             {
                 cv2 = new Vertex(v2.Position);
                 clonedVertices[v2] = cv2;

@@ -875,9 +875,12 @@ namespace CADability.Forms
 
         protected override void Dispose(bool disposing)
         {
-            for (int i = 0; i < entries.Length; i++)
+            if (entries != null)
             {
-                entries[i].Removed(this);
+                for (int i = 0; i < entries.Length; i++)
+                {
+                    entries[i].Removed(this);
+                }
             }
             base.Dispose(disposing);
         }

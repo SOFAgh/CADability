@@ -309,7 +309,7 @@ namespace CADability.GeoObject
             // ohne OpenCascade einige Fälle implementieren. Ziel ist es alle Fälle ohne OpenCascade zu implementieren
             if (faceShellOrPath is ICurve)
             {
-                if ((faceShellOrPath as ICurve).GetPlanarState() == PlanarState.Planar && (faceShellOrPath as ICurve).IsClosed)
+                if ((faceShellOrPath as ICurve).GetPlanarState() == PlanarState.Planar) // && (faceShellOrPath as ICurve).IsClosed)
                 {
                     if (faceShellOrPath is Path) (faceShellOrPath as Path).Flatten();
                     // Polylinien sollten so auch gehen
