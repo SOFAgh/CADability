@@ -183,14 +183,6 @@ namespace CADability.Attribute
         public event RemovingFromListDelegate RemovingFromListEvent;
         public event CADability.DidModifyDelegate DidModifyEvent;
         #region IPropertyEntry Members
-        public override void Added(IPropertyPage propertyPage)
-        {
-            base.Added(propertyPage);
-        }
-        public override void Removed(IPropertyPage propertyPage)
-        {
-            base.Removed(propertyPage);
-        }
         public override PropertyEntryType Flags
         {
             get
