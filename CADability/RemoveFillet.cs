@@ -102,6 +102,58 @@ namespace CADability
                             verticesToReplace[edge.Vertex2] = v;
                         }
                     }
+                    else
+                    {   // maybe two surfaces are identical with different domains: find a common edge
+                        ip = edg.Curve3D.PointAt(0.5);
+                        bool found = false;
+                        for (int i = 0; i < involved.Count - 1; i++)
+                        {
+                            for (int j = i + 1; j < involved.Count; j++)
+                            {
+                                IEnumerable<Edge> commonEdges = new HashSet<Edge>(ia[i].AllEdges).Intersect(ia[j].AllEdges);
+                                foreach (Edge e in commonEdges)
+                                {
+                                    if (e.IsConnected(edg))
+                                    {
+                                        for (int k = 0; k < involved.Count; k++)
+                                        {
+                                            if (k != i && k != j)
+                                            {
+                                                ia[k].Surface.Intersect(e.Curve3D, ia[k].Domain, out GeoPoint[] ips, out GeoPoint2D[] uvOnK, out double[] uOnCurve);
+                                                if (ips.Length > 0)
+                                                {
+                                                    double dist = double.MaxValue;
+                                                    GeoPoint p = GeoPoint.Origin;
+                                                    for (int l = 0; l < ips.Length; l++)
+                                                    {
+                                                        double d = ips[l] | ip;
+                                                        if (d < dist)
+                                                        {
+                                                            dist = d;
+                                                            p = ips[l];
+                                                        }
+                                                    }
+                                                    Vertex v = new Vertex(p);
+                                                    foreach (Edge edge in involvedCrosswayEdges)
+                                                    {
+                                                        crosswayToVertex[edge] = v;
+                                                        verticesToReplace[edge.Vertex1] = v;
+                                                        verticesToReplace[edge.Vertex2] = v;
+                                                    }
+                                                    found = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        if (found) break;
+                                    }
+                                    if (found) break;
+                                }
+                                if (found) break;
+                            }
+                            if (found) break;
+                        }
+                    }
                 }
                 if (!fillets.Contains(edg.PrimaryFace)) edg.PrimaryFace.RemoveEdge(edg, true); // remove the fillets crossway connections from normal (non-fillet) faces
                 if (!fillets.Contains(edg.SecondaryFace)) edg.SecondaryFace.RemoveEdge(edg, true);
@@ -183,6 +235,10 @@ namespace CADability
                             secDomain.MinMax(edge.SecondaryFace.PositionOf(v2.Position));
                             ICurve[] newCurves = edge.PrimaryFace.Surface.Intersect(primDomain, edge.SecondaryFace.Surface, secDomain);
                             ICurve newCurve = Hlp.GetClosest(newCurves, crv => crv.DistanceTo(v1.Position) + crv.DistanceTo(v2.Position));
+                            if (newCurve == null && edge.PrimaryFace.Surface.SameGeometry(primDomain, edge.SecondaryFace.Surface, secDomain, Precision.eps, out ModOp2D dumy))
+                            {   // this edge connects two same-surface faces, like two half shells of a cylinder
+                                newCurve = Line.TwoPoints(v1.Position, v2.Position);
+                            }
                             if (newCurve != null)
                             {
                                 double pos0 = newCurve.PositionOf(v1.Position);
@@ -212,6 +268,10 @@ namespace CADability
                             secDomain.MinMax(edge.SecondaryFace.PositionOf(v1.Position));
                             ICurve[] newCurves = edge.PrimaryFace.Surface.Intersect(primDomain, edge.SecondaryFace.Surface, secDomain);
                             ICurve newCurve = Hlp.GetClosest(newCurves, crv => crv.DistanceTo(v1.Position));
+                            if (newCurve == null && edge.PrimaryFace.Surface.SameGeometry(primDomain, edge.SecondaryFace.Surface, secDomain, Precision.eps, out ModOp2D dumy))
+                            {   // this edge connects two same-surface faces, like two half shells of a cylinder
+                                newCurve = Line.TwoPoints(v1.Position, edge.Vertex2.Position);
+                            }
                             if (newCurve != null)
                             {
                                 double pos0 = newCurve.PositionOf(v1.Position);
@@ -230,7 +290,6 @@ namespace CADability
                                 facesToRecalculate.Add(edge.PrimaryFace);
                                 facesToRecalculate.Add(edge.SecondaryFace);
                             }
-
                         }
                     }
                     else if (verticesToReplace.ContainsKey(edge.Vertex2))
@@ -242,6 +301,10 @@ namespace CADability
                         secDomain.MinMax(edge.SecondaryFace.PositionOf(v2.Position));
                         ICurve[] newCurves = edge.PrimaryFace.Surface.Intersect(primDomain, edge.SecondaryFace.Surface, secDomain);
                         ICurve newCurve = Hlp.GetClosest(newCurves, crv => crv.DistanceTo(v2.Position));
+                        if (newCurve == null && edge.PrimaryFace.Surface.SameGeometry(primDomain, edge.SecondaryFace.Surface, secDomain, Precision.eps, out ModOp2D dumy))
+                        {   // this edge connects two same-surface faces, like two half shells of a cylinder
+                            newCurve = Line.TwoPoints(edge.Vertex1.Position, v2.Position);
+                        }
                         if (newCurve != null)
                         {
                             double pos0 = newCurve.PositionOf(edge.Vertex1.Position);

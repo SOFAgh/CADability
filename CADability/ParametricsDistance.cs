@@ -27,7 +27,7 @@ namespace CADability
         private GeoVector currentOffset; // the additional offset vector between the facesToMove and facesToKeep
         private Shell shell; // the shell containing the edge
         private List<Face> facesToMove; // list of the faces, which have to be moved
-        private List<Face> facesToKeep; // list of the faces, which should stay in place (ore been moved in opposite direction when symmetric is choosen)
+        private List<Face> facesToKeep; // list of the faces, which should stay in place (ore been moved in opposite direction when symmetric is chosen)
         private bool validResult;
         private IFrame frame;
         private GeoObjectInput otherObjectInput; // input field specifying the object to which the distance should be set
@@ -40,7 +40,7 @@ namespace CADability
         public ParametricsDistance(object distanceToHere, IFrame frame)
         {
             this.distanceToHere = distanceToHere;
-            IGeoObject owner = null;
+            IGeoObject owner;
             if (distanceToHere is Vertex vtx)
             {
                 owner = vtx.Edges[0].Curve3D as IGeoObject;

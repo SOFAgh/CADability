@@ -1988,7 +1988,52 @@ namespace CADability
             Shell[] lower = brep.Result();
             return (upper, lower);
         }
+        /// <summary>
+        /// Chamfer or bevel the provided edges. the edges must be connected and only two edges may have a common vertex. The edges must build a path.
+        /// We have two distances from the edge to make chamfers with different angles. All edges must belong to the <paramref name="primaryFace"/>. 
+        /// The first distance is on the primary face, the second on the other face (in most cases the distances are equal).
+        /// </summary>
+        /// <param name="primaryFace"></param>
+        /// <param name="edges"></param>
+        /// <param name="primaryDist"></param>
+        /// <param name="secondaryDist"></param>
+        /// <returns></returns>
+        public static Shell ChamferEdges(Face primaryFace, Edge[] edges, double primaryDist, double secondaryDist)
+        {
+            Shell toChamfer = primaryFace.Owner as Shell;
+            if (toChamfer == null) return null;
+            // sort the edges in the connection order
+            if (edges.Length>1)
+            {
+                HashSet<Edge> toSort = new HashSet<Edge>(edges);
+                List<Edge> sorted = new List<Edge>();
+                Edge startWith = toSort.First();
+                toSort.Remove(startWith);
+                sorted.Add(startWith);
+                while (toSort.Any())
+                {
+                    Edge endconnection = new HashSet<Edge>(sorted.Last().EndVertex(primaryFace).AllEdges).Intersect(toSort).FirstOrDefault();
+                    if (endconnection!=null)
+                    {
+                        toSort.Remove(endconnection);
+                        sorted.Add(endconnection);
+                        continue;
+                    }
+                    Edge startconnection = new HashSet<Edge>(sorted.First().StartVertex(primaryFace).AllEdges).Intersect(toSort).FirstOrDefault();
+                    if (startconnection != null)
+                    {
+                        toSort.Remove(startconnection);
+                        sorted.Insert(0,startconnection);
+                        continue;
+                    }
+                    break;
+                }
+                if (toSort.Count > 0) return null; // the edges are not in a consecutive path
+                edges = sorted.ToArray(); // edges are now sorted
+            }
 
+            return null;
+        }
         public static Shell RoundEdges(Shell toRound, Edge[] edges, double radius)
         {
             // the edges must be connected, and no more than three edges may connect in a vertex
@@ -2038,7 +2083,7 @@ namespace CADability
                         crv.Reverse(); // important, we expect crv going from vertex1 to vertex2
                     }
                 }
-                else continue; // maybe the offset surfaces of a nurbs surface only intersect with a short intersectin curve. What could you do in this case?
+                else continue; // maybe the offset surfaces of a nurbs surface only intersect with a short intersection curve. What could you do in this case?
                                // update the connection status, the vertex to involved edges list.
                 if (!joiningVertices.TryGetValue(edg.Vertex1, out List<Edge> joining))
                 {

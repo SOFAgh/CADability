@@ -1732,17 +1732,21 @@ namespace CADability.GeoObject
                 Shell res = BRepOperation.RoundEdges(sh, edges, radius);
                 affectedShellsOrSolids = new IGeoObject[] { sh };
                 if (res != null) return new IGeoObject[] { res };
-                //BRepRoundEdges brre = new BRepRoundEdges(sh, new Set<Edge>(edges));
-                //Shell shres = brre.Round(radius, true);
-                //affectedShellsOrSolids = new IGeoObject[] { sh };
-                //return new IGeoObject[] { shres };
             }
             affectedShellsOrSolids = null;
             return null;
         }
         public static IGeoObject[] MakeChamfer(Face primaryFace, Edge[] edges, double primaryDist, double secondaryDist, out IGeoObject[] affectedShellsOrSolids)
         {
-            throw new NotImplementedException();
+            Shell sh = primaryFace.Owner as Shell;
+            if (sh!=null)
+            {
+                Shell res = BRepOperation.ChamferEdges(primaryFace, edges, primaryDist, secondaryDist);
+                affectedShellsOrSolids = new IGeoObject[] { sh };
+                if (res != null) return new IGeoObject[] { res };
+            }
+            affectedShellsOrSolids = null;
+            return null;
         }
         /// <summary>
         /// Takes all faces and shells from the given list and tries to sew them together. When two or more faces have

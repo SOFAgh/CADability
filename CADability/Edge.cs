@@ -3558,6 +3558,10 @@ namespace CADability
 #endif
         }
 
+        public bool IsConnected(Edge other)
+        {
+            return other.v1 == v1 || other.v1 == v2 || other.v2 == v1 || other.v2 == v2;
+        }
         public bool IsTangentialEdge()
         {
             if (secondaryFace == null) return false;

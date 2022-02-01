@@ -606,6 +606,13 @@ namespace CADability
                 makeBlocks.BooleanValue = true;
                 StepImportSetting.AddSetting("Blocks", makeBlocks);
             }
+            if (!GlobalSettings.ContainsSetting("StepImport.PreferNonPeriodic"))
+            {
+                Settings StepImportSetting = GlobalSettings.GetSubSetting("StepImport");
+                BooleanProperty preferNonPeriodic = new BooleanProperty("StepImport.PreferNonPeriodic", "YesNo.Values", "PreferNonPeriodic");
+                preferNonPeriodic.BooleanValue = false;
+                StepImportSetting.AddSetting("PreferNonPeriodic", preferNonPeriodic);
+            }
             if (!GlobalSettings.ContainsSetting("Grid"))
             {
                 Settings GridSetting = new Settings();

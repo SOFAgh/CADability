@@ -271,13 +271,23 @@ namespace CADability.GeoObject
             double r = xAxis.Length;
             // l must be between r/2 and r
             // trying to clip here:
-            //if (l < r / 2) l = r / 2;
-            //if (l > r) l = r;
+#if DEBUG
+            if (l < r / 2 * 0.99) { }
+#endif
+            if (l < r / 2) l = r / 2;
+            if (l > r) l = r;
             double z = (r - l) / l;
             double a = Math.Atan2(uv.y, uv.x);
             return location + Math.Cos(a) * xAxis + Math.Sin(a) * yAxis + z * zAxis;
         }
-
+        public override double MaxDist(GeoPoint2D sp, GeoPoint2D ep, out GeoPoint2D mp)
+        {
+            GeoPoint sp3d = PointAt(sp);
+            GeoPoint ep3d = PointAt(ep);
+            double d = Geometry.DistLL(location, zAxis, sp3d, ep3d - sp3d, out double u1, out double u2);
+            mp = PositionOf(sp3d + u2 * (ep3d - sp3d));
+            return xAxis.Length - d;
+        }
         public override GeoVector UDirection(GeoPoint2D uv)
         {
             double l2 = uv.x * uv.x + uv.y * uv.y;
@@ -560,7 +570,7 @@ namespace CADability.GeoObject
             }
         }
 
-        double ICylinder.Radius
+        double ISurfaceWithRadius.Radius
         {
             get => xAxis.Length;
             set
@@ -571,6 +581,7 @@ namespace CADability.GeoObject
                 // still it is not well defined what it means when the radius changes for the usable part of the cylinder
             }
         }
+        bool ISurfaceWithRadius.IsModifiable => true;
 
         public bool OutwardOriented => (xAxis ^ yAxis) * zAxis > 0; // left handed system
 
@@ -602,5 +613,18 @@ namespace CADability.GeoObject
             return new GroupProperty("CylindricalSurface", se.ToArray());
         }
 
+        public GeoPoint RestrictedPointAt(GeoPoint2D uv)
+        {
+            double l = Math.Sqrt(uv.x * uv.x + uv.y * uv.y);
+            if (l == 0.0) return location + zAxis; // this is invalid and should never be used. 
+            double r = xAxis.Length;
+            // l must be between r/2 and r
+            // here we have to clip:
+            if (l < r / 2) l = r / 2;
+            if (l > r) l = r;
+            double z = (r - l) / l;
+            double a = Math.Atan2(uv.y, uv.x);
+            return location + Math.Cos(a) * xAxis + Math.Sin(a) * yAxis + z * zAxis;
+        }
     }
 }

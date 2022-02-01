@@ -2572,7 +2572,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (34947 == item.definingIndex || 37368 == item.definingIndex)
+                            if (1480 == item.definingIndex || 1498 == item.definingIndex)
                             {
                             }
 #endif
