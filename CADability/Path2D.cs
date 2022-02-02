@@ -961,7 +961,7 @@ namespace CADability.Curve2D
             {
                 curves3D[i] = subCurves[i].MakeGeoObject(p) as ICurve;
             }
-            if (curves3D.Length == 1) return curves3D[0] as IGeoObject;
+            // if (curves3D.Length == 1) return curves3D[0] as IGeoObject;
             Path res = Path.Construct();
             res.Set(curves3D);
             return res;

@@ -7160,4 +7160,24 @@
   <data name="Constr.Rotate.Offset.Values">
     <label>|0°|90°|180°|270°(-90°)</label>
   </data>
+  <data name="StepImport">
+    <label>STEP Datei import</label>
+    <tip>Einstellungen für den Import von STEP Dateien</tip>
+    <info>Einstellungen für den Import von STEP Dateien</info>
+  </data>
+  <data name="StepImport.Parallel">
+    <label>Multi threading</label>
+    <tip>Multithreading verwenden</tip>
+    <info>Multithreading verwenden</info>
+  </data>
+  <data name="StepImport.CombineFaces">
+    <label>Flächenstücke zusammenfassen</label>
+    <tip>Flächenstücke mit gleicher Oberfläche zusammenfassen</tip>
+    <info>Flächenstücke mit gleicher Oberfläche zusammenfassen</info>
+  </data>
+  <data name="StepImport.Blocks">
+    <label>Blöcke zusammenfassen</label>
+    <tip>"assemblies" und "products" zu Blöcken zusammenfassen</tip>
+    <info>"assemblies" und "products" zu Blöcken zusammenfassen</info>
+  </data>
 </root>

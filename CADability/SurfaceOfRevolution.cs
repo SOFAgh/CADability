@@ -215,10 +215,13 @@ namespace CADability.GeoObject
                 if (ipar.Length >= 1)
                 {
                     GeoPoint onAxis = Geometry.DropPL(p, axisLocation, axisDirection);
-                    SweepAngle sa = new SweepAngle(p - onAxis, curveToRotate.PointAt(ipar[0]) - onAxis);
+                    Plane plnc = new Plane(onAxis, axisDirection);
+                    SweepAngle sa = new SweepAngle(plnc.Project(p).ToVector(), plnc.Project(curveToRotate.PointAt(ipar[0])).ToVector());
+                    // SweepAngle sa = new SweepAngle(p - onAxis, curveToRotate.PointAt(ipar[0]) - onAxis);
                     ModOp rotate = ModOp.Rotate(axisLocation, axisDirection, sa);
-                    double y = curveToRotate.PositionToParameter(curveToRotate.PositionOf(rotate * p));
-                    return new GeoPoint2D(-sa, y);
+                    // double y = curveToRotate.PositionToParameter(curveToRotate.PositionOf(rotate * p));
+                    double y = curveToRotate.PositionToParameter(ipar[0]);
+                    return new GeoPoint2D(sa, y);
                 }
                 return base.PositionOf(p); // we could do better here!
             }

@@ -384,7 +384,7 @@ namespace CADability.Attribute
             }
         }
         public override PropertyEntryType Flags
-        { 
+        {
             get
             {
                 PropertyEntryType flags = PropertyEntryType.LabelEditable | PropertyEntryType.Selectable | PropertyEntryType.ContextMenu | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
@@ -395,7 +395,7 @@ namespace CADability.Attribute
         }
         private IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -467,14 +467,6 @@ namespace CADability.Attribute
         {
             base.Added(propertyPage);
             base.resourceId = "StyleName";
-        }
-        /// <summary>
-        /// Overrides <see cref="IPropertyEntryImpl.Removed"/>
-        /// </summary>
-        /// <param name="propertyPage">the PropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyPage propertyPage)
-        {
-            base.Removed(propertyPage);
         }
         public override void EndEdit(bool aborted, bool modified, string newValue)
         {
@@ -1033,7 +1025,7 @@ namespace CADability.Attribute
         #region PropertyEntryImpl Overrides
         public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
         /// <summary>
-        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems

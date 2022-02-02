@@ -8,7 +8,7 @@ using System.Runtime.Serialization;
 namespace CADability.UserInterface
 {
     /// <summary>
-    /// Display an editable integer value in the property grid. 
+    /// Display an editable integer value in the property grid.
     /// </summary>
     [Serializable()]
     public class IntegerProperty : EditableProperty<int>, ISerializable, ISettingChanged, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
@@ -239,16 +239,6 @@ namespace CADability.UserInterface
         }
 
         #region IShowPropertyImpl Overrides
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
-        /// </summary>
-        /// <param name="propertyPage"></param>
-        public override void Added(IPropertyPage propertyPage)
-        {
-            //propertyPage.InfoPopup.Add(numericUpDown,resourceId);
-            //propertyPage.InfoPopup.Add(textBox, resourceId);
-            base.Added(propertyPage);
-        }
         public override PropertyEntryType Flags
         {
             get
@@ -322,14 +312,6 @@ namespace CADability.UserInterface
                 specialValues.Values.CopyTo(menuIDs, 0);
                 return MenuResource.CreateContextMenuWithHandler(menuIDs, this);
             }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
-        /// </summary>
-        /// <param name="propertyPage">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyPage propertyPage)
-        {
-            base.Removed(propertyPage);
         }
         /// <summary>
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.UnSelected ()"/>

@@ -332,6 +332,7 @@ namespace CADability
         double eps;
         BoundingRect extent;
         bool preferHorizontal, preferVertical;
+        public bool innerIntersection; // true, when the provided polyline intersect themselves (which they should not)
 #if DEBUG
         static public int trcount;
 #endif
@@ -372,9 +373,16 @@ namespace CADability
             }
         }
 #endif
+        /// <summary>
+        /// Triangulates a face defined by the <paramref name="surface"/> and the 2d outline (<paramref name="points"/>)
+        /// </summary>
+        /// <param name="points">first item is an array of points defining the counterclockwise outline, followed by any number (including no) clockwise holes</param>
+        /// <param name="surface">surface of the face</param>
+        /// <param name="maxDeflection">maximum allowed distance of the (planar) triangles from the surface</param>
+        /// <param name="maxBending">maximum angle between adjacent triangles</param>
         public Triangulation(GeoPoint2D[][] points, ISurface surface, double maxDeflection, Angle maxBending)
-        {   // mit Löchern, zuerst kommt der Rand (linksrum), dann die Löcher (rechtsrum)
-            // System.Diagnostics.Trace.WriteLine("Triangulation, Genauigkeit: " + maxDeflection.ToString());
+        {   
+            innerIntersection = false;
             preferHorizontal = surface.IsRuled == RuledSurfaceMode.ruledInU;
             preferVertical = surface.IsRuled == RuledSurfaceMode.ruledInV;
             this.surface = surface;
@@ -390,7 +398,6 @@ namespace CADability
             polygonWithHoles = lPolygonWithHoles.ToArray();
 
 #if DEBUG
-            // DEBUG:
             DebuggerContainer dc = new DebuggerContainer();
             for (int i = 0; i < points.Length; ++i)
             {
@@ -400,7 +407,6 @@ namespace CADability
                     dc.Add(l2d, System.Drawing.Color.Red, j);
                 }
             }
-            // wenn der DEbuggerContainer nicht angezeigt werden kann, dann einfach die darin anthaltene Liste anzeigen
 #endif
             // Von den inneren Polygonen bestimme die Extrema (als Punkte). Suche alle Punkte vom Äüßeren Polygon, die z.B. 
             // links vom x-Minimum liegen (andere richtungen analog). Aus dieser Menge den nächstgelegenen nehmen. 
@@ -480,111 +486,15 @@ namespace CADability
                                 else dce.Add(l2d, System.Drawing.Color.Blue, j);
                             }
 #endif
-                            throw new TriangulationException("edges intersecting");
+                            innerIntersection = true;
+                            return; // cannot be used for triangulation
                         }
                     }
                 }
                 edgequadtree.AddObject(eq);
             }
             eps = (extent.Width + extent.Height) * 1e-8;
-            // Jetzt geht es darum, die inseln mit dem äußeren Rand verschneidungsfrei zu verbinden
-            // bisheriger Algorithmus schlecht. Neue Idee:
-            // suche zwei Punkte aus verschiedenen Polygonen, die nahe zusammenliegen. Verbinde diese und vereinige
-            // die Polygone
             ConnectHoles(points.Length);
-            // im folgenden der alte Text, der um Größenordnungen langsamer läuft
-            // aber noch mal hier gelassen, da nicht sicher ob ConnectHoles immer gut geht
-            //int tc0 = System.Environment.TickCount;
-            //if (points.Length > 1 && edges.Count > 0) // nur dann gibt es auch Löcher
-            //{
-            //    List<Edge>.Enumerator en = edges.GetEnumerator();
-            //    en.MoveNext();
-            //    Edge firstEdge = en.Current; // die erste kante ist immer vom polygon mit index 0, also vom äußeren Rand
-            //    for (int i = 1; i < points.Length; ++i) // sooft wie es innere Polygone gibt
-            //    {
-            //        for (int j = 32; j >= 1; j = j / 2) // verschiedene Größen des Suchrechtecks im Quadtree
-            //        {
-            //            double width = extent.Width / j;
-            //            double height = extent.Height / j;
-            //            Edge bestHoleEdge = null; // diese Kannte hat am Ende den nächsten Verbindungspunkt
-            //            Edge bestOutlineEdge = null;
-            //            double minDist = double.MaxValue;
-            //            Edge e = firstEdge;
-            //            do
-            //            {
-            //                if (e.polygon != 0 || e.next.polygon != 0)
-            //                {   // im Falle -1 handelt es sich um eine Verbindung zwischen Rand und Insel oder zwischen Inseln
-            //                    e = e.next;
-            //                    continue;
-            //                }
-            //                GeoPoint2D center = vertex[e.v2].p2d;
-            //                BoundingRect search = new BoundingRect(center, width, height);
-            //                ICollection co = edgequadtree.GetObjectsFromRect(search);
-            //                foreach (EdgeInQuadTree eq in co)
-            //                {
-            //                    if (eq.edge.polygon > 0 && eq.edge.next.polygon > 0) // beide aus noch nicht verbunden polylinien
-            //                    {   // an einem Punkt sollten nicht mehrere Verbindungslinien ansetzen, das macht
-            //                        // Probleme beim EarClipping
-            //                        GeoPoint2D check = vertex[eq.edge.v2].p2d;
-            //                        double d = check | center;
-            //                        if (d < minDist)
-            //                        {
-            //                            bool ok = true;
-            //                            // ICollection coi = edgequadtree.GetObjectsCloseTo(new Line2D(center, vertex[eq.edge.v2].p2d));
-            //                            foreach (EdgeInQuadTree eqi in edgequadtree.ObjectsCloseTo(new Line2D(center, vertex[eq.edge.v2].p2d), false))
-            //                            // foreach (EdgeInQuadTree eqi in coi)
-            //                            {
-            //                                if (Geometry.InnerIntersection(vertex[eqi.edge.v1].p2d, vertex[eqi.edge.v2].p2d, check, center))
-            //                                {
-            //                                    ok = false;
-            //                                    break;
-            //                                }
-            //                            }
-            //                            if (ok) // kein Schnitt mit irgendwas anderem
-            //                            {
-            //                                bestHoleEdge = eq.edge;
-            //                                bestOutlineEdge = e;
-            //                                minDist = d;
-            //                            }
-            //                        }
-            //                    }
-            //                }
-            //                e = e.next;
-            //            } while (e != firstEdge);
-            //            if (bestHoleEdge != null)
-            //            {   // passende Kante gefunden vom Ende von e zum Ende von bestEdge
-            //                // den Ring von bestedge zum polygon 0 zuordnen
-            //                for (Edge ee = bestHoleEdge; ee.polygon != 0; ee = ee.next)
-            //                {
-            //                    ee.polygon = 0;
-            //                }
-            //                // zwei neue Kanten erzeugen und zwei der bestehenden Ketten aufbrechen
-            //                Edge e1 = new Edge(); // vom Rand zum Loch
-            //                Edge e2 = new Edge(); // und zurück
-            //                e1.v1 = bestOutlineEdge.v2;
-            //                e1.v2 = bestHoleEdge.v2;
-            //                e2.v1 = e1.v2;
-            //                e2.v2 = e1.v1;
-            //                e1.previous = bestOutlineEdge;
-            //                e1.next = bestHoleEdge.next;
-            //                e2.previous = bestHoleEdge;
-            //                e2.next = bestOutlineEdge.next;
-            //                e1.polygon = -1;
-            //                e2.polygon = -1;
-
-            //                e1.previous.next = e1;
-            //                e1.next.previous = e1;
-            //                e2.previous.next = e2;
-            //                e2.next.previous = e2;
-            //                edges.Add(e1);
-            //                edges.Add(e2);
-            //                edgepairs.Add(new Pair<Edge, Edge>(e1, e2));
-            //                break; // gefunden, keine weitere QuadTree-Suche
-            //            }
-            //        }
-            //    }
-            //}
-            //int tc1 = System.Environment.TickCount - tc0;
         }
 
         class Connection

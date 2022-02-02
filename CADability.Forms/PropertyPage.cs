@@ -792,14 +792,9 @@ namespace CADability.Forms
         public void SelectEntry(IPropertyEntry toSelect)
         {
             if (toSelect == null) return;
-            propertiesExplorer.ShowPropertyPage(this.TitleId);
+            // propertiesExplorer.ShowPropertyPage(this.TitleId);
+            // do not switch the top property page here
             (this as IPropertyPage).Selected = toSelect;
-            // the following is not needed, it is part of ".Selected = toSelect"
-            //if (toSelect == (this as IPropertyPage).Selected && !toSelect.Flags.HasFlag(PropertyEntryType.LabelEditable))
-            //{
-            //    if (toSelect.Flags.HasFlag(PropertyEntryType.ValueEditable)) ShowTextBox(toSelect.Index, Point.Empty, true);
-            //    if (toSelect.Flags.HasFlag(PropertyEntryType.DropDown)) ShowDropDown(toSelect.Index);
-            //}
         }
         private bool ReflectNewSelection(IPropertyEntry NewSelection, IPropertyEntry current)
         {   // currently not used

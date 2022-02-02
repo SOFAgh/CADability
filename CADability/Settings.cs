@@ -586,6 +586,26 @@ namespace CADability
                 mcsDimension.CurrentSelection = 0;
                 DxfDwgSetting.AddSetting("ExportDimension", mcsDimension);
             }
+            if (!GlobalSettings.ContainsSetting("StepImport"))
+            {
+                Settings StepImportSetting = new Settings();
+                StepImportSetting.resourceId = "StepImport";
+                StepImportSetting.myName = "StepImport";
+                GlobalSettings.AddSetting("StepImport", StepImportSetting);
+                BooleanProperty parallel = new BooleanProperty("StepImport.Parallel", "YesNo.Values", "Parallel");
+                parallel.BooleanValue = true;
+                StepImportSetting.AddSetting("Parallel", parallel);
+                BooleanProperty combineFaces = new BooleanProperty("StepImport.CombineFaces", "YesNo.Values", "CombineFaces");
+                combineFaces.BooleanValue = true;
+                StepImportSetting.AddSetting("CombineFaces", combineFaces);
+            }
+            if (!GlobalSettings.ContainsSetting("StepImport.Blocks"))
+            {
+                Settings StepImportSetting = GlobalSettings.GetSubSetting("StepImport");
+                BooleanProperty makeBlocks = new BooleanProperty("StepImport.Blocks", "YesNo.Values", "Blocks");
+                makeBlocks.BooleanValue = true;
+                StepImportSetting.AddSetting("Blocks", makeBlocks);
+            }
             if (!GlobalSettings.ContainsSetting("Grid"))
             {
                 Settings GridSetting = new Settings();

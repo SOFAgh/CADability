@@ -68,22 +68,22 @@ namespace CADability.Forms
             entriesToHide = new HashSet<string>();
         }
 
-		private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
-		{
-			if (ActivePropertyPage != null) //Can be null if the selected tab is not a PropertyPage.
-			{
-				if (EntryWithTextBox != null && !ActivePropertyPage.ContainsEntry(EntryWithTextBox))
-				{
-					EntryWithTextBox.EndEdit(true, textBox.Modified, textBox.Text);
-					HideTextBox();
-				}
-				if (EntryWithListBox != null && !ActivePropertyPage.ContainsEntry(EntryWithTextBox))
-				{
-					HideListBox();
-				}
-				ActivePropertyPage.SelectEntry(ActivePropertyPage.GetCurrentSelection()); // this shows the text-box or list-box
-			}
-		}
+        private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (ActivePropertyPage != null) //Can be null if the selected tab is not a PropertyPage.
+            {
+                if (EntryWithTextBox != null && !ActivePropertyPage.ContainsEntry(EntryWithTextBox))
+                {
+                    EntryWithTextBox.EndEdit(true, textBox.Modified, textBox.Text);
+                    HideTextBox();
+                }
+                if (EntryWithListBox != null && !ActivePropertyPage.ContainsEntry(EntryWithTextBox))
+                {
+                    HideListBox();
+                }
+                ActivePropertyPage.SelectEntry(ActivePropertyPage.GetCurrentSelection()); // this shows the text-box or list-box
+            }
+        }
         private static PropertyPage GetPropertyPage(IPropertyEntry propertyEntry)
         {
             IPropertyEntry pe = propertyEntry;
@@ -284,43 +284,43 @@ namespace CADability.Forms
             }
             catch (ArgumentException) { }
         }
-		public IPropertyPage AddPropertyPage(string titleId, int iconId)
-		{
-			PropertyPage res = new PropertyPage(titleId, iconId, this);
-			tabPages.Add(res);
-			res.Dock = DockStyle.Fill;
-			res.Frame = Frame;
-			TabPage tp = new TabPage();
-			tp.Controls.Add(res);
-			tabControl.TabPages.Add(tp);
-			tp.Text = StringTable.GetString(titleId + "TabPage");
-			tp.ImageIndex = iconId;
-			tp.ToolTipText = StringTable.GetString(titleId + "TabPage", StringTable.Category.tip);
+        public IPropertyPage AddPropertyPage(string titleId, int iconId)
+        {
+            PropertyPage res = new PropertyPage(titleId, iconId, this);
+            tabPages.Add(res);
+            res.Dock = DockStyle.Fill;
+            res.Frame = Frame;
+            TabPage tp = new TabPage();
+            tp.Controls.Add(res);
+            tabControl.TabPages.Add(tp);
+            tp.Text = StringTable.GetString(titleId + "TabPage");
+            tp.ImageIndex = iconId;
+            tp.ToolTipText = StringTable.GetString(titleId + "TabPage", StringTable.Category.tip);
             tp.Tag = res;
 
             return res;
-		}
-		public void AddTabPage(TabPage tp)
-		{
-			tabControl.TabPages.Add(tp);
-		}
-		public IPropertyPage ActivePropertyPage
-		{
-			get
-			{
-				IPropertyPage selected = null;
-				if (tabControl.SelectedTab != null)
-				{
-					selected = tabControl.SelectedTab.Tag as IPropertyPage;
-				}
-				return selected;
-			}
-		}
-		public TabPage ActiveTabPage
-		{
-			get { return tabControl.SelectedTab; }
-		}
-		public bool SelectNextEntry(bool forward)
+        }
+        public void AddTabPage(TabPage tp)
+        {
+            tabControl.TabPages.Add(tp);
+        }
+        public IPropertyPage ActivePropertyPage
+        {
+            get
+            {
+                IPropertyPage selected = null;
+                if (tabControl.SelectedTab != null)
+                {
+                    selected = tabControl.SelectedTab.Tag as IPropertyPage;
+                }
+                return selected;
+            }
+        }
+        public TabPage ActiveTabPage
+        {
+            get { return tabControl.SelectedTab; }
+        }
+        public bool SelectNextEntry(bool forward)
         {
             PropertyPage sel = ActivePropertyPage as PropertyPage;
             if (sel != null)
@@ -394,10 +394,10 @@ namespace CADability.Forms
         public void PreProcessKeyDown(Substitutes.KeyEventArgs e)
         {   // this is being called after the ActiveAction has preprocessed (and not handled) the key down message
             // we can handle it here, before it gets handled by maybe and edit text box or something else (menu?)
-            switch (e.KeyData) // was KeyCode, but didn't work
+            switch ((Substitutes.Keys)((int)e.KeyData & 0x0FFFF)) // was KeyCode, but didn't work
             {
                 case Substitutes.Keys.Tab:
-                    if (e.Control)
+                    if ((e.KeyData & Substitutes.Keys.Control) != 0)
                     {   // we use the Ctrl key to switch between property pages
                         int sel = -1;
                         for (int i = 0; i < tabControl.TabPages.Count; i++)
@@ -410,7 +410,7 @@ namespace CADability.Forms
                         }
                         if (sel >= 0)
                         {
-                            if (e.Shift) sel = (sel + tabControl.TabPages.Count - 1) % tabControl.TabPages.Count;
+                            if ((e.KeyData & Substitutes.Keys.Shift) != 0) sel = (sel + tabControl.TabPages.Count - 1) % tabControl.TabPages.Count;
                             else sel = (sel + 1) % tabControl.TabPages.Count;
                             tabControl.SelectedTab = tabControl.TabPages[sel];
                         }
@@ -427,7 +427,7 @@ namespace CADability.Forms
                             EntryWithListBox.ListBoxSelected(listBox.SelectedIndex);
                             HideListBox();
                         }
-                        SelectNextEntry(!e.Shift);
+                        SelectNextEntry((e.KeyData & Substitutes.Keys.Shift) == 0);
                     }
                     e.Handled = true;
                     e.SuppressKeyPress = true;
@@ -443,7 +443,7 @@ namespace CADability.Forms
                         EntryWithListBox.ListBoxSelected(listBox.SelectedIndex);
                         HideListBox();
                     }
-                    else if(ActivePropertyPage is PropertyPage pp)
+                    else if (ActivePropertyPage is PropertyPage pp)
                     {
                         pp.OnEnter();
                     }

@@ -268,6 +268,7 @@ namespace CADability.GeoObject
                     else
                     {
                         GeoPoint2DH[] npoles;
+                        if (plane == null) plane = getPlane();
                         if (periodic && poles.Length > 2)
                         {
                             npoles = new GeoPoint2DH[poles.Length + degree];
@@ -505,20 +506,23 @@ namespace CADability.GeoObject
         }
         private void InvalidateSecondaryData()
         {
-            nurbsHelper = false;
-            nubs3d = null;
-            nurbs3d = null;
-            nubs2d = null;
-            nurbs2d = null;
-            plane = null;
-            interpol = null;
-            interdir = null;
-            interparam = null;
-            approximation = null;
-            maxInterpolError = 0.0;
-            extent = BoundingCube.EmptyBoundingCube;
-            tetraederHull = null;
-            extrema = null;
+            lock (this)
+            {
+                nurbsHelper = false;
+                nubs3d = null;
+                nurbs3d = null;
+                nubs2d = null;
+                nurbs2d = null;
+                plane = null;
+                interpol = null;
+                interdir = null;
+                interparam = null;
+                approximation = null;
+                maxInterpolError = 0.0;
+                extent = BoundingCube.EmptyBoundingCube;
+                tetraederHull = null;
+                extrema = null;
+            }
         }
         private TetraederHull TetraederHull
         {   // alle Kurven sollte zusätzlich ein Interface implementieren ITetraederHull, die genau diese Property überschreibt
@@ -2055,41 +2059,44 @@ namespace CADability.GeoObject
         private void PointDirAtParam(double param, out GeoPoint point, out GeoVector dir)
         {
             if (!nurbsHelper) MakeNurbsHelper();
-            if (plane.HasValue)
+            lock (this)
             {
-                if (nubs2d != null)
+                if (plane.HasValue)
                 {
-                    GeoPoint2D point2d, dir2d;
-                    nubs2d.CurveDeriv1(param, out point2d, out dir2d);
-                    point = plane.Value.ToGlobal(point2d);
-                    dir = plane.Value.ToGlobal(dir2d.ToVector());
-                    return;
+                    if (nubs2d != null)
+                    {
+                        GeoPoint2D point2d, dir2d;
+                        nubs2d.CurveDeriv1(param, out point2d, out dir2d);
+                        point = plane.Value.ToGlobal(point2d);
+                        dir = plane.Value.ToGlobal(dir2d.ToVector());
+                        return;
+                    }
+                    else
+                    {
+                        GeoPoint2DH point2d, dir2d;
+                        nurbs2d.CurveDeriv1(param, out point2d, out dir2d);
+                        point = plane.Value.ToGlobal((GeoPoint2D)point2d);
+                        dir = plane.Value.ToGlobal((GeoVector2D)dir2d);
+                        return;
+                    }
                 }
                 else
                 {
-                    GeoPoint2DH point2d, dir2d;
-                    nurbs2d.CurveDeriv1(param, out point2d, out dir2d);
-                    point = plane.Value.ToGlobal((GeoPoint2D)point2d);
-                    dir = plane.Value.ToGlobal((GeoVector2D)dir2d);
-                    return;
-                }
-            }
-            else
-            {
-                if (nubs3d != null)
-                {
-                    GeoPoint pdir;
-                    nubs3d.CurveDeriv1(param, out point, out pdir);
-                    dir = pdir.ToVector();
-                    return;
-                }
-                else
-                {
-                    GeoPointH pointh, dirh;
-                    nurbs3d.CurveDeriv1(param, out pointh, out dirh);
-                    point = (GeoPoint)pointh;
-                    dir = (GeoVector)dirh;
-                    return;
+                    if (nubs3d != null)
+                    {
+                        GeoPoint pdir;
+                        nubs3d.CurveDeriv1(param, out point, out pdir);
+                        dir = pdir.ToVector();
+                        return;
+                    }
+                    else
+                    {
+                        GeoPointH pointh, dirh;
+                        nurbs3d.CurveDeriv1(param, out pointh, out dirh);
+                        point = (GeoPoint)pointh;
+                        dir = (GeoVector)dirh;
+                        return;
+                    }
                 }
             }
         }

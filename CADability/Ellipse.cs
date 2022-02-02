@@ -2493,6 +2493,11 @@ namespace CADability.GeoObject
                     }
                 }
             }
+            else
+            {
+                TetraederHull th = new TetraederHull(this);
+                return th.SameGeometry(other, precision);
+            }
             return false;
         }
         double ICurve.PositionAtLength(double position)

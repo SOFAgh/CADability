@@ -237,14 +237,12 @@ namespace CADability.GeoObject
         {
             for (int i = list.Count - 1; i >= 0; --i)
             {
-                if (this[i] is Hatch)
+                if (this[i] is Hatch hatch)
                 {
-                    Hatch hatch = (this[i] as Hatch);
                     hatch.ConditionalRecalc();
                 }
-                else if (this[i] is Block)
+                else if (this[i] is Block blk)
                 {
-                    Block blk = this[i] as Block;
                     Remove(i);
                     for (int j = 0; j < blk.Count; ++j)
                     {

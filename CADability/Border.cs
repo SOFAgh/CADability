@@ -122,10 +122,6 @@ namespace CADability.Shapes
             isClosed = IsClosed;
             Segments = (ICurve2D[])SegemntsToAdd.ToArray(typeof(ICurve2D));
             flatten();
-            quadTree = new QuadTree(ext);
-            quadTree.MaxDeepth = -1; //d.h. dynamisch
-            // quadTree.MaxListLen = 2;
-            for (int i = 0; i < segment.Length; ++i) quadTree.AddObject(segment[i]);
             extent = ext;
             area = 0.0;
             if (isClosed)
@@ -214,6 +210,20 @@ namespace CADability.Shapes
             flatten();
             bool reversed;
             Recalc(out reversed);
+        }
+
+        private QuadTree QuadTree
+        {   // the QuadTree is only calculated when needed
+            get
+            {
+                if (quadTree==null)
+                {
+                    quadTree = new QuadTree(Extent);
+                    quadTree.MaxDeepth = -1; // dynamic quadTree
+                    for (int i = 0; i < segment.Length; ++i) quadTree.AddObject(segment[i]);
+                }
+                return quadTree;
+            }
         }
         internal static Border FromUnorientedList(ICurve2D[] segments, bool forceClosed, double uperiod, double vperiod, double umin, double umax, double vmin, double vmax)
         {   // Sonderfall von FromUnorientedList: wenn die Kurven periodisch um einen offset versetzt werden
@@ -810,7 +820,7 @@ namespace CADability.Shapes
             int endAt = -1;
             for (int i = 0; i < segment.Length / 2 - 1; ++i)
             {
-                ICollection col = quadTree.GetObjectsFromRect(new BoundingRect(segment[i].StartPoint, prec, prec));
+                ICollection col = QuadTree.GetObjectsFromRect(new BoundingRect(segment[i].StartPoint, prec, prec));
                 foreach (ICurve2D curve in col)
                 {
                     if (curve != segment[i] && (i == 0 || curve != segment[i - 1]))
@@ -907,10 +917,6 @@ namespace CADability.Shapes
                     segment[segment.Length - 1].EndPoint = segment[0].StartPoint;
                 }
             }
-            quadTree = new QuadTree(ext);
-            quadTree.MaxDeepth = -1; // dynamisch
-            // quadTree.MaxListLen = 2;
-            for (int i = 0; i < segment.Length; ++i) quadTree.AddObject(segment[i]);
             extent = ext;
             if (segment.Length > 1)
             {
@@ -1615,7 +1621,7 @@ namespace CADability.Shapes
             // ungerade: Inside, gerade: Outside. In Zweifelsfällen: Unknown
             ArrayList IntersectionPoints = new ArrayList();
             Line2D sl = new Line2D(StartPoint, EndPoint);
-            ICollection cl = quadTree.GetObjectsCloseTo(sl);
+            ICollection cl = QuadTree.GetObjectsCloseTo(sl);
             foreach (ICurve2D curve in cl)
             {
                 GeoPoint2DWithParameter[] ips = sl.Intersect(curve); // par1 muss von sl sein!
@@ -1672,7 +1678,7 @@ namespace CADability.Shapes
 
             GeoPoint2D p = rect.GetCenter();
             // 2. Vortest, ob der Punkt auf dem Rand liegt, relativ schnell wg. QuadTree
-            ICollection cl = quadTree.GetObjectsFromRect(rect);
+            ICollection cl = QuadTree.GetObjectsFromRect(rect);
             foreach (ICurve2D curve in cl)
             {
                 if (curve.HitTest(ref rect, false)) return Position.OnCurve;
@@ -1919,7 +1925,7 @@ namespace CADability.Shapes
         public GeoPoint2DWithParameter[] GetIntersectionPoints(ICurve2D IntersectWith, double precision)
         {
             ArrayList result = new ArrayList();
-            ICollection cl = quadTree.GetObjectsCloseTo(IntersectWith);
+            ICollection cl = QuadTree.GetObjectsCloseTo(IntersectWith);
             foreach (ICurve2D curve in cl)
             {
                 GeoPoint2DWithParameter[] ips = curve.Intersect(IntersectWith);
@@ -3377,28 +3383,48 @@ namespace CADability.Shapes
                 return null;
             }
         }
+        //public Border GetModified(ModOp2D m)
+        //{	// über den Umweg IGeoObject ist das Problem vom Kreis zur Ellipse u.s.w. 
+        //    // umgangen
+        //    ArrayList segs = new ArrayList(segment.Length);
+        //    ModOp m3d = ModOp.From2D(m);
+        //    for (int i = 0; i < segment.Length; ++i)
+        //    {
+        //        IGeoObject go = segment[i].MakeGeoObject(Plane.XYPlane);
+        //        go.Modify(m3d);
+        //        ICurve2D c = (go as ICurve).GetProjectedCurve(Plane.XYPlane);
+        //        if (c != null) segs.Add(c);
+        //    }
+        //    ICurve2D[] asegs = (ICurve2D[])(segs.ToArray(typeof(ICurve2D)));
+        //    if (m.Determinant < 0.0)
+        //    {	// Richtung umdrehen
+        //        Array.Reverse(asegs);
+        //        for (int i = 0; i < asegs.Length; ++i)
+        //        {
+        //            asegs[i].Reverse();
+        //        }
+        //    }
+        //    return new Border(asegs, isClosed);
+        //}
         public Border GetModified(ModOp2D m)
-        {	// über den Umweg IGeoObject ist das Problem vom Kreis zur Ellipse u.s.w. 
-            // umgangen
-            ArrayList segs = new ArrayList(segment.Length);
+        {	// reimplemented: the old version made 3d curves, manipulated them and projected them back to make ellipses from circles when necessary
+            // Now ICurve2D should implement this correctly and much faster
+            List<ICurve2D> segs = new List<ICurve2D>(segment.Length);
             ModOp m3d = ModOp.From2D(m);
             for (int i = 0; i < segment.Length; ++i)
             {
-                IGeoObject go = segment[i].MakeGeoObject(Plane.XYPlane);
-                go.Modify(m3d);
-                ICurve2D c = (go as ICurve).GetProjectedCurve(Plane.XYPlane);
+                ICurve2D c = segment[i].GetModified(m);
                 if (c != null) segs.Add(c);
             }
-            ICurve2D[] asegs = (ICurve2D[])(segs.ToArray(typeof(ICurve2D)));
             if (m.Determinant < 0.0)
-            {	// Richtung umdrehen
-                Array.Reverse(asegs);
-                for (int i = 0; i < asegs.Length; ++i)
+            {	// Reverse direction (array and each individual segment)
+                segs.Reverse();
+                for (int i = 0; i < segs.Count; ++i)
                 {
-                    asegs[i].Reverse();
+                    segs[i].Reverse();
                 }
             }
-            return new Border(asegs, isClosed);
+            return new Border(segs.ToArray(), isClosed);
         }
         public ICurve2D[] GetPart(double startParam, double endParam, bool forward)
         {
@@ -3432,11 +3458,14 @@ namespace CADability.Shapes
             {
                 // nur ein Stück von einem Segment
                 ICurve2D c2d = segment[inds].Trim(pars, pare);
-                if (!forward) c2d.Reverse();
-                c2d.UserData.CloneFrom(segment[inds].UserData);
-                return new ICurve2D[] { c2d };
+                if (c2d != null)
+                {
+                    if (!forward) c2d.Reverse();
+                    c2d.UserData.CloneFrom(segment[inds].UserData);
+                    return new ICurve2D[] { c2d };
+                }
             }
-            else
+            // else
             {
                 ArrayList res = new ArrayList();
                 ICurve2D c2d = null;
@@ -3515,7 +3544,7 @@ namespace CADability.Shapes
             List<double> res = new List<double>();
             using (new PrecisionOverride((extent.Width + extent.Height) * 1e-9))
             {
-                ICollection cl = quadTree.GetObjectsCloseTo(toClip);
+                ICollection cl = QuadTree.GetObjectsCloseTo(toClip);
                 List<GeoPoint2DWithParameter> PointsOnToClip = new List<GeoPoint2DWithParameter>();
                 foreach (ICurve2D curve in cl)
                 {
@@ -3641,7 +3670,7 @@ namespace CADability.Shapes
             double leneps = len * precision;
             for (int i = 0; i < segment.Length; i++)
             {
-                ICollection cl = quadTree.GetObjectsCloseTo(segment[i]);
+                ICollection cl = QuadTree.GetObjectsCloseTo(segment[i]);
                 foreach (ICurve2D curve in cl)
                 {
                     if (curve != segment[i])
@@ -3711,7 +3740,7 @@ namespace CADability.Shapes
                 double lenprec = segment[0].Length * precision;
                 do
                 {
-                    ICollection cl = quadTree.GetObjectsCloseTo(segment[0]);
+                    ICollection cl = QuadTree.GetObjectsCloseTo(segment[0]);
                     double mindist = double.MaxValue;
                     ICurve2D mincurve = null;
                     foreach (ICurve2D curve in cl)
@@ -3760,7 +3789,7 @@ namespace CADability.Shapes
             List<double[]> resList = new List<double[]>();
             for (int i = 0; i < segment.Length; i++)
             {
-                ICollection cl = quadTree.GetObjectsCloseTo(segment[i]);
+                ICollection cl = QuadTree.GetObjectsCloseTo(segment[i]);
                 foreach (ICurve2D curve in cl)
                 {
                     if (curve != segment[i])

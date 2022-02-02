@@ -1196,7 +1196,7 @@ namespace CADability.GeoObject
             if (tetraederVertex.Length > maxCount)
             {
                 maxCount = tetraederVertex.Length;
-                System.Diagnostics.Trace.WriteLine("TetraederHull, count: " + maxCount.ToString());
+                //System.Diagnostics.Trace.WriteLine("TetraederHull, count: " + maxCount.ToString());
             }
 #endif
         }
@@ -1487,9 +1487,12 @@ namespace CADability.GeoObject
                     ext.Expand(d * 1e-6); // to avoid an octtree, which is flat in one dimension
                     ext.Modify(new GeoVector(d * 0.5e-6, d * 0.5e-6, d * 0.5e-6)); // to avoid flat tetraeders lying exactely inbetween cubes of the octtree
                     octTree = new OctTree<CurveTetraeder>(ext, ext.Size * 1e-6);
-                    for (int i = 0; i < tetraederBase.Length - 1; ++i)
+                    lock (octTree)
                     {
-                        octTree.AddObject(new CurveTetraeder(tetraederBase[i], tetraederBase[i + 1], tetraederVertex[2 * i], tetraederVertex[2 * i + 1], tetraederParams[i], tetraederParams[i + 1], this));
+                        for (int i = 0; i < tetraederBase.Length - 1; ++i)
+                        {
+                            octTree.AddObject(new CurveTetraeder(tetraederBase[i], tetraederBase[i + 1], tetraederVertex[2 * i], tetraederVertex[2 * i + 1], tetraederParams[i], tetraederParams[i + 1], this));
+                        }
                     }
                 }
                 return octTree;
@@ -2288,43 +2291,46 @@ namespace CADability.GeoObject
 #endif
         public double PositionOf(GeoPoint p)
         {
-            if (TetraederBase.Length < 2)
+            lock (OctTree)
             {
-                double d1 = p | theCurve.StartPoint;
-                double d2 = p | theCurve.EndPoint;
-                if (d1 == d2) return 0.5;
-                if (d1 < d2) return 0.0;
-                else return 1.0;
-            }
-            CurveTetraeder[] all = OctTree.GetObjectsFromBox(new BoundingCube(p, OctTree.precision)); // we need ...Box, BoundingCube and not ...Point because of linear curves
-            while (all.Length == 0)
-            {   // Punkt aufblasen bis Tetraeder gefunden werden
-                BoundingCube bc = new BoundingCube(p, theCurve.StartPoint, theCurve.EndPoint);
-                double d = bc.Size * 1e-6;
-                do
+                if (TetraederBase.Length < 2)
                 {
-                    all = OctTree.GetObjectsFromBox(new BoundingCube(p, d));
-                    d *= 2;
+                    double d1 = p | theCurve.StartPoint;
+                    double d2 = p | theCurve.EndPoint;
+                    if (d1 == d2) return 0.5;
+                    if (d1 < d2) return 0.0;
+                    else return 1.0;
                 }
-                while (all.Length == 0);
-            }
-            double mindist = double.MaxValue;
-            double umindist = -1.0;
-            if (all.Length > 0)
-            {
-                for (int i = 0; i < all.Length; ++i)
-                {
-                    GeoPoint pfound;
-                    double u;
-                    double d = FindClosestPoint(p, all[i].umin, all[i].umax, out pfound, out u);
-                    if (d < mindist)
+                CurveTetraeder[] all = OctTree.GetObjectsFromBox(new BoundingCube(p, OctTree.precision)); // we need ...Box, BoundingCube and not ...Point because of linear curves
+                while (all.Length == 0)
+                {   // Punkt aufblasen bis Tetraeder gefunden werden
+                    BoundingCube bc = new BoundingCube(p, theCurve.StartPoint, theCurve.EndPoint);
+                    double d = bc.Size * 1e-6;
+                    do
                     {
-                        mindist = d;
-                        umindist = u;
+                        all = OctTree.GetObjectsFromBox(new BoundingCube(p, d));
+                        d *= 2;
+                    }
+                    while (all.Length == 0);
+                }
+                double mindist = double.MaxValue;
+                double umindist = -1.0;
+                if (all.Length > 0)
+                {
+                    for (int i = 0; i < all.Length; ++i)
+                    {
+                        GeoPoint pfound;
+                        double u;
+                        double d = FindClosestPoint(p, all[i].umin, all[i].umax, out pfound, out u);
+                        if (d < mindist)
+                        {
+                            mindist = d;
+                            umindist = u;
+                        }
                     }
                 }
+                return umindist;
             }
-            return umindist;
         }
 
         private double FindClosestPoint(GeoPoint p, double umin, double umax, out GeoPoint pfound, out double u)
@@ -2455,22 +2461,25 @@ namespace CADability.GeoObject
             List<double> lpar1 = new List<double>();
             List<double> lpar2 = new List<double>();
             List<GeoPoint> lip = new List<GeoPoint>();
-            CurveTetraeder[] all2 = th2.OctTree.GetAllObjects();
-            for (int i = 0; i < all2.Length; ++i)
+            lock (OctTree)
             {
-                CurveTetraeder[] all1 = OctTree.GetObjectsCloseTo(all2[i]);
-                for (int j = 0; j < all1.Length; ++j)
+                CurveTetraeder[] all2 = th2.OctTree.GetAllObjects();
+                for (int i = 0; i < all2.Length; ++i)
                 {
-                    if (all1[j].Interferes(all2[i]))
+                    CurveTetraeder[] all1 = OctTree.GetObjectsCloseTo(all2[i]);
+                    for (int j = 0; j < all1.Length; ++j)
                     {
-                        Intersect(all1[j], th2, all2[i], lpar1, lpar2, lip);
+                        if (all1[j].Interferes(all2[i]))
+                        {
+                            Intersect(all1[j], th2, all2[i], lpar1, lpar2, lip);
+                        }
                     }
                 }
+                par1 = lpar1.ToArray();
+                par2 = lpar2.ToArray();
+                intersection = lip.ToArray();
+                return par1.Length;
             }
-            par1 = lpar1.ToArray();
-            par2 = lpar2.ToArray();
-            intersection = lip.ToArray();
-            return par1.Length;
         }
 
         private void Intersect(CurveTetraeder tet1, TetraederHull th2, CurveTetraeder tet2, List<double> lpar1, List<double> lpar2, List<GeoPoint> lip)
@@ -2623,6 +2632,17 @@ namespace CADability.GeoObject
                 double u = theCurve.PositionOf(h2.tetraederBase[i]);
                 if ((theCurve.PointAt(u) | h2.tetraederBase[i]) > precision) return false;
                 // jetzt könnte man noch die Richtungen überprüfen, aber es gibt kein gutes Kriterium für die erlaubte Abweichung
+            }
+            // there was this case: the curves only consist of a single tetraeder and start- and endpoints are identical. then we should check points in the middle of each tetraeder.
+            for (int i = 0; i < tetraederBase.Length-1; ++i)
+            {
+                GeoPoint mp = theCurve.PointAt((tetraederParams[i] + tetraederParams[i + 1]) / 2.0);
+                if (other.DistanceTo(mp) > precision) return false;
+            }
+            for (int i = 0; i < h2.tetraederBase.Length - 1; ++i)
+            {
+                GeoPoint mp = other.PointAt((h2.tetraederParams[i] + h2.tetraederParams[i + 1]) / 2.0);
+                if (theCurve.DistanceTo(mp) > precision) return false;
             }
             return true;
         }
