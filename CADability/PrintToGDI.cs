@@ -434,7 +434,7 @@ namespace CADability
                     commonPoint = tp23;
                     return true;
                 }
-                // jetzt der umgekehrte Test 
+                // jetzt der umgekehrte Test
                 ModOp2D toTr2 = new ModOp2D(tp22 - tp21, tp23 - tp21, tp21);
                 ModOp2D fromTr2 = toTr2.GetInverse(); // ist relativ schnell
 
@@ -1028,7 +1028,7 @@ namespace CADability
         {
             List<PrintTriangle> result = new List<PrintTriangle>();
             List<PrintTriangle> result2 = new List<PrintTriangle>();
-            // Finde Strecke mit zwei Schnittpunkten   
+            // Finde Strecke mit zwei Schnittpunkten
             GeoPoint2D x1 = new GeoPoint2D(points[i0]);
             GeoPoint2D y1 = new GeoPoint2D(points[i1]);
             GeoPoint2D z1 = new GeoPoint2D(points[i2]);
@@ -1099,7 +1099,7 @@ namespace CADability
             {
 
                 gr.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                gr.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;//HighQuality; 
+                gr.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;//HighQuality;
                 //if (true)
                 if (flat)
                 {
@@ -1223,7 +1223,7 @@ namespace CADability
                     gr.FillPolygon(br, pnts);
                     /*
                     Pen colorpen = new Pen(br, (float)0.0);
-                    gr.DrawPolygon(colorpen, pnts);  
+                    gr.DrawPolygon(colorpen, pnts);
                     // brush freigeben
                     colorpen.Dispose();
                     //*/
@@ -1569,7 +1569,7 @@ namespace CADability
             currentGraphics.Transform = new System.Drawing.Drawing2D.Matrix((float)(plfact), 0.0f, 0.0f, (float)(-plfact), (float)dx, (float)dy);
             // projection = new Matrix4(new double[,] { { plfact, 0, 0, dx }, { 0, plfact, 0, dy }, { 0, 0, plfact, 0.0 }, { 0, 0, 0, 1 } }) * projection;
             currentPrecision = 1.0 / plfact;//0.1; // noch vernünftig setzen
-            //currentCollection = new OctTree<IPrintItemImpl>(lp.Model.Extent, 0.1); // Parameter noch falsch             
+            //currentCollection = new OctTree<IPrintItemImpl>(lp.Model.Extent, 0.1); // Parameter noch falsch
             currentCollectionList = new List<IPrintItemImpl>();
             currentCollectionQuad = new QuadTree<IPrintItemImpl>(new BoundingRect(model.Extent.Xmin, model.Extent.Ymin, model.Extent.Xmax, model.Extent.Ymax));
             // Sorgt nicht fuer eine Verbesserung
@@ -1671,7 +1671,7 @@ namespace CADability
                         pr.GetPlacement(out plfact, out dx, out dy);
                         projection = new Matrix4(new double[,] { { plfact, 0, 0, dx }, { 0, plfact, 0, dy }, { 0, 0, plfact, 0.0 }, { 0, 0, 0, 1 } }) * projection;
                         currentPrecision = 0.5;//0.1; // noch vernünftig setzen
-                                               //currentCollection = new OctTree<IPrintItemImpl>(lp.Model.Extent, 0.1); // Parameter noch falsch             
+                                               //currentCollection = new OctTree<IPrintItemImpl>(lp.Model.Extent, 0.1); // Parameter noch falsch
                         currentCollectionList = new List<IPrintItemImpl>();
                         currentCollectionQuad = new QuadTree<IPrintItemImpl>(new BoundingRect(lp.Model.Extent.Xmin, lp.Model.Extent.Ymin, lp.Model.Extent.Xmax, lp.Model.Extent.Ymax));
                         // Sorgt nicht fuer eine Verbesserung
@@ -1777,7 +1777,7 @@ namespace CADability
                     pr.GetPlacement(out plfact, out dx, out dy);
                     // projection = new Matrix4(new double[,] { { plfact, 0, 0, dx }, { 0, plfact, 0, dy }, { 0, 0, plfact, 0.0 }, { 0, 0, 0, 1 } }) * projection;
                     currentPrecision = 0.5;//0.1; // noch vernünftig setzen
-                                           //currentCollection = new OctTree<IPrintItemImpl>(lp.Model.Extent, 0.1); // Parameter noch falsch             
+                                           //currentCollection = new OctTree<IPrintItemImpl>(lp.Model.Extent, 0.1); // Parameter noch falsch
                     currentCollectionList = new List<IPrintItemImpl>();
                     currentCollectionQuad = new QuadTree<IPrintItemImpl>(new BoundingRect(gdiView.Model.Extent.Xmin, gdiView.Model.Extent.Ymin, gdiView.Model.Extent.Xmax, gdiView.Model.Extent.Ymax));
                     // Sorgt nicht fuer eine Verbesserung
@@ -2191,7 +2191,7 @@ namespace CADability
                 res = new Pen(clr, (float)(currentLineWidth.Width * lineWidthFactor * currentProjection.WorldToDeviceFactor));
             else
                 res = new Pen(clr, 1.0f);
-            if (res.Width == 0.0) res.Width = 0.1f; // 0.1 mm als dünnste Linie, ist wichtig bei Drucken über Bitmap 
+            if (res.Width == 0.0) res.Width = 0.1f; // 0.1 mm als dünnste Linie, ist wichtig bei Drucken über Bitmap
             if (currentLinePattern != null && currentLinePattern.Pattern.Length > 0)
             {
                 float[] fpattern = new float[currentLinePattern.Pattern.Length];
@@ -2430,7 +2430,7 @@ namespace CADability
 
         void IPaintTo3D.Points(GeoPoint[] points, float size, PointSymbol pointSymbol)
         {
-            
+
         }
 
         void IPaintTo3D.Triangle(GeoPoint[] vertex, GeoVector[] normals, int[] indextriples)
@@ -2832,21 +2832,6 @@ namespace CADability
 
 #region IPaintTo3D Member
 
-
-        public bool DontRecalcTriangulation
-        {
-            get
-            {
-                return false;
-                //throw new NotImplementedException();
-            }
-            set
-            {
-                //throw new NotImplementedException();
-            }
-        }
-
-        bool IPaintTo3D.DontRecalcTriangulation { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         bool IPaintTo3D.IsBitmap => throw new NotImplementedException();
 

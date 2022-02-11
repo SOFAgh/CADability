@@ -39,7 +39,6 @@ namespace CADability.Forms
         bool selectMode;
         bool delayText;
         bool delayAll;
-        bool dontRecalcTriangulation;
         bool isBitmap; // Bitmaps verhalten sich komisch in Bezug auf DisplayListen (zumindest auf meinem Rechner, G.)
         double lineWidthFactor;
         float lineWidthMin, lineWidthMax;
@@ -174,7 +173,7 @@ namespace CADability.Forms
                 res.deviceContext = deviceContext;
                 // die Standardzeichen generieren (fehlt noch bold, italic)
                 // um den text selbst zu generieren könnte man wie folgt vorgehen:
-                // System.Drawing.Drawing2D.GraphicsPath, System.Drawing.Drawing2D.GraphicsPath. Flatten, 
+                // System.Drawing.Drawing2D.GraphicsPath, System.Drawing.Drawing2D.GraphicsPath. Flatten,
                 // System.Drawing.Drawing2D.PathPointType
                 // eine Nurbs Ebene generieren und die polygone als Trimmkurve nehmen
 
@@ -544,17 +543,6 @@ namespace CADability.Forms
         {
             get { return true; }
         }
-        bool IPaintTo3D.DontRecalcTriangulation
-        {
-            get
-            {
-                return dontRecalcTriangulation;
-            }
-            set
-            {
-                dontRecalcTriangulation = value;
-            }
-        }
         PaintCapabilities IPaintTo3D.Capabilities
         {
             get
@@ -617,7 +605,7 @@ namespace CADability.Forms
                 {
                     // Wgl.wglGetCurrentContext();
                     // bool ok = Wgl.wglMakeCurrent(deviceContext, renderContext);
-                    // if (ok) 
+                    // if (ok)
                     bool ok = false;
                     // xxx ok = Wgl.wglDeleteContext(renderContext);
                     // man darf ihn hier nicht löschen, da er noch als Context für die SharedLists gebraucht wird
@@ -669,7 +657,7 @@ namespace CADability.Forms
             //        w.WriteLine(str);
             //    }
             //}
-            // Ende Hilgers Debug 
+            // Ende Hilgers Debug
             if (error == Gl.GL_OUT_OF_MEMORY)
             {
                 currentList = null; // die bleibt sonst offen
@@ -1172,9 +1160,9 @@ namespace CADability.Forms
                 // ich finde keine Möglichkeit die Position auf z.B. die Mitte oder einen beliebigen Punkt des
                 // Bitmaps zu setzen. Außer: In Notes zu glBitmap steht:
                 // Notes
-                // To set a valid raster position outside the viewport, first set a valid raster position inside the viewport, 
-                // then call glBitmap with NULL as the bitmap parameter and with xmove and ymove set to the offsets of the 
-                // new raster position. This technique is useful when panning an image around the viewport. 
+                // To set a valid raster position outside the viewport, first set a valid raster position inside the viewport,
+                // then call glBitmap with NULL as the bitmap parameter and with xmove and ymove set to the offsets of the
+                // new raster position. This technique is useful when panning an image around the viewport.
                 Gl.glBitmap(0, 0, 0, 0, -xoffset, -yoffset, null);
                 Gl.glPixelStorei(Gl.GL_PACK_SWAP_BYTES, 0);
                 Gl.glPixelStorei(Gl.GL_PACK_LSB_FIRST, 0);
@@ -1619,7 +1607,7 @@ namespace CADability.Forms
         private void PaintListWithOffset(IPaintTo3DList paintThisList, int offsetX, int offsetY)
         {
             Gl.glMatrixMode(Gl.GL_PROJECTION);
-            // leider macht die glTranslated funktion ein Matrix in der zuerst die verschiebung und dann die 
+            // leider macht die glTranslated funktion ein Matrix in der zuerst die verschiebung und dann die
             // alte projektion stattfinden
             double[] current = new double[16];
             Gl.glGetDoublev(Gl.GL_PROJECTION_MATRIX, current);
@@ -1659,7 +1647,7 @@ namespace CADability.Forms
                 Gl.glLoadIdentity();
                 Gl.glTranslated(-2 * precision * projectionDirection.x, -2 * precision * projectionDirection.y, -2 * precision * projectionDirection.z);
 
-                //Gl.glEnable(Gl.GL_TEXTURE_2D); 
+                //Gl.glEnable(Gl.GL_TEXTURE_2D);
                 if (wobbleRadius == -1) Gl.glClear(Gl.GL_DEPTH_BUFFER_BIT); // Select findet über den Objekten statt, alte ZBuffer Inhalte werden gelöscht
                 Gl.glEnable(Gl.GL_DEPTH_TEST);
 
@@ -1738,7 +1726,7 @@ namespace CADability.Forms
         //    // Objekt selbst durch den Stencil Buffer nicht überzeichnet werden kann
         //    Gl.glDisable(Gl.GL_DEPTH_TEST);
         //    Gl.glClearStencil(0x0);
-        //    Gl.glEnable(Gl.GL_STENCIL_TEST); 
+        //    Gl.glEnable(Gl.GL_STENCIL_TEST);
         //    Gl.glClear(Gl.GL_STENCIL_BUFFER_BIT);
         //    Gl.glStencilFunc(Gl.GL_ALWAYS, 0x1, 0x1);
         //    Gl.glStencilOp(Gl.GL_REPLACE, Gl.GL_REPLACE, Gl.GL_REPLACE);
@@ -2160,12 +2148,12 @@ namespace CADability.Forms
                 if (isDeleted)
                     return;
 
-                isDeleted = true;                
+                isDeleted = true;
             }
             openLists.Remove(ListNumber);
 #if DEBUG
             //System.Diagnostics.Trace.WriteLine("Direct Deleting OpenGl List Nr.: " + ListNumber.ToString());
-#endif            
+#endif
             Gl.glDeleteLists(ListNumber, 1);
         }
         #region IPaintTo3DList Members

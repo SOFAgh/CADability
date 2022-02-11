@@ -326,17 +326,6 @@ namespace CADability.Forms
             get { return false; }
         }
 
-        bool IPaintTo3D.DontRecalcTriangulation
-        {
-            get
-            {
-                return false;
-            }
-            set
-            {
-                throw new Exception("The method or operation is not implemented.");
-            }
-        }
         PaintCapabilities IPaintTo3D.Capabilities
         {
             get
@@ -527,7 +516,7 @@ namespace CADability.Forms
             string textString, FontStyle fontStyle, CADability.GeoObject.Text.AlignMode alignment,
             CADability.GeoObject.Text.LineAlignMode lineAlignment)
         {
-            // graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixel; 
+            // graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixel;
             // das wäre für Kastenholz, beim selektieren von kleinen Schriften keine Ränder
             bool makeLine = false;
             PointF[] pnt = new PointF[3];
@@ -601,7 +590,7 @@ namespace CADability.Forms
                                 //    break;
                                 //case Text.AlignMode.Baseline: // hier müsste man den Punkt verschieben
                                 //    sf.LineAlignment = StringAlignment.Near;
-                                //    //loc.Y = 
+                                //    //loc.Y =
                                 //    break;
                                 //case Text.AlignMode.Center:
                                 //    sf.LineAlignment = StringAlignment.Center;
@@ -655,7 +644,7 @@ namespace CADability.Forms
         {
             DisplayList dl = paintThisList as DisplayList;
             graphics.DrawImageUnscaled(dl.bitmap, 0, 0);
-            // dl.bitmap.Save("tmp.jpg", System.Drawing.Imaging.ImageFormat.Jpeg); 
+            // dl.bitmap.Save("tmp.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
         }
 
         void IPaintTo3D.Nurbs(GeoPoint[] poles, double[] weights, double[] knots, int degree)
@@ -665,7 +654,7 @@ namespace CADability.Forms
 
         void IPaintTo3D.Line2D(int sx, int sy, int ex, int ey)
         {
-            using (new Transform(graphics, new Matrix())) // Identität 
+            using (new Transform(graphics, new Matrix())) // Identität
             {
                 try
                 {
@@ -682,7 +671,7 @@ namespace CADability.Forms
 
         void IPaintTo3D.Line2D(PointF p1, PointF p2)
         {
-            using (new Transform(graphics, new Matrix())) // Identität 
+            using (new Transform(graphics, new Matrix())) // Identität
             {
                 try
                 {
@@ -699,7 +688,7 @@ namespace CADability.Forms
 
         void IPaintTo3D.FillRect2D(PointF p1, PointF p2)
         {
-            using (new Transform(graphics, new Matrix())) // Identität 
+            using (new Transform(graphics, new Matrix())) // Identität
             {
                 try
                 {
@@ -940,7 +929,7 @@ namespace CADability.Forms
         }
         //void IPaintTo3D.Arc(GeoPoint center, GeoVector majorAxis, GeoVector minorAxis, double startParameter, double sweepParameter)
         //{   // Das Problem ist, dass GDI nur achsenorientierte Ellipsen zeichnen kann.
-        //    // Wir müssen die Drehung hier rausrechnen, denn die zu verwendende Matrix 
+        //    // Wir müssen die Drehung hier rausrechnen, denn die zu verwendende Matrix
         //    // darf nicht skalieren wegen der Strichstärke und der Strichlierung
 
         //    GeoVector normal = majorAxis ^ minorAxis; // normale der Ebene des Bogens
@@ -1087,7 +1076,7 @@ namespace CADability.Forms
         //    //    }
         //    //}
         //    //catch (ApplicationException)
-        //    //{ // 
+        //    //{ //
         //    //}
         //}
         IPaintTo3DList IPaintTo3D.MakeList(System.Collections.Generic.List<IPaintTo3DList> sublists)
@@ -1167,7 +1156,7 @@ namespace CADability.Forms
 
         void IPaintTo3D.PreparePointSymbol(PointSymbol pointSymbol)
         {
-            
+
         }
         #endregion
     }

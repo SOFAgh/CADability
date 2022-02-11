@@ -27,11 +27,11 @@ namespace CADability
      * GeoObjekte können einen Actuator (IDrive) haben. Das Modell hat eine Liste aller Drives.
      * Die Drives sind u.U. voneinander abhängig. Daraus ergibt sich ein Baum.
      * Vor der Simulation wird zu jedem Drive eine Displaylist erzeugt. Während des
-     * Ablaufs wird für jeden Drive die ModOp bestimmt, die sich aus den Abhängigkeiten 
+     * Ablaufs wird für jeden Drive die ModOp bestimmt, die sich aus den Abhängigkeiten
      * und den einzelnen ModOps ergibt.
      * Die DisplayListen werden mit den ModOps versehen dargestellt. (Kanten/Flächen unterscheidung?)
      * Einige Objekte werden jeweils gesondert ausgegeben (wg. Farbänderung)
-     * 
+     *
      * Das Modell enthält eine Liste aller Drives.
      * Die Ansicht enthält einen Ablaufplan Schedule
     */
@@ -308,7 +308,7 @@ namespace CADability
         /// </summary>
         public event NextStepDelegate NextStepEvent;
         /// <summary>
-        /// Delegate for the <see cref="GetTimeEvent"/>. If not handeled the time is 
+        /// Delegate for the <see cref="GetTimeEvent"/>. If not handeled the time is
         /// determined by the internal clock.
         /// </summary>
         /// <param name="sender">The calling AnimtedView</param>
@@ -351,10 +351,10 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Starts the realtime animation. <paramref name="speed"/> provides a time factor, 
-        /// 1.0 is real time. The method returns immediately. There may bee zooming and scrolling 
-        /// during the animation. The animation may be stopped at any time and stops automatically 
-        /// when endTime is reached. Each discrete frame that is displayed fires the 
+        /// Starts the realtime animation. <paramref name="speed"/> provides a time factor,
+        /// 1.0 is real time. The method returns immediately. There may bee zooming and scrolling
+        /// during the animation. The animation may be stopped at any time and stops automatically
+        /// when endTime is reached. Each discrete frame that is displayed fires the
         /// <see cref="NextStepEvent"/> to enable the user of this class to provide some
         /// additional display changes or other tasks.
         /// </summary>
@@ -388,7 +388,7 @@ namespace CADability
         {
             int tc = System.Environment.TickCount;
             timeBase = tc - (currentTime - startTime) / speed * 1000.0;
-            // das war geändert in die folgende Zeile, hat vermutlich was mit Irmler zu tun. Jetzt 
+            // das war geändert in die folgende Zeile, hat vermutlich was mit Irmler zu tun. Jetzt
             // wieder rückgängig gemacht auf die obere Zeile wg. Bazzi, macht hoffentlich keine Probleme.
             //timeBase = tc;
             Frame.UIService.ApplicationIdle += new EventHandler(OnApplicationIdle);
@@ -408,8 +408,8 @@ namespace CADability
             displayLists = null;
         }
         /// <summary>
-        /// Tests the collision of two solids. The current position of the drives is applied to both objects 
-        /// (typically one of the objects is static). If there is a collision, true is returned 
+        /// Tests the collision of two solids. The current position of the drives is applied to both objects
+        /// (typically one of the objects is static). If there is a collision, true is returned
         /// and the <paramref name="collisionPoint"/> is filled with an arbitrary point where collision
         /// takes place.
         /// </summary>
@@ -691,7 +691,7 @@ namespace CADability
             if (isRunning)
             {   // hier müsste man eine Kopie des Models mit den Positionen erzeugen und dort picken
                 // und man müsste netürliche die Originalobjekte zurückliefern, was gerade bei verschachtelten
-                // Objekten (Solid, Block) recht schwierig ist. 
+                // Objekten (Solid, Block) recht schwierig ist.
                 return null;
             }
             else
@@ -758,7 +758,6 @@ namespace CADability
         {
             if (paintToOpenGl == null) return;
             IPaintTo3D ipaintTo3D = paintToOpenGl;
-            ipaintTo3D.DontRecalcTriangulation = true;
 
             ipaintTo3D.Clear(BackgroundColor);
 
@@ -1235,7 +1234,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -1247,7 +1246,7 @@ namespace CADability
         }
         IShowProperty[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -1258,7 +1257,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries

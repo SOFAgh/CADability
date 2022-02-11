@@ -64,7 +64,7 @@ namespace CADability
         /// <returns></returns>
         IView GetView();
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="mousePosition"></param>
         /// <returns></returns>
@@ -163,7 +163,7 @@ namespace CADability
         }
         #region IShowProperty Members
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -184,7 +184,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -196,7 +196,7 @@ namespace CADability
         }
         IShowProperty[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries
@@ -800,7 +800,6 @@ namespace CADability
 
                 try
                 {
-                    if (projectedModel.supressAutoRegeneration) (paintTo3D).DontRecalcTriangulation = true;
                     projectedModel.Paint(paintTo3D);
                     PaintBackground(paintTo3D);
                     paintTo3D.UseZBuffer(false);
@@ -814,7 +813,6 @@ namespace CADability
                     if (Settings.GlobalSettings.GetBoolValue("ActionActiveObject.UseZBuffer", true)) paintTo3D.UseZBuffer(true);
                     if (PaintActiveEvent != null) PaintActiveEvent(e.ClipRectangle, this, paintTo3D);
                     if (PaintSelectEvent != null) PaintSelectEvent(e.ClipRectangle, this, paintTo3D);
-                    paintTo3D.DontRecalcTriangulation = false;
                 }
                 catch (PaintTo3DOutOfMemory)
                 {
@@ -1355,7 +1353,7 @@ namespace CADability
         }
         void IView.InvalidateAll()
         {
-            // ForceInvalidateAll(); // das ist definitiv zuviel, bei FeedbackObjekten wird das aufgerufen und es bräuchte nur ein 
+            // ForceInvalidateAll(); // das ist definitiv zuviel, bei FeedbackObjekten wird das aufgerufen und es bräuchte nur ein
             // neuzeichnen der Feedback Objekte
             canvas?.Invalidate();
         }
@@ -1507,7 +1505,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -1553,7 +1551,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="PropertyEntryImpl.ContextMenu"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.ContextMenu"/>,
         /// returns the context menu with the id "MenuId.ModelView".
         /// (see <see cref="MenuResource.LoadContextMenu"/>)
         /// </summary>
@@ -1569,7 +1567,7 @@ namespace CADability
 
         IShowProperty[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -1580,7 +1578,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries
@@ -1891,18 +1889,6 @@ namespace CADability
                 ForceInvalidateAll();
                 canvas?.Invalidate();
                 RecalcScrollPosition();
-            }
-        }
-        public bool SupressAutoRegeneration
-        {
-            get
-            {
-                return projectedModel.supressAutoRegeneration;
-            }
-            set
-            {
-                projectedModel.supressAutoRegeneration = value;
-                canvas?.Invalidate();
             }
         }
 

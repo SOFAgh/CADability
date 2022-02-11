@@ -103,10 +103,6 @@ namespace CADability
         /// </summary>
         bool TriangulateText { get; }
         /// <summary>
-        /// Deprecated, currently not used
-        /// </summary>
-        bool DontRecalcTriangulation { get; set; }
-        /// <summary>
         /// Returns the capabilities of this implementation of the paint interface
         /// </summary>
         PaintCapabilities Capabilities { get; }
@@ -195,7 +191,7 @@ namespace CADability
         /// <summary>
         /// Draws a rectangular bitmap at the provided <paramref name="location"/> with <paramref name="directionWidth"/>
         /// specifying the direction of the lower edge of the bitmap and <paramref name="directionHeight"/>
-        /// specifying the direction of the left edge of the bitmap. <see cref="PrepareBitmap"/> must be called 
+        /// specifying the direction of the left edge of the bitmap. <see cref="PrepareBitmap"/> must be called
         /// before this method is called.
         /// </summary>
         /// <param name="bitmap">The bitmap to draw</param>
@@ -294,7 +290,7 @@ namespace CADability
         void Resize(int width, int height);
         /// <summary>
         /// Opens a new display list. All subsequent calls to paint methods will be stred in the list. When
-        /// <see cref="CloseList"/> will be called the object resembling the list will be returned. Only the following 
+        /// <see cref="CloseList"/> will be called the object resembling the list will be returned. Only the following
         /// method calls are allowed while a displaylist is open: <see cref="Polyline"/>, <see cref="FilledPolyline"/>,
         /// <see cref="Points"/>, <see cref="Triangle"/>, <see cref="RectangularBitmap"/>, <see cref="Text"/>,
         /// <see cref="DisplayIcon"/>, <see cref="DisplayBitmap"/>, <see cref="List"/>
@@ -672,7 +668,7 @@ namespace CADability
     {
         /// <summary>
         /// Delegate definition of <see cref="SetProjectionEvent"/>.
-        /// 
+        ///
         /// </summary>
         /// <param name="renderContext">The OpenGL render context</param>
         /// <param name="paintTo3D">The IPaintTo3D interface of the instance beeing involved</param>
@@ -731,7 +727,7 @@ namespace CADability
             //projection.Precision = bc.Size * 1e-3;
 
             //BoundingRect ext = bc.GetExtent(projection); //  list.GetExtent(projection, true, false);
-            //ext = ext * 1.1; // inflate by 10 percent 
+            //ext = ext * 1.1; // inflate by 10 percent
             //projection.SetPlacement(new Rectangle(0, 0, bmp.Width, bmp.Height), ext);
 
             //ipaintTo3D.SetProjection(projection, bc);

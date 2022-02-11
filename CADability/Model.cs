@@ -56,7 +56,7 @@ namespace CADability
     }
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     [Serializable]
     public class Model : IShowPropertyImpl, ISerializable, IGeoObjectOwner,
@@ -124,7 +124,7 @@ namespace CADability
         Thread manageBackgroundRecalc;
         double backgroundRecalcPrecision;
         private void RecalcGeoObject(Object state)
-        {   // wird aus dem ThreadPool heraus gestartet. 
+        {   // wird aus dem ThreadPool heraus gestartet.
             // Wenn er noch in der Liste runningThreads steht,
             // dann dort die thread id eintragen und anschließend rechnen
             // am Ende aus der Liste entfernen.
@@ -164,7 +164,7 @@ namespace CADability
         }
         private void InsertRecalcGeoObject(IGeoObject toInsert)
         {   // In die Queue von ThreadPool.QueueUserWorkItem einfügen.
-            // Gleichzeitig runningThreads aktuell halten. 
+            // Gleichzeitig runningThreads aktuell halten.
             // Hier kann man noch überlegen, wie man mit Blöcken, Blockreferenzen
             // Schraffuren, Bemaßungen umgehen soll. 3D Objekte werden auf Faces heruntergebrochen
             // da oft nur ein einziges Solid mit vielen Faces ein Modell ausmacht
@@ -268,7 +268,7 @@ namespace CADability
         internal void RecalcDisplayLists(IPaintTo3D paintTo3D)
         {   // wird vom Paint in ProjectedModel aufgerufen, wenn dieser "dirty" ist
             // kann aber nacheinander von mehreren ProjectedModels aufgerufen werden und soll nur einmal berechnet werden
-            if (paintTo3D.Precision < displayListPrecision && !paintTo3D.DontRecalcTriangulation)
+            if (paintTo3D.Precision < displayListPrecision)
             {
                 if (manageBackgroundRecalc != null)
                 {   // abbrechen und warten
@@ -287,7 +287,7 @@ namespace CADability
             if (displayListsDirty) // nur wenn kein BackgroundRecalc läuft
             {
                 // System.Diagnostics.Trace.WriteLine("displayListsDirty, Genauigkeit: " + paintTo3D.Precision.ToString());
-                if (displayListPrecision == 0.0 || (paintTo3D.Precision < displayListPrecision && !paintTo3D.DontRecalcTriangulation))
+                if (displayListPrecision == 0.0 || (paintTo3D.Precision < displayListPrecision))
                 {   // damit der Wert displayListPrecision zuverlässig gesetzt ist
                     displayListPrecision = paintTo3D.Precision;
                 }
@@ -820,7 +820,7 @@ namespace CADability
             geoObjects.MoveToBack(iGeoObject);
         }
         /// <summary>
-        /// Adds an object to this model. If the model is beeing displayed the object will appear in the view 
+        /// Adds an object to this model. If the model is beeing displayed the object will appear in the view
         /// immediately.
         /// </summary>
         /// <param name="ObjectToAdd">The GeoObject to add</param>
@@ -1082,7 +1082,7 @@ namespace CADability
         }
         /// <summary>
         /// Returns a list of all objects owned by this model. Removing or adding objects from or to the returned list doesn't remove or add
-        /// the objects from or to the model. 
+        /// the objects from or to the model.
         /// </summary>
         public GeoObjectList AllObjects
         {
@@ -1420,7 +1420,7 @@ namespace CADability
         #endregion
         #region IShowProperty
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -1431,7 +1431,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.LabelType"/>,
         /// </summary>
         public override ShowPropertyLabelFlags LabelType
         {
@@ -1495,7 +1495,7 @@ namespace CADability
         }
         IShowProperty[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -1506,7 +1506,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries
@@ -1753,7 +1753,7 @@ namespace CADability
         }
         #region Query Objects
         /// <summary>
-        /// Returns all objects of the model that are touched by the <paramref name="pickrect"/>, whos layers are in the 
+        /// Returns all objects of the model that are touched by the <paramref name="pickrect"/>, whos layers are in the
         /// <paramref name="visibleLayers"/> set and which are accepted by the <paramref name="filterList"/>.
         /// </summary>
         /// <param name="pickrect">Area that specifies which objects are beeing tested</param>
@@ -1957,7 +1957,7 @@ namespace CADability
             return res;
         }
         /// <summary>
-        /// Returns all objects of the model that are touched by the <paramref name="area"/>, whos layers are in the 
+        /// Returns all objects of the model that are touched by the <paramref name="area"/>, whos layers are in the
         /// <paramref name="visibleLayers"/> set and which are accepted by the <paramref name="filterList"/>.
         /// </summary>
         /// <param name="area">Area that specifies which objects are beeing tested</param>
@@ -2222,7 +2222,7 @@ namespace CADability
                 l[i].FindSnapPoint(spf);
             }
             // die Überprüfung der Schnittpunkte erfolgt hier in einer Doppelschleife
-            // das wird nicht den einzelnen Objekten überlassen, da die nichts von 
+            // das wird nicht den einzelnen Objekten überlassen, da die nichts von
             // den andern Objekten wissen.
             if (spf.SnapToIntersectionPoint)
             {
@@ -2313,7 +2313,7 @@ namespace CADability
                 l[i].FindSnapPoint(spf);
             }
             // die Überprüfung der Schnittpunkte erfolgt hier in einer Doppelschleife
-            // das wird nicht den einzelnen Objekten überlassen, da die nichts von 
+            // das wird nicht den einzelnen Objekten überlassen, da die nichts von
             // den andern Objekten wissen.
             if (spf.SnapToIntersectionPoint)
             {

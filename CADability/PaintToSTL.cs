@@ -129,18 +129,6 @@ namespace CADability
             get { return false; }
         }
 
-        bool IPaintTo3D.DontRecalcTriangulation
-        {
-            get
-            {
-                return false;
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         PaintCapabilities IPaintTo3D.Capabilities
         {
             get { return PaintCapabilities.Standard; }
