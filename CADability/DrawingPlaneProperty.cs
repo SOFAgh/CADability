@@ -4,7 +4,7 @@ using CADability.Substitutes;
 namespace CADability.UserInterface
 {
     /// <summary>
-    /// 
+    ///
     /// </summary>
 
     public class DrawingPlaneProperty : IShowPropertyImpl, ICommandHandler
@@ -80,7 +80,7 @@ namespace CADability.UserInterface
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -91,7 +91,7 @@ namespace CADability.UserInterface
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -102,7 +102,7 @@ namespace CADability.UserInterface
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries
@@ -118,15 +118,6 @@ namespace CADability.UserInterface
             {
                 return MenuResource.LoadMenuDefinition("MenuId.DrawingPlane", false, this);
             }
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
-        {
-            base.Added(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
         }
         #endregion
 

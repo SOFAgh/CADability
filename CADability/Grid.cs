@@ -70,7 +70,7 @@ namespace CADability
         }
         #region IShowPropertyImpl
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -85,7 +85,7 @@ namespace CADability
         private DoubleProperty dyProperty;
         private MultipleChoiceProperty displayModeProperty;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries
@@ -116,7 +116,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -126,25 +126,6 @@ namespace CADability
                 return SubEntries.Length;
             }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
-        {
-            base.Added(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
-        }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
-        /// </summary>
-        /// <param name="propertyTreeView">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
-        {
-            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
-            base.Removed(propertyTreeView);
-        }
-
 
         #endregion
         #region ISerializable Members
@@ -211,7 +192,7 @@ namespace CADability
 
         private void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
         {
-            // hier nur feuern wenn der Abstand verlassen wird, 
+            // hier nur feuern wenn der Abstand verlassen wird,
             // displaymode wird bei jeder Änderung gefeurt
             if ((OldFocus == dxProperty && NewFocus != dyProperty) ||
                 (OldFocus == dyProperty && NewFocus != dxProperty))

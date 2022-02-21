@@ -276,7 +276,7 @@ namespace CADability
         }
         public override MenuWithHandler[] ContextMenu => MenuResource.LoadMenuDefinition("MenuId.Schedule", false, this);
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -288,7 +288,7 @@ namespace CADability
         }
         IShowProperty[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -299,7 +299,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries
@@ -320,24 +320,6 @@ namespace CADability
                 }
                 return subEntries;
             }
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
-        {
-            base.Added(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Removed (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
-        {
-            base.Removed(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
         }
         void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
         {
@@ -585,7 +567,7 @@ namespace CADability
         }
         public override MenuWithHandler[] ContextMenu => MenuResource.LoadMenuDefinition("MenuId.DrivePosition", false, this);
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -597,7 +579,7 @@ namespace CADability
         }
         IShowProperty[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -608,7 +590,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries
@@ -640,24 +622,6 @@ namespace CADability
             IDrive newDrive = driveList.Find(NewValue as string);
             schedule.DriveChanged(drive, newDrive, time, position);
             drive = newDrive;
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Added(IPropertyPage propertyTreeView)
-        {
-            base.Added(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Removed (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyTreeView"></param>
-        public override void Removed(IPropertyTreeView propertyTreeView)
-        {
-            base.Removed(propertyTreeView);
-            //propertyTreeView.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
         }
         void OnFocusChanged(IPropertyTreeView sender, IShowProperty NewFocus, IShowProperty OldFocus)
         {
@@ -753,7 +717,7 @@ namespace CADability
         }
         public override MenuWithHandler[] ContextMenu => MenuResource.LoadMenuDefinition("MenuId.ScheduleList", false, this);
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         public override ShowPropertyEntryType EntryType
@@ -765,7 +729,7 @@ namespace CADability
         }
         IShowProperty[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         public override int SubEntriesCount
@@ -776,7 +740,7 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IShowProperty[] SubEntries

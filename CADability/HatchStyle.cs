@@ -40,7 +40,7 @@ namespace CADability.Attribute
         }
         public HatchStyle()
         {
-            // 
+            //
             // TODO: Add constructor logic here
             //
         }
@@ -67,7 +67,7 @@ namespace CADability.Attribute
             return null;
         }
         /// <summary>
-		/// Generates the lines or other GeoObjects that fill out the given shape 
+		/// Generates the lines or other GeoObjects that fill out the given shape
 		/// in the given plane. If a HatchStyle returns null, it must implement the
 		/// <see cref="Paint"/> and the <see cref="HitTest"/> methods.
 		/// Default implementation returns null.
@@ -93,14 +93,6 @@ namespace CADability.Attribute
             {
                 return Name;
             }
-        }
-        /// <summary>
-        /// Overrides <see cref="PropertyEntryImpl.Added"/>
-        /// </summary>
-        /// <param name="propertyPage"></param>
-        public override void Added(IPropertyPage propertyPage)
-        {
-            base.Added(propertyPage);
         }
         public override PropertyEntryType Flags
         {
