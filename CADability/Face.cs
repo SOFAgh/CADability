@@ -228,7 +228,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 337)
+            if (hashCode == 23)
             {
 
             }
@@ -307,6 +307,10 @@ namespace CADability.GeoObject
                 }
                 for (int i = loops.Count - 1; i >= 0; --i)
                 {
+                    if (loops[i].Count==1 && loops[i][0].curve==null && loops[i][0].vertex1== loops[i][0].vertex1)
+                    {   // this is probably a pole of a cone (or sphere) created as a point. We don't need that
+                        loops[i].RemoveAt(0);
+                    }
                     for (int j = loops[i].Count - 1; j >= 0; --j)
                     {
                         int next = j - 1;
@@ -859,8 +863,12 @@ namespace CADability.GeoObject
                                 }
                             }
                         }
-                        ISurface nonperiodic = surface.GetNonPeriodicSurface(orientedCurves.ToArray());
-                        if (nonperiodic != null) surface = nonperiodic;
+                        try
+                        {
+                            ISurface nonperiodic = surface.GetNonPeriodicSurface(orientedCurves.ToArray());
+                            if (nonperiodic != null) surface = nonperiodic;
+                        }
+                        catch (ApplicationException) { } // e.g. nurbs surface has two poles
                     }
                 }
                 if (surface is SphericalSurface && (surface as SphericalSurface).IsRealSphere)
@@ -921,7 +929,7 @@ namespace CADability.GeoObject
                             {
                                 ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
                                 if (c2d == null) continue;
-                                if (!loops[0][loopind].forward) c2d.Reverse();
+                                if (!loops[loopind][i].forward) c2d.Reverse();
                                 projectedLoop.Add(c2d);
                             }
                         }
@@ -952,7 +960,7 @@ namespace CADability.GeoObject
                                 if (loops[loopind][i].curve != null)
                                 {
                                     ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
-                                    if (!loops[0][loopind].forward) c2d.Reverse();
+                                    if (!loops[loopind][i].forward) c2d.Reverse();
                                     projectedLoop.Add(c2d);
                                 }
                             }
@@ -1460,7 +1468,9 @@ namespace CADability.GeoObject
                         int last = loops[i].Count - 1;
                         if (loops[i][last].forward) ep = loops[i][last].curve.EndPoint;
                         else ep = loops[i][last].curve.StartPoint;
-                        if ((sp | ep) > precision * 1000) closed = false; // added *100 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
+                        // I am not sure, why we would want to remove those open loops.
+                        // they are closed on the vertices, so maybe the 3d curves are just imprecise (as in 011cor.stp)
+                        // if ((sp | ep) > precision * 1000) closed = false; // added *100 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
                     }
                     if (Math.Abs(area) < (ext.Width + ext.Height) * 1e-8 || !closed)
                     {   // probably a seam: two curves going forth and back on the same path
@@ -2040,7 +2050,7 @@ namespace CADability.GeoObject
                         uPlaneValid = Curves.GetCommonPlane(cv1, cv2, out uSplitPlane);
                         if (!uPlaneValid)
                         {   // we cannot simply use a plane to cut the face, because the curves at 0 and period/2 don't reside in a plane
-                            // instead of this simple approach, which is OK for cones cylinders, torii, spheres, rotated 2d curves and most nurbs surfaces,
+                            // instead of this simple approach, which is OK for cones cylinders, tori, spheres, rotated 2d curves and most nurbs surfaces,
                             // we have to split the periodic parameter range into period/2 segments at 0, period/2, period, 3/2*period and so on
                             List<double> lPositions = new List<double>();
                             double left = ext.Left + uperiod * 1e-6;
@@ -2437,7 +2447,7 @@ namespace CADability.GeoObject
                     boundpnts[3] = new GeoPoint2D(umin, vmax);
                     Polyline2D bnd2d = new Polyline2D(boundpnts);
                     dc2d.Add(bnd2d, System.Drawing.Color.Green, 0);
-                    // *** check 2d splitted curves and directions
+                    // *** check 2d split curves and directions
 #endif
                     // now we make two or four sets of curves (corresponding to the non periodic sub-patches of the surface) and make faces from each set
                     Set<int>[,] part = new Set<int>[2, 2];

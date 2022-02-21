@@ -775,6 +775,16 @@ namespace CADability.GeoObject
             {
                 secondPath.Set(secondPath.Split(0.5));
             }
+            if (makeSolid && firstPath.IsClosed && secondPath.IsClosed && firstPath.GetPlanarState() == PlanarState.Planar && secondPath.GetPlanarState() == PlanarState.Planar)
+            {
+                Plane firstpln = firstPath.GetPlane();
+                Plane secondpln = secondPath.GetPlane();
+                if (firstpln.Normal * secondpln.Normal < 0) secondpln.Reverse();
+                Plane pln = new Plane(new GeoPoint(firstpln.Location, secondpln.Location), new GeoVector(firstpln.Normal, secondpln.Normal));
+                double a1 = Border.FromOrientedList((firstPath.GetProjectedCurve(pln) as Path2D).SubCurves, true).Area;
+                double a2 = Border.FromOrientedList((secondPath.GetProjectedCurve(pln) as Path2D).SubCurves, true).Area;
+                if (Math.Sign(a1) != Math.Sign(a2)) (secondPath as ICurve).Reverse();
+            }
             if (firstPath.IsClosed && secondPath.IsClosed)
             {   // find the shortest connection of the vertices of the two paths. 
                 // 
@@ -919,7 +929,9 @@ namespace CADability.GeoObject
                             {
                                 GeoPoint apex = l1.PointAt(ips[0]); // returns points in the prolongation of l1
                                 Angle semiAngle = new Angle((e1.Center - apex), (e1.StartPoint - apex));
-                                return new ConicalSurface(apex, e1.MajorAxis.Normalized, e1.MinorAxis.Normalized, e1.Normal.Normalized, semiAngle);
+                                Plane epln = e1.Plane;
+                                epln.Reverse();
+                                return new ConicalSurface(apex, epln.DirectionX, epln.DirectionY, epln.Normal, semiAngle);
                             }
                         }
                     }
@@ -1739,7 +1751,7 @@ namespace CADability.GeoObject
         public static IGeoObject[] MakeChamfer(Face primaryFace, Edge[] edges, double primaryDist, double secondaryDist, out IGeoObject[] affectedShellsOrSolids)
         {
             Shell sh = primaryFace.Owner as Shell;
-            if (sh!=null)
+            if (sh != null)
             {
                 Shell res = BRepOperation.ChamferEdges(primaryFace, edges, primaryDist, secondaryDist);
                 affectedShellsOrSolids = new IGeoObject[] { sh };

@@ -2077,7 +2077,7 @@ namespace CADability.Forms
             if (name != null) this.name = name;
             else this.name = "NoName_" + ListNumber.ToString();
             openLists[ListNumber] = this.name;
-            System.Diagnostics.Debug.WriteLine($"Add new List. Count:{openLists.Count}");
+            // System.Diagnostics.Debug.WriteLine($"Add new List. Count:{openLists.Count}");
 #if DEBUG
             //System.Diagnostics.Trace.WriteLine("+++++ OpenGl List Nr.: " + ListNumber.ToString() + " (" + openLists.Count.ToString() + ") " + name);
 #endif

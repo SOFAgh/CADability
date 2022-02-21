@@ -397,6 +397,7 @@ namespace CADability.GeoObject
                 //GeoPoint2D min = PositionOf(elli.Center + elli.MinorAxis);
                 //Geometry.PrincipalAxis(maj - center, min - center, out GeoVector2D majorAxis, out GeoVector2D minorAxis);
                 //Ellipse2D elli2d = new Ellipse2D(center, maj - center, min - center);
+                if (elli2d == null) return base.GetProjectedCurve(curve, precision);
                 if (elli.IsArc)
                 {
                     double sp = elli2d.PositionOf(PositionOf(elli.StartPoint));

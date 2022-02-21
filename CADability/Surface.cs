@@ -3860,38 +3860,42 @@ namespace CADability.GeoObject
             extremePositions = new List<Tuple<double, double, double, double>>();
             GeoPoint2D uv11 = thisBounds.GetCenter();
             GeoPoint2D uv22 = otherBounds.GetCenter();
-            double maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv11, ref uv22);
-            if (maxerror < Precision.eps)
+            try
             {
-                if ((this.PointAt(uv11) | other.PointAt(uv22)) < Precision.eps)
+                double maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv11, ref uv22);
+                if (maxerror < Precision.eps)
                 {
-                    // this is an intersection point. try to find another intersection point and take the point in the middle
-                    // this will not be an extreme point but a good additional point for BoxedSurface.Intersect additionalSearchPositions
-                    foreach (GeoPoint2D uv111 in new GeoPoint2D[] { thisBounds.GetLowerLeft(), thisBounds.GetLowerRight(), thisBounds.GetUpperLeft(), thisBounds.GetUpperRight() })
-                    {   // try with different starting points to find more intersection points
-                        GeoPoint2D uv2 = other.PositionOf(this.PointAt(uv111));
-                        GeoPoint2D uv1 = uv111;
-                        maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv1, ref uv2);
-                        if (maxerror < Precision.eps && (uv1 | uv11) > Precision.eps && (uv2 | uv22) > Precision.eps)
-                        {   //we have another intersection point and we will use the point in between
-                            if ((this.PointAt(uv1) | other.PointAt(uv2)) < Precision.eps)
-                            {   // a second intersection point
-                                extremePositions.Add(new Tuple<double, double, double, double>((uv1.x + uv11.x) / 2.0, (uv1.y + uv11.y) / 2.0, (uv2.x + uv22.x) / 2.0, (uv2.y + uv22.y) / 2.0));
+                    if ((this.PointAt(uv11) | other.PointAt(uv22)) < Precision.eps)
+                    {
+                        // this is an intersection point. try to find another intersection point and take the point in the middle
+                        // this will not be an extreme point but a good additional point for BoxedSurface.Intersect additionalSearchPositions
+                        foreach (GeoPoint2D uv111 in new GeoPoint2D[] { thisBounds.GetLowerLeft(), thisBounds.GetLowerRight(), thisBounds.GetUpperLeft(), thisBounds.GetUpperRight() })
+                        {   // try with different starting points to find more intersection points
+                            GeoPoint2D uv2 = other.PositionOf(this.PointAt(uv111));
+                            GeoPoint2D uv1 = uv111;
+                            maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv1, ref uv2);
+                            if (maxerror < Precision.eps && (uv1 | uv11) > Precision.eps && (uv2 | uv22) > Precision.eps)
+                            {   //we have another intersection point and we will use the point in between
+                                if ((this.PointAt(uv1) | other.PointAt(uv2)) < Precision.eps)
+                                {   // a second intersection point
+                                    extremePositions.Add(new Tuple<double, double, double, double>((uv1.x + uv11.x) / 2.0, (uv1.y + uv11.y) / 2.0, (uv2.x + uv22.x) / 2.0, (uv2.y + uv22.y) / 2.0));
+                                }
+                                else
+                                {   // a real extreme point, which is not an intersection point
+                                    extremePositions.Add(new Tuple<double, double, double, double>(uv1.x, uv1.y, uv2.x, uv2.y));
+                                }
+                                break;
                             }
-                            else
-                            {   // a real extreme point, which is not an intersection point
-                                extremePositions.Add(new Tuple<double, double, double, double>(uv1.x, uv1.y, uv2.x, uv2.y));
-                            }
-                            break;
                         }
                     }
-                }
-                else
-                {
-                    if (thisBounds.Contains(uv11)) extremePositions.Add(new Tuple<double, double, double, double>(uv11.x, uv11.y, double.NaN, double.NaN));
-                    if (otherBounds.Contains(uv22)) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, uv22.x, uv22.y));
+                    else
+                    {
+                        if (thisBounds.Contains(uv11)) extremePositions.Add(new Tuple<double, double, double, double>(uv11.x, uv11.y, double.NaN, double.NaN));
+                        if (otherBounds.Contains(uv22)) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, uv22.x, uv22.y));
+                    }
                 }
             }
+            catch (NotImplementedException) { } // some surfaces don't implement second derivation (e.g. OffsetSurface) which is needed in GaussNewtonMinimizer.SurfaceExtrema
             // else: search with different starting points
             return extremePositions.Count;
         }
@@ -5353,8 +5357,7 @@ namespace CADability.GeoObject
         /// <param name="surface2"></param>
         /// <returns>null, if not implemented for the provided surfaces, otherwise the intersection curves, which also may be none (empty array)</returns>
         internal static ICurve[] Intersect(ISurface surface1, ISurface surface2)
-        {   // this should be used for intersections, where no seed points can be calculated. It must be implemented for many combinations, 
-            // this is only a start here.
+        {   // this should be used for intersections, where no seed points can be calculated. It must be implemented for all combinations of canonical surfaces (plane, cylinder, cone, sphere, torus), 
             if (surface1 is PlaneSurface ps1 && surface2 is PlaneSurface ps2)
             {   // the simplest case
                 if (ps1.Plane.Intersect(ps2.Plane, out GeoPoint loc, out GeoVector dir))
@@ -5423,6 +5426,10 @@ namespace CADability.GeoObject
                         return new ICurve[] { elli };
                     }
                     return null;
+                }
+                if (surface2 is ICone icn)
+                {
+
                 }
             }
             return null;

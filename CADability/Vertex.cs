@@ -39,13 +39,16 @@ namespace CADability
             lock (edges)
             {
                 edges.Add(edge);
-                if (edge.PrimaryFace != null && edge.PrimaryFace.Surface != null && !uvposition.ContainsKey(edge.PrimaryFace))
+                lock (uvposition)
                 {
-                    uvposition[edge.PrimaryFace] = edge.PrimaryFace.PositionOf(position);
-                }
-                if (edge.SecondaryFace != null && edge.SecondaryFace.Surface != null && !uvposition.ContainsKey(edge.SecondaryFace))
-                {
-                    uvposition[edge.SecondaryFace] = edge.SecondaryFace.PositionOf(position);
+                    if (edge.PrimaryFace != null && edge.PrimaryFace.Surface != null && !uvposition.ContainsKey(edge.PrimaryFace))
+                    {
+                        uvposition[edge.PrimaryFace] = edge.PrimaryFace.PositionOf(position);
+                    }
+                    if (edge.SecondaryFace != null && edge.SecondaryFace.Surface != null && !uvposition.ContainsKey(edge.SecondaryFace))
+                    {
+                        uvposition[edge.SecondaryFace] = edge.SecondaryFace.PositionOf(position);
+                    }
                 }
             }
         }
@@ -54,13 +57,16 @@ namespace CADability
             lock (edges)
             {
                 edges.Add(edge);
-                if (!uvposition.ContainsKey(edge.PrimaryFace))
+                lock (uvposition)
                 {
-                    uvposition[edge.PrimaryFace] = pruv;
-                }
-                if (!uvposition.ContainsKey(edge.SecondaryFace))
-                {
-                    uvposition[edge.SecondaryFace] = scuv;
+                    if (!uvposition.ContainsKey(edge.PrimaryFace))
+                    {
+                        uvposition[edge.PrimaryFace] = pruv;
+                    }
+                    if (!uvposition.ContainsKey(edge.SecondaryFace))
+                    {
+                        uvposition[edge.SecondaryFace] = scuv;
+                    }
                 }
             }
         }
@@ -69,9 +75,12 @@ namespace CADability
             lock (edges)
             {
                 edges.Add(edge);
-                if (!uvposition.ContainsKey(edge.PrimaryFace))
+                lock (uvposition)
                 {
-                    uvposition[edge.PrimaryFace] = pruv;
+                    if (!uvposition.ContainsKey(edge.PrimaryFace))
+                    {
+                        uvposition[edge.PrimaryFace] = pruv;
+                    }
                 }
             }
         }
@@ -153,26 +162,38 @@ namespace CADability
         }
         internal void AddPositionOnFace(Face fc, GeoPoint2D uv)
         {
-            uvposition[fc] = uv;
+            lock (uvposition)
+            {
+                uvposition[fc] = uv;
+            }
         }
         internal void RemovePositionOnFace(Face face)
         {
-            uvposition.Remove(face);
+            lock (uvposition)
+            {
+                uvposition.Remove(face);
+            }
         }
         public GeoPoint2D GetPositionOnFace(Face fc)
         {
             GeoPoint2D res;
-            if (uvposition.TryGetValue(fc, out res)) return res;
-            GeoPoint2D uv = fc.PositionOf(position);
-            uvposition[fc] = uv;
-            return uv;
+            lock (uvposition)
+            {
+                if (uvposition.TryGetValue(fc, out res)) return res;
+                GeoPoint2D uv = fc.PositionOf(position);
+                uvposition[fc] = uv;
+                return uv;
+            }
         }
         public Face[] Faces
         {
             get
             {
-                List<Face> res = new List<Face>(uvposition.Keys);
-                return res.ToArray();
+                lock (uvposition)
+                {
+                    List<Face> res = new List<Face>(uvposition.Keys);
+                    return res.ToArray();
+                }
             }
         }
         public HashSet<Face> InvolvedFaces
@@ -250,11 +271,16 @@ namespace CADability
             {
                 if (edge.PrimaryFace != null) edge.ReplaceVertex(ev, this);
             }
-            foreach (KeyValuePair<Face, GeoPoint2D> kv in ev.uvposition)
+            lock (ev.uvposition) 
             {
-                if (!uvposition.ContainsKey(kv.Key)) uvposition[kv.Key] = kv.Value;
+                foreach (KeyValuePair<Face, GeoPoint2D> kv in ev.uvposition)
+                {
+                    lock (uvposition)
+                    {
+                        if (!uvposition.ContainsKey(kv.Key)) uvposition[kv.Key] = kv.Value;
+                    }
+                }
             }
-
         }
 
         BoundingCube IOctTreeInsertable.GetExtent(double precision)

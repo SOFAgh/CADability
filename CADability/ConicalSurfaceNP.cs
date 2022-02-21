@@ -13,7 +13,7 @@ namespace CADability.GeoObject
     /// which only projects the "used area" of this cone to a standard ring
     /// </summary>
     [Serializable()]
-    public class ConicalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable
+    public class ConicalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable, ICone
     {
         GeoPoint location; // the location of the tip of the cone
         GeoVector xAxis, yAxis, zAxis; // the axis build a perpendicular coordinate system, the zAxis is the axis of the cone. Right handed: the axis is inside the cone
@@ -141,16 +141,32 @@ namespace CADability.GeoObject
             }
             else if (curve is Ellipse elli)
             {
-                // this is a intersection with a plane. 
-                GeoPoint2D[] fp2d = new GeoPoint2D[5];
-                double n = 5.0;
-                if (elli.IsArc) n = 4.0;
-                for (int i = 0; i < 5; i++)
+                if (elli.IsCircle)
                 {
-                    fp2d[i] = PositionOf(elli.PointAt(i / n));
+                    GeoPoint2D sp2d = PositionOf(elli.StartPoint);
+                    if (elli.IsArc)
+                    { }
+                    else
+                    {
+                        Arc2D a2d = new Arc2D(GeoPoint2D.Origin, sp2d.ToVector().Length, sp2d, sp2d, true);
+                        GeoVector sdir = a2d.StartDirection.x * UDirection(sp2d) + a2d.StartDirection.y * VDirection(sp2d);
+                        if (sdir * elli.StartDirection < 0) a2d.counterClock = false;
+                        return a2d;
+                    }
                 }
-                Ellipse2D elli2d = Ellipse2D.FromFivePoints(fp2d, !elli.IsArc); // returns both full ellipse and ellipse arc
-                if (elli2d != null) return elli2d;
+                else
+                {
+                    // this is a intersection with a plane. 
+                    GeoPoint2D[] fp2d = new GeoPoint2D[5];
+                    double n = 5.0;
+                    if (elli.IsArc) n = 4.0;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        fp2d[i] = PositionOf(elli.PointAt(i / n));
+                    }
+                    Ellipse2D elli2d = Ellipse2D.FromFivePoints(fp2d, !elli.IsArc); // returns both full ellipse and ellipse arc
+                    if (elli2d != null) return elli2d;
+                }
             }
             return base.GetProjectedCurve(curve, precision);
         }
@@ -320,6 +336,10 @@ namespace CADability.GeoObject
             se.Add(openingAngle);
             return new GroupProperty("ConicalSurface", se.ToArray());
         }
+        GeoPoint ICone.Apex { get => location; set => throw new NotImplementedException(); }
+        GeoVector ICone.Axis { get => zAxis; set => throw new NotImplementedException(); }
+        Angle ICone.OpeningAngle { get => OpeningAngle; set => throw new NotImplementedException(); }
+
         #region IJsonSerialize
         protected ConicalSurfaceNP() { }
         void IJsonSerialize.GetObjectData(IJsonWriteData data)

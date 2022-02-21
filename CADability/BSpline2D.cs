@@ -778,7 +778,7 @@ namespace CADability.Curve2D
             return new BSpline2D(throughpoints, 3, false);
         }
         /// <summary>
-        /// Creates a (segment of a) hyperbola defined by its endpoints (startPoint, endPoint), the intersectionpoint of the tangents at the endpoints and a point
+        /// Creates a (segment of a) hyperbola defined by its endpoints (startPoint, endPoint), the intersection-point of the tangents at the endpoints and a point
         /// located on the hyperbola where the hyperbola intersects with the line [midpoint(startPoint, endPoint), tangentIntersectionPoint]
         /// </summary>
         /// <param name="startPoint"></param>

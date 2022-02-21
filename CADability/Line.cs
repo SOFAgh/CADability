@@ -706,6 +706,15 @@ namespace CADability.GeoObject
         {
             return GetExtent(0.0);
         }
+        bool ICurve.Extend(double atStart, double atEnd)
+        {
+            using (new Changing(this, "SetTwoPoints", this.startPoint, this.endPoint))
+            {
+                startPoint = startPoint - atStart * StartDirection.Normalized;
+                endPoint = endPoint + atEnd * StartDirection.Normalized;
+            }
+            return true;
+        }
         bool ICurve.HitTest(BoundingCube cube)
         {
             return HitTest(ref cube, 0.0);

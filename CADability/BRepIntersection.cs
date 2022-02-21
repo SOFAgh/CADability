@@ -1477,6 +1477,10 @@ namespace CADability
                 double[] uOnCurve3D;
                 Border.Position[] position;
                 double prec = precision / ef.edge.Curve3D.Length;
+                if (knownIntersections!=null && knownIntersections.TryGetValue(ef.edge, out Tuple<Face,Face> ki))
+                {
+                    if (ki.Item1 == ef.face || ki.Item2 == ef.face) continue;
+                }
                 ef.face.IntersectAndPosition(ef.edge, out ip, out uvOnFace, out uOnCurve3D, out position, precision);
                 for (int i = 0; i < ip.Length; ++i)
                 {
@@ -2003,7 +2007,7 @@ namespace CADability
             Shell toChamfer = primaryFace.Owner as Shell;
             if (toChamfer == null) return null;
             // sort the edges in the connection order
-            if (edges.Length>1)
+            if (edges.Length > 1)
             {
                 HashSet<Edge> toSort = new HashSet<Edge>(edges);
                 List<Edge> sorted = new List<Edge>();
@@ -2013,7 +2017,7 @@ namespace CADability
                 while (toSort.Any())
                 {
                     Edge endconnection = new HashSet<Edge>(sorted.Last().EndVertex(primaryFace).AllEdges).Intersect(toSort).FirstOrDefault();
-                    if (endconnection!=null)
+                    if (endconnection != null)
                     {
                         toSort.Remove(endconnection);
                         sorted.Add(endconnection);
@@ -2023,7 +2027,7 @@ namespace CADability
                     if (startconnection != null)
                     {
                         toSort.Remove(startconnection);
-                        sorted.Insert(0,startconnection);
+                        sorted.Insert(0, startconnection);
                         continue;
                     }
                     break;
@@ -2058,6 +2062,7 @@ namespace CADability
                 srfc1.SetBounds(edg.PrimaryFace.GetUVBounds());
                 srfc2.SetBounds(edg.SecondaryFace.GetUVBounds()); // for BoxedSurfaceEx
                 ICurve[] cvs = srfc1.Intersect(edg.PrimaryFace.GetUVBounds(), srfc2, edg.SecondaryFace.GetUVBounds());
+                // there is a problem with the length of the curves: should use "Surfaces.Intersect(srfc1, srfc2);" and fix the length below
                 if (cvs == null || cvs.Length == 0) continue;
                 // if there are more than one intersection curves, take the one closest to the edge
                 ICurve crv = cvs[0];
@@ -2071,7 +2076,7 @@ namespace CADability
                         crv = cvs[i];
                     }
                 }
-                // clip the intersection curve to the length of the edg
+                // clip the intersection curve to the length of the edge
                 double pos1 = crv.PositionOf(edg.Vertex1.Position);
                 double pos2 = crv.PositionOf(edg.Vertex2.Position);
                 if (pos1 >= -1e-6 && pos1 <= 1.0 + 1e-6 && pos2 >= -1e-6 && pos2 <= 1.0 + 1e-6)
@@ -2080,11 +2085,12 @@ namespace CADability
                     else
                     {
                         crv.Trim(pos2, pos1);
-                        crv.Reverse(); // important, we expect crv going from vertex1 to vertex2
+                        crv.Reverse(); // important, we expect _crv_ going from vertex1 to vertex2
                     }
                 }
                 else continue; // maybe the offset surfaces of a nurbs surface only intersect with a short intersection curve. What could you do in this case?
-                               // update the connection status, the vertex to involved edges list.
+                crv.Extend(radius, radius); // make it long enough so that two adjacent fillets fully intersect
+                // update the connection status, the vertex to involved edges list.
                 if (!joiningVertices.TryGetValue(edg.Vertex1, out List<Edge> joining))
                 {
                     joiningVertices[edg.Vertex1] = joining = new List<Edge>();
@@ -2101,7 +2107,7 @@ namespace CADability
                 GeoVector dirx = edg.Curve3D.PointAt(edg.Curve3D.PositionOf(crv.StartPoint)) - crv.StartPoint;
                 GeoVector diry = crv.StartDirection ^ dirx;
                 dirx = crv.StartDirection ^ diry;
-                Plane pln = new Plane(crv.StartPoint, dirx, diry); // Plane perpendicular to the startdirection of the axis-curve, plane's x-axis pointing away from edge.
+                Plane pln = new Plane(crv.StartPoint, dirx, diry); // Plane perpendicular to the start-direction of the axis-curve, plane's x-axis pointing away from edge.
                 arc.SetArcPlaneCenterRadiusAngles(pln, crv.StartPoint, radius, Math.PI / 2.0, Math.PI);
                 Face fillet = Make3D.ExtrudeCurveToFace(arc, crv);
 
@@ -2197,7 +2203,7 @@ namespace CADability
                     if (arc != null)
                     {
                         // create a cylindrical elongation at the end of the fillet
-                        Line l1 = Line.TwoPoints(cnt, cnt + 2 * radius * dir); // 2*radius ist willkürlich!
+                        Line l1 = Line.TwoPoints(cnt, cnt + 2 * radius * dir); // 2*radius is arbitrary!
                         Face filletExtend = Make3D.ExtrudeCurveToFace(arc, l1);
                         // this cylindrical face has two line edges, which may or may not be tangential to the primary and secondary face of the rounded edge
                         foreach (Edge cedg in filletExtend.AllEdgesIterated())
@@ -2221,8 +2227,8 @@ namespace CADability
                 {
                     // two edges (to be rounded) are connected at this vertex
                     // we try to intersect the two raw fillets. If they do intersect, we cut off the extend
-                    // if they don't intersect, we add a toriodal fitting part
-                    // we need to reconstruct tangentialIntersectionEdges when the brep intersection modifies the faces (and shortens the tangential edges)
+                    // if they don't intersect, we add a toroidal fitting part
+                    // we need to reconstruct tangentialIntersectionEdges when the BRep intersection modifies the faces (and shortens the tangential edges)
                     // we use UserData for this purpose.
                     GeoVector edge0dir, edg1dir;
                     if (vertexToEdge.Value[0].Vertex1 == vertexToEdge.Key) edge0dir = vertexToEdge.Value[0].Curve3D.StartDirection;
@@ -2254,7 +2260,7 @@ namespace CADability
                                     // we have to replace the old faces and edges with the new ones in rawFillets and tangentialIntersectionEdges
                                     int hc0 = (int)fcs[0].UserData["BrepFillet.OriginalFace"];
                                     int hc1 = (int)fcs[1].UserData["BrepFillet.OriginalFace"];
-                                    // we did save the HasCodes instead of the objects themselves, because cloning the userdata with a face, which has a userdata with a face... infinite loop
+                                    // we did save the HasCodes instead of the objects themselves, because cloning the UserData with a face, which has a UserData with a face... infinite loop
                                     Dictionary<Face, Face> oldToNew = new Dictionary<Face, Face>();
                                     if (hc0 == rawFillets[vertexToEdge.Value[0]].Item2.GetHashCode())
                                     {
@@ -2290,7 +2296,7 @@ namespace CADability
                         }
                         else
                         {
-                            // no proper intersection, try to add a toriodal junction between the two fillets
+                            // no proper intersection, try to add a toroidal junction between the two fillets
                             Face fc1 = rawFillets[vertexToEdge.Value[0]].Item2;
                             Face fc2 = rawFillets[vertexToEdge.Value[1]].Item2;
                             GeoPoint cnt1, cnt2;

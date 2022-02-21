@@ -99,7 +99,7 @@ namespace CADability.GeoObject
         {
             Line2D l2d = new Line2D(new GeoPoint2D(umin, v), new GeoPoint2D(umax, v));
             double[] cl = Clip(l2d);
-            if (cl.Length==2)
+            if (cl.Length == 2)
             {
                 umin = l2d.PointAt(cl[0]).x;
                 umax = l2d.PointAt(cl[1]).x;
@@ -196,36 +196,24 @@ namespace CADability.GeoObject
             }
             else if (curve is Ellipse elli)
             {
+                // the ellipse must be above the projection center of the 2d system
+                // otherwise it is probably a hyperbola
+                GeoPoint p1 = Geometry.DropPL(elli.Center + elli.MajorAxis, location, zAxis);
+                GeoPoint p2 = Geometry.DropPL(elli.Center - elli.MajorAxis, location, zAxis);
+                double pos1 = Geometry.LinePar(location - zAxis, zAxis, p1);
+                double pos2 = Geometry.LinePar(location - zAxis, zAxis, p2);
+                if (pos1<0 || pos2<0) return base.GetProjectedCurve(curve, precision);
                 double d = Geometry.DistPL(elli.Center, location, zAxis);
                 double prec = (elli.MajorRadius + elli.MinorRadius) * 1e-6;
                 // FromFivePoints for this case
                 GeoPoint2D[] fp2d = new GeoPoint2D[5];
                 double n = 5.0;
-                if (elli.IsArc) n = 4.0;
+                if (elli.IsArc) n = 4;
                 for (int i = 0; i < 5; i++)
                 {
                     fp2d[i] = PositionOf(elli.PointAt(i / n));
                 }
                 Ellipse2D elli2d = Ellipse2D.FromFivePoints(fp2d, !elli.IsArc); // returns both full ellipse and ellipse arc
-                //#if DEBUG
-                //                Ellipse2D elli2dn = Ellipse2D.FromPoints(fp2d);
-                //                double e1 = 0.0, e2 = 0.0;
-                //                for (int i = 0; i < fp2d.Length; i++)
-                //                {
-                //                    e1 += Math.Abs(elli2d.Distance(fp2d[i]));
-                //                    e2 += Math.Abs(elli2dn.Distance(fp2d[i]));
-                //                }
-                //#endif
-                // the following was intended to make the ellipse more precise, but doesn't work 
-                //if (elli2d == null)
-                //{
-                //    BoundingRect ext = new BoundingRect(fp2d);
-                //    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(fp2d), ext.GetCenter(), ext.Size / 2.0, ext.Size / 3.0, 0.0, prec, out elli2d);
-                //}
-                //else
-                //{
-                //    GaussNewtonMinimizer.Ellipse2DFit(new ToIArray<GeoPoint2D>(fp2d), elli2d.center, elli2d.majrad, elli2d.minrad, elli2d.majorAxis.Angle, prec, out elli2d);
-                //}
                 if (elli2d != null)
                 {
                     if (elli.IsArc)
@@ -331,6 +319,13 @@ namespace CADability.GeoObject
             GeoVector2D v2d = new GeoVector2D(v.x, v.y);
             v2d.Length = r / v.z;
             return new GeoPoint2D(v2d.x, v2d.y);
+        }
+        public override GeoPoint2D[] PerpendicularFoot(GeoPoint fromHere)
+        {
+            GeoPoint onAxis = Geometry.DropPL(fromHere, location, zAxis);
+            GeoVector toHere = fromHere - onAxis;
+            toHere.Length = xAxis.Length;
+            return new GeoPoint2D[] { PositionOf(onAxis + toHere), PositionOf(onAxis - toHere) };
         }
         public override ModOp2D ReverseOrientation()
         {   // flip x and y axis, keep z axis, left handed system

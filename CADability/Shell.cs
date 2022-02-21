@@ -270,6 +270,7 @@ namespace CADability.GeoObject
             foreach (Face fc in Faces)
             {
                 fc.GetTriangulation(precision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
+                if (triangleIndex == null) continue;
                 // tried to use normals for correction, but the distance from plane had better results
                 //GeoVector[] triangleNormals = new GeoVector[triangleUVPoint.Length];
                 //for (int i = 0; i < triangleUVPoint.Length; i++)
