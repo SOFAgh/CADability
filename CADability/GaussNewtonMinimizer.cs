@@ -468,6 +468,13 @@ namespace CADability
                 return double.MaxValue;
             }
         }
+        /// <summary>
+        /// This is not good implemented. Do not use!
+        /// </summary>
+        /// <param name="points"></param>
+        /// <param name="precision"></param>
+        /// <param name="plane"></param>
+        /// <returns></returns>
         public static double PlaneFit(IArray<GeoPoint> points, double precision, out Plane plane)
         {
             // We use a GaussNewtonMinimizer with the following parameters: n: normal of the plane (nx,ny,nz)

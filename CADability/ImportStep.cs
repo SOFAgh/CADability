@@ -2577,7 +2577,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (13014 == item.definingIndex || 19216 == item.definingIndex)
+                            if (23190 == item.definingIndex || 19216 == item.definingIndex)
                             {
                             }
 #endif
@@ -2651,7 +2651,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (3550 == item.definingIndex || 3992 == item.definingIndex)
+                            if (35386 == item.definingIndex || 3992 == item.definingIndex)
                             {
                             }
 #endif
@@ -2704,8 +2704,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                             importProblems[item.definingIndex] = "inconsistent face";
                                         }
                                         ++faceCount;
-                                        if (2859 == item.definingIndex || 3219 == item.definingIndex)
-                                            (item.val as Face[])[i].AssureTriangles(0.004); // remove when done
+                                        //if (2859 == item.definingIndex || 3219 == item.definingIndex)
+                                        //    (item.val as Face[])[i].AssureTriangles(0.004); // remove when done
 
                                         //foreach (Edge edg in (item.val as Face[])[i].AllEdgesIterated())
                                         //{
@@ -4374,18 +4374,24 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 
         private void AvoidDuplicateColorNames(ColorDef cd)
         {   // some step files name all their colors with the same name (e.g. "Colour"). The name is the key for the ColorDef, so all colors would be replaced by the first color with this name
-            if (definedColors == null) definedColors = new Dictionary<string, ColorDef>();
-            if (definedColors.TryGetValue(cd.Name, out ColorDef found))
+            lock (this)
             {
-                if (found.Color != cd.Color)
-                {   // same name but different colors
-                    cd.Name = cd.Name + " (rgb:" + cd.Color.R.ToString() + "_" + cd.Color.G.ToString() + "_" + cd.Color.B.ToString() + ")";
+                if (definedColors == null) definedColors = new Dictionary<string, ColorDef>();
+            }
+            lock (definedColors)
+            { 
+                if (definedColors.TryGetValue(cd.Name, out ColorDef found))
+                {
+                    if (found.Color != cd.Color)
+                    {   // same name but different colors
+                        cd.Name = cd.Name + " (rgb:" + cd.Color.R.ToString() + "_" + cd.Color.G.ToString() + "_" + cd.Color.B.ToString() + ")";
+                        definedColors[cd.Name] = cd;
+                    }
+                }
+                else
+                {
                     definedColors[cd.Name] = cd;
                 }
-            }
-            else
-            {
-                definedColors[cd.Name] = cd;
             }
         }
 

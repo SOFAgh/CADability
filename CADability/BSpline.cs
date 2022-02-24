@@ -2061,7 +2061,7 @@ namespace CADability.GeoObject
             if (!nurbsHelper) MakeNurbsHelper();
             lock (this)
             {
-                if (plane.HasValue)
+                if (plane.HasValue && (nubs2d != null | nurbs2d != null))
                 {
                     if (nubs2d != null)
                     {

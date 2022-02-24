@@ -821,7 +821,7 @@ namespace CADability
             edgeKind = EdgeKind.unknown;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 1468)
+            if (hashCode == 5295)
             {
             }
 #endif
@@ -1950,56 +1950,75 @@ namespace CADability
                     }
                 }
             }
+            else
+            {
+                if (curveOnPrimaryFace is ProjectedCurve)
+                {
+                    curveOnPrimaryFace = new ProjectedCurve(curve3d, primaryFace.Surface, forwardOnPrimaryFace, primaryFace.Domain);
+                }
+                if (curveOnSecondaryFace is ProjectedCurve)
+                {
+                    curveOnSecondaryFace = new ProjectedCurve(curve3d, secondaryFace.Surface, forwardOnSecondaryFace, secondaryFace.Domain);
+                }
+            }
         }
 
         internal void PaintTo3D(IPaintTo3D paintTo3D)
         {
             IGeoObjectImpl go = Curve3D as IGeoObjectImpl;
-            if (edgeKind == EdgeKind.unknown)
-            {
-                edgeKind = EdgeKind.sharp;
-                if (secondaryFace == null) edgeKind = EdgeKind.sharp;
-                else if (primaryFace.Surface.SameGeometry(primaryFace.Domain, secondaryFace.Surface, secondaryFace.Domain, Precision.eps, out _)) edgeKind = EdgeKind.sameSurface;
-                else if ((primaryFace.Surface is PlaneSurface && (secondaryFace.Surface is CylindricalSurface || secondaryFace.Surface is ConicalSurface || secondaryFace.Surface is ToroidalSurface)) ||
-                    (secondaryFace.Surface is PlaneSurface && (primaryFace.Surface is CylindricalSurface || primaryFace.Surface is ConicalSurface || primaryFace.Surface is ToroidalSurface)))
-                {
-                    // we only need to check a single position
-                    GeoVector n1 = primaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(primaryFace));
-                    GeoVector n2 = secondaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(secondaryFace));
-                    if (Precision.SameNotOppositeDirection(n1, n2)) edgeKind = EdgeKind.tangential;
-                }
-                else
-                {
-                    GeoVector n1 = primaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(primaryFace));
-                    GeoVector n2 = secondaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(secondaryFace));
-                    if (Precision.SameNotOppositeDirection(n1, n2))
-                    {
-                        n1 = primaryFace.Surface.GetNormal(Vertex2.GetPositionOnFace(primaryFace));
-                        n2 = secondaryFace.Surface.GetNormal(Vertex2.GetPositionOnFace(secondaryFace));
-                        if (Precision.SameNotOppositeDirection(n1, n2))
-                        {
-                            // now there could be cases, where we would have to check more points, and I don't know, how to tell, so we check only the middle point
-                            GeoPoint m = curve3d.PointAt(0.5);
-                            n1 = primaryFace.Surface.GetNormal(primaryFace.Surface.PositionOf(m));
-                            n2 = secondaryFace.Surface.GetNormal(secondaryFace.Surface.PositionOf(m));
-                            if (Precision.SameNotOppositeDirection(n1, n2)) edgeKind = EdgeKind.tangential;
-                        }
-                    }
-                }
-                if (go!=null)
-                {
-                    (go as IColorDef).ColorDef = null;
-                    (go as ILinePattern).LinePattern = null;
-                    (go as ILineWidth).LineWidth = LineWidth.ThinLine;
-                }
-            }
-            if (edgeKind == EdgeKind.sameSurface || Curve3D == null) return;
+            // there was the idea to paint edges with different colors, depending on their function: there are edges connecting faces on same surfaces,
+            // edges connecting tangential surfaces and edges between non tangential faces, i.e. sharp bends. It doesn't look nice to show them with differen colors
+            // so we now use only black
             if (go != null)
             {
-                if (edgeKind == EdgeKind.tangential) paintTo3D.SetColor(Color.FromArgb(128, 192, 192, 192));
-                if (edgeKind == EdgeKind.sharp) paintTo3D.SetColor(Color.Black);
+                paintTo3D.SetColor(Color.Black);
                 go.PaintTo3D(paintTo3D);
             }
+            //if (edgeKind == EdgeKind.unknown)
+            //{
+            //    edgeKind = EdgeKind.sharp;
+            //    if (secondaryFace == null) edgeKind = EdgeKind.sharp;
+            //    else if (primaryFace.Surface.SameGeometry(primaryFace.Domain, secondaryFace.Surface, secondaryFace.Domain, Precision.eps, out _)) edgeKind = EdgeKind.sameSurface;
+            //    else if ((primaryFace.Surface is PlaneSurface && (secondaryFace.Surface is CylindricalSurface || secondaryFace.Surface is ConicalSurface || secondaryFace.Surface is ToroidalSurface)) ||
+            //        (secondaryFace.Surface is PlaneSurface && (primaryFace.Surface is CylindricalSurface || primaryFace.Surface is ConicalSurface || primaryFace.Surface is ToroidalSurface)))
+            //    {
+            //        // we only need to check a single position
+            //        GeoVector n1 = primaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(primaryFace));
+            //        GeoVector n2 = secondaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(secondaryFace));
+            //        if (Precision.SameNotOppositeDirection(n1, n2)) edgeKind = EdgeKind.tangential;
+            //    }
+            //    else
+            //    {
+            //        GeoVector n1 = primaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(primaryFace));
+            //        GeoVector n2 = secondaryFace.Surface.GetNormal(Vertex1.GetPositionOnFace(secondaryFace));
+            //        if (Precision.SameNotOppositeDirection(n1, n2))
+            //        {
+            //            n1 = primaryFace.Surface.GetNormal(Vertex2.GetPositionOnFace(primaryFace));
+            //            n2 = secondaryFace.Surface.GetNormal(Vertex2.GetPositionOnFace(secondaryFace));
+            //            if (Precision.SameNotOppositeDirection(n1, n2))
+            //            {
+            //                // now there could be cases, where we would have to check more points, and I don't know, how to tell, so we check only the middle point
+            //                GeoPoint m = curve3d.PointAt(0.5);
+            //                n1 = primaryFace.Surface.GetNormal(primaryFace.Surface.PositionOf(m));
+            //                n2 = secondaryFace.Surface.GetNormal(secondaryFace.Surface.PositionOf(m));
+            //                if (Precision.SameNotOppositeDirection(n1, n2)) edgeKind = EdgeKind.tangential;
+            //            }
+            //        }
+            //    }
+            //    if (go!=null)
+            //    {
+            //        (go as IColorDef).ColorDef = null;
+            //        (go as ILinePattern).LinePattern = null;
+            //        (go as ILineWidth).LineWidth = LineWidth.ThinLine;
+            //    }
+            //}
+            //if (edgeKind == EdgeKind.sameSurface || Curve3D == null) return;
+            //if (go != null)
+            //{
+            //    if (edgeKind == EdgeKind.tangential) paintTo3D.SetColor(Color.FromArgb(128, 192, 192, 192));
+            //    if (edgeKind == EdgeKind.sharp) paintTo3D.SetColor(Color.Black);
+            //    go.PaintTo3D(paintTo3D);
+            //}
         }
 
         internal void SetSecondary(Face secondaryFace, ICurve2D curveOnSecondaryFace, bool forwardOnSecondaryFace)
