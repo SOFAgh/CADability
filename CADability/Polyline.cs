@@ -1462,6 +1462,10 @@ namespace CADability.GeoObject
         {
             return position * Length;
         }
+        bool ICurve.Extend(double atStart, double atEnd)
+        {
+            return false;
+        }
         BoundingCube ICurve.GetExtent()
         {
             return GetExtent(0.0);

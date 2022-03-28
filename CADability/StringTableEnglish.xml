@@ -7207,4 +7207,9 @@
     <tip>Compose assemblies and products to blocks</tip>
     <info>Compose assemblies and products to blocks</info>
   </data>
+  <data name="StepImport.PreferNonPeriodic">
+    <label>Prefer non-periodic surfaces</label>
+    <tip>Prefer non-periodic surfaces when importing faces</tip>
+    <info>Prefer non-periodic surfaces when importing faces</info>
+  </data>
 </root>

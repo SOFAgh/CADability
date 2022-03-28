@@ -17,12 +17,14 @@ namespace CADability
         private LengthInput diameterInput;
         private bool validResult;
         private bool useRadius;
+        private bool isFillet;
         public ParametricsRadius(Face[] facesWithRadius, IFrame frame, bool useRadius)
         {
             this.facesWithRadius = facesWithRadius;
             this.frame = frame;
             this.useRadius = useRadius;
             shell = facesWithRadius[0].Owner as Shell;
+            isFillet = facesWithRadius[0].IsFillet();
         }
 
         public override string GetID()
@@ -105,8 +107,8 @@ namespace CADability
             {
                 Parametrics pm = new Parametrics(shell);
                 bool ok = false;
-                if (facesWithRadius.Length == 1) ok = pm.ModifyRadius(facesWithRadius[0], length);
-                else ok = pm.ModifyFilletRadius(facesWithRadius, length);
+                if (isFillet) ok = pm.ModifyFilletRadius(facesWithRadius, length);
+                else ok = pm.ModifyRadius(facesWithRadius, length);
                 if (ok)
                 {
                     Shell sh = pm.Result(out HashSet<Face> involvedFaces);

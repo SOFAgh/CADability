@@ -7180,4 +7180,9 @@
     <tip>"assemblies" und "products" zu Blöcken zusammenfassen</tip>
     <info>"assemblies" und "products" zu Blöcken zusammenfassen</info>
   </data>
+  <data name="StepImport.PreferNonPeriodic">
+    <label>nicht-periodische Flächen</label>
+    <tip>Möglichst nicht-periodische Flächen beim Import verwenden</tip>
+    <info>Möglichst nicht-periodische Flächen beim Import verwenden</info>
+  </data>
 </root>

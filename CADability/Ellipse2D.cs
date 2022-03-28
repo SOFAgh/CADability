@@ -963,6 +963,8 @@ namespace CADability.Curve2D
             }
             set
             {
+                double pos = PositionOf(value);
+                GeoPoint2D point2D = PointAt(pos);
                 if (!Precision.IsEqual(EndPoint, value))
                     throw new ApplicationException("cannot set EndPoint of Ellipse2D");
             }

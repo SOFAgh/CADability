@@ -1808,7 +1808,7 @@ namespace CADability
                     Project project = Project.CreateSimpleProject();
                     foreach (IGeoObject go in list)
                     {
-                        if (go is IColorDef icd && icd.ColorDef == null) icd.ColorDef = project.ColorList.CreateOrFind("Standard", Color.Red);
+                        if (go is IColorDef icd && icd.ColorDef == null) icd.SetTopLevel(project.ColorList.CreateOrFind("Standard", Color.Red), true);
                         if (go.Layer == null) go.Layer = project.LayerList.CreateOrFind("Standard");
                         AttributeListContainer.UpdateObjectAttrinutes(project, go);
                         go.UpdateAttributes(project);

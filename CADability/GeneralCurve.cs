@@ -756,7 +756,10 @@ namespace CADability.GeoObject
         {
             return position;
         }
-
+        bool ICurve.Extend(double atStart, double atEnd)
+        {
+            return false;
+        }
         BoundingCube ICurve.GetExtent()
         {
             if (tetraederBase == null) MakeTetraederHull();

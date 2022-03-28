@@ -2773,6 +2773,19 @@ namespace CADability.Curve2D
                     return true;
                 }
             }
+            else
+            {
+                if ((fromHere | sp) < Precision.eps)
+                {
+                    par = 0.0;
+                    return true;
+                }
+                if ((fromHere | ep) < Precision.eps)
+                {
+                    par = 1.0;
+                    return true;
+                }
+            }
             return false;
         }
 

@@ -8,11 +8,30 @@ using System.Runtime.Serialization;
 namespace CADability.GeoObject
 {
     /// <summary>
+    /// Common interface for <see cref="ConicalSurface"/> and <see cref="ConicalSurfaceNP"/>.
+    /// Both surfaces implement only a half cone, which goes from the <see cref="ICone.Apex"/> in the direction of <see cref="ICone.Axis"/>.
+    /// </summary>
+    public interface ICone
+    {
+        /// <summary>
+        /// The apex of the cone. 
+        /// </summary>
+        GeoPoint Apex { get; set; }
+        /// <summary>
+        /// The axis of the cone. Also specifies, which part of the cone is used
+        /// </summary>
+        GeoVector Axis { get; set; }
+        /// <summary>
+        /// The full opening angle. Sometimes you need only the half angle
+        /// </summary>
+        Angle OpeningAngle { get; set; }
+    }
+    /// <summary>
     /// A conical surface which implements <see cref="ISurface"/>. The surface represents a circular or elliptical
     /// cone. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
     [Serializable()]
-    public class ConicalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, ISurfaceOfRevolution, IExportStep
+    public class ConicalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, ISurfaceOfRevolution, IExportStep, ICone
     {
         // Der Einheitskegel hat als halben Öffnungswinkel 45°, Der Ursprung ist die Kegelspitze, u geht im Kreis
         // v in die ZRichtung
@@ -179,7 +198,7 @@ namespace CADability.GeoObject
             try
             {
                 Plane pln = new Plane(Location, Axis, fromHere - Location);
-                // in this plane the x-axis ist the conical axis, the origin is the apex of the cone
+                // in this plane the x-axis is the conical axis, the origin is the apex of the cone
                 Angle dira = OpeningAngle / 2.0;
                 // this line through origin with angle dira and -dira are the envelope lines of the cone
                 GeoPoint2D fromHere2d = pln.Project(fromHere);
@@ -1490,6 +1509,11 @@ namespace CADability.GeoObject
             // ansonsten wäre ja auch nicht klar, welche 2d-Linie gemeint ist
             return Geometry.DistPL(PointAt(mp), PointAt(sp), PointAt(ep));
         }
+
+        public override ISurface GetOffsetSurface(double offset)
+        {
+            return GetOffsetSurface(offset, out ModOp2D dumy);
+        }
         public override ISurface GetOffsetSurface(double offset, out ModOp2D mod)
         {
             // nur zum Überprüfen:
@@ -1522,6 +1546,20 @@ namespace CADability.GeoObject
 #endif
             return res;
         }
+        public override ICurve[] Intersect(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {   // should better use Surfaces.Intersect
+            if (other is PlaneSurface ps)
+            {
+                IDualSurfaceCurve[] dsc = GetPlaneIntersection(ps, thisBounds.Left, thisBounds.Right, thisBounds.Bottom, thisBounds.Top, 0.0);
+                ICurve[] res = new ICurve[dsc.Length];
+                for (int i = 0; i < res.Length; i++)
+                {
+                    res[i] = dsc[i].Curve3D;
+                }
+                return res;
+            }
+            return base.Intersect(thisBounds, other, otherBounds);
+        }
         public override ISurface GetNonPeriodicSurface(ICurve[] orientedCurves)
         {
             ConicalSurfaceNP res = new ConicalSurfaceNP(Location, XAxis, YAxis, ZAxis);
@@ -1547,6 +1585,60 @@ namespace CADability.GeoObject
         }
         public override ICurve2D GetProjectedCurve(ICurve curve, double precision)
         {
+            if (curve is Ellipse elli)
+            {   // we need the projected curve where the curve itself might have some distance to the cone. The projection must be perpendicular
+                if (Geometry.DistPL(elli.Center, Location, Axis) < Precision.eps)
+                {   // the center of the ellipse is located on the cones axis
+                    if (Precision.SameDirection(elli.Normal, Axis, false))
+                    {   // and it is aligned to the axis
+                        // we need the perpendicular projection of some ellipse point onto the cone. PositionOf is not perpendicular!
+                        GeoPoint2D sp = GeoPoint2D.Origin, ep = GeoPoint2D.Origin, mp = GeoPoint2D.Origin;
+                        GeoPoint2D[] pf = PerpendicularFoot(elli.StartPoint); // this always yields 2 points
+                        if (pf.Length == 2)
+                        {
+                            if ((PointAt(pf[0]) | elli.StartPoint) < (PointAt(pf[1]) | elli.StartPoint)) sp = pf[0];
+                            else sp = pf[1];
+                        }
+                        pf = PerpendicularFoot(elli.EndPoint);
+                        if (pf.Length == 2)
+                        {
+                            if ((PointAt(pf[0]) | elli.EndPoint) < (PointAt(pf[1]) | elli.EndPoint)) ep = pf[0];
+                            else ep = pf[1];
+                        }
+                        pf = PerpendicularFoot(elli.PointAt(0.5));
+                        if (pf.Length == 2)
+                        {
+                            if ((PointAt(pf[0]) | elli.PointAt(0.5)) < (PointAt(pf[1]) | elli.PointAt(0.5))) mp = pf[0];
+                            else mp = pf[1];
+                        }
+                        // now we need a (horizontal) line from sp to ep crossing mp
+                        if (Math.Abs(mp.x - sp.x) > Math.PI)
+                        {
+                            if (sp.x < mp.x) sp.x += Math.PI * 2;
+                            else sp.x -= Math.PI * 2;
+                        }
+                        if (Math.Abs(mp.x - ep.x) > Math.PI)
+                        {
+                            if (ep.x < mp.x) ep.x += Math.PI * 2;
+                            else ep.x -= Math.PI * 2;
+                        }
+                        if (elli.IsClosed)
+                        {   // a full circle
+                            if (Math.Abs(sp.x - ep.x) < Math.PI) sp.x -= Math.PI * 2;
+                            // we need to consider the direction of the line
+                            GeoVector2D dir2d = ep - sp;
+                            GeoVector dir = dir2d.x * UDirection(sp) + dir2d.y * VDirection(sp);
+                            if (elli.StartDirection * dir < 0)
+                            {   // reverse the line
+                                mp = sp;
+                                sp = ep;
+                                ep = mp;
+                            }
+                        }
+                        return new Line2D(sp, ep);
+                    }
+                }
+            }
             ICurve crvunit = curve.CloneModified(toUnit);
             if (crvunit is Line)
             {
@@ -1669,7 +1761,7 @@ namespace CADability.GeoObject
                                 res = s2cx;
                             }
                         }
-                        if (minDist<Precision.eps) return res;
+                        if (minDist < Precision.eps) return res;
                     }
 
                 }
@@ -1684,9 +1776,12 @@ namespace CADability.GeoObject
                 case CylindricalSurface _:
                     {
                         int res = other.GetExtremePositions(otherBounds, this, thisBounds, out extremePositions);
-                        for (int i = 0; i < extremePositions.Count; i++)
+                        if (res > 0)
                         {
-                            extremePositions[i] = new Tuple<double, double, double, double>(extremePositions[i].Item3, extremePositions[i].Item4, extremePositions[i].Item1, extremePositions[i].Item2);
+                            for (int i = 0; i < extremePositions.Count; i++)
+                            {
+                                extremePositions[i] = new Tuple<double, double, double, double>(extremePositions[i].Item3, extremePositions[i].Item4, extremePositions[i].Item1, extremePositions[i].Item2);
+                            }
                         }
                         return res;
                     }
@@ -1790,21 +1885,21 @@ namespace CADability.GeoObject
             List<IPropertyEntry> se = new List<IPropertyEntry>();
             GeoPointProperty location = new GeoPointProperty(frame, "ConicalSurface.Location");
             location.ReadOnly = true;
-            location.OnGetValue =new EditableProperty<GeoPoint>.GetValueDelegate( delegate () { return toCone * GeoPoint.Origin; });
+            location.OnGetValue = new EditableProperty<GeoPoint>.GetValueDelegate(delegate () { return toCone * GeoPoint.Origin; });
             se.Add(location);
             GeoVectorProperty dirx = new GeoVectorProperty(frame, "ConicalSurface.DirectionX");
             dirx.ReadOnly = true;
             dirx.IsAngle = false;
-            dirx.OnGetValue =new EditableProperty<GeoVector>.GetValueDelegate( delegate () { return toCone * GeoVector.XAxis; });
+            dirx.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return toCone * GeoVector.XAxis; });
             se.Add(dirx);
             GeoVectorProperty diry = new GeoVectorProperty(frame, "ConicalSurface.DirectionY");
             diry.ReadOnly = true;
             diry.IsAngle = false;
-            diry.OnGetValue =new EditableProperty<GeoVector>.GetValueDelegate( delegate () { return toCone * GeoVector.XAxis; });
+            diry.OnGetValue = new EditableProperty<GeoVector>.GetValueDelegate(delegate () { return toCone * GeoVector.XAxis; });
             se.Add(diry);
             AngleProperty openingAngle = new AngleProperty(frame, "ConicalSurface.OpeningAngle");
             openingAngle.ReadOnly = true;
-            openingAngle.OnGetValue =new EditableProperty<Angle>.GetValueDelegate( delegate () { return OpeningAngle; });
+            openingAngle.OnGetValue = new EditableProperty<Angle>.GetValueDelegate(delegate () { return OpeningAngle; });
             se.Add(openingAngle);
             return new GroupProperty("ConicalSurface", se.ToArray());
         }
@@ -1833,6 +1928,10 @@ namespace CADability.GeoObject
                 return Line.MakeLine(PointAt(new GeoPoint2D(0.0, 0.0)), PointAt(new GeoPoint2D(0.0, 1.0)));
             }
         }
+
+        GeoPoint ICone.Apex { get => Location; set => throw new NotImplementedException(); }
+        GeoVector ICone.Axis { get => ZAxis; set => throw new NotImplementedException(); }
+        Angle ICone.OpeningAngle { get => OpeningAngle; set => throw new NotImplementedException(); }
         #endregion
         int IExportStep.Export(ExportStep export, bool topLevel)
         {

@@ -1167,7 +1167,7 @@ namespace CADability.GeoObject
             // upars, vpars describe an almost evenly spaced 5x5 grid while singularities and seams (of closed surface) are avoided
             // now lets see, whether in the middle we have a line or circular arc
 
-            precision = Math.Min(precision, PolesExtent.Size * 1e-5);
+            precision = Math.Max(precision, PolesExtent.Size * 1e-3);
 
             GeoPoint[,] samples = new GeoPoint[5, 5];
             for (int i = 0; i < 5; i++)

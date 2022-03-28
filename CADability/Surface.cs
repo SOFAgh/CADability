@@ -3860,38 +3860,42 @@ namespace CADability.GeoObject
             extremePositions = new List<Tuple<double, double, double, double>>();
             GeoPoint2D uv11 = thisBounds.GetCenter();
             GeoPoint2D uv22 = otherBounds.GetCenter();
-            double maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv11, ref uv22);
-            if (maxerror < Precision.eps)
+            try
             {
-                if ((this.PointAt(uv11) | other.PointAt(uv22)) < Precision.eps)
+                double maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv11, ref uv22);
+                if (maxerror < Precision.eps)
                 {
-                    // this is an intersection point. try to find another intersection point and take the point in the middle
-                    // this will not be an extreme point but a good additional point for BoxedSurface.Intersect additionalSearchPositions
-                    foreach (GeoPoint2D uv111 in new GeoPoint2D[] { thisBounds.GetLowerLeft(), thisBounds.GetLowerRight(), thisBounds.GetUpperLeft(), thisBounds.GetUpperRight() })
-                    {   // try with different starting points to find more intersection points
-                        GeoPoint2D uv2 = other.PositionOf(this.PointAt(uv111));
-                        GeoPoint2D uv1 = uv111;
-                        maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv1, ref uv2);
-                        if (maxerror < Precision.eps && (uv1 | uv11) > Precision.eps && (uv2 | uv22) > Precision.eps)
-                        {   //we have another intersection point and we will use the point in between
-                            if ((this.PointAt(uv1) | other.PointAt(uv2)) < Precision.eps)
-                            {   // a second intersection point
-                                extremePositions.Add(new Tuple<double, double, double, double>((uv1.x + uv11.x) / 2.0, (uv1.y + uv11.y) / 2.0, (uv2.x + uv22.x) / 2.0, (uv2.y + uv22.y) / 2.0));
+                    if ((this.PointAt(uv11) | other.PointAt(uv22)) < Precision.eps)
+                    {
+                        // this is an intersection point. try to find another intersection point and take the point in the middle
+                        // this will not be an extreme point but a good additional point for BoxedSurface.Intersect additionalSearchPositions
+                        foreach (GeoPoint2D uv111 in new GeoPoint2D[] { thisBounds.GetLowerLeft(), thisBounds.GetLowerRight(), thisBounds.GetUpperLeft(), thisBounds.GetUpperRight() })
+                        {   // try with different starting points to find more intersection points
+                            GeoPoint2D uv2 = other.PositionOf(this.PointAt(uv111));
+                            GeoPoint2D uv1 = uv111;
+                            maxerror = GaussNewtonMinimizer.SurfaceExtrema(this, thisBounds, other, otherBounds, ref uv1, ref uv2);
+                            if (maxerror < Precision.eps && (uv1 | uv11) > Precision.eps && (uv2 | uv22) > Precision.eps)
+                            {   //we have another intersection point and we will use the point in between
+                                if ((this.PointAt(uv1) | other.PointAt(uv2)) < Precision.eps)
+                                {   // a second intersection point
+                                    extremePositions.Add(new Tuple<double, double, double, double>((uv1.x + uv11.x) / 2.0, (uv1.y + uv11.y) / 2.0, (uv2.x + uv22.x) / 2.0, (uv2.y + uv22.y) / 2.0));
+                                }
+                                else
+                                {   // a real extreme point, which is not an intersection point
+                                    extremePositions.Add(new Tuple<double, double, double, double>(uv1.x, uv1.y, uv2.x, uv2.y));
+                                }
+                                break;
                             }
-                            else
-                            {   // a real extreme point, which is not an intersection point
-                                extremePositions.Add(new Tuple<double, double, double, double>(uv1.x, uv1.y, uv2.x, uv2.y));
-                            }
-                            break;
                         }
                     }
-                }
-                else
-                {
-                    if (thisBounds.Contains(uv11)) extremePositions.Add(new Tuple<double, double, double, double>(uv11.x, uv11.y, double.NaN, double.NaN));
-                    if (otherBounds.Contains(uv22)) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, uv22.x, uv22.y));
+                    else
+                    {
+                        if (thisBounds.Contains(uv11)) extremePositions.Add(new Tuple<double, double, double, double>(uv11.x, uv11.y, double.NaN, double.NaN));
+                        if (otherBounds.Contains(uv22)) extremePositions.Add(new Tuple<double, double, double, double>(double.NaN, double.NaN, uv22.x, uv22.y));
+                    }
                 }
             }
+            catch (NotImplementedException) { } // some surfaces don't implement second derivation (e.g. OffsetSurface) which is needed in GaussNewtonMinimizer.SurfaceExtrema
             // else: search with different starting points
             return extremePositions.Count;
         }
@@ -5353,8 +5357,7 @@ namespace CADability.GeoObject
         /// <param name="surface2"></param>
         /// <returns>null, if not implemented for the provided surfaces, otherwise the intersection curves, which also may be none (empty array)</returns>
         internal static ICurve[] Intersect(ISurface surface1, ISurface surface2)
-        {   // this should be used for intersections, where no seed points can be calculated. It must be implemented for many combinations, 
-            // this is only a start here.
+        {   // this should be used for intersections, where no seed points can be calculated. It must be implemented for all combinations of canonical surfaces (plane, cylinder, cone, sphere, torus), 
             if (surface1 is PlaneSurface ps1 && surface2 is PlaneSurface ps2)
             {   // the simplest case
                 if (ps1.Plane.Intersect(ps2.Plane, out GeoPoint loc, out GeoVector dir))
@@ -5369,51 +5372,88 @@ namespace CADability.GeoObject
                 surface1 = surface2;
                 surface2 = tmp;
             }
-            if (surface1 is PlaneSurface ps && surface2 is ICylinder cy)
-            {   // a plane and a cylinder
-                if (Precision.IsPerpendicular(cy.Axis.Direction,ps.Normal,false))
-                {   // two lines, tangential or no result
-                    Plane lower = new Plane(cy.Axis.Location, cy.Axis.Direction);
-                    GeoPoint2D sp2d = lower.Project(ps.Location);
-                    GeoVector2D dir2d = lower.Project(ps.Normal).ToLeft();
-                    GeoPoint2D[] ips = Geometry.IntersectLC(sp2d, dir2d, GeoPoint2D.Origin, cy.Radius);
-                    ICurve[] res = new ICurve[ips.Length];
-                    for (int i = 0; i < ips.Length; i++)
-                    {
-                        GeoPoint p = lower.ToGlobal(ips[i]);
-                        res[i] = Line.TwoPoints(p, p + cy.Axis.Direction);
+            if (surface1 is PlaneSurface ps)
+            {
+                if (surface2 is ICylinder cy)
+                {   // a plane and a cylinder
+                    if (Precision.IsPerpendicular(cy.Axis.Direction, ps.Normal, false))
+                    {   // two lines, tangential or no result
+                        Plane lower = new Plane(cy.Axis.Location, cy.Axis.Direction);
+                        GeoPoint2D sp2d = lower.Project(ps.Location);
+                        GeoVector2D dir2d = lower.Project(ps.Normal).ToLeft();
+                        GeoPoint2D[] ips = Geometry.IntersectLC(sp2d, dir2d, GeoPoint2D.Origin, cy.Radius);
+                        ICurve[] res = new ICurve[ips.Length];
+                        for (int i = 0; i < ips.Length; i++)
+                        {
+                            GeoPoint p = lower.ToGlobal(ips[i]);
+                            res[i] = Line.TwoPoints(p, p + cy.Axis.Direction);
+                        }
+                        return res;
                     }
-                    return res;
-                }
-                // otherwise we have a circle or an ellipse
-                GeoPoint cnt = ps.Plane.Intersect(cy.Axis.Location, cy.Axis.Direction);
-                Ellipse elli = Ellipse.Construct();
-                if (Precision.SameDirection(ps.Plane.Normal, cy.Axis.Direction, false))
-                {   // this is a perpendicular intersection, the result will be a circle
-                    cy.Axis.Direction.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
-                    dirx.Length = cy.Radius;
-                    diry.Length = cy.Radius;
-                    elli.SetEllipseArcCenterAxis(cnt, dirx, diry, 0, Math.PI * 2.0);
-                    return new ICurve[] { elli };
-                }
-                else if (!Precision.IsPerpendicular(cy.Axis.Direction, ps.Plane.Normal, false))
-                {
-                    GeoVector minAx = cy.Axis.Direction ^ ps.Plane.Normal;
-                    minAx.Length = cy.Radius;
-                    GeoPoint2D[] ips = surface2.GetLineIntersection(cnt, minAx ^ ps.Plane.Normal);
-                    if (ips != null && ips.Length > 0)
-                    {
-                        GeoVector majAx = surface2.PointAt(ips[0]) - cnt;
-                        elli.SetEllipseCenterAxis(cnt, majAx, minAx);
+                    // otherwise we have a circle or an ellipse
+                    GeoPoint cnt = ps.Plane.Intersect(cy.Axis.Location, cy.Axis.Direction);
+                    Ellipse elli = Ellipse.Construct();
+                    if (Precision.SameDirection(ps.Plane.Normal, cy.Axis.Direction, false))
+                    {   // this is a perpendicular intersection, the result will be a circle
+                        cy.Axis.Direction.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+                        dirx.Length = cy.Radius;
+                        diry.Length = cy.Radius;
+                        elli.SetEllipseArcCenterAxis(cnt, dirx, diry, 0, Math.PI * 2.0);
                         return new ICurve[] { elli };
                     }
+                    else if (!Precision.IsPerpendicular(cy.Axis.Direction, ps.Plane.Normal, false))
+                    {
+                        GeoVector minAx = cy.Axis.Direction ^ ps.Plane.Normal;
+                        minAx.Length = cy.Radius;
+                        GeoPoint2D[] ips = surface2.GetLineIntersection(cnt, minAx ^ ps.Plane.Normal);
+                        if (ips != null && ips.Length > 0)
+                        {
+                            GeoVector majAx = surface2.PointAt(ips[0]) - cnt;
+                            elli.SetEllipseCenterAxis(cnt, majAx, minAx);
+                            return new ICurve[] { elli };
+                        }
+                        else return null;
+                    }
+                }
+                if (surface2 is ISphere sph)
+                {
+                    double d = ps.Plane.Distance(sph.Center);
+                    if (d < sph.Radius)
+                    {
+                        double r = Math.Sqrt(sph.Radius * sph.Radius - d * d);
+                        Ellipse elli = Ellipse.Construct();
+                        elli.SetCirclePlaneCenterRadius(ps.Plane, ps.Plane.ToGlobal(ps.Plane.Project(sph.Center)), r);
+                        return new ICurve[] { elli };
+                    }
+                    return null;
+                }
+                if (surface2 is ICone icn)
+                {
+
                 }
             }
             return null;
+            // still to implement intersections of standard surfaces:
+            // //plane - plane
+            // //plane - cylinder
+            // //plane - sphere
+            // plane - cone
+            // plane - torus
+            // cylinder - cylinder
+            // cylinder - sphere
+            // cylinder - cone
+            // cylinder - torus
+            // sphere - sphere
+            // sphere - cone
+            // sphere - torus
+            // cone - cone
+            // cone - torus
+            // torus - torus
+            // the results may be lines, ellipses or InterpolatedDualSurfaceCurves (8 points should be enough)
         }
         internal static ICurve Intersect(ISurface surface1, BoundingRect bounds1, ISurface surface2, BoundingRect bounds2, List<GeoPoint> points)
         {   // es muss einen Schnitt geben, sonst wird das hier garnicht aufgerufen, schließlich gibt es ja auch schon Punkte
-            if (surface1 is PlaneSurface && surface2 is PlaneSurface && points.Count==2)
+            if (surface1 is PlaneSurface && surface2 is PlaneSurface && points.Count == 2)
             {   // hier sind die beiden Punkte schon bekannt und richtig
                 Line line = Line.Construct();
                 line.SetTwoPoints(points[0], points[points.Count - 1]);
@@ -5966,7 +6006,7 @@ namespace CADability.GeoObject
                 try
                 {
                     Vector x = (Vector)m.Solve(new DenseVector(new double[] { p2.x - p1.x, p2.y - p1.y, p2.z - p1.z, p2.x - p3.x, p2.y - p3.y, p2.z - p3.z }));
-                    if (x.IsValid())
+                    if (!x.IsValid())
                     {
                         if (error < Precision.eps) break; // geht wohl nicht besser
                         else return false;
@@ -6849,7 +6889,7 @@ namespace CADability.GeoObject
             public BoundingRect uvPatch;
             public GeoPoint pll, plr, pul, pur; // die 4 Eckpunkte und die 4 Richtungen
             public GeoVector nll, nlr, nul, nur; // die Normalen in den Ecken
-            // hier auch noch die 4 Eckpunkte speichern, die werden vermutlich auch öfter gebraucht
+                                                 // hier auch noch die 4 Eckpunkte speichern, die werden vermutlich auch öfter gebraucht
             #region IOctTreeInsertable Members
             BoundingCube IOctTreeInsertable.GetExtent(double precision)
             {
@@ -7209,7 +7249,7 @@ namespace CADability.GeoObject
                 double error = Geometry.DistPL(loc, startPoint, direction);
                 int errorcount = 0;
                 int outside = 0; // wenn ein Schnitt außerhalb ist, dann nicht gleich aufgeben, erst wenn zweimal hintereinander außerhalb
-                // damit am Rand oszillierende Punkte gefunden werden können
+                                 // damit am Rand oszillierende Punkte gefunden werden können
 #if DEBUG
                 {
                     DebuggerContainer dc = new DebuggerContainer();
@@ -7265,7 +7305,7 @@ namespace CADability.GeoObject
                         if (!boundingRect.Contains(uvSurface))
                         {
                             if (!maximumuvRect.Contains(uvSurface)) break; // denn damit kann man nicht weiterrechnen
-                            // man könnte höchsten auf den maximumuvRect Bereich klippen
+                                                                           // man könnte höchsten auf den maximumuvRect Bereich klippen
                             ++outside;
                             if (outside > 2) break; // läuft aus dem Patch raus. Mit anderem Startwert versuchen
                         }
@@ -7355,7 +7395,7 @@ namespace CADability.GeoObject
                 public GeoPoint2D pSurface2; // das ist die andere Fläche
                 public bool fixedu; // Schnittpunkt einer Kante mit festem u, wenn false mit festem v
                 public bool isOnPatchVertex; // liegt genau auf einer Ecke des Patches
-                // der Punkt liegt auf Kanten dieser beiden Patches (kann auch nur einer sein, Rand, wie isses mit Ecken?)
+                                             // der Punkt liegt auf Kanten dieser beiden Patches (kann auch nur einer sein, Rand, wie isses mit Ecken?)
                 public UVPatch onPatch1;
                 public UVPatch onPatch2;
                 int hashCode;
@@ -7415,7 +7455,7 @@ namespace CADability.GeoObject
             QuadTree<UVPatch> patches;
             Set<IntersectionPoint> intersectionPoints; // Schnittpunkte bislang gefunden
             List<IntersectionPoint> onPatchVertex; // verworfene Schnittpunkte, da sie doppelt vorkommen und genau auf
-            // dem Eck eines Patches liegen. Möglicherweise müssen Kurven daran wieder zusammengefügt werden
+                                                   // dem Eck eines Patches liegen. Möglicherweise müssen Kurven daran wieder zusammengefügt werden
             public ComputeIntersectionCurve(BoxedSurface boxedSurface, ISurfaceImpl toIntersectWith, double umin, double umax, double vmin, double vmax)
             {
                 this.boxedSurface = boxedSurface;
@@ -7634,8 +7674,8 @@ namespace CADability.GeoObject
                                 inPatch.RemoveAt(j);
                                 removed = true;
                                 break; // es gibt ja immer nur Paare und j>i, also problemlos abbrechen
-                                // leider gibt es bei Tangenten oft vielfache fast identische Punkte
-                                // das müsste man besser dort lösen, dann würde diese Schleife einfach reichen
+                                       // leider gibt es bei Tangenten oft vielfache fast identische Punkte
+                                       // das müsste man besser dort lösen, dann würde diese Schleife einfach reichen
                             }
                         }
                     }
@@ -8408,7 +8448,7 @@ namespace CADability.GeoObject
             public GeoVector nll, nlr, nul, nur; // die Normalen in den Ecken
             public bool isFlat;
             internal bool isFolded; // hier kann man nicht mit den Ableitungen rechnen, da die Normalen kreuz und quer stehen
-            // WeakReference<Matrix> quad3dTo2d; // a matrix, which converts 3d points to 2d uv positions with a quadratic approximation
+                                    // WeakReference<Matrix> quad3dTo2d; // a matrix, which converts 3d points to 2d uv positions with a quadratic approximation
             WeakReference quad3dTo2d; // a matrix, which converts 3d points to 2d uv positions with a quadratic approximation
 #if DEBUG
             public static int idCounter = 0;
@@ -8984,9 +9024,9 @@ namespace CADability.GeoObject
             // Die Normalen sollen keine größeren Winkel einschließen als 45° (der Wert kann noch besser einjustiert werden
             double lim = Math.Sqrt(2.0) / 2.0; //45°, es gibt aber keinen logischen Grund dafür
             lim = 0.5; // changed to 60°
-            //if ((Math.Abs(cube.nll * cube.nlr) < lim || Math.Abs(cube.nll * cube.nul) < lim || Math.Abs(cube.nll * cube.nur) < lim ||
-            //    Math.Abs(cube.nlr * cube.nul) < lim || Math.Abs(cube.nlr * cube.nur) < lim || Math.Abs(cube.nul * cube.nur) < lim) && !toosmall)
-            // Math.Abs entfernt, denn sehr große Winkel (>135°) fallen sonst raus...
+                       //if ((Math.Abs(cube.nll * cube.nlr) < lim || Math.Abs(cube.nll * cube.nul) < lim || Math.Abs(cube.nll * cube.nur) < lim ||
+                       //    Math.Abs(cube.nlr * cube.nul) < lim || Math.Abs(cube.nlr * cube.nur) < lim || Math.Abs(cube.nul * cube.nur) < lim) && !toosmall)
+                       // Math.Abs entfernt, denn sehr große Winkel (>135°) fallen sonst raus...
             GeoVector ncnt = surface.GetNormal(uvPatch.GetCenter());
             ncnt.NormIfNotNull();
             // normals at singular points are invalid. Replace them with normals at the center
@@ -9202,7 +9242,7 @@ namespace CADability.GeoObject
                     dir2 = bc.YDiff * dirv;
                     if (bc.ZDiff == 0.0) bc.Zmax = bc.Zmin + Precision.eps;
                     dir3 = bc.ZDiff * normal; // ZDiff==0.0 ist ein echtes problem, also ein komplett ebenes stück
-                    // das sollte man extra vermerken und in verschiedenen Situationen darauf rücksicht nehmen
+                                              // das sollte man extra vermerken und in verschiedenen Situationen darauf rücksicht nehmen
 
                     //m = Matrix.RowVector(dir1, dir2, dir3).Inverse();
                     //cube.toUnit.SetData(m, m * (-cube.loc));
@@ -9257,8 +9297,8 @@ namespace CADability.GeoObject
             }
             cube.diru = (cube.plr - cube.pll) + (cube.pur - cube.pul); // gemittelte u-Richtung, Länge zunächst beliebig
             cube.dirv = (cube.pul - cube.pll) + (cube.pur - cube.plr); // dgl. in v
-            // die 3 Vektoren sind jetzt schonmal die richtigen, die Längen stimmen noch nicht und auch der Ort fehlt
-            // diverse Punkte in dieses System bringen um es dann zu normieren
+                                                                       // die 3 Vektoren sind jetzt schonmal die richtigen, die Längen stimmen noch nicht und auch der Ort fehlt
+                                                                       // diverse Punkte in dieses System bringen um es dann zu normieren
             if (cube.isFolded)
             {   // hier nur grob
                 cube.loc = new GeoPoint(cube.pll, cube.plr, cube.pul, cube.pur);
@@ -10195,7 +10235,7 @@ namespace CADability.GeoObject
                 double error = Geometry.DistPL(loc, startPoint, direction);
                 int errorcount = 0;
                 int outside = 0; // wenn ein Schnitt außerhalb ist, dann nicht gleich aufgeben, erst wenn zweimal hintereinander außerhalb
-                // damit am Rand oszillierende Punkte gefunden werden können
+                                 // damit am Rand oszillierende Punkte gefunden werden können
 #if DEBUG
                 {
                     //DebuggerContainer dc = new DebuggerContainer();
@@ -10265,7 +10305,7 @@ namespace CADability.GeoObject
                         if (!boundingRect.Contains(uvSurface))
                         {
                             if (!maximumuvRect.Contains(uvSurface)) break; // denn damit kann man nicht weiterrechnen
-                            // man könnte höchsten auf den maximumuvRect Bereich klippen
+                                                                           // man könnte höchsten auf den maximumuvRect Bereich klippen
                             ++outside;
                             if (outside > 2) break; // läuft aus dem Patch raus. Mit anderem Startwert versuchen
                         }
@@ -10355,7 +10395,7 @@ namespace CADability.GeoObject
                 public GeoPoint2D pSurface2; // das ist die andere Fläche
                 public bool fixedu; // Schnittpunkt einer Kante mit festem u, wenn false mit festem v
                 public bool isOnPatchVertex; // liegt genau auf einer Ecke des Patches
-                // der Punkt liegt auf Kanten dieser beiden Patches (kann auch nur einer sein, Rand, wie isses mit Ecken?)
+                                             // der Punkt liegt auf Kanten dieser beiden Patches (kann auch nur einer sein, Rand, wie isses mit Ecken?)
                 public UVPatch onPatch1;
                 public UVPatch onPatch2;
                 int hashCode;
@@ -10415,7 +10455,7 @@ namespace CADability.GeoObject
             QuadTree<UVPatch> patches;
             Set<IntersectionPoint> intersectionPoints; // Schnittpunkte bislang gefunden
             List<IntersectionPoint> onPatchVertex; // verworfene Schnittpunkte, da sie doppelt vorkommen und genau auf
-            // dem Eck eines Patches liegen. Möglicherweise müssen Kurven daran wieder zusammengefügt werden
+                                                   // dem Eck eines Patches liegen. Möglicherweise müssen Kurven daran wieder zusammengefügt werden
             public ComputeIntersectionCurve(BoxedSurfaceEx BoxedSurfaceEx, ISurfaceImpl toIntersectWith, double umin, double umax, double vmin, double vmax)
             {
                 this.BoxedSurfaceEx = BoxedSurfaceEx;
@@ -10631,8 +10671,8 @@ namespace CADability.GeoObject
                                 inPatch.RemoveAt(j);
                                 removed = true;
                                 break; // es gibt ja immer nur Paare und j>i, also problemlos abbrechen
-                                // leider gibt es bei Tangenten oft vielfache fast identische Punkte
-                                // das müsste man besser dort lösen, dann würde diese Schleife einfach reichen
+                                       // leider gibt es bei Tangenten oft vielfache fast identische Punkte
+                                       // das müsste man besser dort lösen, dann würde diese Schleife einfach reichen
                             }
                         }
                     }
@@ -10886,7 +10926,7 @@ namespace CADability.GeoObject
                 plbounds.MinMax(pln.Project(cubesOnPlane[i].plr));
                 plbounds.MinMax(pln.Project(cubesOnPlane[i].pul));
                 plbounds.MinMax(pln.Project(cubesOnPlane[i].pur)); // genügt es, die 4 Punkte der anderen Surface zu nehmen?
-                // es soll schnell gehen, die Ausdehnung selbst ist nicht so wichtig
+                                                                   // es soll schnell gehen, die Ausdehnung selbst ist nicht so wichtig
             }
             PlaneSurface other = pl.Clone() as PlaneSurface;
             plbounds.Inflate(plbounds.Size); // damit sollte es auf jeden Fall groß genug sein
@@ -10934,7 +10974,7 @@ namespace CADability.GeoObject
             List<double> luOnCurve = new List<double>();
             Dictionary<double, Position> relevantPositions = new Dictionary<double, Position>();
             TetraederHull th = new TetraederHull(curve); // das muss in der Kurve gespeichert werden!!!
-            // alle relevanten ParEpis sammeln
+                                                         // alle relevanten ParEpis sammeln
             Set<ParEpi> relevantCubes = new Set<ParEpi>();
             for (int i = 0; i < th.TetraederBase.Length - 1; ++i)
             {
@@ -11297,7 +11337,7 @@ namespace CADability.GeoObject
             ICurve icurve = curve as ICurve;
             uv = cube.uvPatch.GetCenter();
             u = 0.5; // in der Mitte, unwichtig
-            // BoxedSurfaceExtension.CurveSurfaceIntersection(surface, curve as ICurve, ref uv, ref u);
+                     // BoxedSurfaceExtension.CurveSurfaceIntersection(surface, curve as ICurve, ref uv, ref u);
             GeoVector udir = surface.UDirection(uv);
             GeoVector vdir = surface.VDirection(uv); // die müssen auch von der Länge her stimmen!
             GeoPoint loc = surface.PointAt(uv);
@@ -11620,7 +11660,7 @@ namespace CADability.GeoObject
             }
 
             List<double> checkBetween = new List<double>(); // zwei Punkte auf der Kurve, mit denen wir überprüfen wollen, die 
-            // also potentiell auf der Fläche liegen
+                                                            // also potentiell auf der Fläche liegen
             GeoPoint sp = curve.PointAt(spar);
             if (IsClose(sp))
             {
@@ -11742,9 +11782,9 @@ namespace CADability.GeoObject
                         luvOnFace.Add(uv1);
                         luOnCurve.Add(curve.PositionOf(ip));
                         return; // gibt es ein Problem, wenn es 2 Schnittpunkt gibt?
-                        // also: gewissermaßen ja: ein ParEpi und ein Tetraeder sollten immer nur einen Schnittpunkt enthalten
-                        // deshalb wurde hier derTest eingeführt, ob der cube auch den Schnittpunkt enthält, denn wenn nicht, dann sind wir möglicherweise aus dem cube rausgerutscht,
-                        // obwohl darin doch noch ein Schnittpunkt war. Aber durch das nun folgende aufteilen finden wir dann den richtigen
+                                // also: gewissermaßen ja: ein ParEpi und ein Tetraeder sollten immer nur einen Schnittpunkt enthalten
+                                // deshalb wurde hier derTest eingeführt, ob der cube auch den Schnittpunkt enthält, denn wenn nicht, dann sind wir möglicherweise aus dem cube rausgerutscht,
+                                // obwohl darin doch noch ein Schnittpunkt war. Aber durch das nun folgende aufteilen finden wir dann den richtigen
                     }
                 }
             }
@@ -12087,16 +12127,16 @@ namespace CADability.GeoObject
                     // versuchsweise auch nach außen laufen lassen
                     //if (missed > 2) return false;
                     if (!natbound2.Contains(res) && missed > 1) return false; // too far outside
-                    // if the 2d point is outside the natural bounds we stopped the whole process, but I don't see a reason why, as long as it converges
-                    //if (!natbound.Contains(res)) // wieder eingeführt, da bei manchen NURBS Endlosschleife
-                    //{   // wenn ganz außerhalb, dann auf die Grenze setzen
-                    //    // gut, solange es konvergiert
-                    //    SurfaceHelper.AdjustPeriodic(surface, natbound, ref res);
-                    //    if (res.x < natbound.Left) res.x = natbound.Left;
-                    //    if (res.x > natbound.Right) res.x = natbound.Right;
-                    //    if (res.y < natbound.Bottom) res.y = natbound.Bottom;
-                    //    if (res.y > natbound.Top) res.y = natbound.Top;
-                    //}
+                                                                              // if the 2d point is outside the natural bounds we stopped the whole process, but I don't see a reason why, as long as it converges
+                                                                              //if (!natbound.Contains(res)) // wieder eingeführt, da bei manchen NURBS Endlosschleife
+                                                                              //{   // wenn ganz außerhalb, dann auf die Grenze setzen
+                                                                              //    // gut, solange es konvergiert
+                                                                              //    SurfaceHelper.AdjustPeriodic(surface, natbound, ref res);
+                                                                              //    if (res.x < natbound.Left) res.x = natbound.Left;
+                                                                              //    if (res.x > natbound.Right) res.x = natbound.Right;
+                                                                              //    if (res.y < natbound.Bottom) res.y = natbound.Bottom;
+                                                                              //    if (res.y > natbound.Top) res.y = natbound.Top;
+                                                                              //}
                 }
                 else
                 {
@@ -12123,7 +12163,7 @@ namespace CADability.GeoObject
                 mindist = d;
             }
             if (double.IsNaN(mindist)) return false;
-            
+
             if (missed > 2)
             {   // need this case when an almost closed nurbs surface finds a wrong point on the other side of the domain (like in MO21775-001-00.stp)
                 BoundingRect brcopy = found.uvPatch;
@@ -13396,7 +13436,7 @@ namespace CADability.GeoObject
                     enterPoints.Add(cyclicalStartPoint); // for the following loop 
                 }
                 List<LinkedIntersectionPoint> startPoints = new List<LinkedIntersectionPoint>(enterPoints); // in case of cyclical curves we cann add more to startPoints
-                // all intersection points are now connected via next1/prev1 or next2/prev2. these two chains are now combined so that next/prev are valid
+                                                                                                            // all intersection points are now connected via next1/prev1 or next2/prev2. these two chains are now combined so that next/prev are valid
                 foreach (LinkedIntersectionPoint enterPoint in enterPoints)
                 {
                     LinkedIntersectionPoint currentOn1 = null, currentOn2 = null, current = null;

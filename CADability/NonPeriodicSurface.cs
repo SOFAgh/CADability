@@ -21,6 +21,12 @@ namespace CADability.GeoObject
         /// <returns></returns>
         bool IsInside(GeoPoint2D uv);
         /// <summary>
+        /// Same as <see cref="ISurface.PointAt(GeoPoint2D)"/>, but when uv is outside the definition domain, the resulting point is forced inside the domain
+        /// </summary>
+        /// <param name="uv"></param>
+        /// <returns></returns>
+        GeoPoint RestrictedPointAt(GeoPoint2D uv);
+        /// <summary>
         /// Clip the provided <paramref name="curve"/> at the bounds of the domain. The result are pairs of parameters of the curve, which define segments, that are inside the domain.
         /// </summary>
         /// <param name="curve"></param>
@@ -91,7 +97,7 @@ namespace CADability.GeoObject
                 if (sv != null && sv.Length > 1)
                 {
                     List<double> lsv = new List<double>(sv);
-                    for (int i = lsv.Count-1; i >= 0; --i)
+                    for (int i = lsv.Count - 1; i >= 0; --i)
                     {
                         if (lsv[i] < periodicBounds.Bottom || lsv[i] > periodicBounds.Top) lsv.RemoveAt(i);
                     }
@@ -646,7 +652,7 @@ namespace CADability.GeoObject
             double l = (uv - GeoPoint2D.Origin).Length;
             if (fullPeriod)
             {
-                if (hasPole) return l >= 1.0;
+                if (hasPole) return l >= 1.0; // shouldn't it be <=1.0?
                 else return l >= 0.5 && l <= 1.5;
             }
             else
@@ -654,6 +660,27 @@ namespace CADability.GeoObject
                 double a = Math.Atan2(uv.y, uv.x);
                 return l <= 1.0 && a >= 0.0 && a <= Math.PI / 2.0;
             }
+        }
+        public GeoPoint RestrictedPointAt(GeoPoint2D uv)
+        {
+            double l = (uv - GeoPoint2D.Origin).Length;
+            double a = Math.Atan2(uv.y, uv.x);
+            if (fullPeriod)
+            {
+                if (hasPole) l = Math.Max(1.0, l);
+                else
+                {
+                    if (l < 0.5) l = 0.5;
+                    else if (l > 1.5) l = 1.5;
+                }
+            }
+            else
+            {
+                if (l > 1.0) l = 1.0;
+                if (a < 0.0) a = 0.0;
+                if (a > Math.PI / 2.0) a = Math.PI / 2.0;
+            }
+            return periodicSurface.PointAt(toPeriodicBounds * new GeoPoint2D(a, l));
         }
         public double[] Clip(ICurve2D curve)
         {

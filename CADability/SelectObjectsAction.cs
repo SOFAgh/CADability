@@ -295,10 +295,11 @@ namespace CADability.Actions
             dragDrop = true;
             base.ViewType = typeof(IActionInputView); // arbeitet nur auf ModelView Basis
             pickMode = PickMode.normal;
-#if TESTNEWCONTEXTMENU
-            SelectActionContextMenu sacm = new SelectActionContextMenu(this);
-            FilterMouseMessagesEvent += sacm.FilterMouseMessages;
-#endif
+            if (Settings.GlobalSettings.GetBoolValue("Experimental.TestNewContextMenu", false))
+            {
+                SelectActionContextMenu sacm = new SelectActionContextMenu(this);
+                FilterMouseMessagesEvent += sacm.FilterMouseMessages;
+            }
         }
 
         void OnFocusedObjectChanged(SelectedObjectsProperty sender, IGeoObject focused)

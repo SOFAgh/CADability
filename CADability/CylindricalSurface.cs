@@ -8,13 +8,18 @@ using Wintellect.PowerCollections;
 
 namespace CADability.GeoObject
 {
+    public interface ISurfaceWithRadius
+    {
+        bool IsModifiable { get; }
+        double Radius { get; set; }
+
+    }
     /// <summary>
     /// Interface to handle both CylindricalSurface and CylindricalSurfaceNP
     /// </summary>
-    public interface ICylinder
+    public interface ICylinder: ISurfaceWithRadius
     {
         Axis Axis { get; set;  }
-        double Radius { get; set; }
         bool OutwardOriented { get; }
     }
     /// <summary>
@@ -909,6 +914,7 @@ namespace CADability.GeoObject
                                 if (i == 0)
                                 {   // these two points are the points where the two ellipses intersect. We return 4 ellipse arcs
                                     // BRepIntersection needs this two points as additional vertices
+                                    if (seeds == null) seeds = new List<GeoPoint>();
                                     seeds.Add(elli.StartPoint);
                                     seeds.Add(elli.EndPoint);
                                 }
@@ -2317,7 +2323,7 @@ namespace CADability.GeoObject
             }
         }
 
-        double ICylinder.Radius
+        double ISurfaceWithRadius.Radius
         {
             get => RadiusX;
             set
@@ -2328,6 +2334,10 @@ namespace CADability.GeoObject
                 toUnit = toCylinder.GetInverse();
             }
         }
+        bool ISurfaceWithRadius.IsModifiable => true;
+
+        bool ICylinder.OutwardOriented => throw new NotImplementedException();
+
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             //CYLINDRICAL_SURFACE

@@ -2084,6 +2084,10 @@ namespace CADability.GeoObject
         {
             return GetExtent(0.0);
         }
+        bool ICurve.Extend(double atStart, double atEnd)
+        {
+            return false;
+        }
         bool ICurve.HitTest(BoundingCube cube)
         {
             return HitTest(ref cube, 0.0);

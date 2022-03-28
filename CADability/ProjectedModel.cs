@@ -27,24 +27,24 @@ namespace CADability
     internal delegate void NeedsRepaintDelegate(object Sender, NeedsRepaintEventArg Arg);
 
     /* KONZEPT Sichtbarkeit für Kanten:
-     * 
+     *
      * Das ProjectedModel sollte alle Objekte halten, die mit der Kantensichtbarkeit zu tun haben, da diese
      * Objekte mit dem ProjectedModel die gleiche Lebensdauer haben:
-     * 
+     *
      * Face->Edge[] ContourEdges
      * Edge->ProjectedEdge Sichtbarkeit einer Kante
-     * 
+     *
      * ProjectedModel bekommt einen Aufruf RecalcVisible, mit dem diese Dictionaries erzeugt werden.
      * Dabei werden alle Faces untersucht, und wenn noch nicht vorhanden die tangentialen Konturkanten berechnet.
      * Aus diesen und den echten Umrissen eines Faces werden für jedes Face ein CompoundShape in u/v und ein solches in x/y
-     * berechnet. Jede Kante gehört zu einem oder zwei SimpleShapes. Kanten von Faces mit tangentialen Konturkanten 
+     * berechnet. Jede Kante gehört zu einem oder zwei SimpleShapes. Kanten von Faces mit tangentialen Konturkanten
      * müssen aufgeteilt werden, also brauchen wir noch ein Dictionary von Kante auf aufgeteilte Kante.
-     * 
+     *
      * Die einzelnen Kanten werden dann durch diese Flächen (SimpleShapes) verdeckt, natürlich nur durch die Flächen, an
      * denen sie selbst nicht beteilgt sind. Dann werden sie entsprechend ihrer Sichtbarkeit dargestellt.
-     * 
+     *
      * Wenn man das verdecken von SimpleShapes miteinander zulässt, dann kann man die Flächen auch im Inneren pickbar machen.
-     * 
+     *
      */
 
     /// <summary>
@@ -61,7 +61,7 @@ namespace CADability
 
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     [Serializable]
     public class ProjectedModel : ISerializable, IDeserializationCallback
@@ -69,25 +69,25 @@ namespace CADability
         static bool DoBackgroundPaint = false; // immer false, keine Hidden lines mehr!
         #region Konzept:
         /*	Konzept zum ProjectedModel:
-		 * Die Klasse ProjectedModel hält einen QuadTree, der die Objekte für die 2D Darstellung enthält. 
-		 * Diese Objekte vom Typ I2DRepresentation sind "Ableger" der GeoObjekte. Mit einer HashTabelle
-		 * geoObjects2D kommt man von einem GeoObjekt zu seinem oder seinen I2DRepresentation Objekten.
-		 * Diese sind alleine Ausschlaggebend für die Darstellung. Sie beinhalten bereits die Projektion
-		 * (als UnscaledProjection) und müssen oft garnicht mehr auf ihr zugehöriges GeoObjekt zur
-		 * Darstellung zurückgreifen.
-		 * Wenn sich die Geometrie eines GeoObjects ändert, so wird es bei WillChange aus dem QuadTree entfernt 
-		 * und bei DidChange wieder dort eingefügt.
-		 * Wenn sich nur das Attribut ändert, so dass das Objekt im QuadTree verbleiben kann
-		 * dann ...fehlt noch das Konzept...
-		 */
+         * Die Klasse ProjectedModel hält einen QuadTree, der die Objekte für die 2D Darstellung enthält.
+         * Diese Objekte vom Typ I2DRepresentation sind "Ableger" der GeoObjekte. Mit einer HashTabelle
+         * geoObjects2D kommt man von einem GeoObjekt zu seinem oder seinen I2DRepresentation Objekten.
+         * Diese sind alleine Ausschlaggebend für die Darstellung. Sie beinhalten bereits die Projektion
+         * (als UnscaledProjection) und müssen oft garnicht mehr auf ihr zugehöriges GeoObjekt zur
+         * Darstellung zurückgreifen.
+         * Wenn sich die Geometrie eines GeoObjects ändert, so wird es bei WillChange aus dem QuadTree entfernt
+         * und bei DidChange wieder dort eingefügt.
+         * Wenn sich nur das Attribut ändert, so dass das Objekt im QuadTree verbleiben kann
+         * dann ...fehlt noch das Konzept...
+         */
         #endregion
         private Dictionary<int, IGeoObject> geoObjects;
         // die beiden folgenden werden im Hintergrundthread gesetzt
 
-        private List<IPaintTo3DList> allFaces = new List<IPaintTo3DList>(); // a cache of the current display list per layer and kind of object (curve, face, transparent, unscaled)
-        private List<IPaintTo3DList> allTransparent = new List<IPaintTo3DList>();
-        private List<IPaintTo3DList> allCurves = new List<IPaintTo3DList>();
-        private List<IPaintTo3DList> allUnscaled = new List<IPaintTo3DList>();
+        private readonly List<IPaintTo3DList> allFaces = new List<IPaintTo3DList>(); // a cache of the current display list per layer and kind of object (curve, face, transparent, unscaled)
+        private readonly List<IPaintTo3DList> allTransparent = new List<IPaintTo3DList>();
+        private readonly List<IPaintTo3DList> allCurves = new List<IPaintTo3DList>();
+        private readonly List<IPaintTo3DList> allUnscaled = new List<IPaintTo3DList>();
         private double currentUnscaledScale;
 
         private string name; // Name des ProjectedModel
@@ -571,7 +571,7 @@ namespace CADability
                 l[i].FindSnapPoint(spf);
             }
             // die Überprüfung der Schnittpunkte erfolgt hier in einer Doppelschleife
-            // das wird nicht den einzelnen Objekten überlassen, da die nichts von 
+            // das wird nicht den einzelnen Objekten überlassen, da die nichts von
             // den andern Objekten wissen.
             if (spf.SnapToIntersectionPoint)
             {
@@ -791,7 +791,7 @@ namespace CADability
                                 }
                             }
                         }
-                        res.AddRange(set.ToArray());
+                        res.AddRange(set);
                     }
                     return res;
                 case PickMode.single:
@@ -1026,7 +1026,7 @@ namespace CADability
         //            if (qi is QuadTreeCollection && qi.ReferencedObject is Block)
         //            {
         //                IQuadTreeInsertable[] sub = (qi as QuadTreeCollection).GetObjectsFromRect(ref pickrect);
-        //                // das liefert auf unterster Ebene, 
+        //                // das liefert auf unterster Ebene,
         //                // wir wollen hier aber Pfade und andere "NichtBlöcke" zusammenhalten
         //                for (int i = 0; i < sub.Length; ++i)
         //                {
@@ -1118,7 +1118,7 @@ namespace CADability
         #region Helper Methods
         public enum IntersectionMode { OnlyInside, BothExtensions, StartExtension, EndExtension, InsideAndSelfIntersection }
         /// <summary>
-        /// Returns the parameters for all intersection point of this curve with other 
+        /// Returns the parameters for all intersection point of this curve with other
         /// curves in the model. The curve must be planar. To get the 3D intersection point
         /// call <see cref="ICurve.PointAt"/>. If CheckExtension is true, there will also be
         /// intersection parameters in the extension of the curve (if the curve can extend)
@@ -1178,7 +1178,7 @@ namespace CADability
                             {
                                 // bei Kreisbögen ist die Frage bei einem Schnittpunkt außerhalb
                                 // ob man diesen als Schnittpunkt vor dem Anfang oder nach dem Ende
-                                // betrachten soll. Wenn IntersectionMode.StartExtension oder 
+                                // betrachten soll. Wenn IntersectionMode.StartExtension oder
                                 // IntersectionMode.EndExtension gegeben sind, dann werden solche Punkte
                                 // hier noch korrigiert. (c1 ist die Ausgangskurve, deshalb par1)
                                 if (mode == IntersectionMode.StartExtension)
@@ -1293,7 +1293,7 @@ namespace CADability
         //}
         internal void Paint(IPaintTo3D paintTo3D)
         {
-            // Nur das Modell darstellen. Die anderen Aspekte (Raster, aktive Objekte, Selektion) werden von 
+            // Nur das Modell darstellen. Die anderen Aspekte (Raster, aktive Objekte, Selektion) werden von
             // ModelView abgehandelt
 
             // recalcVisibility ist true, wenn die Sichtbarkeit der Layer umgeschaltet wurde
@@ -1319,7 +1319,7 @@ namespace CADability
                         allFaces.Add(kv.Value);
                     }
                 }
-                
+
                 allTransparent.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerTransparentDisplayList)
                 {
@@ -1358,7 +1358,7 @@ namespace CADability
             paintTo3D.PaintFaces(PaintTo3D.PaintMode.CurvesOnly); // moves the curves a small distance to the front
             foreach (IPaintTo3DList plist in allCurves) paintTo3D.List(plist);
             if (projection.ShowFaces)
-            {   
+            {
                 paintTo3D.PaintFaces(PaintTo3D.PaintMode.FacesOnly); // moves the faces a small distance to the back
                 foreach (IPaintTo3DList plist in allFaces) paintTo3D.List(plist);
                 paintTo3D.Blending(true);
@@ -1373,7 +1373,7 @@ namespace CADability
 
             //    if (recalcVisibility && layerListGenerated)
             //    {   // hier wird aus den existierenden LayerListen die Liste aller sichtbaren faces und aller
-            //        // sichtbaren edges (Kurven) berechnet und 
+            //        // sichtbaren edges (Kurven) berechnet und
             //        recalcVisibility = false;
             //        List<IPaintTo3DList> allGeoObjects = new List<IPaintTo3DList>();
             //        foreach (KeyValuePair<Layer,IPaintTo3DList> kv in layerFaceDisplayList)

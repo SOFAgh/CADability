@@ -8,10 +8,11 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>CADability.App</RootNamespace>
     <AssemblyName>CADability.App</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -84,6 +85,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
@@ -101,7 +103,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CADability.Forms\CADability.Forms.csproj">
-      <Project>{5806C7E4-E796-42BE-BDDB-833D637E072F}</Project>
+      <Project>{5806c7e4-e796-42be-bddb-833d637e072f}</Project>
       <Name>CADability.Forms</Name>
     </ProjectReference>
     <ProjectReference Include="..\CADability\CADability.csproj">

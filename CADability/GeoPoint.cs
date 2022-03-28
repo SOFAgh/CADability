@@ -994,6 +994,10 @@ namespace CADability
                 return true;
             }
         }
+        public override string ToString()
+        {
+            return Location.ToString() + " X:" + DirectionX.ToString() + " Y:" + DirectionY.ToString() + " Z:" + DirectionZ.ToString();
+        }
     }
     /// <summary>
     /// An axis given by a location and a direction. There is no orientation for an

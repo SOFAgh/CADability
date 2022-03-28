@@ -228,7 +228,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 337)
+            if (hashCode == 23)
             {
 
             }
@@ -305,8 +305,12 @@ namespace CADability.GeoObject
                     surface = surface.Clone();
                     surface.ReverseOrientation(); // 2d modification is not relevant here
                 }
-                for (int i = loops.Count-1; i >=0; --i)
+                for (int i = loops.Count - 1; i >= 0; --i)
                 {
+                    if (loops[i].Count==1 && loops[i][0].curve==null && loops[i][0].vertex1== loops[i][0].vertex1)
+                    {   // this is probably a pole of a cone (or sphere) created as a point. We don't need that
+                        loops[i].RemoveAt(0);
+                    }
                     for (int j = loops[i].Count - 1; j >= 0; --j)
                     {
                         int next = j - 1;
@@ -838,30 +842,35 @@ namespace CADability.GeoObject
                         move += diff;
                     }
                 }
-#if USENONPRIODICSURFACES
-                if (surface.IsUPeriodic || surface.IsVPeriodic || surface.GetUSingularities().Length > 0 || surface.GetVSingularities().Length > 0)
+                if (Settings.GlobalSettings.GetBoolValue("StepImport.PreferNonPeriodic", false))
                 {
-                    List<ICurve> orientedCurves = new List<ICurve>();
-                    for (int i = 0; i < loops.Count; i++)
+                    if (surface.IsUPeriodic || surface.IsVPeriodic || surface.GetUSingularities().Length > 0 || surface.GetVSingularities().Length > 0)
                     {
-                        for (int j = 0; j < loops[i].Count; j++)
+                        List<ICurve> orientedCurves = new List<ICurve>();
+                        for (int i = 0; i < loops.Count; i++)
                         {
-                            if (loops[i][j].curve != null)
+                            for (int j = 0; j < loops[i].Count; j++)
                             {
-                                if (loops[i][j].forward) orientedCurves.Add(loops[i][j].curve);
-                                else
+                                if (loops[i][j].curve != null)
                                 {
-                                    ICurve clone = loops[i][j].curve.Clone();
-                                    clone.Reverse();
-                                    orientedCurves.Add(clone);
+                                    if (loops[i][j].forward) orientedCurves.Add(loops[i][j].curve);
+                                    else
+                                    {
+                                        ICurve clone = loops[i][j].curve.Clone();
+                                        clone.Reverse();
+                                        orientedCurves.Add(clone);
+                                    }
                                 }
                             }
                         }
+                        try
+                        {
+                            ISurface nonperiodic = surface.GetNonPeriodicSurface(orientedCurves.ToArray());
+                            if (nonperiodic != null) surface = nonperiodic;
+                        }
+                        catch (ApplicationException) { } // e.g. nurbs surface has two poles
                     }
-                    ISurface nonperiodic = surface.GetNonPeriodicSurface(orientedCurves.ToArray());
-                    if (nonperiodic != null) surface = nonperiodic;
                 }
-#endif
                 if (surface is SphericalSurface && (surface as SphericalSurface).IsRealSphere)
                 {
                     // typically the spherical surfaces are oriented so that the spheres axis is the z-Axis (if it was not created as a surface of revolution)
@@ -920,7 +929,7 @@ namespace CADability.GeoObject
                             {
                                 ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
                                 if (c2d == null) continue;
-                                if (!loops[0][loopind].forward) c2d.Reverse();
+                                if (!loops[loopind][i].forward) c2d.Reverse();
                                 projectedLoop.Add(c2d);
                             }
                         }
@@ -951,7 +960,7 @@ namespace CADability.GeoObject
                                 if (loops[loopind][i].curve != null)
                                 {
                                     ICurve2D c2d = loops[loopind][i].curve.GetProjectedCurve(tstpln);
-                                    if (!loops[0][loopind].forward) c2d.Reverse();
+                                    if (!loops[loopind][i].forward) c2d.Reverse();
                                     projectedLoop.Add(c2d);
                                 }
                             }
@@ -1459,7 +1468,9 @@ namespace CADability.GeoObject
                         int last = loops[i].Count - 1;
                         if (loops[i][last].forward) ep = loops[i][last].curve.EndPoint;
                         else ep = loops[i][last].curve.StartPoint;
-                        if ((sp | ep) > precision * 1000) closed = false; // added *100 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
+                        // I am not sure, why we would want to remove those open loops.
+                        // they are closed on the vertices, so maybe the 3d curves are just imprecise (as in 011cor.stp)
+                        // if ((sp | ep) > precision * 1000) closed = false; // added *100 for item id 10484 in 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp
                     }
                     if (Math.Abs(area) < (ext.Width + ext.Height) * 1e-8 || !closed)
                     {   // probably a seam: two curves going forth and back on the same path
@@ -2039,7 +2050,7 @@ namespace CADability.GeoObject
                         uPlaneValid = Curves.GetCommonPlane(cv1, cv2, out uSplitPlane);
                         if (!uPlaneValid)
                         {   // we cannot simply use a plane to cut the face, because the curves at 0 and period/2 don't reside in a plane
-                            // instead of this simple approach, which is OK for cones cylinders, torii, spheres, rotated 2d curves and most nurbs surfaces,
+                            // instead of this simple approach, which is OK for cones cylinders, tori, spheres, rotated 2d curves and most nurbs surfaces,
                             // we have to split the periodic parameter range into period/2 segments at 0, period/2, period, 3/2*period and so on
                             List<double> lPositions = new List<double>();
                             double left = ext.Left + uperiod * 1e-6;
@@ -2436,7 +2447,7 @@ namespace CADability.GeoObject
                     boundpnts[3] = new GeoPoint2D(umin, vmax);
                     Polyline2D bnd2d = new Polyline2D(boundpnts);
                     dc2d.Add(bnd2d, System.Drawing.Color.Green, 0);
-                    // *** check 2d splitted curves and directions
+                    // *** check 2d split curves and directions
 #endif
                     // now we make two or four sets of curves (corresponding to the non periodic sub-patches of the surface) and make faces from each set
                     Set<int>[,] part = new Set<int>[2, 2];
@@ -5893,8 +5904,14 @@ namespace CADability.GeoObject
 
             ICurve2D[] usedCurves = new ICurve2D[outline.Length];
 #if DEBUG
-            if (hashCode == 860 || hashCode == 736)
+            if (hashCode == 386)
             { }
+            if (UserData.ContainsData("StepImport.ItemNumber"))
+            {
+                IntegerProperty ip = UserData["StepImport.ItemNumber"] as IntegerProperty;
+                if (ip.IntegerValue == 3672)
+                { }
+            }
 #endif
             for (int i = 0; i < outline.Length; ++i)
             {
@@ -6082,6 +6099,15 @@ namespace CADability.GeoObject
                     int[] tmpTriInd;
                     t.GetSimpleTriangles(out tmpTriUv, out tmpTriPoint, out tmpTriInd, true);
                     int tc1 = System.Environment.TickCount - tc0;
+                    if (Surface is IRestrictedDomain rd)
+                    {   // in this case, where we have self intersecting polygons, the polygon intersection points may be outside the defined area of the surface.
+                        // This is especially the case, when there is a cylindrical surface, which has usually a round inner hole. When this hole is split, 
+                        // we get points far outside the domain of the cylinder, which look ugly. Here we restrict these points into the domain
+                        for (int j = 0; j < tmpTriUv.Length; j++)
+                        {
+                            if (!rd.IsInside(tmpTriUv[j])) tmpTriPoint[j] = rd.RestrictedPointAt(tmpTriUv[j]);
+                        }
+                    }
 
                     lock (lockTriangulationData)
                     {
@@ -6097,7 +6123,7 @@ namespace CADability.GeoObject
                     {
                         bc.MinMax(trianglePoint[i]);
                     }
-                    if (bc.Ymin < -10)
+                    if (bc.Xmax > 10)
                     { }
                     for (int i = 0; i < triangleIndex.Length; i += 3)
                     {
@@ -6166,18 +6192,45 @@ namespace CADability.GeoObject
                             sumTriPoint.AddRange(tmpTriPoint);
                             sumTriUv.AddRange(tmpTriUv);
                             sumTriInd.AddRange(tmpTriInd);
-
+                            if (Surface is IRestrictedDomain rd)
+                            {   // in this case, where we have self intersecting polygons, the polygon intersection points may be outside the defined area of the surface.
+                                // This is especially the case, when there is a cylindrical surface, which has usually a round inner hole. When this hole is split, 
+                                // we get points far outside the domain of the cylinder, which look ugly. Here we restrict these points into the domain
+                                for (int j = 0; j < tmpTriUv.Length; j++)
+                                {
+                                    if (!rd.IsInside(tmpTriUv[j])) tmpTriPoint[j] = rd.RestrictedPointAt(tmpTriUv[j]);
+                                }
+                            }
 #if DEBUG
                             BoundingCube bc = BoundingCube.EmptyBoundingCube;
                             for (int k = 0; k < tmpTriPoint.Length; k++)
                             {
                                 bc.MinMax(tmpTriPoint[k]);
                             }
-                            if (bc.Zmin < -40.5)
+                            if (bc.Xmax > 10)
                             { }
 #endif
                         }
                     }
+                    //HashSet<int> invalidIndices = new HashSet<int>();
+                    //for (int j = 0; j < sumTriUv.Count; j++)
+                    //{
+                    //    GeoPoint2D pp = sumTriUv[j];
+                    //    if (!this.Contains(ref pp, true))
+                    //    {
+                    //        invalidIndices.Add(j);
+                    //    }
+                    //}
+                    //if (invalidIndices.Count > 0)
+                    //{
+                    //    for (int j = sumTriInd.Count - 1; j >= 0; j -= 3)
+                    //    {
+                    //        if (invalidIndices.Contains(sumTriInd[j]) || invalidIndices.Contains(sumTriInd[j] - 1) || invalidIndices.Contains(sumTriInd[j - 2]))
+                    //        {
+                    //            sumTriInd.RemoveRange(j - 2, 3);
+                    //        }
+                    //    }
+                    //}
                     lock (lockTriangulationData)
                     {
                         triangleUVPoint = sumTriUv.ToArray();
@@ -9400,8 +9453,10 @@ namespace CADability.GeoObject
 #endif
             for (int i = 0; i < outline.Length; i++)
             {
+                if (outline[i].SecondaryFace == null) continue;
                 int j = i + 1;
                 if (j >= outline.Length) j = 0;
+                if (outline[j].SecondaryFace == null) continue;
                 if (i == j) continue;
                 if (((outline[i].PrimaryFace == outline[j].PrimaryFace) && (outline[i].SecondaryFace == outline[j].SecondaryFace)) ||
                     ((outline[i].SecondaryFace == outline[j].PrimaryFace) && (outline[i].PrimaryFace == outline[j].SecondaryFace)))

@@ -6,8 +6,16 @@ using System.Runtime.Serialization;
 
 namespace CADability.GeoObject
 {
+    /// <summary>
+    /// Interface to handle both CylindricalSurface and CylindricalSurfaceNP
+    /// </summary>
+    public interface ISphere : ISurfaceWithRadius
+    {
+        GeoPoint Center { get; set; }
+        bool OutwardOriented { get; }
+    }
     [Serializable()]
-    public class SphericalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IExportStep
+    public class SphericalSurface : ISurfaceImpl, ISerializable, IDeserializationCallback, IExportStep, ISphere
     {
         // Die Kugel ist so beschaffen, dass sie lediglich durch eine ModOp definiert ist.
         // Die Eiheitskugel steht im Ursprung mit Radius 1, u beschreibt einen Breitenkreis, v einen Längenkreis
@@ -1135,6 +1143,13 @@ namespace CADability.GeoObject
             }
         }
         public bool OutwardOriented => toSphere.Determinant > 0;
+
+        GeoPoint ISphere.Center { get => Location; set => this.Modify(ModOp.Translate(value - Location)); }
+
+        bool ISurfaceWithRadius.IsModifiable => IsRealSphere; // can set the radius of a real sphere only
+
+        double ISurfaceWithRadius.Radius { get => (toSphere * GeoVector.XAxis).Length; set => Modify(ModOp.Scale(Location, value / RadiusX)); }
+
         double GetRadius(DoubleProperty sender)
         {
             return (toSphere * GeoVector.XAxis).Length;

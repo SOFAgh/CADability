@@ -2314,7 +2314,6 @@ namespace CADability.GeoObject
             Angle newStartAngle = startParameter + StartPos * sweepParameter;
             Angle newEndAngle = startParameter + EndPos * sweepParameter;
             SweepAngle newSweepAngle = new SweepAngle(newStartAngle, newEndAngle, sweepParameter > 0.0);
-            //			using (new Changing(this,"SetStartSweep",new object[]{newStartAngle.Radian,newSweepAngle.Radian}))
             using (new Changing(this, "CopyGeometry", Clone()))
             {
                 startParameter = newStartAngle.Radian;
@@ -2521,6 +2520,56 @@ namespace CADability.GeoObject
         double ICurve.PositionToParameter(double position)
         {
             return startParameter + position * sweepParameter;
+        }
+        bool ICurve.Extend(double atStart, double atEnd)
+        {
+            if (!IsArc) return false;
+            if (IsCircle)
+            {   // valid for circular arcs, but not real ellipses
+                double ds = atStart / majorRadius;
+                double de = atEnd / majorRadius;
+                Angle newStartAngle;
+                Angle newEndAngle;
+                if (sweepParameter>0)
+                {
+                    newStartAngle = startParameter - ds;
+                    newEndAngle = startParameter + sweepParameter + de;
+                }
+                else
+                {
+                    newStartAngle = startParameter + ds;
+                    newEndAngle = startParameter + sweepParameter - de;
+                }
+                SweepAngle newSweepAngle = new SweepAngle(newStartAngle, newEndAngle, sweepParameter > 0.0);
+                using (new Changing(this, "CopyGeometry", Clone()))
+                {
+                    startParameter = newStartAngle.Radian;
+                    sweepParameter = newSweepAngle.Radian;
+                }
+            }
+            else
+            {
+                // this is only an approximate solution
+                Ellipse fullEllipse = Ellipse.Construct();
+                fullEllipse.SetEllipseCenterAxis(Center, MajorAxis, MinorAxis);
+                ICurve aprx = (fullEllipse as ICurve).Approximate(true, (majorRadius + minorRadius) * 1e-4); // a path or polyline
+                double lengthAtStart = aprx.PositionToParameter(aprx.PositionOf(this.StartPoint)); // parameter of polyline or path is its length
+                double lengthAtEnd = aprx.PositionToParameter(aprx.PositionOf(this.EndPoint)); // parameter of polyline or path is its length
+                lengthAtStart -= atStart;
+                if (lengthAtStart < 0) lengthAtStart += aprx.Length;
+                lengthAtEnd += atEnd;
+                if (lengthAtEnd > aprx.Length) lengthAtEnd -= aprx.Length;
+                GeoPoint sp = aprx.PointAt(aprx.ParameterToPosition(lengthAtStart));
+                GeoPoint ep = aprx.PointAt(aprx.ParameterToPosition(lengthAtEnd));
+                fullEllipse.Trim(fullEllipse.PositionOf(sp), fullEllipse.PositionOf(ep));
+                using (new Changing(this, "CopyGeometry", Clone()))
+                {
+                    startParameter = fullEllipse.startParameter;
+                    sweepParameter = fullEllipse.sweepParameter;
+                }
+                // this probably doesn't take into account the orientation of the ellipse
+            }
+            return true;
         }
 
         BoundingCube ICurve.GetExtent()

@@ -286,7 +286,7 @@ namespace CADability
                     mFillet.OnSelected = (mh, selected) =>
                     {
                         currentMenuSelection.Clear();
-                        currentMenuSelection.AddRange(connectedFillets.ToArray());
+                        currentMenuSelection.AddRange(connectedFillets);
                         currentView.Invalidate(PaintBuffer.DrawingAspect.Select, currentView.DisplayRectangle);
                     };
                     MenuWithHandler fr = new MenuWithHandler("MenuId.Fillet.ChangeRadius");
@@ -325,7 +325,7 @@ namespace CADability
             for (int i = 0; i < faces.Count; i++)
             {
                 IEnumerable<Face> connected = faces[i].GetSameSurfaceConnected();
-                
+
                 // if (connected.Any())
                 {
                     List<Face> lconnected = new List<Face>(connected);

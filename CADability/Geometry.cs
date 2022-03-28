@@ -3163,7 +3163,7 @@ namespace CADability
         {   // siehe: http://www.had2know.com/academics/best-fit-circle-least-squares.html
             // kommt ohne Iterationen aus, liefert direkt das Ergebnis mit least squre
 #if DEBUG
-            Polyline2D p2d = new Polyline2D(p);
+            //Polyline2D p2d = new Polyline2D(p);
 #endif
             Matrix m = new DenseMatrix(3, 3);
             Vector b = new DenseVector(3);
@@ -3859,29 +3859,29 @@ namespace CADability
                 }
             }
 #if DEBUG
-            Plane cpln = new Plane(circle.Center, circle.MajorAxis, circle.MinorAxis);
-            Circle2D c2d = new Circle2D(GeoPoint2D.Origin, circle.MajorRadius);
-            GeoObjectList dbg = new GeoObjectList();
-            for (int i = 0; i < roots.Length; i++)
-            {
-                GeoPoint p = lineLocation + roots[i] * m;
-                GeoPoint2D p2d = cpln.Project(p);
-                GeoPoint2D p2dc = GeoPoint2D.Origin + circle.MajorRadius * (p2d - GeoPoint2D.Origin).Normalized;
-                GeoVector2D cdir2d = (p2dc - GeoPoint2D.Origin).ToLeft();
-                GeoPoint circplePoint = cpln.ToGlobal(GeoPoint2D.Origin + circle.MajorRadius * (p2d - GeoPoint2D.Origin).Normalized);
-                GeoVector cdir = cpln.ToGlobal(cdir2d);
-                dbg.Add(Line.MakeLine(p, circplePoint));
-                double perp1 = cdir * (p - circplePoint);
-                double perp2 = lineDirection * (p - circplePoint);
-                Plane plnl = new Plane(p, m);
+            //Plane cpln = new Plane(circle.Center, circle.MajorAxis, circle.MinorAxis);
+            //Circle2D c2d = new Circle2D(GeoPoint2D.Origin, circle.MajorRadius);
+            //GeoObjectList dbg = new GeoObjectList();
+            //for (int i = 0; i < roots.Length; i++)
+            //{
+            //    GeoPoint p = lineLocation + roots[i] * m;
+            //    GeoPoint2D p2d = cpln.Project(p);
+            //    GeoPoint2D p2dc = GeoPoint2D.Origin + circle.MajorRadius * (p2d - GeoPoint2D.Origin).Normalized;
+            //    GeoVector2D cdir2d = (p2dc - GeoPoint2D.Origin).ToLeft();
+            //    GeoPoint circplePoint = cpln.ToGlobal(GeoPoint2D.Origin + circle.MajorRadius * (p2d - GeoPoint2D.Origin).Normalized);
+            //    GeoVector cdir = cpln.ToGlobal(cdir2d);
+            //    dbg.Add(Line.MakeLine(p, circplePoint));
+            //    double perp1 = cdir * (p - circplePoint);
+            //    double perp2 = lineDirection * (p - circplePoint);
+            //    Plane plnl = new Plane(p, m);
 
-                GeoPoint[] pli = circle.PlaneIntersection(plnl);
-                if (pli.Length == 2)
-                {
-                    double perp3 = cdir * (pli[0] - p);
-                    double perp4 = cdir * (pli[1] - p);
-                }
-            }
+            //    GeoPoint[] pli = circle.PlaneIntersection(plnl);
+            //    if (pli.Length == 2)
+            //    {
+            //        double perp3 = cdir * (pli[0] - p);
+            //        double perp4 = cdir * (pli[1] - p);
+            //    }
+            //}
 #endif
             return res.ToArray();
         }
