@@ -155,7 +155,6 @@ namespace CADability.UserInterface
                 ellipse.Radius = radius;
         }
 
-
         private bool AreAllCircles(GeoObjectList geos)
         {
             if (geos.Count == 0)
