@@ -17,6 +17,7 @@ namespace CADability.UserInterface
         private LayerSelectionProperty multiLayer; // Layer für mehrere Objekte
         private ColorSelectionProperty multiColorDef; // Layer für mehrere Objekte
         private StyleSelectionProperty multiStyle; // Style für mehrere Objekte
+        private LengthProperty multiCircleDiameter; //Durchmesser für mehrere Kreise
         private IntegerProperty objectCount;
         private Dictionary<string, IPropertyEntry> multiAttributes; // Liste aller custom SelectionProperties
         private Dictionary<string, IPropertyEntry> multiUserData; // Liste aller Userdata mit IMultiObjectUserData interface
@@ -75,6 +76,32 @@ namespace CADability.UserInterface
             }
             attributeProperties.Add(multiStyle);
 
+            //Check if all Ellipses are closed circles -> Show common diameter property
+            if (AreAllCircles(selectedObjects))
+            {
+                if (multiCircleDiameter is null)
+                {
+                    multiCircleDiameter = new LengthProperty(null, "Constr.Circle.Diameter");
+                    //Try to find the common radius of all selected circles
+                    double? commonRadius = ((Ellipse)selectedObjects[0]).Radius;
+                    for (int i = 1; i < selectedObjects.Count; i++)
+                    {
+                        Ellipse ellipse = (Ellipse)selectedObjects[i];
+                        if (ellipse.Radius != commonRadius)
+                        {
+                            commonRadius = null;
+                            break;
+                        }
+                    }
+                    //If a common radius was found set the diameter
+                    if (commonRadius.HasValue)
+                        multiCircleDiameter.SetLength(commonRadius.Value * 2.0);
+                    //Attach to value changed delegate to adjust the diameter
+                    multiCircleDiameter.OnSetValue = delegate (double l) { SetAllCirclesDiameter(selectedObjects, l); };
+                }
+                attributeProperties.Add(multiCircleDiameter);
+            }
+
             // gemeinsame custom Attribute sammeln und zufügen
             multiAttributes = new Dictionary<string, IPropertyEntry>();
             for (int i = 0; i < selectedObjects.Count; ++i)
@@ -120,6 +147,26 @@ namespace CADability.UserInterface
 
             InitMultiAttributeSelection();
         }
+
+        private void SetAllCirclesDiameter(GeoObjectList circles, double diameter)
+        {
+            double radius = diameter / 2.0;
+            foreach (Ellipse ellipse in circles)
+                ellipse.Radius = radius;
+        }
+
+
+        private bool AreAllCircles(GeoObjectList geos)
+        {
+            if (geos.Count == 0)
+                return false;
+
+            foreach (IGeoObject geo in selectedObjects)
+                if (!(geo is Ellipse selEllipse && selEllipse.IsClosed && selEllipse.IsCircle))
+                    return false;
+            return true;
+        }
+
         public void InitMultiAttributeSelection()
         {
             if (multiLinePattern == null) return;
@@ -433,7 +480,7 @@ namespace CADability.UserInterface
                             IDisplayHotSpots hsp = sp as IDisplayHotSpots;
                             if (hsp != null) hsp.HotspotChangedEvent += new HotspotChangedDelegate(OnSubHotspotChanged);
                             items.Add(sp as IPropertyEntry);
-                            sp.PropertyEntryChangedStateEvent +=new PropertyEntryChangedStateDelegate(OnShowPropertyStateChanged);
+                            sp.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnShowPropertyStateChanged);
                             IGeoObjectShowProperty gsp = sp as IGeoObjectShowProperty;
                             if (gsp != null)
                             {
