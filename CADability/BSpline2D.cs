@@ -66,6 +66,7 @@ namespace CADability.Curve2D
 
         private void InvalidateCache()
         {
+            base.ClearTriangulation();
             interpol = null;
             interdir = null;
             interparam = null;
