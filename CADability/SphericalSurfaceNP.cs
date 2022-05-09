@@ -322,7 +322,7 @@ namespace CADability.GeoObject
             return implicitPolynomial;
         }
         public override bool UvChangesWithModification => true;
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Center", center);
             data.AddProperty("XAxis", xAxis);
@@ -330,7 +330,7 @@ namespace CADability.GeoObject
             data.AddProperty("ZAxis", zAxis);
         }
         protected SphericalSurfaceNP() { } // for JSON
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             center = data.GetProperty<GeoPoint>("Center");
             xAxis = data.GetProperty<GeoVector>("XAxis");

@@ -348,6 +348,7 @@ namespace CADability.UserInterface
                 }
                 Frame.Project.Undo.ClearContext();
                 DeferUpdate = false;
+                PropertyEntryChangedState(new StateChangedArgs(StateChangedArgs.State.EditEnded));
             }
             else
             {

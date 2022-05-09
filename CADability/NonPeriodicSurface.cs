@@ -700,12 +700,12 @@ namespace CADability.GeoObject
         /// Empty constructor for JSON serialization
         /// </summary>
         protected NonPeriodicSurface() { }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("PeriodicSurface", periodicSurface);
             data.AddProperty("PeriodicBounds", periodicBounds);
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             periodicSurface = data.GetProperty<ISurface>("PeriodicSurface");
             periodicBounds = data.GetProperty<BoundingRect>("PeriodicBounds");

@@ -2042,12 +2042,12 @@ namespace CADability
             mode = data.GetValue<ModificationMode>();
         }
 
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddValues(Matrix00, Matrix01, Matrix02, Matrix03, Matrix10, Matrix11, Matrix12, Matrix13, Matrix20, Matrix21, Matrix22, Matrix23, ScalingFactor, mode);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
         }
         #endregion

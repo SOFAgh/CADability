@@ -10,7 +10,7 @@ namespace CADability.Attribute
     /// 
     /// </summary>
     [Serializable()]
-    public class LinePattern : PropertyEntryImpl, INamedAttribute, ISerializable, ICommandHandler
+    public class LinePattern : PropertyEntryImpl, INamedAttribute, ISerializable, ICommandHandler, IJsonSerialize
     {
         private string name;
         private double[] pattern;
@@ -311,8 +311,23 @@ namespace CADability.Attribute
             info.AddValue("Scale", scale);
             // parent wird vom Besitzer verwaltet
         }
-#endregion
-#region ICommandHandler Members
+        #endregion
+        #region IJsonSerialize
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Name", name);
+            data.AddProperty("Pattern", pattern);
+            data.AddProperty("Scale", scale);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            name = data.GetStringProperty("Name");
+            pattern = data.GetProperty<double[]>("Pattern");
+            scale = data.GetProperty<Scaling>("Scale");
+        }
+        #endregion
+        #region ICommandHandler Members
         bool ICommandHandler.OnCommand(string MenuId)
         {
             switch (MenuId)

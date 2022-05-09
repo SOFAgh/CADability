@@ -307,7 +307,7 @@ namespace CADability
         {
             get
             {
-                if (pointColor==null)
+                if (pointColor == null)
                 {
                     pointColor = new ColorDef("auto point", Color.Brown);
                 }
@@ -349,12 +349,12 @@ namespace CADability
                 if (go is Solid) cd.ColorDef = FaceColor;
             }
         }
-#region IDebuggerVisualizer Members
+        #region IDebuggerVisualizer Members
         GeoObjectList IDebuggerVisualizer.GetList()
         {
             return toShow;
         }
-#endregion
+        #endregion
         public GeoObjectList Squared2DList
         {
             get
@@ -633,6 +633,7 @@ namespace CADability
     {
         protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
         {
+
             IDebugForm form = CF.DebugForm;
             Model m = form.Model;
 
@@ -780,4 +781,4 @@ namespace CADability
     }
 
 #endif
-        }
+}

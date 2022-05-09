@@ -479,7 +479,7 @@ namespace CADability
             ((IDictionary)data).CopyTo(array, index);
         }
 
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             foreach (KeyValuePair<string, object> de in this.data)
             {	
@@ -503,7 +503,7 @@ namespace CADability
                 }
             }
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             foreach (KeyValuePair<string,object> item in data)
             {

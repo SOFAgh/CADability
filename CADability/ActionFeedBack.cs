@@ -25,6 +25,7 @@ namespace CADability.Actions
         private List<IGeoObject> paintAsTransparent;
         private IFrame frame;
         private bool makeTransparent;
+        private int selectWidth;
         internal ActionFeedBack()
         {
             repaintObjects = new List<IFeedBack>();
@@ -40,6 +41,7 @@ namespace CADability.Actions
             set
             {
                 frame = value;
+                selectWidth = frame.GetIntSetting("Select.SelectWidth", 2);
                 for (int i = 0; i < repaintObjects.Count; ++i)
                 {
                     IFeedBack go = repaintObjects[i];
@@ -56,7 +58,6 @@ namespace CADability.Actions
 
             Color selectColor = frame.GetColorSetting("Select.SelectColor", Color.Yellow); // die Farbe für die selektierten Objekte
             Color focusColor = frame.GetColorSetting("Select.FocusColor", Color.LightBlue); // die Farbe für das Objekt mit dem Focus
-            int selectWidth = frame.GetIntSetting("Select.SelectWidth", 2);
             foreach (IView vw in frame.AllViews)
             {
                 for (int i = 0; i < repaintObjects.Count; ++i)
@@ -101,6 +102,7 @@ namespace CADability.Actions
                 paintTo3D.Blending(false);
             }
         }
+        public bool SelectOutline { get{ return selectWidth > 0; } set { selectWidth = value ? frame.GetIntSetting("Select.SelectWidth", 2) : 0; } }
         public void MakeModelTransparent(bool transparent)
         {
             makeTransparent = transparent;
@@ -119,6 +121,19 @@ namespace CADability.Actions
             repaintObjects.Add(feedBackObject);
             feedBackObject.FeedBackChangedEvent += new FeedBackChangedDelegate(OnFeedBackChanged);
             OnFeedBackChanged(feedBackObject);
+            return repaintObjects.Count - 1;
+        }
+        public int Add(GeoObjectList feedBackObjects)
+        {
+            foreach (IGeoObject go in feedBackObjects)
+            {
+                if (go is IFeedBack fb)
+                {
+                    repaintObjects.Add(fb);
+                    fb.FeedBackChangedEvent += new FeedBackChangedDelegate(OnFeedBackChanged);
+                    OnFeedBackChanged(fb);
+                }
+            }
             return repaintObjects.Count - 1;
         }
 
@@ -186,6 +201,32 @@ namespace CADability.Actions
             paintAsSelected.Add(feedBackObject);
             (feedBackObject as IFeedBack).FeedBackChangedEvent += new FeedBackChangedDelegate(OnFeedBackChanged);
             OnFeedBackChanged(feedBackObject as IFeedBack);
+            return paintAsSelected.Count - 1;
+        }
+        public int AddSelected(GeoObjectList feedBackObjects)
+        {
+            paintAsSelected.AddRange(feedBackObjects);
+            foreach (IGeoObject go in feedBackObjects)
+            {
+                if (go is IFeedBack fb)
+                {
+                    fb.FeedBackChangedEvent += new FeedBackChangedDelegate(OnFeedBackChanged);
+                    OnFeedBackChanged(fb);
+                }
+            }
+            return paintAsSelected.Count - 1;
+        }
+        public int AddSelected(IEnumerable<IGeoObject> feedBackObjects)
+        {
+            paintAsSelected.AddRange(feedBackObjects);
+            foreach (IGeoObject go in feedBackObjects)
+            {
+                if (go is IFeedBack fb)
+                {
+                    fb.FeedBackChangedEvent += new FeedBackChangedDelegate(OnFeedBackChanged);
+                    OnFeedBackChanged(fb);
+                }
+            }
             return paintAsSelected.Count - 1;
         }
         /// <summary>

@@ -535,7 +535,7 @@ namespace CADability.Attribute
             info.AddValue("Parent", parent);
             info.AddValue("DefaultFor", defaultFor);
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", styleName);
             if (layer != null) data.AddProperty("Layer", layer);
@@ -548,7 +548,7 @@ namespace CADability.Attribute
             data.AddProperty("DefaultFor", defaultFor);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             styleName = data.GetPropertyOrDefault<string>("Name");
             layer = data.GetPropertyOrDefault<Layer>("Layer");
@@ -1061,7 +1061,7 @@ namespace CADability.Attribute
             return this.Clone();
         }
         #endregion
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             Style[] styleArray = new Style[styles.Count];
             for (int i = 0; i < styles.Count; i++)
@@ -1072,7 +1072,7 @@ namespace CADability.Attribute
             data.AddProperty("Current", current);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             unsortedEntries = data.GetProperty<Style[]>("UnsortedEntries");
             current = data.GetProperty("Current") as Style;

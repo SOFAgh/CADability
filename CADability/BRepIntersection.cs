@@ -2153,6 +2153,17 @@ namespace CADability
                 }
                 rawFillets[edg] = new Tuple<ICurve, Face>(crv, part); // here we keep the original fillets, maybe they will be modified when we make junctions between fillets
             }
+#if DEBUG
+            DebuggerContainer dcEdges = new DebuggerContainer();
+            DebuggerContainer dcCurves = new DebuggerContainer();
+            DebuggerContainer dcFillets = new DebuggerContainer();
+            foreach (var item in rawFillets)
+            {
+                dcEdges.Add(item.Key.Curve3D as IGeoObject, item.Key.GetHashCode());
+                dcCurves.Add(item.Value.Item1 as IGeoObject);
+                dcFillets.Add(item.Value.Item2);
+            }
+#endif
             foreach (KeyValuePair<Vertex, List<Edge>> vertexToEdge in joiningVertices)
             {
                 if (vertexToEdge.Value.Count == 1)
@@ -2293,6 +2304,7 @@ namespace CADability
                                     }
                                 }
                             }
+                            else { }
                         }
                         else
                         {

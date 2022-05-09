@@ -21,7 +21,7 @@ namespace CADability.UserInterface
 
     public class StateChangedArgs : EventArgs
     {
-        public enum State { OpenSubEntries, CollapseSubEntries, Selected, UnSelected, SubEntrySelected, Added, Removed }
+        public enum State { OpenSubEntries, CollapseSubEntries, Selected, UnSelected, SubEntrySelected, Added, Removed, EditEnded }
         private State state;
         public StateChangedArgs(State state)
         {

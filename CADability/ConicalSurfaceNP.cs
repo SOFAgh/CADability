@@ -342,14 +342,14 @@ namespace CADability.GeoObject
 
         #region IJsonSerialize
         protected ConicalSurfaceNP() { }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Location", location);
             data.AddProperty("XAxis", xAxis);
             data.AddProperty("YAxis", yAxis);
             data.AddProperty("ZAxis", zAxis);
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             location = data.GetProperty<GeoPoint>("Location");
             xAxis = data.GetProperty<GeoVector>("XAxis");

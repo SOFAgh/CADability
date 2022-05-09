@@ -368,7 +368,7 @@ namespace CADability.UserInterface
             info.AddValue("SpecialValues", specialValues, typeof(Dictionary<int, string>));
         }
         protected IntegerProperty() { } // needed for IJsonSerialize
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("InternalValue", internalValue);
             data.AddProperty("resourceId", resourceId);
@@ -376,7 +376,7 @@ namespace CADability.UserInterface
             if (specialValues != null) data.AddProperty("SpecialValues", specialValues);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             internalValue = data.GetProperty<int>("InternalValue");
             resourceId = data.GetProperty<string>("resourceId");

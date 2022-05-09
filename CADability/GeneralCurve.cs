@@ -1251,7 +1251,7 @@ namespace CADability.GeoObject
         internal static void GetTetraederPoints(GeoPoint p1, GeoPoint p2, GeoVector v1, GeoVector v2, out GeoPoint tv1, out GeoPoint tv2)
         {
             GeoVector d = p2 - p1;
-            if (Precision.SameDirection(v1, d, false) || Precision.SameDirection(v2, d, false))
+            if (Precision.SameDirection(v1, d, false) || Precision.SameDirection(v2, d, false) || d.IsNullVector())
             {
                 GeoPoint pm = new GeoPoint(p1, p2);
                 tv1 = pm;
@@ -1260,6 +1260,13 @@ namespace CADability.GeoObject
             }
             GeoVector v1x = d ^ v1;
             GeoVector v2x = d ^ v2;
+            if (v1x.IsNullVector() || v2x.IsNullVector())
+            {
+                GeoPoint pm = new GeoPoint(p1, p2);
+                tv1 = pm;
+                tv2 = pm;
+                return;
+            }
             try
             {
                 Plane pl1 = new Plane(p1, v1x, v1); // Ebene am Startpunkt tangential zur Kurve

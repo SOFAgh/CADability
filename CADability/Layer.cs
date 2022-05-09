@@ -217,7 +217,7 @@ namespace CADability.Attribute
     /// </summary>
     [Serializable()]
     public class Layer : PropertyEntryImpl, ISerializable, INamedAttribute,
-            ICommandHandler
+            ICommandHandler, IJsonSerialize
     {
         private string name; // name of the Layer
         private int displayOrder;
@@ -432,7 +432,20 @@ namespace CADability.Attribute
         }
 
         #endregion
-
+        #region IJsonSerialize
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Name", name);
+            data.AddProperty("DisplayOrder", displayOrder);
+            data.AddProperty("Transparency", transparency);
+        }
+        public void SetObjectData(IJsonReadData data)
+        {
+            name = data.GetProperty<string>("Name");
+            displayOrder = data.GetProperty<int>("DisplayOrder");
+            transparency = data.GetProperty<int>("Transparency");
+        }
+        #endregion
         public int DisplayOrder
         {
             get
