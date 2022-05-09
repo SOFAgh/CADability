@@ -39,14 +39,6 @@ namespace CADability.GeoObject
         {
             list.Add(singleObject);
         }
-        public GeoObjectList(GeoObjectList list)
-            : this(list.Count)
-        {
-            foreach (IGeoObject go in list)
-            {
-                this.list.Add(go);
-            }
-        }
         public GeoObjectList(params IGeoObject[] l)
             : this(l.Length)
         {
@@ -60,28 +52,24 @@ namespace CADability.GeoObject
         public GeoObjectList(ICollection<IGeoObject> list)
             : this(list.Count)
         {
-            AddRange(list);
+            this.list.AddRange(list);
         }
         public void Add(IGeoObject ObjectToAdd)
         {
             list.Add(ObjectToAdd);
-            if (ObjectAddedEvent != null) ObjectAddedEvent(this, ObjectToAdd, true);
+            ObjectAddedEvent?.Invoke(this, ObjectToAdd, true);
         }
         public void Insert(int index, IGeoObject ObjectToAdd)
         {
             list.Insert(index, ObjectToAdd);
-            if (ObjectAddedEvent != null) ObjectAddedEvent(this, ObjectToAdd, true);
+            ObjectAddedEvent?.Invoke(this, ObjectToAdd, true);
         }
         public void AddUnique(IGeoObject ObjectToAdd)
         {	// da list eine ArrayList ist, ist AddUnique u.U. aufwendig
             // Überlegung: sollte man GeoObjectList per Eigenschaft auch parallel als
             // HashTable implementieren? Das würde hier Vorteile bringen.
-            int index = list.IndexOf(ObjectToAdd);
-            if (index < 0)
-            {
-                list.Add(ObjectToAdd);
-                if (ObjectAddedEvent != null) ObjectAddedEvent(this, ObjectToAdd, true);
-            }
+            if (!list.Contains(ObjectToAdd))
+                Add(ObjectToAdd);
         }
         public void AddDecomposed(IGeoObject ObjectToAdd)
         {
@@ -150,22 +138,13 @@ namespace CADability.GeoObject
                 Add(ObjectToAdd);
             }
         }
-        public void AddRange(IGeoObject[] ObjectsToAdd)
-        {
-            list.AddRange(ObjectsToAdd);
-            if (ObjectAddedEvent != null)
-            {
-                int i;
-                for (i = 0; i < ObjectsToAdd.Length - 1; i++)
-                    ObjectAddedEvent(this, ObjectsToAdd[i], false);
-                ObjectAddedEvent(this, ObjectsToAdd[i], true);
-            }
 
         }
         public void AddRange(IEnumerable<IGeoObject> ObjectsToAdd)
         {
-            list.AddRange(ObjectsToAdd);
-            if (ObjectAddedEvent != null)
+            int cnt = 0;
+            IGeoObject geoObject = null;
+            foreach (var go in objectsToAdd)
             {
                 List<IGeoObject> objectsAdded = new List<IGeoObject>(ObjectsToAdd);
                 int i;
@@ -173,19 +152,10 @@ namespace CADability.GeoObject
                     ObjectAddedEvent(this, objectsAdded[i], false);
                 ObjectAddedEvent(this, objectsAdded[i], true);
             }
+            if (cnt > 0)
+                ObjectAddedEvent?.Invoke(this, geoObject, true);
         }
-        public void AddRange(GeoObjectList ObjectsToAdd)
-        {
-            list.AddRange(ObjectsToAdd.list);
-            if (ObjectAddedEvent != null)
-            {
-                int i;
-                for (i = 0; i < ObjectsToAdd.Count - 1; i++)
-                    ObjectAddedEvent(this, ObjectsToAdd[i], false);
-                ObjectAddedEvent(this, ObjectsToAdd[i], true);
-            }
 
-        }
         public void AddRangeUnique(GeoObjectList ObjectsToAdd)
         {   // erst die überflüssigen entfernen, dann alle verbleibenden zufügen wg. ObjectAddedEvent
             for (int i = ObjectsToAdd.Count - 1; i >= 0; --i)
@@ -349,7 +319,7 @@ namespace CADability.GeoObject
             return (index >= 0);
         }
         /// <summary>
-        /// Tests, weather this list and the list l have the same content 
+        /// Tests, weather this list and the list l have the same content
         /// (maybe in a different order)
         /// </summary>
         /// <param name="l">The GeoObjectList to compare with this list</param>
@@ -486,7 +456,7 @@ namespace CADability.GeoObject
         #endregion
         /// <summary>
         /// A GeoObjectList is reduced to the owners of the contained objects. I.e. when an object has an owner
-        /// of type IGeoObject (like a child of a <see cref="Block"/>), it is removed from the list and the owner is 
+        /// of type IGeoObject (like a child of a <see cref="Block"/>), it is removed from the list and the owner is
         /// added instead. As a result, the list contains only objects that are owned by a <see cref="Model"/> or
         /// don't have an owner at all.
         /// </summary>
@@ -523,7 +493,7 @@ namespace CADability.GeoObject
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return list.GetEnumerator();            
+            return list.GetEnumerator();
         }
 
     }
