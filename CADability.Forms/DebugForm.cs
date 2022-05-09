@@ -37,6 +37,7 @@ namespace CADability.Forms
             // Trace.WriteLine("DebugForm constructor");
             Text = "CADability.Forms.DebugForm";
             CadFrame.GenerateNewProject();
+            // Trace.WriteLine("Project created");
         }
 
         protected override void OnShown(EventArgs e)
@@ -73,6 +74,7 @@ namespace CADability.Forms
         {
             get
             {
+                Model m = base.CadFrame.Project.GetActiveModel();
                 return base.CadFrame.Project.GetActiveModel();
             }
         }

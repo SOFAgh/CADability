@@ -849,12 +849,12 @@ namespace CADability
         {
             coordSys = data.GetValue<CoordSys>();
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddValues(coordSys);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
         }
         #endregion

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CADability.GeoObject;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -540,7 +541,7 @@ namespace CADability
             {
                 if (token == Tokenizer.etoken.beginObject) res.Add(GetObject(tk));
                 else if (token == Tokenizer.etoken.beginArray) res.Add(GetArray(tk));
-                else if (token == Tokenizer.etoken.number) res.Add(double.Parse(line.Substring(start, length), NumberStyles.Any, NumberFormatInfo.InvariantInfo));
+                else if (token == Tokenizer.etoken.number) res.Add(ParseDouble(line.Substring(start, length)));
                 else if (token == Tokenizer.etoken.nnull) res.Add(null);
                 else if (token == Tokenizer.etoken.ttrue) res.Add(true);
                 else if (token == Tokenizer.etoken.ffalse) res.Add(false);
@@ -1517,7 +1518,7 @@ namespace CADability
             this.originalType = originalType;
         }
         protected JSonDictionary() { }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("$OriginalType", originalType.FullName);
             // we need to restore the types of keys and values when reading. Maybe they are the same for all items
@@ -1561,7 +1562,7 @@ namespace CADability
             }
             data.AddProperty("$Entries", asList.ToArray());
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             Type keyType = null, valType = null;
             string[] valTypes = null;
@@ -1629,7 +1630,7 @@ namespace CADability
         {
 
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("$OriginalType", toSerialize.GetType().FullName);
             switch (toSerialize.GetType().FullName)
@@ -1642,7 +1643,7 @@ namespace CADability
             }
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             typeName = data.GetProperty<string>("$OriginalType");
             switch (typeName)
@@ -1667,7 +1668,7 @@ namespace CADability
     //        this.originalType = originalType;
     //    }
     //    protected JSonList() { }
-    //    void IJsonSerialize.GetObjectData(IJsonWriteData data)
+    //    public void GetObjectData(IJsonWriteData data)
     //    {
     //        data.AddProperty("$OriginalType", originalType.FullName);
     //        // we need to restore the types of keys and values when reading. Maybe they are the same for all items
@@ -1697,7 +1698,7 @@ namespace CADability
     //        data.AddProperty("$Entries", toAdd);
     //    }
 
-    //    void IJsonSerialize.SetObjectData(IJsonReadData data)
+    //    public void SetObjectData(IJsonReadData data)
     //    {
     //        Type elementType = null;
     //        if (data.HasProperty("$ElementType")) elementType = Type.GetType(data.GetProperty<string>("$ElementType"));

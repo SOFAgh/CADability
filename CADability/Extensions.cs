@@ -78,11 +78,74 @@ namespace CADability
         //}
     }
 
+    public class LookedUpEnumerable<T> : IEnumerable<T>, IEnumerator<T>, IEnumerator
+    {
+        IEnumerable<T> toEnumerate;
+        int currentIndex;
+        IEnumerator<T> currentEnumerator;
+        Dictionary<T, T> lookUp;
+        public LookedUpEnumerable(IEnumerable<T> enumerable, Dictionary<T, T> lookUp)
+        {
+            toEnumerate = enumerable;
+            currentIndex = 0;
+            currentEnumerator = null;
+            this.lookUp = lookUp;
+            currentEnumerator = enumerable.GetEnumerator();
+        }
+
+        T IEnumerator<T>.Current
+        {
+            get
+            {
+                if (lookUp.TryGetValue(currentEnumerator.Current, out T val)) return val;
+                else return currentEnumerator.Current;
+            }
+        }
+
+        object IEnumerator.Current
+        {
+            get
+            {
+                if (lookUp.TryGetValue(currentEnumerator.Current, out T val)) return val;
+                else return currentEnumerator.Current;
+            }
+        }
+
+        void IDisposable.Dispose()
+        {
+            currentEnumerator.Dispose();
+        }
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator()
+        {
+            return this;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this;
+        }
+
+        bool IEnumerator.MoveNext()
+        {
+            return currentEnumerator.MoveNext();
+        }
+
+        void IEnumerator.Reset()
+        {
+            currentEnumerator = null;
+        }
+    }
+
     static partial class Extensions
     {
         public static IEnumerable<T> Combine<T>(params IEnumerable<T>[] enumerators)
         {
             return new CombinedEnumerable<T>(enumerators);
+        }
+        public static IEnumerable<T> LookUp<T>(IEnumerable<T> enumertor, Dictionary<T,T> lookUp)
+        {
+            return new LookedUpEnumerable<T>(enumertor, lookUp);
         }
         public static Matrix RowVector(params GeoVector[] v)
         {

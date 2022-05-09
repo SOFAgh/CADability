@@ -184,6 +184,13 @@ namespace CADability
                     InsertRecalcGeoObject(s.Faces[i]);
                 }
             }
+            else if (toInsert is Block block)
+            {
+                for (int i = 0; i < block.Count; ++i)
+                {
+                    InsertRecalcGeoObject(block.Child(i));
+                }
+            }
             else
             {
                 lock (runningThreads)
@@ -1371,7 +1378,7 @@ namespace CADability
             info.AddValue("UserData", userData, typeof(UserData));
 
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("GeoObjectList", geoObjects);
             data.AddProperty("Name", name);
@@ -1384,7 +1391,7 @@ namespace CADability
             data.AddProperty("UserData", userData);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             geoObjects = data.GetProperty<GeoObjectList>("GeoObjectList");
             name = data.GetProperty<string>("Name");
@@ -1410,6 +1417,7 @@ namespace CADability
         #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
+            (geoObjects as IDeserializationCallback).OnDeserialization(sender); // must be called before this here
             for (int i = 0; i < geoObjects.Count; ++i)
             {
                 geoObjects[i].Owner = this;

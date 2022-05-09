@@ -1078,9 +1078,9 @@ namespace CADability.Shapes
                 res.AddRange(cc);
             }
             res.Sort();
-            for (int i = res.Count-1; i >0; --i)
+            for (int i = res.Count - 1; i > 0; --i)
             {
-                if (res[i]==res[i-1])
+                if (res[i] == res[i - 1])
                 {
                     res.RemoveAt(i);
                     res.RemoveAt(i - 1);
@@ -1302,8 +1302,29 @@ namespace CADability.Shapes
             }
             return false;
         }
-
-
+        /// <summary>
+        /// Checks whether this shape is correct. I.e. no (self-) intersections of the outline or holes, all holes inside the outline
+        /// </summary>
+        /// <returns></returns>
+        public bool CheckTopology()
+        {
+            if (Outline.Area < 0) return false;
+            if (Outline.GetSelfIntersection(0.0).Length > 0) return false;
+            if (holes != null)
+            {
+                for (int i = 0; i < holes.Length; i++)
+                {
+                    if (holes[i].GetSelfIntersection(0.0).Length > 0) return false;
+                    if (Outline.GetPosition(holes[i].StartPoint) == Border.Position.Outside) return false;
+                    if (BorderPair.GetBorderOperation(null, Outline, holes[i], 0.0).Position != BorderOperation.BorderPosition.b1coversb2) return false;
+                    for (int j = i + 1; j < holes.Length; j++)
+                    {
+                        if (BorderPair.GetBorderOperation(null, holes[j], holes[i], 0.0).Position != BorderOperation.BorderPosition.disjunct) return false;
+                    }
+                }
+            }
+            return true;
+        }
         internal void AddHole(Border bdr)
         {
             if (holes == null) holes = new Border[0];

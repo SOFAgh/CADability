@@ -90,12 +90,12 @@ namespace CADability
 
         #endregion
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Drives", drives.ToArray());
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             drives = new List<IDrive>(data.GetProperty<IDrive[]>("Drives"));
         }
@@ -501,7 +501,7 @@ namespace CADability
         }
         #endregion
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", name);
             data.AddProperty("MoveAlong", moveAlong);
@@ -512,7 +512,7 @@ namespace CADability
             data.AddProperty("DependsOn", dependsOn);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             name = data.GetProperty<string>("Name");
             moveAlong = data.GetProperty<ICurve>("MoveAlong");
@@ -914,7 +914,7 @@ namespace CADability
 
         #endregion
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", name);
             data.AddProperty("Drive1", drive1);
@@ -923,7 +923,7 @@ namespace CADability
             data.AddProperty("Stretch", stretch);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             name = data.GetProperty<string>("Name");
             drive1 = data.GetProperty<CurveDrive>("Drive1");
@@ -1257,7 +1257,7 @@ namespace CADability
         {
             base.resourceId = "AxisDrive";
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", name);
             data.AddProperty("Location", location);
@@ -1266,7 +1266,7 @@ namespace CADability
             data.AddProperty("DependsOn", dependsOn);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             name = data.GetProperty<string>("Name");
             location = data.GetProperty<GeoPoint>("Location");

@@ -14,9 +14,10 @@ namespace CADability.GeoObject
     [System.Diagnostics.DebuggerVisualizer(typeof(GeoObjectListVisualizer))]
 #endif
     [Serializable]
-    public class GeoObjectList : IEnumerable, ISerializable, IEnumerable<IGeoObject>
+    public class GeoObjectList : IEnumerable, ISerializable, IDeserializationCallback, IEnumerable<IGeoObject>, IJsonSerialize
     {
-        protected ArrayList list;
+        private ArrayList alist; // used for ISerializabe and IDeserializationCallback since list has been changed to List<IGeoObject>, which cannot be serialized/deserialized
+        protected List<IGeoObject> list;
         private UserData userData;
         public delegate void ObjectAddedDelegate(GeoObjectList sender, IGeoObject addedObject, bool lastRangeElement);
         public event ObjectAddedDelegate ObjectAddedEvent;
@@ -25,12 +26,12 @@ namespace CADability.GeoObject
 
         public GeoObjectList()
         {
-            list = new ArrayList();
+            list = new List<IGeoObject>();
             userData = new UserData();
         }
         public GeoObjectList(int Capacity)
         {
-            list = new ArrayList(Capacity);
+            list = new List<IGeoObject>(Capacity);
             userData = new UserData();
         }
         public GeoObjectList(IGeoObject singleObject)
@@ -51,17 +52,12 @@ namespace CADability.GeoObject
         {
             list.AddRange(l);
         }
-        public GeoObjectList(ArrayList al)
-            : this(al.Count)
-        {
-            list.AddRange(al);
-        }
         public GeoObjectList(List<IGeoObject> list)
             : this(list.Count)
         {
             AddRange(list.ToArray());
         }
-        public GeoObjectList(ICollection list)
+        public GeoObjectList(ICollection<IGeoObject> list)
             : this(list.Count)
         {
             AddRange(list);
@@ -166,14 +162,16 @@ namespace CADability.GeoObject
             }
 
         }
-        public void AddRange(ICollection ObjectsToAdd)
+        public void AddRange(IEnumerable<IGeoObject> ObjectsToAdd)
         {
             list.AddRange(ObjectsToAdd);
             if (ObjectAddedEvent != null)
             {
-                int i = ObjectsToAdd.Count - 1;
-                foreach (IGeoObject go in ObjectsToAdd)
-                    ObjectAddedEvent(this, go, i > 0 ? false : true);
+                List<IGeoObject> objectsAdded = new List<IGeoObject>(ObjectsToAdd);
+                int i;
+                for (i = 0; i < objectsAdded.Count - 1; i++)
+                    ObjectAddedEvent(this, objectsAdded[i], false);
+                ObjectAddedEvent(this, objectsAdded[i], true);
             }
         }
         public void AddRange(GeoObjectList ObjectsToAdd)
@@ -437,7 +435,7 @@ namespace CADability.GeoObject
         }
         public static implicit operator IGeoObject[](GeoObjectList l)
         {
-            return (IGeoObject[])l.list.ToArray(typeof(IGeoObject));
+            return (IGeoObject[])l.list.ToArray();
         }
         #region ISerializable Members
         /// <summary>
@@ -447,7 +445,9 @@ namespace CADability.GeoObject
         /// <param name="context">StreamingContext</param>
         protected GeoObjectList(SerializationInfo info, StreamingContext context)
         {
-            list = (ArrayList)info.GetValue("List", typeof(ArrayList));
+            alist = (ArrayList)info.GetValue("List", typeof(ArrayList));
+            list = new List<IGeoObject>(alist.Count);
+            for (int i = 0; i < alist.Count; i++) list.Add(alist[i] as IGeoObject);
             userData = InfoReader.ReadOrCreate(info, "UserData", typeof(UserData), new object[] { }) as UserData;
         }
         /// <summary>
@@ -457,8 +457,30 @@ namespace CADability.GeoObject
         /// <param name="context">The destination (<see cref="System.Runtime.Serialization.StreamingContext"/>) for this serialization.</param>
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("List", list, typeof(ArrayList));
+            ArrayList alist = new ArrayList(list);
+            info.AddValue("List", alist, typeof(ArrayList));
             info.AddValue("UserData", userData);
+        }
+        void IDeserializationCallback.OnDeserialization(object sender)
+        {
+            if (alist != null)
+            {
+                list = new List<IGeoObject>(alist.Count);
+                for (int i = 0; i < alist.Count; i++) list.Add(alist[i] as IGeoObject);
+                alist = null;
+            }
+        }
+
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("List", list);
+            data.AddProperty("UserData", userData);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            list = data.GetProperty<List<IGeoObject>>("List");
+            userData = data.GetProperty<UserData>("UserData");
         }
 
         #endregion
@@ -503,5 +525,6 @@ namespace CADability.GeoObject
         {
             return list.GetEnumerator();            
         }
+
     }
 }

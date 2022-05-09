@@ -686,7 +686,7 @@ namespace CADability.DXF
                     if (list.Count > 1)
                     {
                         GeoObject.Block block = GeoObject.Block.Construct();
-                        block.Set(new GeoObjectList(list));
+                        block.Set(new GeoObjectList(list as  ICollection<IGeoObject>));
                         return block;
                     }
                     else return res;
@@ -1101,7 +1101,7 @@ namespace CADability.DXF
                 {
                     GeoObject.Block blk = GeoObject.Block.Construct();
                     blk.Name = "Mesh";
-                    blk.Set(new GeoObjectList(faces));
+                    blk.Set(new GeoObjectList(faces as ICollection<IGeoObject>));
                     return blk;
                 }
             }

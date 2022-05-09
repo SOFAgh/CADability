@@ -15,7 +15,7 @@ namespace CADability.GeoObject
     /// A collection of several <see cref="IGeoObject"/>s 
     /// </summary>
     [Serializable()]
-    public class Block : IGeoObjectImpl, IColorDef, ISerializable, IGeoObjectOwner, IDeserializationCallback, IExportStep
+    public class Block : IGeoObjectImpl, IColorDef, ISerializable, IGeoObjectOwner, IDeserializationCallback, IExportStep, IJsonSerialize, IJsonSerializeDone
     {
         private GeoPoint refPoint;
         protected GeoObjectList containedObjects;
@@ -780,6 +780,7 @@ namespace CADability.GeoObject
         {
             lock (this)
             {
+                (containedObjects as IDeserializationCallback).OnDeserialization(sender); // must be called before this here
                 for (int i = 0; i < containedObjects.Count; ++i)
                 {
                     containedObjects[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
@@ -789,6 +790,41 @@ namespace CADability.GeoObject
             }
         }
         #endregion
+        /// <summary>
+        /// Need to make it public in order to allow inheriting classes to acces this method via base.GetObjectData
+        /// </summary>
+        /// <param name="data"></param>
+        public override void GetObjectData(IJsonWriteData data)
+        {
+            base.GetObjectData(data);
+            data.AddProperty("ColorDef", colorDef);
+            data.AddProperty("RefPoint", refPoint);
+            data.AddProperty("ContainedObjects", containedObjects);
+            data.AddProperty("Name", name);
+        }
+
+        public override void SetObjectData(IJsonReadData data)
+        {
+            base.SetObjectData(data);
+            refPoint = data.GetProperty<GeoPoint>("RefPoint");
+            containedObjects = data.GetProperty<GeoObjectList>("ContainedObjects");
+            colorDef = data.GetPropertyOrDefault<ColorDef>("ColorDef");
+            name = data.GetPropertyOrDefault<string>("Name");
+            data.RegisterForSerializationDoneCallback(this);
+        }
+        public void SerializationDone()
+        {
+            lock (this)
+            {
+                for (int i = 0; i < containedObjects.Count; ++i)
+                {
+                    containedObjects[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                    containedObjects[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
+                    containedObjects[i].Owner = this;
+                }
+            }
+        }
+
         private void colorDef_ColorDidChange(object sender, ChangeEventArgs eventArguments)
         {
             if (CDfromParent != null && colorDef != null)

@@ -3,6 +3,7 @@ using CADability.Shapes;
 using CADability.UserInterface;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
@@ -23,7 +24,7 @@ namespace CADability.GeoObject
     /// you wont see the Hatch object as it is not fully defined. No defaults are assumed.
     /// </summary>
     [Serializable()]
-    public class Hatch : Block, ISerializable, IHatchStyle
+    public class Hatch : Block, ISerializable, IHatchStyle, IJsonSerialize
     {
         private CompoundShape compoundShape; // die Umrandung
         private HatchStyle hatchStyle; // die Schraffurart
@@ -514,6 +515,22 @@ namespace CADability.GeoObject
             info.AddValue("CompoundShape", compoundShape);
             info.AddValue("HatchStyle", hatchStyle);
             info.AddValue("Plane", plane);
+        }
+        new public void GetObjectData(IJsonWriteData data)
+        {
+            ConditionalRecalc();
+            base.GetObjectData(data);  
+            data.AddProperty("CompoundShape", compoundShape);
+            data.AddProperty("HatchStyle", hatchStyle);
+            data.AddProperty("Plane", plane);
+        }
+
+        new public void SetObjectData(IJsonReadData data)
+        {
+            base.SetObjectData(data);
+            compoundShape = data.GetProperty<CompoundShape>("CompoundShape");
+            hatchStyle = data.GetProperty<HatchStyle>("HatchStyle");
+            plane = data.GetProperty<Plane>("Plane");
         }
         #endregion
         #region IHatchStyle Members

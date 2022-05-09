@@ -392,12 +392,12 @@ namespace CADability
             uvposition = new Dictionary<Face, GeoPoint2D>();
             hashCode = hashCodeCounter++;
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Position", position);
             data.AddProperty("Edges", edges.ToArray());
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             position = data.GetProperty<GeoPoint>("Position");
             edges = new Set<Edge>((data.GetProperty<Edge[]>("Edges")));

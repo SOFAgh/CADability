@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
+using CADability.GeoObject;
+using CADability.Shapes;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
 #else
@@ -51,9 +53,9 @@ namespace CADability
                     try
                     {
                         Matrix mx = DenseMatrix.OfArray(new double[,] { { left, 1 }, { right, 1 } });
-                        Vector sx = (Vector)mx.Solve(new DenseVector(new double[] {  1 ,  0  }));
+                        Vector sx = (Vector)mx.Solve(new DenseVector(new double[] { 1, 0 }));
                         Matrix my = DenseMatrix.OfArray(new double[,] { { top, 1 }, { bottom, 1 } });
-                        Vector sy = (Vector)my.Solve(new DenseVector(new double[] {  1 ,  0  }));
+                        Vector sy = (Vector)my.Solve(new DenseVector(new double[] { 1, 0 }));
                         // Achtung: z geht von -1 bis +1, UnitBox nur von 0 bis 1, deshalb hir z mit 0.5 Faktor und 0.5 Verschiebung versehen
                         toUnitBox = new Matrix4(new double[,] { { sx[0], 0, 0, sx[1] }, { 0, sy[0], 0, sy[1] }, { 0, 0, 0.5, 0.5 }, { 0, 0, 0, 1 } }) * projection.openGlMatrix;
                         isPerspective = projection.isPerspective;
@@ -662,7 +664,7 @@ namespace CADability
         }
         internal BoundingRect GetPlacement(Rectangle Destination)
         {
-            return new BoundingRect(DrawingPlanePoint(new Point(Destination.Left, Destination.Bottom)).To2D(), DrawingPlanePoint(new Point(Destination.Right, Destination.Top)).To2D());
+            return new BoundingRect(DrawingPlanePoint(new System.Drawing.Point(Destination.Left, Destination.Bottom)).To2D(), DrawingPlanePoint(new System.Drawing.Point(Destination.Right, Destination.Top)).To2D());
         }
 
         public void SetPlacement(RectangleF Destination, BoundingRect Source)
@@ -799,8 +801,8 @@ namespace CADability
         /// <returns></returns>
         public BoundingRect BoundingRectWorld2d(int left, int right, int bottom, int top)
         {
-            GeoPoint2D ll = PointWorld2D(new Point(left, bottom));
-            GeoPoint2D ur = PointWorld2D(new Point(right, top));
+            GeoPoint2D ll = PointWorld2D(new System.Drawing.Point(left, bottom));
+            GeoPoint2D ur = PointWorld2D(new System.Drawing.Point(right, top));
             return new BoundingRect(ll.x, ll.y, ur.x, ur.y);
             // für Parallelprojektion gilt einfacher:
             //return new BoundingRect(
@@ -822,7 +824,7 @@ namespace CADability
             res.Inflate(2, 2);
             return res;
         }
-        public GeoPoint2D PointWorld2D(Point p)
+        public GeoPoint2D PointWorld2D(System.Drawing.Point p)
         {
             if (!openGlMatrix.IsValid) Initialize();
             GeoPoint p0 = inverseOpenGLMatrix * new GeoPoint(2.0 * (double)(p.X - clientRect.Left) / (double)clientRect.Width - 1, 2.0 * (double)(clientRect.Bottom - p.Y) / (double)clientRect.Height - 1, 0.0);
@@ -833,7 +835,7 @@ namespace CADability
         }
         public GeoPoint2D PointWorld2D(PointF pf)
         {
-            Point p = new Point((int)(pf.X), (int)(pf.Y));
+            System.Drawing.Point p = new System.Drawing.Point((int)(pf.X), (int)(pf.Y));
             return PointWorld2D(p);
         }
         public double DeviceToWorldFactor { get { return 1.0 / placementFactor; } }
@@ -949,7 +951,7 @@ namespace CADability
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
-        public GeoPoint UnProject(Point p)
+        public GeoPoint UnProject(System.Drawing.Point p)
         {
             return inverseProjection * new GeoPoint((p.X - placementX) / placementFactor, -(p.Y - placementY) / placementFactor, 0.0);
         }
@@ -1059,9 +1061,9 @@ namespace CADability
                 // merkwürdig aus.
                 // der Z-Wert der resultierenden projektion wird so bestimmt, dass die komplette bounding cube
                 // in den bereich -1..1 reinpasst
-                GeoPoint leftbottom = UnProject(new Point(left, top)); // -> -1,-1,0,1
-                GeoPoint rightbottom = UnProject(new Point(right, top)); // -> 1,-1,0,1
-                GeoPoint lefttop = UnProject(new Point(left, bottom)); // -> -1,1,0,1
+                GeoPoint leftbottom = UnProject(new System.Drawing.Point(left, top)); // -> -1,-1,0,1
+                GeoPoint rightbottom = UnProject(new System.Drawing.Point(right, top)); // -> 1,-1,0,1
+                GeoPoint lefttop = UnProject(new System.Drawing.Point(left, bottom)); // -> -1,1,0,1
                 GeoVector projdir = this.Direction;
                 GeoVector dirx = rightbottom - leftbottom;
                 GeoVector diry = lefttop - leftbottom;
@@ -1250,9 +1252,9 @@ namespace CADability
             // merkwürdig aus.
             // der Z-Wert der resultierenden projektion wird so bestimmt, dass die komplette bounding cube
             // in den bereich -1..1 reinpasst
-            GeoPoint leftbottom = UnProject(new Point(left, top)); // -> -1,-1,0,1
-            GeoPoint rightbottom = UnProject(new Point(right, top)); // -> 1,-1,0,1
-            GeoPoint lefttop = UnProject(new Point(left, bottom)); // -> -1,1,0,1
+            GeoPoint leftbottom = UnProject(new System.Drawing.Point(left, top)); // -> -1,-1,0,1
+            GeoPoint rightbottom = UnProject(new System.Drawing.Point(right, top)); // -> 1,-1,0,1
+            GeoPoint lefttop = UnProject(new System.Drawing.Point(left, bottom)); // -> -1,1,0,1
             GeoVector projdir = this.Direction;
             GeoVector dirx = rightbottom - leftbottom;
             GeoVector diry = lefttop - leftbottom;
@@ -1423,7 +1425,7 @@ namespace CADability
         /// <param name="pln">Plane of the requested point</param>
         /// <param name="p">Mouse position or point in view coordinates</param>
         /// <returns>Position of the point in the plane</returns>
-        public GeoPoint2D PlanePoint(Plane pln, Point p)
+        public GeoPoint2D PlanePoint(Plane pln, System.Drawing.Point p)
         {
             GeoPoint p0 = new GeoPoint((p.X - placementX) / placementFactor, -(p.Y - placementY) / placementFactor, 0.0);
             p0 = inverseProjection * p0;
@@ -1456,7 +1458,7 @@ namespace CADability
         /// </summary>
         /// <param name="p">Point to which the corresponding beam is required</param>
         /// <returns>The corresponding beam</returns>
-        public Axis PointBeam(Point p)
+        public Axis PointBeam(System.Drawing.Point p)
         {
             // der Bildschirm ist auf den OpenGL Einheitswürfel abgebildet: [-1,1][-1,1],[0,1]
             // Bestimme die Position der Maus in diesem Würfel und berechne daraus den Strahl
@@ -1472,7 +1474,7 @@ namespace CADability
         /// </summary>
         /// <param name="p">Point in window coordinates</param>
         /// <returns>Point in world coordinates</returns>
-        public GeoPoint DrawingPlanePoint(Point p)
+        public GeoPoint DrawingPlanePoint(System.Drawing.Point p)
         {
             Axis a = PointBeam(p);
             if (CADability.Precision.IsPerpendicular(a.Direction, drawingPlane.Normal, false))
@@ -1528,6 +1530,29 @@ namespace CADability
             GeoPoint res = inverseOpenGLMatrix * pogl;
             return res;
         }
+        public enum ArrowMode { circleArrow, twoArrows }
+        public GeoObjectList MakeArrow(GeoPoint p1, GeoPoint p2, Plane plane, ArrowMode mode)
+        {
+            GeoObjectList res = new GeoObjectList();
+            // we need a plane which contains the line p1-p2 as the x-axis
+            if (plane.IsValid())
+            {
+                try
+                {
+                    Plane arrowPlane = new Plane(p1, p2 - p1, (p2 - p1) ^ plane.Normal);
+                    double headx = arrowPlane.Project(p2).x;
+                    double arrowSize = (Height + Width) * 0.005 * DeviceToWorldFactor; // 1% of the display size 
+                                                                                       //Circle2D start = new Circle2D(GeoPoint2D.Origin,arrowSize);
+                                                                                       //Polyline2D head = new Polyline2D(new GeoPoint2D[] { new GeoPoint2D(headx, 0), new GeoPoint2D(headx - arrowSize, arrowSize), new GeoPoint2D(headx - arrowSize, -arrowSize), new GeoPoint2D(headx, 0) });
+                    res.Add(Line.TwoPoints(p1, p2));
+                    res.Add(Face.MakeFace(new PlaneSurface(arrowPlane), new SimpleShape(Border.MakeCircle(GeoPoint2D.Origin, arrowSize))));
+                    res.Add(Face.MakeFace(new PlaneSurface(arrowPlane), new SimpleShape(Border.MakePolygon(new GeoPoint2D[] { new GeoPoint2D(headx, 0), new GeoPoint2D(headx - arrowSize, arrowSize), new GeoPoint2D(headx - arrowSize, -arrowSize) }))));
+                }
+                catch (PlaneException _) { }
+            }
+            return res;
+        }
+
         internal GeoVector horizontalAxis
         {
             get

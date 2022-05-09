@@ -82,12 +82,12 @@ namespace CADability
                 psurface2 = data.GetValue<GeoPoint2D>();
             }
 
-            void IJsonSerialize.GetObjectData(IJsonWriteData data)
+            public void GetObjectData(IJsonWriteData data)
             {
                 data.AddValues(p3d, psurface1, psurface2);
             }
 
-            void IJsonSerialize.SetObjectData(IJsonReadData data)
+            public void SetObjectData(IJsonReadData data)
             {
             }
 
@@ -495,7 +495,7 @@ namespace CADability
                 info.AddValue("Reversed", reversed);
             }
             protected ProjectedCurve() { } // needed for IJsonSerialize
-            void IJsonSerialize.GetObjectData(IJsonWriteData data)
+            public void GetObjectData(IJsonWriteData data)
             {
                 base.JSonGetObjectData(data);
                 data.AddProperty("Curve3d", curve3d);
@@ -503,7 +503,7 @@ namespace CADability
                 data.AddProperty("Reversed", reversed);
             }
 
-            void IJsonSerialize.SetObjectData(IJsonReadData data)
+            public void SetObjectData(IJsonReadData data)
             {
                 base.JSonSetObjectData(data);
                 curve3d = data.GetProperty<InterpolatedDualSurfaceCurve>("Curve3d");
@@ -2829,18 +2829,18 @@ namespace CADability
             CheckSurfaceParameters();
 #endif
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public override void GetObjectData(IJsonWriteData data)
         {
-            base.JsonGetObjectData(data);
+            base.GetObjectData(data);
             data.AddProperty("Surface1", surface1);
             data.AddProperty("Surface2", surface2);
             data.AddProperty("BasePoints", basePoints);
             data.AddProperty("ForwardOriented", forwardOriented);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public override void SetObjectData(IJsonReadData data)
         {
-            base.JsonSetObjectData(data);
+            base.SetObjectData(data);
             surface1 = data.GetPropertyOrDefault<ISurface>("Surface1");
             surface2 = data.GetPropertyOrDefault<ISurface>("Surface2");
             basePoints = data.GetPropertyOrDefault<SurfacePoint[]>("BasePoints");

@@ -735,7 +735,7 @@ namespace CADability.Actions
             void SetFixed(bool isFixed);
         }
         /// <summary>
-        /// Common base class for onput objects for the ConstructAction (see <see cref="ConstructAction.SetInput"/>
+        /// Common base class for input objects for the ConstructAction (see <see cref="ConstructAction.SetInput"/>
         /// </summary>
         public abstract class InputObject
         {
@@ -805,13 +805,6 @@ namespace CADability.Actions
             /// Back reference to the ConstructAction this input is used for.
             /// </summary>
             protected ConstructAction constructAction; // Rückverweis
-            public IShowProperty ShowProperty
-            {
-                get
-                {
-                    return null;
-                }
-            }
             #region IInputObject Helper
             /// <summary>
             /// Internal!
@@ -827,15 +820,6 @@ namespace CADability.Actions
             internal protected virtual void Refresh()
             {
                 // TODO:  Add IInputObjectImpl.Refresh implementation
-            }
-            /// <summary>
-            /// Internal!
-            /// </summary>
-            /// <returns>Internal!</returns>
-            internal protected virtual IShowProperty BuildShowProperty()
-            {
-                // TODO:  Add IInputObjectImpl.BuildShowProperty implementation
-                return null;
             }
             /// <summary>
             /// Internal!
@@ -4811,8 +4795,9 @@ namespace CADability.Actions
             /// false: any kind of curves curves are yielded
             /// </summary>
             public bool ModifiableOnly;
-            public bool EdgesOnly;
-            public bool FacesOnly;
+            public bool EdgesOnly = false;
+            public bool FacesOnly = false;
+            public bool Points = false;
             public bool MultipleInput;
             public Point currentMousePoint;
             private IGeoObject[] geoObjects;
@@ -4938,6 +4923,18 @@ namespace CADability.Actions
                 if (EdgesOnly) l.AddRange(constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleEdge));
                 if (FacesOnly) l.AddRange(constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleFace));
                 if (!FacesOnly && !EdgesOnly) l = constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.normal);
+                if (Points)
+                {
+                    SnapPointFinder.DidSnapModes DidSnap;
+                    GeoPoint p = constructAction.SnapPoint(e, vw, out DidSnap);
+                    if (DidSnap!=SnapPointFinder.DidSnapModes.DidNotSnap)
+                    {
+                        GeoObject.Point pnt = GeoObject.Point.Construct();
+                        pnt.Location = p;
+                        pnt.Symbol = PointSymbol.Cross;
+                        l.Add(pnt);
+                    }
+                }
                 ArrayList c = new ArrayList();
                 for (int i = 0; i < l.Count; ++i)
                 {
@@ -5954,6 +5951,7 @@ namespace CADability.Actions
             autoRepeat = false;
             base.ViewType = typeof(IActionInputView); // gilt nur für ModelViews
             // nach dem ersten Input muss auch das Modell festgelegt werden
+            UseFilter = false; // must be explicitely set to true, if you want to show the Filter property in this action
         }
         event PropertyEntryChangedStateDelegate IPropertyEntry.PropertyEntryChangedStateEvent
         {
@@ -6706,6 +6704,7 @@ namespace CADability.Actions
                 }
             }
             SetCurrentInputIndex(-1, false);
+            Frame.Project.Undo.ClearContext(); // the clear context call is necessary here to end a continuous change before updates to the model are made
             OnDone();
         }
         private void ShowPropertyStateChanged(IPropertyEntry sender, StateChangedArgs args)

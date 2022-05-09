@@ -1021,7 +1021,9 @@ namespace CADability
             object o = Settings.GlobalSettings.GetValue("DefaultModelSize");
             if (o != null)
             {
-                m.Extent = (BoundingCube)o;
+                if (o is BoundingCube) m.Extent = (BoundingCube)o;
+                else if (o is List<object> lo) m.Extent = new BoundingCube((double)lo[0], (double)lo[1], (double)lo[2], (double)lo[3], (double)lo[4], (double)lo[5]);
+                else m.Extent = new BoundingCube(0, 100, 0, 100, 0, 100);
             }
             else
             {
@@ -2353,7 +2355,7 @@ namespace CADability
             info.AddValue("ActiveViewName", activeViewName);
             if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Models", models);
             data.AddProperty("ActiveModelIndex", activeModelIndex);
@@ -2372,7 +2374,7 @@ namespace CADability
             if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             int version = data.Version;
             models = new ArrayList(data.GetPropertyOrDefault<List<Model>>("Models"));

@@ -351,6 +351,18 @@ namespace CADability.GeoObject
             }
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
         }
+        public override double IsParallel(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {
+            if (other is ICylinder c)
+            {
+                if (c.Axis.SameGeometry((this as ICylinder).Axis))
+                {
+                    return Math.Abs(Math.Abs((this as ICylinder).Radius) - Math.Abs(c.Radius));
+                }
+            }
+            return double.MaxValue;
+        }
+
         public override Polynom GetImplicitPolynomial()
         {
             if (implicitPolynomial == null)
@@ -367,7 +379,7 @@ namespace CADability.GeoObject
             return implicitPolynomial;
         }
 
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Location", location);
             data.AddProperty("XAxis", xAxis);
@@ -375,7 +387,7 @@ namespace CADability.GeoObject
             data.AddProperty("ZAxis", zAxis);
         }
         protected CylindricalSurfaceNP() { } // for JSON
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             location = data.GetProperty<GeoPoint>("Location");
             xAxis = data.GetProperty<GeoVector>("XAxis");

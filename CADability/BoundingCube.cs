@@ -9,8 +9,9 @@ namespace CADability
     /// <summary>
     /// Represents a bounding cuboid, that is an extent in 3 dimensions
     /// </summary>
+    [JsonVersion(serializeAsStruct = true, version = 1)]
     [Serializable()]
-    public struct BoundingCube : ISerializable
+    public struct BoundingCube : ISerializable, IJsonSerialize
     {
         public double Xmin, Xmax, Ymin, Ymax, Zmin, Zmax;
         /// <summary>
@@ -1452,6 +1453,23 @@ namespace CADability
             return res.ToArray();
 
         }
+        internal BoundingCube(IJsonReadStruct data)
+        {
+            Xmin = data.GetValue<double>();
+            Xmax = data.GetValue<double>();
+            Ymin = data.GetValue<double>();
+            Ymax = data.GetValue<double>();
+            Zmin = data.GetValue<double>();
+            Zmax = data.GetValue<double>();
+            isCube = false;
+        }
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddValues(Xmin, Xmax, Ymin, Ymax, Zmin, Zmax);
+        }
 
+        public void SetObjectData(IJsonReadData data)
+        {
+        }
     }
 }

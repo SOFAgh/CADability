@@ -163,13 +163,13 @@ namespace CADability
             protected Pair() // Constructor for JSonSerialize
             {
             }
-            void IJsonSerialize.GetObjectData(IJsonWriteData data)
+            public void GetObjectData(IJsonWriteData data)
             {
                 data.AddProperty("Name", Name);
                 data.AddProperty("Value", Value);
             }
 
-            void IJsonSerialize.SetObjectData(IJsonReadData data)
+            public void SetObjectData(IJsonReadData data)
             {
                 Name = data.GetStringProperty("Name");
                 Value = data.GetProperty<object>("Value");
@@ -685,19 +685,20 @@ namespace CADability
                 UseZOrder.BooleanValue = true;
                 PrintSetting.AddSetting("UseZOrder", UseZOrder);
             }
-            //if (GlobalSettings.ContainsSetting("XDistance"))
-            //{
-            //    GlobalSettings.RemoveSetting("XDistance");
-            //}
-            //if (!GlobalSettings.ContainsSetting("XDistance"))
-            //{
-            //    StringProperty dxProperty = new StringProperty("XDistance", "Grid.XDistance");
-            //    GlobalSettings.AddSetting("XDistance", dxProperty);
-            //}
-
-            // diese Stelle kommt einmalig am Anfang dran, deshalb hier auch OnExit
-            //Application.ApplicationExit -= new EventHandler(GlobalSettings.OnApplicationExit);
-            //Application.ApplicationExit += new EventHandler(GlobalSettings.OnApplicationExit);
+            if (!GlobalSettings.ContainsSetting("Experimental"))
+            {
+                Settings ExperimentalSetting = new Settings();
+                ExperimentalSetting.resourceId = "Experimental";
+                ExperimentalSetting.myName = "Experimental";
+                GlobalSettings.AddSetting("Experimental", ExperimentalSetting);
+            }
+            if (!GlobalSettings.ContainsSetting("Experimental.TestNewContextMenu"))
+            {
+                Settings ExperimentalSetting = GlobalSettings.GetSubSetting("Experimental");
+                BooleanProperty TestNewContextMenu = new BooleanProperty("Experimental.TestNewContextMenu", "YesNo.Values", "TestNewContextMenu");
+                TestNewContextMenu.BooleanValue = false;
+                ExperimentalSetting.AddSetting("TestNewContextMenu", TestNewContextMenu);
+            }
         }
         private static Settings StandardFormatting
         {
@@ -1281,7 +1282,7 @@ namespace CADability
             info.AddValue("Name", myName, typeof(string));
             modified = false;
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("SortedEntries", sortedEntries);
             data.AddProperty("ResourceId", resourceId);
@@ -1289,7 +1290,7 @@ namespace CADability
             modified = false;
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             sortedEntries = data.GetProperty<ArrayList>("SortedEntries");
             resourceId = data.GetProperty<string>("ResourceId");

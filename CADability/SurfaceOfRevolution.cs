@@ -1693,7 +1693,7 @@ namespace CADability.GeoObject
         {
 
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             if (curveToRotate == null)
             {
@@ -1708,7 +1708,7 @@ namespace CADability.GeoObject
             data.AddProperty("AxisLocation", axisLocation);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             curveToRotate = data.GetProperty<ICurve>("CurveToRotate");
             axisDirection = data.GetProperty<GeoVector>("AxisDirection");

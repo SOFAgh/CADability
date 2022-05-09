@@ -121,6 +121,7 @@ namespace CADability.UserInterface
         public virtual void Added(IPropertyPage pp)
         {
             propertyPage = pp;
+            PropertyEntryChangedState(new StateChangedArgs(StateChangedArgs.State.Added));
         }
 
         /// <summary>
@@ -210,6 +211,7 @@ namespace CADability.UserInterface
         {
             propertyPage?.Frame?.Project?.Undo.ClearContext(); // not the best place to do this here, but needed in the following scenario:
             // a property of an IGeoObject is being edited and the user clicks into the canvas, which in turn removes this property without ending the context
+            PropertyEntryChangedState(new StateChangedArgs(StateChangedArgs.State.Removed));
             propertyPage = null;
         }
 

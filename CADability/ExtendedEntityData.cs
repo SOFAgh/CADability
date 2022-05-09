@@ -15,7 +15,7 @@ namespace CADability.DXF
         }
 
 
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             int[] keys = new int[Data.Count];
             object[] values = new object[Data.Count];
@@ -29,7 +29,7 @@ namespace CADability.DXF
             data.AddProperty("Values", values);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             ApplicationName = data.GetStringProperty("ApplicationName");
             List<object> keys = data.GetProperty<List<object>>("Keys");

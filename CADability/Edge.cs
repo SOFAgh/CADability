@@ -821,7 +821,7 @@ namespace CADability
             edgeKind = EdgeKind.unknown;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 5295)
+            if (hashCode == 40)
             {
             }
 #endif
@@ -1436,6 +1436,16 @@ namespace CADability
                 }
             }
         }
+
+        internal void CopyGeometry(Edge edge)
+        {
+            Curve3D = edge.Curve3D; // maybe we have to deal here with dualsurfacecurveas
+            PrimaryCurve2D = edge.PrimaryCurve2D;
+            SecondaryCurve2D = edge.SecondaryCurve2D;
+            v1.Position = edge.v1.Position;
+            v2.Position = edge.v2.Position;
+        }
+
         private ICurve CheckSimpleIntersection(ISurface surface1, BoundingRect bnds1, ISurface surface2, BoundingRect bnds2, out ICurve2D curve1, out ICurve2D curve2, List<GeoPoint> points, double maxError)
         {
             // nachdem Flächen regularisiert wurden, ist es u.U. schwierig die Kanten zu bestimmen
@@ -1624,15 +1634,16 @@ namespace CADability
                 res.curve3d = curve3d.Clone();
                 (res.curve3d as IGeoObject).Owner = res;
             }
-            if (!clonedVertices.TryGetValue(v1, out Vertex cv1))
+            // use Vertex1 instead of v1, because v1 might be null
+            if (!clonedVertices.TryGetValue(Vertex1, out Vertex cv1))
             {
-                cv1 = new Vertex(v1.Position);
-                clonedVertices[v1] = cv1;
+                cv1 = new Vertex(Vertex1.Position);
+                clonedVertices[Vertex1] = cv1;
             }
-            if (!clonedVertices.TryGetValue(v2, out Vertex cv2))
+            if (!clonedVertices.TryGetValue(Vertex2, out Vertex cv2))
             {
-                cv2 = new Vertex(v2.Position);
-                clonedVertices[v2] = cv2;
+                cv2 = new Vertex(Vertex2.Position);
+                clonedVertices[Vertex2] = cv2;
             }
             res.SetVertices(cv1, cv2);
             return res;
@@ -2216,7 +2227,7 @@ namespace CADability
         }
 
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             if (curve3d != null)
             {
@@ -2234,7 +2245,7 @@ namespace CADability
             if (v1 != null) data.AddProperty("Vertex1", v1);
             if (v2 != null) data.AddProperty("Vertex2", v2);
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             curve3d = data.GetPropertyOrDefault<ICurve>("Curve3d");
             primaryFace = data.GetPropertyOrDefault<Face>("PrimaryFace");
@@ -3608,13 +3619,24 @@ namespace CADability
                 return Precision.SameNotOppositeDirection(n1, n2);
             }
         }
-
+        public bool IsPartOfHole(Face onThisFace)
+        {
+            for (int i = 0; i < onThisFace.HoleCount; i++)
+            {
+                Edge[] hole = onThisFace.HoleEdges(i);
+                for (int j = 0; j < hole.Length; j++)
+                {
+                    if (hole[j]==this) return true;
+                }
+            }
+            return false;
+        }
         internal MenuWithHandler[] GetContextMenu(IFrame frame)
         {
             MenuWithHandler mhdist = new MenuWithHandler();
             mhdist.ID = "MenuId.Parametrics.DistanceTo";
             mhdist.Text = StringTable.GetString("MenuId.Parametrics.DistanceTo", StringTable.Category.label);
-            mhdist.Target = new ParametricsDistance(this, frame);
+            mhdist.Target = new ParametricsDistanceActionOld(this, frame);
             return new MenuWithHandler[] { mhdist };
         }
 #if DEBUG

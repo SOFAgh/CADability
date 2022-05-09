@@ -1047,6 +1047,23 @@ namespace CADability
             return sp + par * dir;
         }
         /// <summary>
+        /// Find the shortest connection of the two lines
+        /// </summary>
+        /// <param name="p1">Startpoint of first line</param>
+        /// <param name="d1">Direction of first line</param>
+        /// <param name="p2">Startpoint of second line</param>
+        /// <param name="d2">Direction of second line</param>
+        /// <param name="pos1">Resulting position on fist line (p1+pos1*d1)</param>
+        /// <param name="pos2">Resulting position on second line (p2+pos2*d2)</param>
+        public static void ConnectLines(GeoPoint p1, GeoVector d1, GeoPoint p2, GeoVector d2, out double pos1, out double pos2)
+        { // not tested yet
+            Matrix m = DenseMatrix.OfArray(new double[,] { { d1 * d1, -d2 * d1 }, { d1 * d2, -d2 * d2 } });
+            Vector b = new DenseVector(new double[] { (p2 - p1) * d1, (p2 - p1) * d2 });
+            Vector x = (Vector)m.Solve(b);
+            pos1 = x[0];
+            pos2 = x[1];
+        }
+        /// <summary>
         /// Calculates the intersectionpoint of two lines in 2d. The intersection point may be in any
         /// extension of the two lines.
         /// </summary>
