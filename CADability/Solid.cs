@@ -154,7 +154,7 @@ namespace CADability.GeoObject
         internal static bool octTreeAlsoCheckInside = false; // global setting: auch das innere der Solids für den octTree überprüfen (Anforderung von Hilgers)
         private Shell[] shells; // List of Shells defining this Solid. The first (and in most cases only) entry is the outer hull, the following are non intersecting inner holes (faces oriented to point into the inside of the hole)
         private string name; // aus STEP oder IGES kommen benannte solids (Shells, Faces?)
-        [FlagsAttribute] private enum Flags { oriented = 1 };
+        [FlagsAttribute] private enum Flags { oriented = 1, unchanged = 2 };
         private Flags flags;
         private Edge[] edges; // secondary data, not serialized
         /// <summary>
@@ -575,7 +575,7 @@ namespace CADability.GeoObject
             {   // es könnte sein, dass die Box ganz innerhalb des Solids liegt
                 if (GetBoundingCube().Contains(cube))
                 {
-                    if (shells[0].IsInside(cube.GetCenter())) return true;
+                    if (shells[0].Contains(cube.GetCenter())) return true;
                 }
             }
             // Edges braucht man doch nicht auch noch, oder?
@@ -691,18 +691,11 @@ namespace CADability.GeoObject
         /// <returns>union or null</returns>
         static public Solid Unite(Solid solid1, Solid solid2)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
+            BRepOperation bro = new BRepOperation(solid1.shells[0], solid2.shells[0], BRepOperation.Operation.union);
+            Shell[] res = bro.Result();
+            if (res.Length == 1)
             {
-                BRepOperation bro = new BRepOperation(solid1.shells[0], solid2.shells[0], BRepOperation.Operation.union);
-                Shell[] res = bro.Result();
-                if (res.Length == 1)
-                {
-                    return MakeSolid(res[0]);
-                }
-                else
-                {
-                    return null;
-                }
+                return MakeSolid(res[0]);
             }
             else
             {
@@ -718,19 +711,15 @@ namespace CADability.GeoObject
         /// <returns>array of common parts</returns>
         static public Solid[] Intersect(Solid solid1, Solid solid2)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
+            // hier fehlt noch der Löcherkäse: Solids mit mehreren Shells
+            BRepOperation bro = new BRepOperation(solid1.shells[0], solid2.shells[0], BRepOperation.Operation.intersection);
+            Shell[] res = bro.Result();
+            Solid[] sres = new Solid[res.Length];
+            for (int i = 0; i < res.Length; i++)
             {
-                // hier fehlt noch der Löcherkäse: Solids mit mehreren Shells
-                BRepOperation bro = new BRepOperation(solid1.shells[0], solid2.shells[0], BRepOperation.Operation.intersection);
-                Shell[] res = bro.Result();
-                Solid[] sres = new Solid[res.Length];
-                for (int i = 0; i < res.Length; i++)
-                {
-                    sres[i] = MakeSolid(res[i]);
-                }
-                return sres;
+                sres[i] = MakeSolid(res[i]);
             }
-            return null;
+            return sres;
         }
         /// <summary>
         /// Returns the difference of two solids. The second solid is removed from the first solid. If the
@@ -742,20 +731,16 @@ namespace CADability.GeoObject
         /// <returns>the difference</returns>
         static public Solid[] Subtract(Solid first, Solid second)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
+            // hier fehlt noch der Löcherkäse: Solids mit mehreren Shells
+            BRepOperation bro = new BRepOperation(first.shells[0], second.shells[0], BRepOperation.Operation.difference);
+            Shell[] res = bro.Result();
+            Solid[] sres = new Solid[res.Length];
+            for (int i = 0; i < res.Length; i++)
             {
-                // hier fehlt noch der Löcherkäse: Solids mit mehreren Shells
-                BRepOperation bro = new BRepOperation(first.shells[0], second.shells[0], BRepOperation.Operation.difference);
-                Shell[] res = bro.Result();
-                Solid[] sres = new Solid[res.Length];
-                for (int i = 0; i < res.Length; i++)
-                {
-                    sres[i] = MakeSolid(res[i]);
-                }
-                return sres;
+                sres[i] = MakeSolid(res[i]);
             }
-
-            return null;
+            if (sres.Length == 1 && bro.Unchanged) sres[0].flags |= Flags.unchanged;
+            return sres;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.Decompose ()"/>
@@ -1072,7 +1057,24 @@ namespace CADability.GeoObject
             {
                 switch (MenuId)
                 {
-                    case "MenuId.Solid.RemoveThisFromAll":
+                    case "MenuId.Solid.RemoveFromAll":
+                        foreach (Solid sld in other)
+                        {
+                            Solid[] res = Solid.Subtract(sld, solid);
+                            if (res != null)
+                            {
+                                if (res.Length != 1 || !res[0].flags.HasFlag(Flags.unchanged))
+                                {
+                                    IGeoObjectOwner owner = sld.Owner;
+                                    owner.Remove(sld);
+                                    for (int i = 0; i < res.Length; i++)
+                                    {
+                                        owner.Add(res[i]);
+                                    }
+                                }
+                            }
+                        }
+                        solid.Owner.Remove(solid);
                         break;
                 }
                 return false;
@@ -1087,6 +1089,17 @@ namespace CADability.GeoObject
                 return true;
             }
         }
+
+        public bool SameGeometry(Solid other)
+        {
+            if (this.Shells.Length != other.Shells.Length) return false;
+            for (int i = 0; i < this.Shells.Length; i++)
+            {
+                if (!Shells[i].SameGeometry(other.Shells[i])) return false;
+            }
+            return true;
+        }
+
         /// <summary>
         /// Returns a menu, which is shown when there is a right click on the solid
         /// </summary>
@@ -1195,7 +1208,7 @@ namespace CADability.GeoObject
                 }
                 Layer layer = frame.Project.LayerList.CreateOrFind("CADability.Hidden");
                 Layer = layer;
-                if (frame.ActiveView is ModelView mv) mv.SetLayerVisibility(layer,false);
+                if (frame.ActiveView is ModelView mv) mv.SetLayerVisibility(layer, false);
                 return true;
             });
             res.Add(mhhide);
