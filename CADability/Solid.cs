@@ -38,6 +38,19 @@ namespace CADability.GeoObject
                     vol.SetDouble(0.0);
                     vol.ReadOnly = true;
                     se.Add(vol);
+                    // parametric properties are part of the shell. But we show them at the solid, which seems more natural
+                    List<IPropertyEntry> pps = new List<IPropertyEntry>();
+                    GroupProperty gp = new GroupProperty("Solid.ParametricProperties", pps.ToArray());
+                    foreach (Shell shell in solid.Shells)
+                    {
+                        List<IPropertyEntry> shellProperties = shell.GetParameterProperties(Frame, gp);
+                        pps.AddRange(shellProperties);
+                    }
+                    if (pps.Count > 0)
+                    {
+                        gp.SetSubEntries(pps.ToArray());
+                        se.Add(gp);
+                    }
                     foreach (Shell shell in solid.Shells)
                     {
                         IPropertyEntry sp = shell.GetShowProperties(base.Frame);
@@ -51,6 +64,7 @@ namespace CADability.GeoObject
                 return subEntries;
             }
         }
+
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -198,8 +212,30 @@ namespace CADability.GeoObject
                 return shells;
             }
         }
+        private void OnWillChange(IGeoObject Sender, GeoObjectChange Change)
+        {
+            if (isChanging == 0)
+            {
+                FireWillChange(Change);
+            }
+        }
+        private void OnDidChange(IGeoObject Sender, GeoObjectChange Change)
+        {
+            if (isChanging == 0)
+            {
+                FireDidChange(Change);
+            }
+        }
         public void SetShell(Shell sh)
         {
+            if (shells != null)
+            {
+                for (int i = 0; i < shells.Length; i++)
+                {
+                    shells[i].WillChangeEvent -= new ChangeDelegate(OnWillChange);
+                    shells[i].DidChangeEvent -= new ChangeDelegate(OnDidChange);
+                }
+            }
             if (Shells != null && Shells.Length > 0)
             {
                 using (new Changing(this, "SetShell", Shells[0]))
@@ -215,11 +251,18 @@ namespace CADability.GeoObject
                 sh.Owner = this;
                 edges = null;
             }
+            for (int i = 0; i < shells.Length; i++)
+            {
+                shells[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                shells[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
+            }
         }
         protected void RemoveShell(Shell sh)
         {
             if (Shells.Length > 0 && sh == Shells[0])
             {
+                sh.WillChangeEvent -= new ChangeDelegate(OnWillChange);
+                sh.DidChangeEvent -= new ChangeDelegate(OnDidChange);
                 using (new Changing(this, "SetShell", sh))
                 {
                     shells = new Shell[0];
@@ -327,6 +370,7 @@ namespace CADability.GeoObject
                 }
             }
         }
+
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.Clone ()"/>
         /// </summary>
@@ -771,7 +815,7 @@ namespace CADability.GeoObject
                 {
                     for (int i = 0; i < Shells.Length; i++)
                     {
-                        Shells [i].ShowFeatureAxis = value;
+                        Shells[i].ShowFeatureAxis = value;
                     }
                 }
             }
@@ -823,18 +867,18 @@ namespace CADability.GeoObject
             info.AddValue("ColorDef", colorDef);
             info.AddValue("Name", name);
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public override void SetObjectData(IJsonReadData data)
         {
-            base.JsonSetObjectData(data);
+            base.SetObjectData(data);
             shells = data.GetProperty<Shell[]>("Shells");
             colorDef = data.GetPropertyOrDefault<ColorDef>("ColorDef");
             name = data.GetPropertyOrDefault<string>("Name");
             flags = data.GetPropertyOrDefault<Flags>("Flags");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public override void GetObjectData(IJsonWriteData data)
         {
-            base.JsonGetObjectData(data);
+            base.GetObjectData(data);
             data.AddProperty("Shells", shells);
             data.AddProperty("ColorDef", colorDef);
             data.AddProperty("Name", name);
@@ -848,6 +892,8 @@ namespace CADability.GeoObject
             {
                 shells[i].Owner = this;
                 shells[i].Layer = this.Layer;
+                shells[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                shells[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
             }
             if (Constructed != null) Constructed(this);
         }
@@ -857,6 +903,8 @@ namespace CADability.GeoObject
             {
                 shells[i].Owner = this;
                 shells[i].Layer = this.Layer;
+                shells[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                shells[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
             }
             if (Constructed != null) Constructed(this);
         }
@@ -1147,6 +1195,7 @@ namespace CADability.GeoObject
                 }
                 Layer layer = frame.Project.LayerList.CreateOrFind("CADability.Hidden");
                 Layer = layer;
+                if (frame.ActiveView is ModelView mv) mv.SetLayerVisibility(layer,false);
                 return true;
             });
             res.Add(mhhide);

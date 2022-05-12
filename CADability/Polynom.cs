@@ -599,7 +599,7 @@ namespace CADability
             Set(1.0, lt); // not necessary
         }
         /// <summary>
-        /// Replaces the variables by new polynomes and calculates the resulting Polynom. The number of provided polynoms must macht the number of variables of this Polynom, which is the degree.
+        /// Replaces the variables by new polynomes and calculates the resulting Polynom. The number of provided polynoms must match the number of variables of this Polynom, which is the degree.
         /// </summary>
         /// <param name="substWith"></param>
         /// <returns></returns>
@@ -1855,7 +1855,7 @@ namespace CADability
                         py[i].Set(x[j, 1], exp);
                         pz[i].Set(x[j, 2], exp);
 #if DEBUG
-                        if (double.IsNaN(x[j, 0])|| double.IsNaN(x[j, 1])||double.IsNaN(x[j, 2]))
+                        if (double.IsNaN(x[j, 0]) || double.IsNaN(x[j, 1]) || double.IsNaN(x[j, 2]))
                         {
 
                         }
@@ -2779,16 +2779,30 @@ namespace CADability
             }
 
         }
-        public double PositionOf(GeoPoint2D p, out double dist)
+        public double PositionOf(GeoPoint2D p, out double dist, double lowerParameter = 0.0, double upperParameter = 1.0)
         {
             if (px1 == null) CalcDeriv1();
+            int lower = 0;
             int upper = 1;
-            if (knots != null) upper = knots.Length - 1;
+            if (knots != null)
+            {
+                double s = knots[0] + lowerParameter * (knots[knots.Length - 1] - knots[0]);
+                double e = knots[0] + upperParameter * (knots[knots.Length - 1] - knots[0]);
+                for (int i = 0; i < knots.Length; i++)
+                {
+                    if (knots[i] <= s) lower = i;
+                    if (knots[i] >= e)
+                    {
+                        upper = i;
+                        break;
+                    }
+                }
+            }
             double bestDist = double.MaxValue;
             double res = double.MaxValue;
             double dkn = 0.0;
             if (knots != null) dkn = (knots[knots.Length - 1] - knots[0]) * 1e-6;
-            for (int ind = 0; ind < upper; ind++)
+            for (int ind = lower; ind < upper; ind++)
             {
                 Polynom diff;
                 if (pw != null && pw[ind] != null)
@@ -2830,6 +2844,17 @@ namespace CADability
             }
             dist = bestDist;
             return res;
+        }
+        public double NormaliseParameter(double knotParameter)
+        {
+            if (knots != null)
+            {
+                return (knotParameter - knots[0]) / (knots[knots.Length - 1] - knots[0]);
+            }
+            else
+            {
+                return knotParameter;
+            }
         }
         /// <summary>
         /// Returns the area swept by the vector from (0,0) to the points on the curve 
@@ -4798,7 +4823,7 @@ namespace CADability
                             m[9, 5] = 1;
                             m[9, 6] = 1;
                             Vector z = (Vector)m.Solve(b);
-                            if (x.IsValid() && y.IsValid()&& z.IsValid())
+                            if (x.IsValid() && y.IsValid() && z.IsValid())
                             {
                                 Polynom px = new Polynom(x[0], "u4", x[1], "u3", x[2], "u2", x[3], "u", x[4], "");
                                 Polynom pwx = new Polynom(x[5], "u4", x[6], "u3", x[7], "u2", x[8], "u", x[9], "");

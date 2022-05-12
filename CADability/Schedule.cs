@@ -61,12 +61,12 @@ namespace CADability
 
         #endregion
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Schedules", schedules.ToArray());
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             schedules = new List<Schedule>(data.GetProperty<Schedule[]>("Schedules"));
         }
@@ -444,7 +444,7 @@ namespace CADability
         {
             base.resourceId = "Schedule";
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", name);
             data.AddProperty("DriveList", driveList);
@@ -461,7 +461,7 @@ namespace CADability
             data.AddProperty("Steps", l.ToArray());
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             name = data.GetProperty<string>("Name");
             driveList = data.GetProperty<DriveList>("DriveList");

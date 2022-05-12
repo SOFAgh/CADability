@@ -27,7 +27,8 @@ namespace CADability.GeoObject
     /// cylinder. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
     [Serializable()]
-    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfArcExtrusion, ICylinder
+    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, 
+        IExportStep, ISurfaceOfArcExtrusion, ICylinder, IJsonSerialize
     {
         // Der Zylinder ist so beschaffen, dass er lediglich durch eine ModOp definiert ist.
         // Der Einheitszylinder steht im Ursprung mit Radius 1, u beschreibt einen Kreis, v eine Mantellinie
@@ -2043,6 +2044,18 @@ namespace CADability.GeoObject
             // sonst die allgemeine Überprüfung
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
         }
+        public override double IsParallel(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {
+            if (other is ICylinder c)
+            {
+                if (c.Axis.SameGeometry((this as ICylinder).Axis))
+                {
+                    return Math.Abs(Math.Abs((this as ICylinder).Radius) - Math.Abs(c.Radius));
+                }
+            }
+            return double.MaxValue;
+        }
+
         public override Polynom GetImplicitPolynomial()
         {
             if (implicitPolynomial == null)
@@ -2348,5 +2361,19 @@ namespace CADability.GeoObject
             else return res;
         }
 
+        protected CylindricalSurface(): base(null)
+        {
+            // empty constructor for Json
+        }
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("ToCylinder", toCylinder);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            toCylinder = data.GetProperty<ModOp>("ToCylinder");
+            toUnit = toCylinder.GetInverse();
+        }
     }
 }

@@ -250,6 +250,16 @@ namespace CADability.GeoObject
         /// <param name="uOnCurve3Ds">u parameter of intersection points on the curve</param>
         void Intersect(ICurve curve, BoundingRect uvExtent, out GeoPoint[] ips, out GeoPoint2D[] uvOnFaces, out double[] uOnCurve3Ds);
         /// <summary>
+        /// Returns a double value, if this surface is parallel to the other surface. Returns double.MaxValue otherwise.
+        /// In most cases the bounds may be ignored.
+        /// </summary>
+        /// <param name="thisBounds"></param>
+        /// <param name="other"></param>
+        /// <param name="otherBounds"></param>
+        /// <returns></returns>
+        double IsParallel(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds);
+
+        /// <summary>
         /// Returns the intersection curves between this surface and the provided other surface.
         /// Both surfaces are bound by rectangles.
         /// </summary>
@@ -3352,6 +3362,11 @@ namespace CADability.GeoObject
             }
             return Surfaces.Overlapping(this, thisBounds, other, otherBounds, precision, out firstToSecond);
         }
+        public virtual double IsParallel(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {   // should be implemented for standard surfaces
+            return double.MaxValue;
+        }
+
         /// <summary>
         /// Implements <see cref="CADability.GeoObject.ISurface.GetOffsetSurface (double)"/>
         /// </summary>
@@ -5288,6 +5303,11 @@ namespace CADability.GeoObject
         internal static ICurve Intersect(PlaneSurface surface1, BoundingRect bounds1, CylindricalSurface surface2, BoundingRect bounds2, List<GeoPoint> points)
         {
             IDualSurfaceCurve[] cvs = surface2.GetPlaneIntersection(surface1, bounds2.Left, bounds2.Right, bounds2.Bottom, bounds2.Top, 0.0);
+            if (cvs.Length == 2 && cvs[0].Curve3D is Line l0 && cvs[1].Curve3D is Line l1)
+            {   // two lines, find the closer one
+                if ((l0 as ICurve).DistanceTo(points[0]) < (l1 as ICurve).DistanceTo(points[0])) return l0;
+                else return l1;
+            }
             for (int i = 0; i < cvs.Length; ++i)
             {
                 ICurve c3d = cvs[i].Curve3D;
@@ -6426,6 +6446,82 @@ namespace CADability.GeoObject
 
             }
             throw new NotImplementedException();
+        }
+        /// <summary>
+        /// Find two points on the surfaces, where the connection is perpendicular to both surfaces. Currently used by parametrics to identify faces where we can
+        /// change the distance
+        /// </summary>
+        /// <param name="surface1"></param>
+        /// <param name="domain1"></param>
+        /// <param name="surface2"></param>
+        /// <param name="domain2"></param>
+        /// <param name="uv1"></param>
+        /// <param name="uv2"></param>
+        /// <returns></returns>
+        internal static bool ParallelDistance(ISurface surface1, BoundingRect domain1, ISurface surface2, BoundingRect domain2, out GeoPoint2D uv1, out GeoPoint2D uv2)
+        {
+            if (surface1 is PlaneSurface pls1)
+            {
+                if (surface2 is PlaneSurface pls2)
+                {
+                    if (Precision.SameDirection(pls1.Normal, pls2.Normal, false))
+                    {
+                        uv1 = domain1.GetCenter();
+                        uv2 = pls2.PositionOf(pls1.PointAt(uv1));
+                        return true;
+                    }
+                }
+                if (surface2 is ICylinder cyl)
+                {
+                    if (Precision.IsPerpendicular(pls1.Normal, cyl.Axis.Direction, false))
+                    {
+                        GeoPoint2D axloc = pls1.PositionOf(cyl.Axis.Location);
+                        GeoVector2D axdir = pls1.PositionOf(cyl.Axis.Location + cyl.Axis.Direction) - axloc;
+                        GeoPoint2D p1 = axloc;
+                        GeoPoint2D p2 = axloc + axdir;
+                        if (p1.x > domain1.Left && Math.Abs(axdir.x) > Precision.eps)
+                        {
+                            double f = (p1.x - domain1.Left) / axdir.x;
+                            p1 = p1 - f * axdir;
+                        }
+                        else if (p2.x < domain1.Right && Math.Abs(axdir.x) > Precision.eps)
+                        {
+                            double f = (axloc.x - domain1.Right) / axdir.x;
+                            p2 = p2 - f * axdir;
+                        }
+                        if (p1.y > domain1.Bottom && Math.Abs(axdir.y) > Precision.eps)
+                        {
+                            double f = (p1.y - domain1.Bottom) / axdir.y;
+                            p1 = p1 - f * axdir;
+                        }
+                        else if (p2.y < domain1.Top && Math.Abs(axdir.y) > Precision.eps)
+                        {
+                            double f = (axloc.y - domain1.Top) / axdir.y;
+                            p2 = p2 - f * axdir;
+                        }
+                        ClipRect clr = new ClipRect(ref domain1);
+                        if (clr.ClipLine(ref p1, ref p2))
+                        {
+                            GeoPoint2D pm = new GeoPoint2D(p1, p2);
+                            GeoPoint2D[] ips = surface2.GetLineIntersection(pls1.PointAt(pm), pls1.Normal);
+                            for (int i = 0; i < ips.Length; i++)
+                            {
+                                SurfaceHelper.AdjustPeriodic(surface2, domain2, ref ips[i]);
+                                if (domain2.Contains(ips[i]))
+                                {
+                                    uv1 = pm;
+                                    uv2 = ips[i];
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else if (surface2 is PlaneSurface pls2) return ParallelDistance(surface2, domain2, surface1, domain1, out uv2, out uv1);
+            uv1 = GeoPoint2D.Invalid;
+            uv2 = GeoPoint2D.Invalid;
+            return false;
         }
     }
     internal class FindTangentCurves
@@ -9169,7 +9265,11 @@ namespace CADability.GeoObject
                 cube.isFolded = isFolded;
                 calcParallelEpiped(cube);
                 // cube.boundingCube = surface.GetPatchExtent(uvPatch);
-                octtree.AddObject(cube);
+                try
+                {
+                    octtree.AddObject(cube);
+                }
+                catch { }
 #if DEBUG
                 ++dbgcnt;
                 //Face dbgfc = Face.MakeFace(surface, cube.uvPatch);

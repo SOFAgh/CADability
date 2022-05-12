@@ -16,7 +16,7 @@
         public void SetSubEntries(IPropertyEntry[] subEntries)
         {
             this.subEntries = subEntries;
-            propertyTreeView.Refresh(this);
+            propertyTreeView?.Refresh(this);
         }
         #region IShowProperty Members
 

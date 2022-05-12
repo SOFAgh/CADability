@@ -433,12 +433,12 @@ namespace CADability
             z = data.GetValue<double>();
         }
 
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddValues(x, y, z);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
         }
 
@@ -945,12 +945,12 @@ namespace CADability
             y = data.GetValue<double>();
             z = data.GetValue<double>();
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddValues(x, y, z);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
         }
 
@@ -1039,6 +1039,14 @@ namespace CADability
             Location = location;
             Direction = direction;
         }
+        public bool SameGeometry(Axis other)
+        {
+            if (Precision.SameDirection(Direction,other.Direction,false))
+            {
+                if (Geometry.DistPL(other.Location, this) < Precision.eps) return true;
+            }
+            return false;
+        }
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
@@ -1065,12 +1073,12 @@ namespace CADability
             Location = data.GetValue<GeoPoint>();
             Direction = data.GetValue<GeoVector>();
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddValues(Location, Direction);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
         }
 
@@ -1262,7 +1270,6 @@ namespace CADability
         {
             return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
         }
-
         public override bool Equals(object o)
         {
             if (!(o is GeoPoint2D)) return false;
@@ -1335,6 +1342,25 @@ namespace CADability
 
             #endregion
         }
+        public class CompareCloseTo : IComparer<GeoPoint2D>
+        {   // sortiert die Punkte im Abstand zu "ToHere"
+            private GeoPoint2D ToHere;
+            public CompareCloseTo(GeoPoint2D ToHere)
+            {
+                this.ToHere = ToHere;
+            }
+            #region IComparer<GeoPoint2D> Members
+
+            int IComparer<GeoPoint2D>.Compare(GeoPoint2D x, GeoPoint2D y)
+            {
+                double d1 = Geometry.Dist(x, ToHere);
+                double d2 = Geometry.Dist(y, ToHere);
+                return d1.CompareTo(d2);
+            }
+
+            #endregion
+        }
+
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
@@ -1400,12 +1426,12 @@ namespace CADability
             x = data.GetValue<double>();
             y = data.GetValue<double>();
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddValues(x, y);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
         }
 
@@ -1627,12 +1653,12 @@ namespace CADability
             x = data.GetValue<double>();
             y = data.GetValue<double>();
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddValues(x, y);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
         }
         #endregion

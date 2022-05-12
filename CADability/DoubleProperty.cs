@@ -274,13 +274,13 @@ namespace CADability.UserInterface
             numberFormatInfo = (NumberFormatInfo)CultureInfo.CurrentCulture.NumberFormat.Clone();
             numberFormatInfo.NumberDecimalDigits = 29;
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("ResourceId", resourceId);
             data.AddProperty("Value", GetValue());
             if (!string.IsNullOrEmpty(settingName)) data.AddProperty("SettingName", settingName);
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             resourceId = data.GetProperty<string>("ResourceId");
             SetValue(data.GetProperty<double>("Value"), false);

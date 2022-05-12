@@ -213,6 +213,10 @@ namespace CADability
         {
             throw new NotImplementedException();
         }
+        public double IsParallel(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {
+            return double.MaxValue;
+        }
 
         public ISurface GetOffsetSurface(double offset)
         {

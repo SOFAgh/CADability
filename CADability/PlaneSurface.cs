@@ -393,6 +393,17 @@ namespace CADability.GeoObject
             }
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
         }
+        public override double IsParallel(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {
+            if (other is PlaneSurface ps)
+            {
+                if (Precision.SameDirection(this.Normal, ps.Normal, false))
+                {
+                    return this.GetDistance(ps.Location);
+                }
+            }
+            return double.MaxValue;
+        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.GetOffsetSurface (double)"/>
         /// </summary>

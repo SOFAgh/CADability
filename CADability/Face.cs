@@ -228,7 +228,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 23)
+            if (hashCode == 15)
             {
 
             }
@@ -305,14 +305,16 @@ namespace CADability.GeoObject
                     surface = surface.Clone();
                     surface.ReverseOrientation(); // 2d modification is not relevant here
                 }
+                BoundingCube loopExtend = BoundingCube.EmptyBoundingCube;
                 for (int i = loops.Count - 1; i >= 0; --i)
                 {
-                    if (loops[i].Count==1 && loops[i][0].curve==null && loops[i][0].vertex1== loops[i][0].vertex1)
+                    if (loops[i].Count == 1 && loops[i][0].curve == null && loops[i][0].vertex1 == loops[i][0].vertex1)
                     {   // this is probably a pole of a cone (or sphere) created as a point. We don't need that
                         loops[i].RemoveAt(0);
                     }
                     for (int j = loops[i].Count - 1; j >= 0; --j)
                     {
+                        loopExtend.MinMax(loops[i][j].vertex1.Position);
                         int next = j - 1;
                         if (next < 0) next = loops[i].Count - 1;
                         if (loops[i][next].vertex1 == loops[i][j].vertex1 && loops[i][next].vertex2 == loops[i][j].vertex2 && loops[i][j].forward != loops[i][next].forward
@@ -334,6 +336,7 @@ namespace CADability.GeoObject
                     if (loops[i].Count == 0) loops.RemoveAt(i);
                 }
                 // if a loop contains two identical edges, which are back and forth, we remove this pair and split the loop into two parts
+                double vertexDiff = loopExtend.Size * 1e-6; // consider vertices identical if closer than this value
                 for (int i = loops.Count - 1; i >= 0; --i)
                 {
                     bool seamFound = false;
@@ -351,14 +354,14 @@ namespace CADability.GeoObject
                                 }
                                 else
                                 {   // maybe different vertices with identical positions as in "1242_14_PUNZONE.stp"
-                                    if ((loops[i][k].vertex1.Position | loops[i][j].vertex1.Position) < precision * 1e-6 && (loops[i][k].vertex2.Position | loops[i][j].vertex2.Position) < precision * 1e-6)
+                                    if ((loops[i][k].vertex1.Position | loops[i][j].vertex1.Position) < vertexDiff && (loops[i][k].vertex2.Position | loops[i][j].vertex2.Position) < vertexDiff)
                                     {
                                         loops[i][k].vertex1.MergeWith(loops[i][j].vertex1);
                                         loops[i][k].vertex2.MergeWith(loops[i][j].vertex2);
                                         loops[i][j].isSeam = loops[i][k].isSeam = true;
                                         seamFound = true;
                                     }
-                                    else if ((loops[i][k].vertex1.Position | loops[i][j].vertex2.Position) < precision * 1e-6 && (loops[i][k].vertex2.Position | loops[i][j].vertex1.Position) < precision * 1e-6)
+                                    else if ((loops[i][k].vertex1.Position | loops[i][j].vertex2.Position) < vertexDiff && (loops[i][k].vertex2.Position | loops[i][j].vertex1.Position) < vertexDiff)
                                     {
                                         loops[i][k].vertex1.MergeWith(loops[i][j].vertex2);
                                         loops[i][k].vertex2.MergeWith(loops[i][j].vertex1);
@@ -2956,6 +2959,27 @@ namespace CADability.GeoObject
             } // end of locking all the edges in case of parallel creation of faces
         }
 
+        internal double IsOppositeParallel(Face other)
+        {
+            double res;
+            if ((res = Surface.IsParallel(Domain, other.Surface, other.Domain)) != double.MaxValue)
+            {
+                // we need to check, whether ther surfaces are opposite oriented
+                GeoPoint2D ip = other.Area.GetSomeInnerPoint();
+                GeoPoint p = other.Surface.PointAt(ip);
+                GeoVector dir = other.Surface.GetNormal(ip);
+                GeoPoint2D[] ips = Surface.GetLineIntersection(p, dir);
+                for (int i = 0; i < ips.Length; i++)
+                {
+                    if (Precision.OppositeDirection(dir, Surface.GetNormal(ips[i])) && Geometry.LinePar(p, dir, Surface.PointAt(ips[i])) < 0)
+                    {
+                        return res;
+                    }
+                }
+            }
+            return double.MaxValue;
+        }
+
         internal void SetOutline(Edge[] outline)
         {
             this.outline = outline;
@@ -3715,6 +3739,11 @@ namespace CADability.GeoObject
         internal void InvalidateArea()
         {
             area = null;
+        }
+        internal void InvalidateSecondaryData()
+        {
+            area = null;
+            ClearTriangulation();
         }
         internal static GeoObjectList SortForWire(GeoObjectList ToSort)
         {   // der WireMaker benötigt die Objete in der richtigen Reihenfolge, 
@@ -4956,18 +4985,13 @@ namespace CADability.GeoObject
         {
             get
             {
-                // das forcieren der Area wurde entfernt. BoxedSurface muss damit umgehen können
-                // SimpleShape forceArea = Area; // wenn jemand die Surface will, dann muss area bestimmt sein, sonst krachts bei BoxedSurface
-                //if (surface is ISurfaceImpl && (surface as ISurfaceImpl).usedArea.IsEmpty())
-                //{
-                //    (surface as ISurfaceImpl).usedArea = forceArea.GetExtent();
-                //}
                 return surface;
             }
             internal set
             {
                 surface = value;
                 if (surface is ISurfaceImpl si && outline != null) si.usedArea = Domain;
+                extent = BoundingCube.EmptyBoundingCube;
             }
         }
         internal ISurface internalSurface
@@ -5037,6 +5061,7 @@ namespace CADability.GeoObject
             // so muss auch nur das rückgängig gemacht werden
             this.surface.CopyData(copyface.surface);
             extent = BoundingCube.EmptyBoundingCube;
+            ClearTriangulation();
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetShowProperties (IFrame)"/>
@@ -5407,6 +5432,18 @@ namespace CADability.GeoObject
             Orient();
         }
 
+        internal Edge[] GetHole(Edge edge)
+        {
+            for (int k = 0; k < HoleCount; k++)
+            {
+                for (int j = 0; j < holes[k].Length; j++)
+                {
+                    if (holes[k][j] == edge) return holes[k];
+                }
+            }
+            return null;
+        }
+
         /// <summary>
         /// Find a connection from the provided startVertex up to the first vertex in stopVertices
         /// </summary>
@@ -5470,6 +5507,7 @@ namespace CADability.GeoObject
             BoundingRect ext = (surface as ISurfaceImpl).usedArea;
             surface = surface.GetModified(m);
             (surface as ISurfaceImpl).usedArea = ext; // needed for BoxedSurface
+            extent = BoundingCube.EmptyBoundingCube;
         }
         public void ModifySurface(ModOp m)
         {
@@ -5530,6 +5568,7 @@ namespace CADability.GeoObject
                 //    vtx.Modify(m);
                 //}
                 vertices = null;
+                extent = BoundingCube.EmptyBoundingCube;
             }
         }
         /// <summary>
@@ -6660,6 +6699,19 @@ namespace CADability.GeoObject
             }
             return res.ToArray();
         }
+        private void ClearTriangulation()
+        {
+            if (trianglePoint != null)
+            {
+                lock (trianglePoint)
+                {
+                    trianglePoint = null;
+                    triangleUVPoint = null;
+                    triangleIndex = null;
+                    trianglePrecision = 0.0;
+                }
+            }
+        }
         private void TryAssureTriangles(double precision)
         {   // es muss so gehen: der Zugriff auf trianglePoint etc muss zusätzlich gelocked werden.
             // wenn es eine schlechte Triangulierung gibt und gerade eine bessere in Arbeit ist, dann soll man 
@@ -6822,9 +6874,25 @@ namespace CADability.GeoObject
             BoundingRect res = BoundingRect.EmptyBoundingRect;
             if (extentPrecision == ExtentPrecision.Raw)
             {   // when we have closed edges, e.g. a non periodic cylinder defined by two circles, then testing vertices only is not a good idea
-                for (int i = 0; i < Vertices.Length; i++)
+                if (trianglePrecision <= projection.Precision * 10)
+                {   // if we already have a reasonable triangulation, use it, because it is probably faster
+                    lock (lockTriangulationData)
+                    {
+                        if (trianglePoint != null)
+                        {
+                            for (int i = 0; i < trianglePoint.Length; ++i)
+                            {
+                                res.MinMax(projection.ProjectUnscaled(trianglePoint[i]));
+                            }
+                        }
+                    }
+                }
+                else
                 {
-                    res.MinMax(projection.ProjectUnscaled(Vertices[i].Position));
+                    for (int i = 0; i < Vertices.Length; i++)
+                    {
+                        res.MinMax(projection.ProjectUnscaled(Vertices[i].Position));
+                    }
                 }
             }
             else
@@ -7207,12 +7275,13 @@ namespace CADability.GeoObject
             // there are two different approaches: let the "beam" of the pick area intersect the surface of this face and test
             // whether the intersection belongs to the face or use the triangulation.
             // Maybe we should decide by the kind of surface, which is faster
-            GeoPoint2D[] lip = Surface.GetLineIntersection(area.FrontCenter, area.Direction);
-            for (int i = 0; i < lip.Length; i++)
-            {
-                if (Contains(ref lip[i], true)) return true;
-            }
-            return false;
+            // it was wrong to use the following: many faces, especially those faces, which  degenerate to lines in the PickArea projection, werent found
+            //GeoPoint2D[] lip = Surface.GetLineIntersection(area.FrontCenter, area.Direction);
+            //for (int i = 0; i < lip.Length; i++)
+            //{
+            //    if (Contains(ref lip[i], true)) return true;
+            //}
+            // return false; // no! when the center beam doesn't hit this face, it doesn't mean the PickArea doesn't contain the face
             // use the triangles (currently not executed)
             if (trianglePoint == null) AssureTriangles(area.Projection.Precision); // eingefügt, da in GDI Ansichten Hatch Objekte als Faces nicht trianguliert und somit nicht pickbar sind
             if (onlyInside)
@@ -7906,9 +7975,9 @@ namespace CADability.GeoObject
 
         }
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public override void GetObjectData(IJsonWriteData data)
         {
-            base.JsonGetObjectData(data);
+            base.GetObjectData(data);
             data.AddProperty("Surface", surface);
             data.AddProperty("Outline", outline);
             data.AddProperty("Holes", holes);
@@ -7916,9 +7985,9 @@ namespace CADability.GeoObject
             data.AddProperty("OrientedOutward", orientedOutward);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public override void SetObjectData(IJsonReadData data)
         {
-            base.JsonSetObjectData(data);
+            base.SetObjectData(data);
             surface = data.GetProperty<ISurface>("Surface");
             outline = data.GetProperty<Edge[]>("Outline");
             holes = data.GetProperty<Edge[][]>("Holes");
@@ -8639,6 +8708,22 @@ namespace CADability.GeoObject
                 }
             }
             return new Edge[0];
+        }
+        /// <summary>
+        /// Collect all faces connected to this face without traversing the edges in <paramref name="bounds"/>
+        /// </summary>
+        /// <param name="collection"></param>
+        /// <param name="bounds"></param>
+        internal void CollectConnectedFaces(HashSet<Face> collection, ICollection<Edge> bounds)
+        {
+            if (!collection.Contains(this))
+            {
+                collection.Add(this);
+                foreach (Edge edge in AllEdgesIterated())
+                {
+                    if (!bounds.Contains(edge)) edge.OtherFace(this).CollectConnectedFaces(collection, bounds);
+                }
+            }
         }
         internal void MakeTopologicalOrientation()
         {   // die Richtung der Löcher wird umgedreht, es wäre wohl besser immer mit den so orientierten Löchern zu arbeiten
@@ -9498,6 +9583,12 @@ namespace CADability.GeoObject
 
             // now edg1 and edg2 are both forward oriented on this face and edg1 precedes edg2
             ICurve combined = Curves.Combine(edg1.Curve3D, edg2.Curve3D, Precision.eps);
+            if (combined == null)
+            {
+                InterpolatedDualSurfaceCurve dsc = new InterpolatedDualSurfaceCurve(this.Surface, this.Domain, otherface.Surface, otherface.Domain,
+                    new GeoPoint[] { edg1.StartVertex(this).Position, edg1.EndVertex(this).Position, edg2.EndVertex(this).Position });
+                combined = dsc;
+            }
             if (combined == null && edg1.Curve3D is BSpline && edg2.Curve3D is BSpline) return false; // BSplines need to be implemented in Curves.Combine, but make problems in the else case
             if (combined == null) return false; // there is a bug with a NURBS surface which has a sharp bend (in 1264_14_M_el.stp) when we try to connect a spline with a line
             if (combined != null)
@@ -10020,6 +10111,10 @@ namespace CADability.GeoObject
                     }
                 }
             }
+        }
+        internal bool Check2DBounds()
+        {
+            return Area.CheckTopology();
         }
 
 #if DEBUG
@@ -10809,7 +10904,7 @@ namespace CADability.GeoObject
             MenuWithHandler mhdist = new MenuWithHandler();
             mhdist.ID = "MenuId.Parametrics.DistanceTo";
             mhdist.Text = StringTable.GetString("MenuId.Parametrics.DistanceTo", StringTable.Category.label);
-            mhdist.Target = new ParametricsDistance(this, frame);
+            mhdist.Target = new ParametricsDistanceActionOld(this, frame);
             res.Add(mhdist);
             MenuWithHandler mhsel = new MenuWithHandler();
             mhsel.ID = "MenuId.Selection.Set";

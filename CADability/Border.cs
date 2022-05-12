@@ -671,7 +671,7 @@ namespace CADability.Shapes
             //    }
             //}
             if (cleanSegments.Count == 0) return null;
-            return new Border(cleanSegments.ToArray(), true);
+            return new Border(cleanSegments.ToArray(), forceClosed);
         }
         internal static Border FromOrientedList(ICurve2D[] segments)
         {

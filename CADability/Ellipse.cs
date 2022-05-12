@@ -2776,9 +2776,9 @@ namespace CADability.GeoObject
             info.AddValue("LinePattern", linePattern);
         }
 
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public override void GetObjectData(IJsonWriteData data)
         {
-            base.JsonGetObjectData(data);
+            base.GetObjectData(data);
             data.AddProperty("Plane", plane);
             data.AddProperty("MajorRadius", majorRadius);
             data.AddProperty("MinorRadius", minorRadius);
@@ -2789,9 +2789,9 @@ namespace CADability.GeoObject
             if (linePattern != null) data.AddProperty("LinePattern", linePattern);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public override void SetObjectData(IJsonReadData data)
         {
-            base.JsonSetObjectData(data);
+            base.SetObjectData(data);
             plane = data.GetProperty<Plane>("Plane");
             majorRadius = data.GetProperty<double>("MajorRadius");
             minorRadius = data.GetProperty<double>("MinorRadius");

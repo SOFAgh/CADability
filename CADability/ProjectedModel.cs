@@ -64,7 +64,7 @@ namespace CADability
     ///
     /// </summary>
     [Serializable]
-    public class ProjectedModel : ISerializable, IDeserializationCallback
+    public class ProjectedModel : ISerializable, IDeserializationCallback, IJsonSerialize
     {
         static bool DoBackgroundPaint = false; // immer false, keine Hidden lines mehr!
         #region Konzept:
@@ -102,7 +102,8 @@ namespace CADability
         private int dbg;
         static private int dbgcnt = 0;
 
-        private Dictionary<Layer, object> visibleLayers;
+        //private Dictionary<Layer, object> visibleLayers;
+        private HashSet<Layer> visibleLayers;
         private ArrayList tmpVisibleLayers; // nur temporär um Probleme beim Einlesen zu vermeiden
         private bool recalcVisibility;
         private bool dirty; // zugefügt, gelöscht oder geändert, die Displaylisten stimmen nicht mehr
@@ -163,13 +164,9 @@ namespace CADability
             model.GeoObjectRemovedEvent += new CADability.Model.GeoObjectRemoved(GeoObjectRemovedEvent);
             model.ExtentChangedEvent += new Model.ExtentChangedDelegate(OnModelExtentChanged);
             model.NewDisplaylistAvailableEvent += new Model.NewDisplaylistAvailableDelegate(OnNewDisplaylistAvailable);
-            //geoObjects2D = new Dictionary<IGeoObject, I2DRepresentation[]>();
-            //gdiResources = new GDIResources();
             ColorSetting cs = Settings.GlobalSettings.GetValue("Select.SelectColor") as ColorSetting;
-            //if (cs != null) gdiResources.SelectColor = cs.Color;
-            //else gdiResources.SelectColor = Color.DarkGray;
             useLineWidth = Settings.GlobalSettings.GetBoolValue("View.UseLineWidth", true);
-            visibleLayers = new Dictionary<Layer, object>(Layer.LayerComparer);
+            visibleLayers = new HashSet<Layer>();
 
             if (pr.Precision == 0.0)
             {
@@ -516,7 +513,7 @@ namespace CADability
         /// <param name="l">The layer</param>
         public void AddVisibleLayer(Layer l)
         {
-            visibleLayers[l] = null;
+            visibleLayers.Add(l);
             recalcVisibility = true;
             if (NeedsRepaintEvent != null) NeedsRepaintEvent(this, new NeedsRepaintEventArg());
         }
@@ -537,12 +534,12 @@ namespace CADability
         public bool IsLayerVisible(Layer l)
         {
             if (l == null) return true;
-            return visibleLayers.ContainsKey(l);
+            return visibleLayers.Contains(l);
         }
         public Layer[] GetVisibleLayers()
         {
             Layer[] res = new Layer[visibleLayers.Count];
-            visibleLayers.Keys.CopyTo(res, 0);
+            visibleLayers.CopyTo(res, 0);
             return res;
         }
         internal void RecalcAll(bool temporary)
@@ -701,7 +698,7 @@ namespace CADability
                                         l = ((go.Owner as Edge).Owner as Face).Layer;
                                 }
                                 if ((filterList == null || filterList.Accept(go)) &&
-                                    (visibleLayers.Count == 0 || (l == null || visibleLayers.ContainsKey(l))))
+                                    (visibleLayers.Count == 0 || (l == null || visibleLayers.Contains(l))))
                                 {
                                     res.AddUnique(go);
                                 }
@@ -723,7 +720,7 @@ namespace CADability
                                         l = ((go.Owner as Edge).Owner as Face).Layer;
                                 }
                                 if ((filterList == null || filterList.Accept(go)) &&
-                                    (visibleLayers.Count == 0 || l == null || visibleLayers.ContainsKey(l)))
+                                    (visibleLayers.Count == 0 || l == null || visibleLayers.Contains(l)))
                                 {
                                     double z = go.Position(center, projection.Direction, model.displayListPrecision);
                                     if (z < zmin)
@@ -743,7 +740,7 @@ namespace CADability
                         if (go is Face && go.HitTest(projection, pickrect, false))
                         {
                             if ((filterList == null || filterList.Accept(go)) &&
-                                (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.ContainsKey(go.Layer)))
+                                (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.Contains(go.Layer)))
                             {
                                 res.AddUnique(go);
                             }
@@ -756,7 +753,7 @@ namespace CADability
                         if (go is Face && go.HitTest(projection, pickrect, false))
                         {
                             if ((filterList == null || filterList.Accept(go)) &&
-                                (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.ContainsKey(go.Layer)))
+                                (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.Contains(go.Layer)))
                             {
                                 double z = go.Position(center, projection.Direction, model.displayListPrecision);
                                 if (z < zmin)
@@ -781,7 +778,7 @@ namespace CADability
                                 if (toInsert.Owner is Model)
                                 {   // sonst werden auch edges gefunden, was hier bei single click nicht gewünscht
                                     if ((filterList == null || filterList.Accept(toInsert)) &&
-                                        (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.ContainsKey(toInsert.Layer)))
+                                        (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.Contains(toInsert.Layer)))
                                     {
                                         set.Add(toInsert);
                                     }
@@ -805,7 +802,7 @@ namespace CADability
                                 IGeoObject toInsert = go;
                                 while (toInsert.Owner is IGeoObject) toInsert = (toInsert.Owner as IGeoObject);
                                 if ((filterList == null || filterList.Accept(toInsert)) &&
-                                    (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.ContainsKey(toInsert.Layer)))
+                                    (visibleLayers.Count == 0 || toInsert.Layer == null || visibleLayers.Contains(toInsert.Layer)))
                                 {
                                     if (toInsert.Owner is Model)
                                     {   // sonst werden auch edges gefunden, was hier bei single click nicht gewünscht
@@ -824,7 +821,7 @@ namespace CADability
                         if (go.HitTest(projection, pickrect, false))
                         {
                             if ((filterList == null || filterList.Accept(go)) &&
-                                (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.ContainsKey(go.Layer)))
+                                (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.Contains(go.Layer)))
                             {
                                 res.AddUnique(go);
                             }
@@ -837,7 +834,7 @@ namespace CADability
                         if (go.HitTest(projection, pickrect, false))
                         {
                             if ((filterList == null || filterList.Accept(go)) &&
-                                (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.ContainsKey(go.Layer)))
+                                (visibleLayers.Count == 0 || go.Layer == null || visibleLayers.Contains(go.Layer)))
                             {
                                 if (go.Owner is Block)
                                 {   // beim Block die Kinder liefern
@@ -1314,7 +1311,7 @@ namespace CADability
                 allFaces.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerFaceDisplayList)
                 {
-                    if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
+                    if (kv.Key == model.nullLayer || visibleLayers.Contains(kv.Key) || visibleLayers.Count == 0)
                     {
                         allFaces.Add(kv.Value);
                     }
@@ -1323,7 +1320,7 @@ namespace CADability
                 allTransparent.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerTransparentDisplayList)
                 {
-                    if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
+                    if (kv.Key == model.nullLayer || visibleLayers.Contains(kv.Key) || visibleLayers.Count == 0)
                     {
                         allTransparent.Add(kv.Value);
                     }
@@ -1331,7 +1328,7 @@ namespace CADability
                 allCurves.Clear();
                 foreach (KeyValuePair<Layer, IPaintTo3DList> kv in model.layerCurveDisplayList)
                 {
-                    if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
+                    if (kv.Key == model.nullLayer || visibleLayers.Contains(kv.Key) || visibleLayers.Count == 0)
                     {
                         allCurves.Add(kv.Value);
                     }
@@ -1343,7 +1340,7 @@ namespace CADability
                 allUnscaled.Clear();
                 foreach (KeyValuePair<Layer, GeoObjectList> kv in model.layerUnscaledObjects)
                 {
-                    if (kv.Key == model.nullLayer || visibleLayers.ContainsKey(kv.Key) || visibleLayers.Count == 0)
+                    if (kv.Key == model.nullLayer || visibleLayers.Contains(kv.Key) || visibleLayers.Count == 0)
                     {
                         paintTo3D.OpenList("unscaled_" + kv.Key.Name);
                         foreach (IGeoObject go in kv.Value)
@@ -1478,7 +1475,7 @@ namespace CADability
             // das Abspeichern von einem Template Objekt (Dictionary) erwartet beim Einlesen exakt die selbe
             // Version der Assembly und das ist nicht zu gewährleisten
             ArrayList al = new ArrayList();
-            al.AddRange(visibleLayers.Keys);
+            al.AddRange(visibleLayers.ToArray());
             info.AddValue("VisibleLayers", al);
             // Probleme beim Speichern von visiblelayers???
             info.AddValue("FixPoint", fixPoint);
@@ -1488,12 +1485,38 @@ namespace CADability
         #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
         {
-            visibleLayers = new Dictionary<Layer, object>(Layer.LayerComparer);
+            visibleLayers = new HashSet<Layer>();
             for (int i = 0; i < tmpVisibleLayers.Count; ++i)
             {
-                visibleLayers[tmpVisibleLayers[i] as Layer] = null;
+                visibleLayers.Add(tmpVisibleLayers[i] as Layer);
             }
             tmpVisibleLayers = null; // wieder freigeben
+        }
+        #endregion
+        #region IJsonSerialize
+        protected ProjectedModel()
+        {   // empty constructor for Json
+        }
+
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Name", name);
+            data.AddProperty("Model", model);
+            data.AddProperty("Projection", projection);
+            data.AddProperty("VisibleLayers", new List<Layer>(visibleLayers)); // save as List<Layer>
+            data.AddProperty("FixPoint", fixPoint);
+            data.AddProperty("Distance", distance);
+        }
+        public void SetObjectData(IJsonReadData data)
+        {
+            name = data.GetStringProperty("Name");
+            model = data.GetProperty<Model>("Model");
+            projection = data.GetProperty<Projection>("Projection");
+            List<Layer> tmpVisibleLayers = data.GetProperty<List<Layer>>("VisibleLayers");
+            visibleLayers = new HashSet<Layer>(tmpVisibleLayers);
+            fixPoint = data.GetProperty<GeoPoint>("FixPoint");
+            distance = data.GetDoubleProperty("Distance");
+            dirty = true;
         }
         #endregion
     }
