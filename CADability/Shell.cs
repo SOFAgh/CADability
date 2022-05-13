@@ -6107,6 +6107,12 @@ namespace CADability.GeoObject
             }
             return edges;
         }
+        private static  List<Edge> FindCommonSurfaceLoop(Edge startHere, Face toExclude)
+        {
+            Vertex v = startHere.Vertex1;
+            // to continue, work in progress
+            return null;
+        }
         private static Face CommonFace(IEnumerable<Edge> edges, bool acceptSameGeometry)
         {
             Face face = null;
