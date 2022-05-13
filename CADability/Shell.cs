@@ -6092,6 +6092,56 @@ namespace CADability.GeoObject
             }
             return null;
         }
+        private static HashSet<Edge> UnconnectedEdges(IEnumerable<Face> faces)
+        {
+            HashSet<Edge> edges = new HashSet<Edge>();
+            foreach (Face face in faces)
+            {
+                foreach (Edge edge in face.Edges)
+                {
+                    if (edges.Contains(edge)) continue;
+                    Face otherFace = edge.OtherFace(face);
+                    if (otherFace != null && faces.Contains(otherFace)) continue;
+                    edges.Add(edge);
+                }
+            }
+            return edges;
+        }
+        private static Face CommonFace(IEnumerable<Edge> edges, bool acceptSameGeometry)
+        {
+            Face face = null;
+            if (!edges.Any()) return null;
+            Edge edge1 = edges.First();
+            Edge edge2 = edges.Last();
+            if (edge1 == edge2) return null; // only a single edge
+            if (edge1.PrimaryFace == edge2.PrimaryFace) face = edge1.PrimaryFace;
+            else if (edge1.PrimaryFace == edge2.SecondaryFace) face = edge1.PrimaryFace;
+            else if (edge1.SecondaryFace == edge2.PrimaryFace) face = edge1.SecondaryFace;
+            else if (edge1.SecondaryFace == edge2.SecondaryFace) face = edge1.SecondaryFace;
+            if (face==null && acceptSameGeometry)
+            {
+                if (edge1.PrimaryFace.SameSurface(edge2.PrimaryFace)) face = edge1.PrimaryFace;
+                else if (edge1.PrimaryFace.SameSurface(edge2.SecondaryFace)) face = edge1.PrimaryFace;
+                else if (edge1.SecondaryFace.SameSurface(edge2.PrimaryFace)) face = edge1.SecondaryFace;
+                else if (edge1.SecondaryFace.SameSurface(edge2.SecondaryFace)) face = edge1.SecondaryFace;
+            }
+            if (face!=null)
+            {
+                foreach (Edge edge in edges)
+                {
+                    if (edge == edge1) continue;
+                    if (edge == edge2) continue;
+                    if (edge.PrimaryFace == face || edge.SecondaryFace == face) continue;
+                    if (acceptSameGeometry)
+                    {
+                        if (face.SameSurface(edge.PrimaryFace) || face.SameSurface(edge.SecondaryFace)) continue;
+                    }
+                    face = null;
+                    break;
+                }
+            }
+            return face;
+        }
         /// <summary>
         /// Returns "features" of the shell. A feature is a subset of the faces of the shell, which is seperated by the provided <paramref name="loops"/>. Since such a feature
         /// has open edges, there is also a face or multiple faces, which close the feature to make it to a solid.
@@ -6108,7 +6158,7 @@ namespace CADability.GeoObject
             HashSet<Edge> edgeToConnect = new HashSet<Edge>();
             foreach (Face face in collection)
             {
-                foreach (Edge edge in face.AllEdgesIterated())
+                foreach (Edge edge in face.Edges)
                 {
                     if (margin.Contains(edge)) continue;
                     if (edge.IsPartOfHole(edge.OtherFace(face)))
@@ -6126,24 +6176,19 @@ namespace CADability.GeoObject
             }
             do
             {
+                HashSet<Edge> unconnected = UnconnectedEdges(collection);
+                unconnected.ExceptWith(margin);
+                Face commonFace = CommonFace(unconnected, true);
+                if (commonFace!=null && !collection.Contains(commonFace)) features.Add(new HashSet<Face>(collection));
                 HashSet<Face> found = new HashSet<Face>();
-                foreach (Edge edge in edgeToConnect)
+                foreach (Edge edge in unconnected)
                 {
                     if (!collection.Contains(edge.PrimaryFace)) found.Add(edge.PrimaryFace);
                     if (!collection.Contains(edge.SecondaryFace)) found.Add(edge.SecondaryFace);
                 }
                 if (!found.Any()) break;
                 collection.UnionWith(found);
-                HashSet<Edge> nextLevelEdges = new HashSet<Edge>();
-                foreach (Face face1 in found)
-                {
-                    nextLevelEdges.UnionWith(face1.AllEdgesIterated());
-                }
-                nextLevelEdges.ExceptWith(edgeToConnect);
-                nextLevelEdges.ExceptWith(margin);
-                edgeToConnect = nextLevelEdges;
             } while (true);
-            features.Add(collection);
         }
         public List<Shell> FeaturesFromEdges(ICollection<Edge> bounds)
         {
