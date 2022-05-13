@@ -656,14 +656,7 @@ namespace CADability.GeoObject
         /// <returns>difference of the two solids or null</returns>
         public static Solid[] Difference(Solid s1, Solid s2)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
-            {
-                return Solid.Subtract(s1, s2);
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+            return Solid.Subtract(s1, s2);
         }
         /// <summary>
         /// Returns the remains of a shell when a solid is subtracted.
