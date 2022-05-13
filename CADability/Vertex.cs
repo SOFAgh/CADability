@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.Serialization;
 using Wintellect.PowerCollections;
 
@@ -16,7 +17,7 @@ namespace CADability
     public class Vertex : IComparable<Vertex>, IOctTreeInsertable, ISerializable, IDeserializationCallback, IJsonSerialize, IExportStep
     {
         private GeoPoint position;
-        Set<Edge> edges;
+        private HashSet<Edge> edges;
         Dictionary<Face, GeoPoint2D> uvposition; // a cache of already calculated uv positions on faces
         internal static int hashCodeCounter = 0;
         private int hashCode;
@@ -24,7 +25,7 @@ namespace CADability
         internal Vertex(GeoPoint position)
         {
             this.position = position;
-            edges = new Set<Edge>();
+            edges = new HashSet<Edge>();
             uvposition = new Dictionary<Face, GeoPoint2D>();
             hashCode = hashCodeCounter++;
 #if DEBUG
@@ -149,7 +150,7 @@ namespace CADability
 
             lock (edges)
             {
-                List<Edge> res = new List<Edge>(edges.FindAll(pr));
+                List<Edge> res = new List<Edge>(edges.Where(e => pr(e)));
                 return res;
             }
         }
@@ -157,7 +158,7 @@ namespace CADability
         {
             lock (edges)
             {
-                return new Set<Edge>(edges.FindAll(pr));
+                return new Set<Edge>(edges.Where(e => pr(e)));
             }
         }
         internal void AddPositionOnFace(Face fc, GeoPoint2D uv)
@@ -213,7 +214,7 @@ namespace CADability
         {
             get
             {
-                return edges;
+                return new Set<Edge>(edges);
             }
         }
         public override int GetHashCode()
@@ -236,16 +237,14 @@ namespace CADability
         {
             lock (v1.edges)
             {
-                return (v1.edges.Intersection(v2.edges));
+                return (v1.edges.Intersect(v2.edges));
             }
         }
         public static Edge SingleConnectingEdge(Vertex v1, Vertex v2)
         {
             lock (v1.edges)
             {
-                Set<Edge> ce = (v1.edges.Intersection(v2.edges));
-                if (ce.Count == 1) return ce.GetAny();
-                return null;
+                return v1.edges.Intersect(v2.edges).FirstOrDefault();
             }
         }
 #if DEBUG
@@ -264,7 +263,7 @@ namespace CADability
         {
             if (ev == this) return;
 #if DEBUG
-            Set<Edge> both = edges.Intersection(ev.edges);
+            Set<Edge> both = new Set<Edge>(edges.Intersect(ev.edges));
             double dist = Position | ev.Position;
 #endif
             foreach (Edge edge in ev.Edges)
@@ -388,7 +387,7 @@ namespace CADability
         #region IJsonSerialize Members
         protected Vertex()
         {
-            edges = new Set<Edge>();
+            edges = new HashSet<Edge>();
             uvposition = new Dictionary<Face, GeoPoint2D>();
             hashCode = hashCodeCounter++;
         }
@@ -400,7 +399,7 @@ namespace CADability
         public void SetObjectData(IJsonReadData data)
         {
             position = data.GetProperty<GeoPoint>("Position");
-            edges = new Set<Edge>((data.GetProperty<Edge[]>("Edges")));
+            edges = new HashSet<Edge>((data.GetProperty<Edge[]>("Edges")));
         }
         #endregion
         #region ISerializable
@@ -412,7 +411,7 @@ namespace CADability
 
         void IDeserializationCallback.OnDeserialization(object sender)
         {
-            edges = new Set<Edge>(deserializedEdges);
+            edges = new HashSet<Edge>(deserializedEdges);
             deserializedEdges = null;
         }
 
@@ -434,7 +433,7 @@ namespace CADability
             Set<Edge> edgOnFace = onThisFace.AllEdgesSet;
             lock (edges)
             {
-                foreach (Edge edg in edges.Intersection(edgOnFace))
+                foreach (Edge edg in edges.Intersect(edgOnFace))
                 {
                     if (edg.StartVertex(onThisFace) == this) return edg;
                 }

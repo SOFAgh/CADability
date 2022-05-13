@@ -381,7 +381,8 @@ namespace CADability
                     List<object> kve = val as List<object>;
                     for (int i = 0; i < kve.Count; i++)
                     {
-                        ar.Add(kve[i]);
+
+                        try { ar.Add(kve[i]); } catch { }; // could fail when kve[i] is a JsonUnknownType
                     }
                     return ar;
                 }
@@ -469,6 +470,8 @@ namespace CADability
         Dictionary<string, int> typeVersions;
         Dictionary<int, int> typeIndexToVersion;
         Queue<Tuple<IJsonSerialize, JsonDict>> deferred;
+        private bool verbose;
+
         public JsonSerialize()
         {
 
@@ -657,6 +660,12 @@ namespace CADability
                 List<object> entities = allObjects["Entities"] as List<object>;
                 if (entities != null)
                 {
+#if DEBUG
+                    for (int i = 0; i < entities.Count; i++)
+                    {
+                        if (entities[i] is JsonDict jd) jd["§Index"] = i;
+                    }
+#endif
                     CreateEntities(entities);
                     for (int i = 0; i < entities.Count; i++)
                     {
@@ -891,6 +900,27 @@ namespace CADability
                     if (typeName == "System.Drawing.Printing.PaperSource") tp = typeof(System.Drawing.Printing.PaperSource);
 
                 }
+                if (tp == null)
+                {
+                    string[] parts = typeName.Split('.');
+                    string assemblyName = "";
+                    for (int i = 0; i < parts.Length - 1; i++)
+                    {
+                        if (i > 0) assemblyName += ".";
+                        assemblyName += parts[i];
+                        try
+                        {
+                            System.Reflection.Assembly ass = System.Reflection.Assembly.Load(assemblyName);
+                            tp = ass.GetType(typeName);
+                            if (tp != null) break;
+                        }
+                        catch { }
+                    }
+                }
+                if (tp == null)
+                {
+                    tp = typeof(JSonUnknownType);
+                }
                 if (tp != null)
                 {
                     if (tp.GetInterface("IJsonSerialize") != null && typeVersions[typeName] != -1) // typeVersions[typeName]==-1 means: it has been serialized via ISerializable
@@ -1105,9 +1135,8 @@ namespace CADability
         private void WriteObject(object val)
         {
             BeginObject();
-#if DEBUG
-            //(this as IJsonWriteData).AddProperty("$Index(Debug)", objectCount);
-#endif
+
+            if (verbose) (this as IJsonWriteData).AddProperty("$Index(Debug)", objectCount);
             if (val is IDictionary ht && !(val is IJsonSerialize))
             {   // a hashtable or some other kind of dictionary is serialized as 
                 val = new JSonDictionary(ht, val.GetType());
@@ -1130,12 +1159,10 @@ namespace CADability
                 (this as IJsonWriteData).AddProperty("$Type", val.GetType().FullName);
                 firstTimeTypeDefinition = true;
             }
-#if DEBUG
             else
             {
-                //(this as IJsonWriteData).AddProperty("$Type(Debug)", val.GetType().Name);
+                if (verbose) (this as IJsonWriteData).AddProperty("$Type(Debug)", val.GetType().Name);
             }
-#endif
             (this as IJsonWriteData).AddProperty("$TypeIndex", typeIndex);
             if (val is IJsonSerialize)
             {
@@ -1611,6 +1638,24 @@ namespace CADability
                 dict[item.Key] = item.Value;
             }
             return res;
+        }
+    }
+    internal class JSonUnknownType : Hashtable, IJsonSerialize
+    {
+        Dictionary<string, object> dict;
+        protected JSonUnknownType()
+        {
+            dict = new Dictionary<string, object>();
+        }
+        public void GetObjectData(IJsonWriteData data)
+        {
+        }
+        public void SetObjectData(IJsonReadData data)
+        {
+            foreach (KeyValuePair<string, object> item in data)
+            {
+                dict.Add(item.Key, item.Value);
+            }
         }
     }
     internal class JSonSubstitute : IJsonSerialize, IJsonConvert
