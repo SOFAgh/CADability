@@ -303,8 +303,6 @@ namespace CADability
             animatedViews = new List<AnimatedView>();
             mruFiles = MRUFiles.GetMRUFiles();
             Settings settings = Settings.GlobalSettings; // to initiate load
-            Settings.GlobalSettings.SetValue("UseNewStepImport", true);
-            Settings.GlobalSettings.SetValue("UseNewBrepOperations", true); // should not be used later
             Settings.GlobalSettings.SetValue("Experimental.ParallelOcttree", true);
         }
         public FrameImpl(IControlCenter cc, ICanvas canvas) : this()

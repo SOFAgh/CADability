@@ -1392,6 +1392,7 @@ namespace CADability
         private Shell shell2;
         private PlaneSurface splittingOnplane; // when splitting a Shell with a plane, this is the surface
         private bool allowOpenEdges;
+        private bool shellsAreUnchanged;
 #if DEBUG
         Edge debugEdge;
 #endif
@@ -1477,7 +1478,7 @@ namespace CADability
                 double[] uOnCurve3D;
                 Border.Position[] position;
                 double prec = precision / ef.edge.Curve3D.Length;
-                if (knownIntersections!=null && knownIntersections.TryGetValue(ef.edge, out Tuple<Face,Face> ki))
+                if (knownIntersections != null && knownIntersections.TryGetValue(ef.edge, out Tuple<Face, Face> ki))
                 {
                     if (ki.Item1 == ef.face || ki.Item2 == ef.face) continue;
                 }
@@ -3152,6 +3153,7 @@ namespace CADability
                 return true;
             }
         }
+        public bool Unchanged => shellsAreUnchanged;
         public Shell[] Result()
         {
             // this method relies on
@@ -3865,6 +3867,40 @@ namespace CADability
             List<Shell> res = new List<Shell>(); // the result of this method.
                                                  // allFaces now contains all the trimmed faces plus the faces, which are (directly or indirectly) connected (via edges) to the trimmed faces
             List<Face> nonManifoldParts = new List<Face>();
+            shellsAreUnchanged = (allFaces.Count == 0);
+            if (allFaces.Count == 0)
+            {
+                if (operation == Operation.union)
+                {
+                    shell1.ReverseOrientation(); // both shells have been reversed, undo this reversion
+                    shell2.ReverseOrientation();
+                    if (shell2.Contains(shell1.Vertices[0].Position)) res.Add(shell2); // shell2 contains shell1, the result ist shell2
+                    else if (shell1.Contains(shell2.Vertices[0].Position)) res.Add(shell1); // shell1 contains shell2, the result ist shell1
+                    else
+                    {   // shells are disjunct, as union we return both
+                        res.Add(shell1);
+                        res.Add(shell2);
+                    }
+                }
+                else if (operation == Operation.difference)
+                {   // no intersection: shell1 - shell2, shell2 is reversed, i.e. IsInside means outside of the original
+                    if (shell2.Contains(shell1.Vertices[0].Position)) res.Add(shell1); // shell1 remains unchanged, because shell2 is outside
+                    else if (shell1.Contains(shell2.Vertices[0].Position)) 
+                    {   // this is a solid with an inner hole. This is currently not implemented by Solid as it is very rarely used
+                        // the correct result would be shell1 and shell2 in its reversed form
+                        res.Add(shell1);
+                        res.Add(shell2);
+                    }
+                    // else: the result is empty, because shell2 contains shell1 completely (nothing to do here, return empty result)
+                }
+                else if (operation == Operation.intersection)
+                {
+                    if (shell2.Contains(shell1.Vertices[0].Position)) res.Add(shell1); // shell2 contains shell1, the result ist shell1
+                    else if (shell1.Contains(shell2.Vertices[0].Position)) res.Add(shell2); // shell1 contains shell2, the result ist shell2
+                    // else: shells are disjunct, the result is empty
+                    
+                }
+            }
             while (allFaces.Count > 0)
             {
                 Set<Face> connected = extractConnectedFaces(allFaces, allFaces.GetAny());

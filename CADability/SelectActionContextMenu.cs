@@ -103,9 +103,16 @@ namespace CADability
                                 List<Edge[]> loops = new List<Edge[]> { hole };
                                 List<IEnumerable<Face>> lfeatures = new List<IEnumerable<Face>>();
                                 List<IEnumerable<Face>> lids = new List<IEnumerable<Face>>();
-
-                                shell.FeaturesFromEdges(loops, lfeatures, lids, new Face[] { faces[i] });
-                                features.AddRange(lfeatures);
+                                HashSet<Face> startWith = new HashSet<Face>();
+                                foreach (Edge edge in hole)
+                                {
+                                    startWith.Add(edge.OtherFace(otherFace)); // all faces that are connected to the hole in "otherFace"
+                                }
+                                shell.FeaturesFromEdges(loops, lfeatures, lids, startWith);
+                                for (int k = 0; k < lfeatures.Count; k++)
+                                {
+                                    if (lfeatures[k].Count() < shell.Faces.Length * 0.5) features.Add(lfeatures[k]);
+                                }
                             }
                         }
                     }

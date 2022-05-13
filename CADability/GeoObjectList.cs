@@ -139,21 +139,14 @@ namespace CADability.GeoObject
             }
         }
 
-        }
         public void AddRange(IEnumerable<IGeoObject> ObjectsToAdd)
         {
-            int cnt = 0;
-            IGeoObject geoObject = null;
-            foreach (var go in objectsToAdd)
+            list.AddRange(ObjectsToAdd);
+            if (ObjectAddedEvent != null)
             {
                 List<IGeoObject> objectsAdded = new List<IGeoObject>(ObjectsToAdd);
-                int i;
-                for (i = 0; i < objectsAdded.Count - 1; i++)
-                    ObjectAddedEvent(this, objectsAdded[i], false);
-                ObjectAddedEvent(this, objectsAdded[i], true);
+                for (int i = 0; i < objectsAdded.Count; i++) ObjectAddedEvent(this, objectsAdded[i], i == objectsAdded.Count - 1);
             }
-            if (cnt > 0)
-                ObjectAddedEvent?.Invoke(this, geoObject, true);
         }
 
         public void AddRangeUnique(GeoObjectList ObjectsToAdd)
