@@ -72,6 +72,7 @@ namespace CADability
     }
     public class JsonSerialize : IJsonWriteData
     {
+        Dictionary<string, Assembly> loadedAssemblies = null;
         /// <summary>
         /// Force the StreamWriter to write numbers with InvariantInfo
         /// </summary>
@@ -891,37 +892,20 @@ namespace CADability
             while (ti >= createEntity.Count) createEntity.Add(null);
             if (createEntity[ti] == null)
             {
+                if (loadedAssemblies == null)
+                {   // one time initialisation of loaded assemblies dictionary
+                    Assembly[] la = AppDomain.CurrentDomain.GetAssemblies();
+                    loadedAssemblies = new Dictionary<string, Assembly>();
+                    for (int i = 0; i < la.Length; i++) loadedAssemblies[la[i].FullName.Split(',')[0]] = la[i];
+                }
 
                 Type tp = null;
+                if (assemblyName == null && typeName.StartsWith("System.Drawing.")) assemblyName = "System.Drawing"; // this is for old files, where System.Drawing objects where handled different
                 if (assemblyName == null) tp = Type.GetType(typeName);
-                else
+                if (tp == null)
                 {
-                    try
-                    {
-                        // Documentation says LoadWithPartialName is osolete, but Load fails with "System.Drawing" while LoadWithPartialName is working fine
-                        // We don't want to load a specific version of the assembly here, the json objects contain version info to handle different versions
-                        System.Reflection.Assembly ass = System.Reflection.Assembly.LoadWithPartialName(assemblyName);
-                        if (ass != null) tp = ass.GetType(typeName);
-                    }
-                    catch { }
-                    if (tp == null)
-                    {
-                        try
-                        {
-                            System.Reflection.Assembly ass = System.Reflection.Assembly.Load(assemblyName);
-                            if (ass != null) tp = ass.GetType(typeName);
-                        }
-                        catch { }
-                    }
+                    if (loadedAssemblies.TryGetValue(assemblyName, out Assembly assembly)) tp = assembly.GetType(typeName);
                 }
-                // not anymore necessary, because Assembly.LoadWithPartialName does the job
-                //if (tp == null)
-                //{
-                //    if (typeName == "System.Drawing.Printing.PageSettings") tp = typeof(System.Drawing.Printing.PageSettings);
-                //    if (typeName == "System.Drawing.Printing.Margins") tp = typeof(System.Drawing.Printing.Margins);
-                //    if (typeName == "System.Drawing.Printing.PaperSize") tp = typeof(System.Drawing.Printing.PaperSize);
-                //    if (typeName == "System.Drawing.Printing.PaperSource") tp = typeof(System.Drawing.Printing.PaperSource);
-                //}
                 if (tp == null)
                 {
                     tp = typeof(JsonProxyType);
