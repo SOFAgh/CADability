@@ -72,6 +72,7 @@ namespace CADability
     }
     public class JsonSerialize : IJsonWriteData
     {
+        Dictionary<string, Assembly> loadedAssemblies = null;
         /// <summary>
         /// Force the StreamWriter to write numbers with InvariantInfo
         /// </summary>
@@ -612,6 +613,7 @@ namespace CADability
             string line;
             int start, length;
             string typename = null;
+            string assemblyName = null;
             int typeindex = -1;
             int typeversion = -1;
             Tokenizer.etoken token = tk.NextToken(out line, out start, out length);
@@ -624,6 +626,7 @@ namespace CADability
                 if (name == "$TypeIndex") typeindex = Convert.ToInt32(res[name]);
                 if (name == "$Type") typename = res[name] as string;
                 if (name == "$TypeVersion") typeversion = Convert.ToInt32(res[name]);
+                if (name == "$Assembly") assemblyName = res[name] as string;
                 token = tk.NextToken(out line, out start, out length);
                 if (token == Tokenizer.etoken.comma) token = tk.NextToken(out line, out start, out length);
                 else if (token == Tokenizer.etoken.endObject) break;
@@ -632,7 +635,7 @@ namespace CADability
             {
                 typeVersions[typename] = typeversion;
                 typeIndexToVersion[typeindex] = typeversion;
-                CreateDeserializer(typename, typeindex);
+                CreateDeserializer(typename, assemblyName, typeindex);
             }
             if (typeversion == -1 && typeindex >= 0) res.Version = typeIndexToVersion[typeindex];
             else res.Version = typeversion;
@@ -884,42 +887,28 @@ namespace CADability
             if (cas != null && cas.Length > 0) return (cas[0] as JsonVersion).version;
             return 0;
         }
-        private void CreateDeserializer(string typeName, int ti)
+        private void CreateDeserializer(string typeName, string assemblyName, int ti)
         {
             while (ti >= createEntity.Count) createEntity.Add(null);
             if (createEntity[ti] == null)
             {
-                System.Drawing.Printing.PageSettings ps = null;
+                if (loadedAssemblies == null)
+                {   // one time initialisation of loaded assemblies dictionary
+                    Assembly[] la = AppDomain.CurrentDomain.GetAssemblies();
+                    loadedAssemblies = new Dictionary<string, Assembly>();
+                    for (int i = 0; i < la.Length; i++) loadedAssemblies[la[i].FullName.Split(',')[0]] = la[i];
+                }
 
-                Type tp = Type.GetType(typeName);
+                Type tp = null;
+                if (assemblyName == null && typeName.StartsWith("System.Drawing.")) assemblyName = "System.Drawing"; // this is for old files, where System.Drawing objects where handled different
+                if (assemblyName == null) tp = Type.GetType(typeName);
                 if (tp == null)
                 {
-                    if (typeName == "System.Drawing.Printing.PageSettings") tp = typeof(System.Drawing.Printing.PageSettings);
-                    if (typeName == "System.Drawing.Printing.Margins") tp = typeof(System.Drawing.Printing.Margins);
-                    if (typeName == "System.Drawing.Printing.PaperSize") tp = typeof(System.Drawing.Printing.PaperSize);
-                    if (typeName == "System.Drawing.Printing.PaperSource") tp = typeof(System.Drawing.Printing.PaperSource);
-
+                    if (loadedAssemblies.TryGetValue(assemblyName, out Assembly assembly)) tp = assembly.GetType(typeName);
                 }
                 if (tp == null)
                 {
-                    string[] parts = typeName.Split('.');
-                    string assemblyName = "";
-                    for (int i = 0; i < parts.Length - 1; i++)
-                    {
-                        if (i > 0) assemblyName += ".";
-                        assemblyName += parts[i];
-                        try
-                        {
-                            System.Reflection.Assembly ass = System.Reflection.Assembly.Load(assemblyName);
-                            tp = ass.GetType(typeName);
-                            if (tp != null) break;
-                        }
-                        catch { }
-                    }
-                }
-                if (tp == null)
-                {
-                    tp = typeof(JSonUnknownType);
+                    tp = typeof(JsonProxyType);
                 }
                 if (tp != null)
                 {
@@ -1041,6 +1030,7 @@ namespace CADability
 
         public bool ToStream(Stream stream, object toSerialize, bool closeStream = true)
         {
+            verbose = Settings.GlobalSettings.GetBoolValue("Json.Verbose", false);
             outStream = new FormattingStreamWriter(stream);
             firstEntry = new Stack<bool>();
             //using (new PerformanceTick("Json"))
@@ -1156,7 +1146,23 @@ namespace CADability
             {   // first time a object of this type is beeing written we write the type name
                 typeIndex = serializedTypes.Count + 1;
                 serializedTypes[val.GetType()] = typeIndex;
-                (this as IJsonWriteData).AddProperty("$Type", val.GetType().FullName);
+                if (val is JsonProxyType junk)
+                {   // if it is an unknown type, we use the typename that was given on deserialisation
+
+                    // the following is not correct: if the order of objects has been changed, there is no original typename in the JsonProxyType
+                    // we would need a more global dictionare of proxy types
+                    // but this is only an issue, when saving files, where an object could not be deserialised on read
+                    (this as IJsonWriteData).AddProperty("$Type", junk.OriginalTypeName);
+                    typeIndex = junk.OriginalTypeVersion;
+                    string assemblyName = junk.OriginalTypeAssembly;
+                    if (assemblyName != null) (this as IJsonWriteData).AddProperty("$Assembly", assemblyName);
+                }
+                else
+                {
+                    (this as IJsonWriteData).AddProperty("$Type", val.GetType().FullName);
+                    string assemblyName = val.GetType().Assembly.GetName().Name;
+                    if (assemblyName != "CADability") (this as IJsonWriteData).AddProperty("$Assembly", assemblyName);
+                }
                 firstTimeTypeDefinition = true;
             }
             else
@@ -1640,15 +1646,19 @@ namespace CADability
             return res;
         }
     }
-    internal class JSonUnknownType : Hashtable, IJsonSerialize
+    internal class JsonProxyType : Hashtable, IJsonSerialize
     {
         Dictionary<string, object> dict;
-        protected JSonUnknownType()
+        protected JsonProxyType()
         {
             dict = new Dictionary<string, object>();
         }
         public void GetObjectData(IJsonWriteData data)
         {
+            foreach (KeyValuePair<string, object> item in dict)
+            {
+                data.AddProperty(item.Key, item.Value);
+            }
         }
         public void SetObjectData(IJsonReadData data)
         {
@@ -1657,6 +1667,16 @@ namespace CADability
                 dict.Add(item.Key, item.Value);
             }
         }
+        public string OriginalTypeName => dict["$Type"] as string;
+        public string OriginalTypeAssembly
+        {
+            get
+            {
+                if (dict.TryGetValue("$Assembly", out object assembly)) return assembly as string;
+                return null;
+            }
+        }
+        public int OriginalTypeVersion => (int)dict["$TypeVersion"];
     }
     internal class JSonSubstitute : IJsonSerialize, IJsonConvert
     {
