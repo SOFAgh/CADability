@@ -580,7 +580,7 @@ namespace CADability
         }
         private object unescape(string line, int start, int length, bool propName)
         {
-            string res = line.Substring(start, length).Replace("\\\"", "\"").Replace("\\n", "\n");
+            string res = line.Substring(start, length).Replace("\\\"", "\"").Replace("\\n", "\n").Replace("\\r", "\r");
             if (!propName)
             {
                 if (res.StartsWith("##")) return res.Substring(1);
@@ -1112,7 +1112,7 @@ namespace CADability
             }
             else
             {
-                string escaped = val.Replace("\"", "\\\"").Replace("\n", "\\n"); // escape delimiters and \n
+                string escaped = val.Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r"); // escape delimiters and \n
                 if (escapePound && escaped.StartsWith("#")) escaped = "#" + escaped; // escape starting #
                 if (escapePound && escaped.StartsWith("$")) escaped = "$" + escaped; // escape starting $
                 outStream.Write("\"" + escaped + "\"");
