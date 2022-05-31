@@ -137,13 +137,31 @@ namespace CADability
         }
     }
 
+    internal class SerializableHashSetString : HashSet<string>, IJsonSerialize
+    {
+        public SerializableHashSetString() : base() { }
+        public SerializableHashSetString(IEnumerable<string> strings) : base(strings) { }
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Strings", this.ToArray());
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            string[] strings = data.GetProperty<string[]>("Strings");
+            for (int i = 0; i < strings.Length; i++)
+            {
+                Add(strings[i]);
+            }
+        }
+    }
     static partial class Extensions
     {
         public static IEnumerable<T> Combine<T>(params IEnumerable<T>[] enumerators)
         {
             return new CombinedEnumerable<T>(enumerators);
         }
-        public static IEnumerable<T> LookUp<T>(IEnumerable<T> enumertor, Dictionary<T,T> lookUp)
+        public static IEnumerable<T> LookUp<T>(IEnumerable<T> enumertor, Dictionary<T, T> lookUp)
         {
             return new LookedUpEnumerable<T>(enumertor, lookUp);
         }

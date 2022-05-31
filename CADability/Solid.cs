@@ -40,16 +40,28 @@ namespace CADability.GeoObject
                     se.Add(vol);
                     // parametric properties are part of the shell. But we show them at the solid, which seems more natural
                     List<IPropertyEntry> pps = new List<IPropertyEntry>();
-                    GroupProperty gp = new GroupProperty("Solid.ParametricProperties", pps.ToArray());
+                    GroupProperty gpParametricProperties = new GroupProperty("Solid.ParametricProperties", pps.ToArray());
                     foreach (Shell shell in solid.Shells)
                     {
-                        List<IPropertyEntry> shellProperties = shell.GetParameterProperties(Frame, gp);
+                        List<IPropertyEntry> shellProperties = shell.GetParameterProperties(Frame, gpParametricProperties);
                         pps.AddRange(shellProperties);
                     }
                     if (pps.Count > 0)
                     {
-                        gp.SetSubEntries(pps.ToArray());
-                        se.Add(gp);
+                        gpParametricProperties.SetSubEntries(pps.ToArray());
+                        se.Add(gpParametricProperties);
+                    }
+                    pps = new List<IPropertyEntry>();
+                    GroupProperty gpFeatureProperties = new GroupProperty("Solid.FeatureProperties", pps.ToArray());
+                    foreach (Shell shell in solid.Shells)
+                    {
+                        List<IPropertyEntry> shellFeatureProperties = shell.GetFeatureProperties(Frame, gpFeatureProperties);
+                        pps.AddRange(shellFeatureProperties);
+                    }
+                    if (pps.Count > 0)
+                    {
+                        gpFeatureProperties.SetSubEntries(pps.ToArray());
+                        se.Add(gpFeatureProperties);
                     }
                     foreach (Shell shell in solid.Shells)
                     {
@@ -59,6 +71,10 @@ namespace CADability.GeoObject
                     }
                     se.AddRange(attributeProperties);
                     subEntries = se.ToArray();
+                    for (int i = 0; i < subEntries.Length; i++)
+                    {
+                        subEntries[i].Parent = this;
+                    }
                     Task task = Task.Run(() => { vol.SetDouble(solid.Volume(0.0)); });
                 }
                 return subEntries;

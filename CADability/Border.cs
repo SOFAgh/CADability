@@ -33,7 +33,7 @@ namespace CADability.Shapes
     [System.Diagnostics.DebuggerVisualizer(typeof(BorderVisualizer))]
 #endif
     [Serializable()]
-    public class Border : ISerializable, IDeserializationCallback
+    public class Border : ISerializable, IDeserializationCallback, IJsonSerialize
     {
         static private int idCounter = 0;
         private int id;
@@ -105,7 +105,7 @@ namespace CADability.Shapes
                 // hier rekursiv gehen
             }
         }
-        private Border()
+        protected Border()
         {
             id = ++idCounter;
         }
@@ -4474,6 +4474,16 @@ namespace CADability.Shapes
                                                                       mi.Factor * ext.Width);
                 return sbr;
             }
+        }
+
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Segments", segment);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            segment = data.GetProperty<ICurve2D[]>("Segments");
         }
 
         //private static double MaxDistance(ICurve2D curve1, ICurve2D curve2)

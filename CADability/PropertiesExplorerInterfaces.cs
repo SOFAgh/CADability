@@ -1,6 +1,7 @@
 ﻿using CADability.GeoObject;
 using CADability.Substitutes;
 using System;
+using System.Collections.Generic;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
@@ -25,6 +26,7 @@ namespace CADability.UserInterface
         IFrame Frame { get; set; }
         void PreProcessKeyDown(KeyEventArgs e);
         void HideEntry(string entryId, bool hide);
+        IPropertyEntry FindItem(string name);
     }
     public struct MouseState
     {
@@ -242,6 +244,8 @@ namespace CADability.UserInterface
         /// If read-only is true, the value cannot be edited.
         /// </summary>
         bool ReadOnly { get; set; }
+
+        IPropertyEntry FindSubItem(string helpResourceID);
     }
     public interface IPropertyPage
     {
@@ -255,7 +259,7 @@ namespace CADability.UserInterface
         IPropertyEntry GetCurrentSelection();
         void SelectEntry(IPropertyEntry toSelect);
         void MakeVisible(IPropertyEntry toShow);
-        IPropertyEntry FindFromHelpLink(string helpResourceID);
+        IPropertyEntry FindFromHelpLink(string helpResourceID, bool searchTreeAndOpen = false);
         IFrame Frame { get; }
         void StartEditLabel(IPropertyEntry ToEdit);
         #region IPropertyTreeView adapters, should later be removed

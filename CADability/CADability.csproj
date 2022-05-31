@@ -73,6 +73,7 @@
     <None Remove="MenuResource.xml" />
     <None Remove="StringTableDeutsch.xml" />
     <None Remove="StringTableEnglish.xml" />
+    <None Remove="_ToDo.txt" />
   </ItemGroup>
 
   <ItemGroup>

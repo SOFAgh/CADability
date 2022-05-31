@@ -1479,6 +1479,7 @@ namespace CADability
 		#region IDeserializationCallback Members
 		void IDeserializationCallback.OnDeserialization(object sender)
 		{
+			(geoObjects as IDeserializationCallback).OnDeserialization(sender);
 			for (int i = 0; i < geoObjects.Count; ++i)
 			{
 				geoObjects[i].Owner = this;

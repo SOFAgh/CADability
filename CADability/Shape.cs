@@ -18,7 +18,7 @@ namespace CADability.Shapes
     [System.Diagnostics.DebuggerVisualizer(typeof(SimpleShapeVisualizer))]
 #endif
     [Serializable()]
-    public class SimpleShape : ISerializable, IQuadTreeInsertable, IComparable<SimpleShape>
+    public class SimpleShape : ISerializable, IQuadTreeInsertable, IComparable<SimpleShape>, IJsonSerialize
     {
         // Ist nicht wie Border unveränderlich und über ein Builder Objekt herzustellen?
         private Border outline;
@@ -1690,6 +1690,21 @@ namespace CADability.Shapes
                 }
             }
         }
+        #region IJsonSerialize
+        protected SimpleShape()
+        { }
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Outline", outline);
+            data.AddProperty("Holes", holes);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            outline = data.GetProperty<Border>("Outline");
+            holes = data.GetProperty<Border[]>("Holes");
+        }
+        #endregion
     }
 
     /// <summary>
@@ -1700,7 +1715,7 @@ namespace CADability.Shapes
     [System.Diagnostics.DebuggerVisualizer(typeof(CompoundShapeVisualizer))]
 #endif
     [Serializable()]
-    public class CompoundShape : ISerializable
+    public class CompoundShape : ISerializable, IJsonSerialize
     {
         [Serializable()]
         internal class SignatureOld : ISerializable
@@ -3028,7 +3043,17 @@ namespace CADability.Shapes
         }
 
         #endregion
+        #region IJsonSerialize
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("SimpleShapes", simpleShapes);
+        }
 
+        public void SetObjectData(IJsonReadData data)
+        {
+            simpleShapes = data.GetProperty<SimpleShape[]>("SimpleShapes");
+        }
+        #endregion
         public void Approximate(bool linesOnly, double precision)
         {
             for (int i = 0; i < simpleShapes.Length; ++i)
@@ -3060,6 +3085,7 @@ namespace CADability.Shapes
                 simpleShapes[i].AdjustHorizontalLines(y);
             }
         }
+
     }
 
 }
