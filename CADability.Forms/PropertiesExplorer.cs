@@ -504,6 +504,15 @@ namespace CADability.Forms
             tabControl.Dispose();
             base.Dispose(disposing);
         }
+        public IPropertyEntry FindItem(string name)
+        {
+            IPropertyPage pp = ActivePropertyPage;
+            if (pp != null)
+            {
+                return pp.FindFromHelpLink(name, true);
+            }
+            return null;
+        }
     }
 }
 
