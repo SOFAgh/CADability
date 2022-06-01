@@ -8,6 +8,7 @@
     <AssemblyOriginatorKeyFile>CADabilityKey.snk</AssemblyOriginatorKeyFile>
     <AssemblyName>CADability</AssemblyName>
     <BaseOutputPath>..\..\..\bin</BaseOutputPath>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

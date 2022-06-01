@@ -6,6 +6,7 @@
 	  <RootNamespace>CADability.Forms</RootNamespace>
 	  <AssemblyName>UICADability.W</AssemblyName>
 	  <BaseOutputPath>..\..\..\bin</BaseOutputPath>
+	  <AssemblyVersion>2.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
