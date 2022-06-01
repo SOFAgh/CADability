@@ -6,7 +6,8 @@
     <Configurations>Debug;Release;RelWithDoc;WebDebug</Configurations>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>CADabilityKey.snk</AssemblyOriginatorKeyFile>
-    <AssemblyName>CADabilityCore</AssemblyName>
+    <AssemblyName>CADability</AssemblyName>
+    <BaseOutputPath>..\..\..\bin</BaseOutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
