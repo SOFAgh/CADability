@@ -271,8 +271,11 @@ namespace CADability
         {
             try
             {
-                InitGlobalSettingsFileName();
-                LoadGlobalSettings(GlobalSettingsFileName);
+                if (!SettingsGlobalFileName.neverSaveGlobalSettings)
+                {
+                    InitGlobalSettingsFileName();
+                    LoadGlobalSettings(GlobalSettingsFileName);
+                }
             }
             catch(Exception ex)
             {
