@@ -171,7 +171,8 @@ namespace CADability
                         currentView.Invalidate(PaintBuffer.DrawingAspect.Select, currentView.DisplayRectangle);
                     };
                     MenuWithHandler positionFeature = new MenuWithHandler("MenuId.Feature.Position");
-                    mh.SubMenus = new MenuWithHandler[] { positionFeature };
+                    MenuWithHandler nameFeature = new MenuWithHandler("MenuId.Feature.Name");
+                    mh.SubMenus = new MenuWithHandler[] { positionFeature, nameFeature };
                     // this is very rudimentary. We have to provide a version of ParametricsDistanceAction, where you can select from and to object. Only axis is implemented
                     Shell shell = featureI[0].Owner as Shell;
                     GeoObjectList fa = shell.FeatureAxis;
@@ -200,6 +201,47 @@ namespace CADability
                         currentMenuSelection.AddRange(featureI.ToArray());
                         currentView.Invalidate(PaintBuffer.DrawingAspect.Select, currentView.DisplayRectangle);
                     };
+                    nameFeature.OnCommand = (menuId) =>
+                    {
+                        string name = shell.GetNewFeatureName();
+                        shell.AddFeature(name, featureI);
+                        if (shell.Owner is Solid sld)
+                        {
+                            soa.SetSelectedObject(sld);
+                            IPropertyEntry toEdit = soa.Frame.ControlCenter.FindItem(name);
+                            if (toEdit != null)
+                            {
+                                
+                                List<IPropertyEntry> parents = new List<IPropertyEntry>();
+                                if (toEdit != null)
+                                {
+                                    IPropertyEntry p = toEdit;
+                                    while ((p = p.Parent as IPropertyEntry) != null)
+                                    {
+                                        parents.Add(p);
+                                    }
+                                    IPropertyPage propertyPage = parents[parents.Count-1].Parent as IPropertyPage;
+                                    if (propertyPage != null)
+                                    {
+                                        for (int k = parents.Count - 1; k >= 0; --k)
+                                        {
+                                            propertyPage.OpenSubEntries(parents[k], true);
+                                        }
+                                        toEdit.StartEdit(false);
+                                    }
+                                }
+                            }
+                        }
+
+                        return true;
+                    };
+                    nameFeature.OnSelected = (menuId, selected) =>
+                    {
+                        currentMenuSelection.Clear();
+                        currentMenuSelection.AddRange(featureI.ToArray());
+                        currentView.Invalidate(PaintBuffer.DrawingAspect.Select, currentView.DisplayRectangle);
+                    };
+
                     cm.Add(mh);
                 }
             }
@@ -284,8 +326,8 @@ namespace CADability
                     {
                         if (backSide == null || !backSide.Contains(distanceTo[j])) // this is not already used as gauge
                         {
-                            HashSet<Face> capturedFaceI = new HashSet<Face>(new Face[]{ faces[i] });
-                            HashSet<Face> capturedDistTo = new HashSet<Face>(new Face[]{ distanceTo[j] });
+                            HashSet<Face> capturedFaceI = new HashSet<Face>(new Face[] { faces[i] });
+                            HashSet<Face> capturedDistTo = new HashSet<Face>(new Face[] { distanceTo[j] });
                             double capturedDistance = distance[j];
                             GeoPoint capturedPoint1 = pointsFrom[j];
                             GeoPoint capturedPoint2 = pointsTo[j];

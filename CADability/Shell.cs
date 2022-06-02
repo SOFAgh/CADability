@@ -559,6 +559,91 @@ namespace CADability.GeoObject
             }
         }
 
+        internal List<IPropertyEntry> GetFeatureProperties(IFrame frame, GroupProperty groupProperty)
+        {
+            List<IPropertyEntry> res = new List<IPropertyEntry>();
+            IView activeView = frame.ActiveView;
+            Dictionary<string, HashSet<Face>> features = GetFeatures();
+            foreach (KeyValuePair<string,HashSet<Face>> feature in features)
+            {
+                List<IPropertyEntry> faceProperties = new List<IPropertyEntry>();
+                foreach (Face face in feature.Value)
+                {
+                    faceProperties.Add(face.GetShowProperties(frame));
+                }
+                GroupProperty featureProperty = new GroupProperty("", faceProperties.ToArray());
+                featureProperty.LabelText = feature.Key;
+                featureProperty.SetFlags(featureProperty.Flags | PropertyEntryType.LabelEditable);
+                res.Add(featureProperty);
+            }
+            return res;
+        }
+
+        public Dictionary<string, HashSet<Face>> GetFeatures()
+        {
+            Dictionary<string, HashSet<Face>> features = new Dictionary<string, HashSet<Face>>();
+            foreach (Face face in Faces)
+            {
+                HashSet<string> featureNames = face.UserData["CADability.Feature"] as HashSet<string>;
+                if (featureNames != null)
+                {
+                    foreach (string featureName in featureNames)
+                    {
+                        if (!features.TryGetValue(featureName, out HashSet<Face> faces))
+                        {
+                            faces = new HashSet<Face>();
+                            features[featureName] = faces;
+                        }
+                        faces.Add(face);
+                    }
+                }
+            }
+            return features;
+        }
+        public void AddFeature(string name, IEnumerable<Face> faces)
+        {
+            foreach (Face face in faces)
+            {
+                HashSet<string> featureNames = face.UserData["CADability.Feature"] as HashSet<string>;
+                if (featureNames == null)
+                {
+                    face.UserData["CADability.Feature"] = new SerializableHashSetString(new string[] { name });
+                }
+                else
+                {
+                    featureNames.Add(name);
+                }
+            }
+        }
+        public void RemoveFeature(string name)
+        {
+            foreach (Face face in faces)
+            {
+                HashSet<string> featureNames = face.UserData["CADability.Feature"] as HashSet<string>;
+                if (featureNames != null)
+                {
+                    featureNames.Remove(name);
+                }
+            }
+        }
+        public string GetNewFeatureName()
+        {
+            int maxNameindex = 0;
+            Dictionary<string, HashSet<Face>> features = GetFeatures();
+            string nn = StringTable.GetString("Solid.NewFeatureName");
+            foreach (string name in features.Keys)
+            {
+                if (name.StartsWith(nn))
+                {
+                    string nni = name.Substring(nn.Length);
+                    if (int.TryParse(nni, out int index))
+                    {
+                        maxNameindex = Math.Max(maxNameindex,index);
+                    }
+                }
+            }
+            return nn + (maxNameindex + 1).ToString();
+        }
         internal double GetGauge(Face startHere, out HashSet<Face> frontSide, out HashSet<Face> backSide)
         {
             double thickness = double.MaxValue;
@@ -700,7 +785,7 @@ namespace CADability.GeoObject
                     GeoPoint pFrom = distanceFrom.Surface.PointAt(uv1);
                     GeoPoint pTo = face.Surface.PointAt(uv2);
                     double dist = pFrom | pTo;
-                    if (dist>Precision.eps)
+                    if (dist > Precision.eps)
                     {
                         distanceTo.Add(face);
                         distance.Add(dist);
@@ -980,11 +1065,11 @@ namespace CADability.GeoObject
         public bool SameGeometry(Shell other)
         {
             if (Faces.Length != other.Faces.Length) return false;
-            if (Vertices.Length!=other.Vertices.Length) return false;
+            if (Vertices.Length != other.Vertices.Length) return false;
             if (edges.Length != other.Edges.Length) return false;
             // now remains the hard work, which has still to be implemented
             double precision = this.GetExtent(0.0).Size * 1e-3;
-            if (Math.Abs(Volume(precision)-other.Volume(precision))>precision) return false; // this is the lazy version. We would have to at least fit all vertices
+            if (Math.Abs(Volume(precision) - other.Volume(precision)) > precision) return false; // this is the lazy version. We would have to at least fit all vertices
             return true;
         }
 
@@ -6107,6 +6192,12 @@ namespace CADability.GeoObject
             }
             return edges;
         }
+        private static List<Edge> FindCommonSurfaceLoop(Edge startHere, Face toExclude)
+        {
+            Vertex v = startHere.Vertex1;
+            // to continue, work in progress
+            return null;
+        }
         private static Face CommonFace(IEnumerable<Edge> edges, bool acceptSameGeometry)
         {
             Face face = null;
@@ -6118,14 +6209,14 @@ namespace CADability.GeoObject
             else if (edge1.PrimaryFace == edge2.SecondaryFace) face = edge1.PrimaryFace;
             else if (edge1.SecondaryFace == edge2.PrimaryFace) face = edge1.SecondaryFace;
             else if (edge1.SecondaryFace == edge2.SecondaryFace) face = edge1.SecondaryFace;
-            if (face==null && acceptSameGeometry)
+            if (face == null && acceptSameGeometry)
             {
                 if (edge1.PrimaryFace.SameSurface(edge2.PrimaryFace)) face = edge1.PrimaryFace;
                 else if (edge1.PrimaryFace.SameSurface(edge2.SecondaryFace)) face = edge1.PrimaryFace;
                 else if (edge1.SecondaryFace.SameSurface(edge2.PrimaryFace)) face = edge1.SecondaryFace;
                 else if (edge1.SecondaryFace.SameSurface(edge2.SecondaryFace)) face = edge1.SecondaryFace;
             }
-            if (face!=null)
+            if (face != null)
             {
                 foreach (Edge edge in edges)
                 {
@@ -6179,7 +6270,7 @@ namespace CADability.GeoObject
                 HashSet<Edge> unconnected = UnconnectedEdges(collection);
                 unconnected.ExceptWith(margin);
                 Face commonFace = CommonFace(unconnected, true);
-                if (commonFace!=null && !collection.Contains(commonFace)) features.Add(new HashSet<Face>(collection));
+                if (commonFace != null && !collection.Contains(commonFace)) features.Add(new HashSet<Face>(collection));
                 HashSet<Face> found = new HashSet<Face>();
                 foreach (Edge edge in unconnected)
                 {

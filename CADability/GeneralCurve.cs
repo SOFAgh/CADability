@@ -22,14 +22,12 @@ namespace CADability.GeoObject
     internal class ShowPropertyGeneralCurve : PropertyEntryImpl
     {
         private GeneralCurve generalCurve;
-        private IFrame frame;
         private IPropertyEntry[] subEntries;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-        public ShowPropertyGeneralCurve(GeneralCurve GeneralCurve, IFrame Frame)
+        public ShowPropertyGeneralCurve(GeneralCurve GeneralCurve, IFrame frame): base(frame)
         {
             this.generalCurve = GeneralCurve;
-            this.frame = Frame;
-            attributeProperties = generalCurve.GetAttributeProperties(frame);
+            attributeProperties = generalCurve.GetAttributeProperties(Frame);
             base.resourceId = "General.Curve";
         }
         #region PropertyEntryImpl Overrides
@@ -46,9 +44,9 @@ namespace CADability.GeoObject
             {
                 if (subEntries == null)
                 {
-                    GeoPointProperty startPointProperty = new GeoPointProperty(this, "StartPoint", "GeneralCurve.StartPoint", frame, false);
+                    GeoPointProperty startPointProperty = new GeoPointProperty(this, "StartPoint", "GeneralCurve.StartPoint", Frame, false);
                     startPointProperty.ReadOnly = true;
-                    GeoPointProperty endPointProperty = new GeoPointProperty(this, "EndPoint", "GeneralCurve.EndPoint", frame, false);
+                    GeoPointProperty endPointProperty = new GeoPointProperty(this, "EndPoint", "GeneralCurve.EndPoint", Frame, false);
                     endPointProperty.ReadOnly = true;
 
                     IPropertyEntry[] mainProps = {

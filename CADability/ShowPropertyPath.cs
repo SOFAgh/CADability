@@ -15,14 +15,12 @@ namespace CADability.UserInterface
     public class ShowPropertyPath : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Path path;
-        private IFrame frame;
         private IPropertyEntry[] subEntries; // abhängig von der Form, also Rechteck, Parallelogramm
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         private DoubleProperty area, length;
-        public ShowPropertyPath(Path path, IFrame frame)
+        public ShowPropertyPath(Path path, IFrame frame): base(frame)
         {
             this.path = path;
-            this.frame = frame;
             base.resourceId = "Path.Object";
             InitSubEntries();
         }
@@ -72,7 +70,7 @@ namespace CADability.UserInterface
             // wenn der Pfad zu viele Eckpunkte hat, gibts Probleme mit der WindowHandles
             for (int i = 0; i <= path.CurveCount; ++i) // mit Endpunkt
             {
-                GeoPointProperty vertex = new GeoPointProperty("Path.Vertex", frame, true);
+                GeoPointProperty vertex = new GeoPointProperty("Path.Vertex", Frame, true);
                 vertex.UserData.Add("Index", i);
                 vertex.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetVertexPoint);
                 vertex.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetVertexPoint);
@@ -86,18 +84,18 @@ namespace CADability.UserInterface
 
                 gp.Add(vertex);
             }
-            area = new DoubleProperty("Path.Area", frame);
+            area = new DoubleProperty("Path.Area", Frame);
             area.ReadOnly = true;
             area.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetArea);
             area.Refresh();
             gp.Add(area);
-            length = new DoubleProperty("Path.Length", frame);
+            length = new DoubleProperty("Path.Length", Frame);
             length.ReadOnly = true;
             length.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetLength);
             length.Refresh();
             gp.Add(length);
             subEntries = (IPropertyEntry[])gp.ToArray(typeof(IPropertyEntry));
-            attributeProperties = path.GetAttributeProperties(frame);
+            attributeProperties = path.GetAttributeProperties(Frame);
         }
 
         void OnVertexStateChanged(IPropertyEntry sender, StateChangedArgs args)
@@ -178,7 +176,7 @@ namespace CADability.UserInterface
         {
             this.subEntries = null;
             InitSubEntries();
-            attributeProperties = path.GetAttributeProperties(frame);
+            attributeProperties = path.GetAttributeProperties(Frame);
             propertyPage.Refresh(this);
         }
         public override void Removed(IPropertyPage propertyPage)
@@ -264,7 +262,7 @@ namespace CADability.UserInterface
         private void ModifyVertexWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(sender as GeoPointProperty, path);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 #region ICommandHandler Members
         virtual public bool OnCommand(string MenuId)
@@ -277,21 +275,21 @@ namespace CADability.UserInterface
                         propertyPage.Refresh(this);
                     return true;
                 case "MenuId.CurveSplit":
-                    frame.SetAction(new ConstrSplitCurve(path));
+                    Frame.SetAction(new ConstrSplitCurve(path));
                     return true;
                 case "MenuId.Approximate":
-                    if (frame.ActiveAction is SelectObjectsAction)
+                    if (Frame.ActiveAction is SelectObjectsAction)
                     {
-                        Curves.Approximate(frame, path);
+                        Curves.Approximate(Frame, path);
                     }
                     return true;
                 case "MenuId.Explode":
-                    if (frame.ActiveAction is SelectObjectsAction)
+                    if (Frame.ActiveAction is SelectObjectsAction)
                     {
-                        using (frame.Project.Undo.UndoFrame)
+                        using (Frame.Project.Undo.UndoFrame)
                         {
                             IGeoObjectOwner addTo = path.Owner;
-                            if (addTo == null) addTo = frame.ActiveView.Model;
+                            if (addTo == null) addTo = Frame.ActiveView.Model;
                             ICurve[] pathCurves = path.Curves;
                             GeoObjectList toSelect = path.Decompose();
                             addTo.Remove(path);
@@ -303,13 +301,13 @@ namespace CADability.UserInterface
                             {
                                 addTo.Add(toSelect[i]);
                             }
-                            SelectObjectsAction soa = frame.ActiveAction as SelectObjectsAction;
+                            SelectObjectsAction soa = Frame.ActiveAction as SelectObjectsAction;
                             soa.SetSelectedObjects(toSelect); // alle Teilobjekte markieren
                         }
                     }
                     return true;
                 case "MenuId.Aequidist":
-                    frame.SetAction(new ConstructAequidist(path));
+                    Frame.SetAction(new ConstructAequidist(path));
                     return true;
                 case "MenuId.Reduce":
                     if (path.GetPlanarState() == PlanarState.Planar)
@@ -326,15 +324,15 @@ namespace CADability.UserInterface
                             ICurve2D[] red = r2d.Reduced;
                             if (red.Length == 1)
                             {
-                                using (frame.Project.Undo.UndoFrame)
+                                using (Frame.Project.Undo.UndoFrame)
                                 {
                                     IGeoObjectOwner addTo = path.Owner;
-                                    if (addTo == null) addTo = frame.ActiveView.Model;
+                                    if (addTo == null) addTo = Frame.ActiveView.Model;
                                     addTo.Remove(path);
                                     Path redpath = red[0].MakeGeoObject(pln) as Path;
                                     if (redpath != null)
                                     {
-                                        SelectObjectsAction soa = frame.ActiveAction as SelectObjectsAction;
+                                        SelectObjectsAction soa = Frame.ActiveAction as SelectObjectsAction;
                                         soa.SetSelectedObjects(new GeoObjectList(redpath));
                                     }
                                 }

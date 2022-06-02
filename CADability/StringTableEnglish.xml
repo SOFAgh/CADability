@@ -7361,5 +7361,7 @@
 		<tip>Distance to another face</tip>
 		<info>Distance to another face</info>
 	</data>
-	
+	<data name="Solid.NewFeatureName">
+		<label>Feature</label>
+	</data>
 </root>

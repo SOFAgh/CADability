@@ -21,7 +21,7 @@ namespace CADability.Attribute
     /// </summary>
     [Serializable()]
     public class ColorList : PropertyEntryImpl, ISerializable,
-        INotifyModification, ICollection, IAttributeList, ICommandHandler, IDeserializationCallback
+        INotifyModification, ICollection, IAttributeList, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
         // die Implementierung als ArrayListe von einem gewissen Typ ist wichtig, um eine
         // (auch nicht-alphabetische) Reihenfolge beizubehalten.
@@ -165,6 +165,7 @@ namespace CADability.Attribute
             }
             (namedColors[Index] as ColorDef).Parent = null;
             namedColors.RemoveAt(Index);
+            this.subItems = null;
             if (DidModifyEvent != null) DidModifyEvent(this, null);
         }
         /// <summary>
@@ -799,6 +800,26 @@ namespace CADability.Attribute
             return false;
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
+
+        public void SerializationDone()
+        {
+            foreach (ColorDef cd in namedColors)
+            {
+                cd.Parent = this;
+            }
+        }
+
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("NamedColors", namedColors);
+            data.AddProperty("Current", current);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            namedColors = data.GetProperty<ArrayList>("NamedColors");
+            current = data.GetProperty<ColorDef>("Current");
+        }
 
         #endregion
 

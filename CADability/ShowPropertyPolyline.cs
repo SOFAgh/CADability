@@ -12,7 +12,6 @@ namespace CADability.UserInterface
     public class ShowPropertyPolyline : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Polyline polyline;
-        private IFrame frame;
         private MultiGeoPointProperty vertexProperty;
         private IPropertyEntry[] subEntries; // abhängig von der Form, also Rechteck, Parallelogramm
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
@@ -71,10 +70,9 @@ namespace CADability.UserInterface
             }
             #endregion
         }
-        public ShowPropertyPolyline(Polyline polyline, IFrame frame)
+        public ShowPropertyPolyline(Polyline polyline, IFrame frame): base(frame)
         {
             this.polyline = polyline;
-            this.frame = frame;
             base.resourceId = "Polyline.Object";
             if (polyline.IsParallelogram) base.resourceId = "Polyline.Parallel";
             if (polyline.IsRectangle) base.resourceId = "Polyline.Rectangle";
@@ -91,28 +89,28 @@ namespace CADability.UserInterface
             if (polyline.IsRectangle)
             {
                 subEntries = new IPropertyEntry[2];
-                locationProperty = new GeoPointProperty("Rectangle.Location", frame, true);
+                locationProperty = new GeoPointProperty("Rectangle.Location", Frame, true);
                 locationProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetLocation);
                 locationProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetLocation);
                 locationProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyLocationWithMouse);
 
-                LengthProperty width = new LengthProperty("Rectangle.Width", frame, true);
+                LengthProperty width = new LengthProperty("Rectangle.Width", Frame, true);
                 width.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnGetWidth);
                 width.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnSetWidth);
                 width.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyWidthWithMouse);
-                widthHotSpot = new ShowPropertyHotSpot(width, frame);
+                widthHotSpot = new ShowPropertyHotSpot(width, Frame);
                 widthHotSpot.Position = polyline.RectangleLocation + 0.5 * polyline.ParallelogramSecondaryDirection + polyline.ParallelogramMainDirection;
                 widthHotSpot.PositionChangedEvent += new CADability.UserInterface.ShowPropertyHotSpot.PositionChangedDelegate(OnWidthPositionChanged);
 
-                LengthProperty height = new LengthProperty("Rectangle.Height", frame, true);
+                LengthProperty height = new LengthProperty("Rectangle.Height", Frame, true);
                 height.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnGetHeight);
                 height.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnSetHeight);
                 height.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyHeightWithMouse);
-                heightHotSpot = new ShowPropertyHotSpot(height, frame);
+                heightHotSpot = new ShowPropertyHotSpot(height, Frame);
                 heightHotSpot.Position = polyline.RectangleLocation + polyline.ParallelogramSecondaryDirection + 0.5 * polyline.ParallelogramMainDirection;
                 heightHotSpot.PositionChangedEvent += new CADability.UserInterface.ShowPropertyHotSpot.PositionChangedDelegate(OnHeightPositionChanged);
 
-                GeoVectorProperty direction = new GeoVectorProperty("Rectangle.Direction", frame, true);
+                GeoVectorProperty direction = new GeoVectorProperty("Rectangle.Direction", Frame, true);
                 direction.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetDirectionX);
                 direction.SetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.SetGeoVectorDelegate(OnSetDirectionX);
                 direction.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyDirectionXWithMouse);
@@ -133,36 +131,36 @@ namespace CADability.UserInterface
                 if (polyline.IsParallelogram)
             {
                 subEntries = new IPropertyEntry[2];
-                locationParallelProperty = new GeoPointProperty("Rectangle.Location", frame, true);
+                locationParallelProperty = new GeoPointProperty("Rectangle.Location", Frame, true);
                 locationParallelProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetParallelLocation);
                 locationParallelProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetParallelLocation);
                 locationParallelProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyLocationWithMouse);
                 /*
-                                LengthProperty widthParallel = new LengthProperty("Rectangle.Width",frame,true);
+                                LengthProperty widthParallel = new LengthProperty("Rectangle.Width",Frame,true);
                                 widthParallel.OnGetLength += new Condor.LengthProperty.GetLengthDelegate(OnGetWidthParallel);
                                 widthParallel.OnSetLength += new Condor.LengthProperty.SetLengthDelegate(OnSetWidthParallel);
                                 widthParallel.ModifyWithMouse += new ModifyWithMouseDelegate(ModifyWidthWithMouse);
-                                widthParallelHotSpot = new ShowPropertyHotSpot(widthParallel,frame);
+                                widthParallelHotSpot = new ShowPropertyHotSpot(widthParallel,Frame);
                                 widthParallelHotSpot.Position = polyline.ParallelogramLocation+0.5*polyline.ParallelogramSecondaryDirection+polyline.ParallelogramMainDirection;
                                 widthParallelHotSpot.PositionChanged += new Condor.ShowPropertyHotSpot.PositionChangedDelegate(OnWidthParallelPositionChanged);
 
-                                LengthProperty heightParallel = new LengthProperty("Rectangle.Height",frame,true);
+                                LengthProperty heightParallel = new LengthProperty("Rectangle.Height",Frame,true);
                                 heightParallel.OnGetLength += new Condor.LengthProperty.GetLengthDelegate(OnGetHeightParallel);
                                 heightParallel.OnSetLength += new Condor.LengthProperty.SetLengthDelegate(OnSetHeightParallel);
                                 heightParallel.ModifyWithMouse += new ModifyWithMouseDelegate(ModifyHeightParallelWithMouse);
-                                heightParallelHotSpot = new ShowPropertyHotSpot(height,frame);
+                                heightParallelHotSpot = new ShowPropertyHotSpot(height,Frame);
                                 heightParallelHotSpot.Position = polyline.ParallelogramLocation+polyline.ParallelogramSecondaryDirection+0.5*polyline.ParallelogramMainDirection;
                                 heightParallelHotSpot.PositionChanged += new Condor.ShowPropertyHotSpot.PositionChangedDelegate(OnHeightPositionChanged);
 
                 */
-                GeoVectorProperty directionXParallel = new GeoVectorProperty("Parallelogram.DirectionX", frame, true);
+                GeoVectorProperty directionXParallel = new GeoVectorProperty("Parallelogram.DirectionX", Frame, true);
                 directionXParallel.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetDirectionXParallel);
                 directionXParallel.SetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.SetGeoVectorDelegate(OnSetDirectionXParallel);
                 directionXParallel.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyDirectionXParallelWithMouse);
                 directionXParallelHotSpot = new GeoVectorHotSpot(directionXParallel);
                 directionXParallelHotSpot.Position = polyline.ParallelogramLocation + polyline.ParallelogramMainDirection;
 
-                GeoVectorProperty directionYParallel = new GeoVectorProperty("Parallelogram.DirectionY", frame, true);
+                GeoVectorProperty directionYParallel = new GeoVectorProperty("Parallelogram.DirectionY", Frame, true);
                 directionYParallel.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetDirectionYParallel);
                 directionYParallel.SetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.SetGeoVectorDelegate(OnSetDirectionYParallel);
                 directionYParallel.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyDirectionXParallelWithMouse);
@@ -187,7 +185,7 @@ namespace CADability.UserInterface
                 subEntries = new IPropertyEntry[1];
                 subEntries[0] = vertexProperty;
             }
-            attributeProperties = polyline.GetAttributeProperties(frame);
+            attributeProperties = polyline.GetAttributeProperties(Frame);
 
         }
 
@@ -195,7 +193,7 @@ namespace CADability.UserInterface
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(polyline.ParallelogramLocation + polyline.ParallelogramSecondaryDirection + polyline.ParallelogramMainDirection, polyline);
             gpa.SetGeoPointEvent += new GeneralGeoPointAction.SetGeoPointDelegate(SetSizeGeoPoint);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         void SetSizeGeoPoint(GeneralGeoPointAction sender, GeoPoint NewValue)
@@ -303,7 +301,7 @@ namespace CADability.UserInterface
         }
         void OnUserDataAdded(string name, object value)
         {
-            attributeProperties = polyline.GetAttributeProperties(frame);
+            attributeProperties = polyline.GetAttributeProperties(Frame);
             propertyPage.Refresh(this);
         }
 
@@ -325,7 +323,7 @@ namespace CADability.UserInterface
             gpa.UserData.Add("Index", index);
             gpa.GeoPointProperty = sender as GeoPointProperty;
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetPoint);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
             return false;
         }
 
@@ -365,7 +363,7 @@ namespace CADability.UserInterface
         private void ModifyLocationWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(sender as GeoPointProperty, polyline);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         private double OnGetWidth(LengthProperty sender)
@@ -397,7 +395,7 @@ namespace CADability.UserInterface
         private void ModifyWidthWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gpa = new GeneralLengthAction(sender as LengthProperty, polyline.RectangleLocation, polyline.ParallelogramSecondaryDirection, polyline);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
         private double OnGetHeight(LengthProperty sender)
         {
@@ -415,7 +413,7 @@ namespace CADability.UserInterface
         private void ModifyHeightWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gpa = new GeneralLengthAction(sender as LengthProperty, polyline.RectangleLocation, polyline.ParallelogramMainDirection, polyline);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
 
@@ -434,7 +432,7 @@ namespace CADability.UserInterface
         private void ModifyDirectionXWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, polyline.RectangleLocation, polyline);
-            frame.SetAction(gva);
+            Frame.SetAction(gva);
         }
 
         private GeoVector OnGetDirectionXParallel(GeoVectorProperty sender)
@@ -458,7 +456,7 @@ namespace CADability.UserInterface
         private void ModifyDirectionXParallelWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, polyline.ParallelogramLocation, polyline);
-            frame.SetAction(gva);
+            Frame.SetAction(gva);
         }
 
         private GeoVector OnGetDirectionYParallel(GeoVectorProperty sender)
@@ -479,7 +477,7 @@ namespace CADability.UserInterface
         private void ModifyDirectionYParallelWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, polyline.ParallelogramLocation, polyline);
-            frame.SetAction(gva);
+            Frame.SetAction(gva);
         }
 
 
@@ -618,34 +616,34 @@ namespace CADability.UserInterface
                     polyline.Reverse();
                     return true;
                 case "MenuId.CurveSplit":
-                    frame.SetAction(new ConstrSplitCurve(polyline));
+                    Frame.SetAction(new ConstrSplitCurve(polyline));
                     return true;
                 case "MenuId.Explode":
-                    if (frame.ActiveAction is SelectObjectsAction)
+                    if (Frame.ActiveAction is SelectObjectsAction)
                     {
-                        using (frame.Project.Undo.UndoFrame)
+                        using (Frame.Project.Undo.UndoFrame)
                         {
                             IGeoObjectOwner addTo = polyline.Owner;
-                            if (addTo == null) addTo = frame.ActiveView.Model;
+                            if (addTo == null) addTo = Frame.ActiveView.Model;
                             GeoObjectList toSelect = polyline.Decompose();
                             addTo.Remove(polyline);
                             for (int i = 0; i < toSelect.Count; ++i)
                             {
                                 addTo.Add(toSelect[i]);
                             }
-                            SelectObjectsAction soa = frame.ActiveAction as SelectObjectsAction;
+                            SelectObjectsAction soa = Frame.ActiveAction as SelectObjectsAction;
                             soa.SetSelectedObjects(toSelect); // alle Teilobjekte markieren
                         }
                     }
                     return true;
                 case "MenuId.Aequidist":
-                    frame.SetAction(new ConstructAequidist(polyline));
+                    Frame.SetAction(new ConstructAequidist(polyline));
                     return true;
                 case "MenuId.Path.Vertex.StartWithMe":
                     {
                         if (polyline.IsClosed)
                         {
-                            GeoPointProperty gpp = frame.ContextMenuSource as GeoPointProperty;
+                            GeoPointProperty gpp = Frame.ContextMenuSource as GeoPointProperty;
                             if (gpp != null)
                             {
                                 if (gpp.UserData.ContainsData("Index"))
@@ -669,7 +667,7 @@ namespace CADability.UserInterface
                     return true;
                 //				case "MenuId.Polyline.ToPath":
                 case "MenuId.Explode":
-                    CommandState.Enabled = (frame.ActiveAction is SelectObjectsAction);
+                    CommandState.Enabled = (Frame.ActiveAction is SelectObjectsAction);
                     return true;
                 case "MenuId.Path.Vertex.StartWithMe": // kommt nicht dran
                     CommandState.Enabled = polyline.IsClosed;

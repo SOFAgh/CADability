@@ -12,7 +12,6 @@ namespace CADability.UserInterface
     public class ShowPropertyBSpline : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private BSpline bSpline;
-        private IFrame frame;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         private IPropertyEntry[] subEntries;
         private MultiGeoPointProperty polesProperty;
@@ -116,11 +115,9 @@ namespace CADability.UserInterface
 
             #endregion
         }
-        public ShowPropertyBSpline(BSpline bSpline, IFrame frame)
+        public ShowPropertyBSpline(BSpline bSpline, IFrame frame): base(frame)
         {
             this.bSpline = bSpline;
-            this.frame = frame;
-            base.Frame = frame;
 
             InitSubEntries();
             base.resourceId = "BSpline.Object";
@@ -167,7 +164,7 @@ namespace CADability.UserInterface
             closedProperty.GetBooleanEvent += new CADability.UserInterface.BooleanProperty.GetBooleanDelegate(OnGetClosed);
             closedProperty.SetBooleanEvent += new CADability.UserInterface.BooleanProperty.SetBooleanDelegate(OnSetClosed);
             closedProperty.BooleanValue = bSpline.IsClosed;
-            attributeProperties = bSpline.GetAttributeProperties(frame);
+            attributeProperties = bSpline.GetAttributeProperties(Frame);
         }
         #region PropertyEntryImpl Overrides
 
@@ -212,7 +209,7 @@ namespace CADability.UserInterface
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
-            attributeProperties = bSpline.GetAttributeProperties(frame);
+            attributeProperties = bSpline.GetAttributeProperties(Frame);
             propertyPage.Refresh(this);
         }
         public override void Removed(IPropertyPage propertyPage)
@@ -290,7 +287,7 @@ namespace CADability.UserInterface
             gpa.UserData.Add("Index", index);
             gpa.GeoPointProperty = sender as GeoPointProperty;
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetPole);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
             return false;
         }
         private bool OnModifyThroughPointsWithMouse(IPropertyEntry sender, int index)
@@ -300,7 +297,7 @@ namespace CADability.UserInterface
             gpa.UserData.Add("Index", index);
             gpa.GeoPointProperty = sender as GeoPointProperty;
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetThroughPoint);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
             return false;
         }
 
@@ -444,12 +441,12 @@ namespace CADability.UserInterface
                     //if (throughPointsProperty!=null) throughPointsProperty.ShowOpen(false);
                     return true;
                 case "MenuId.CurveSplit":
-                    frame.SetAction(new ConstrSplitCurve(bSpline));
+                    Frame.SetAction(new ConstrSplitCurve(bSpline));
                     return true;
                 case "MenuId.Approximate":
-                    if (frame.ActiveAction is SelectObjectsAction)
+                    if (Frame.ActiveAction is SelectObjectsAction)
                     {
-                        Curves.Approximate(frame, bSpline);
+                        Curves.Approximate(Frame, bSpline);
                     }
                     return true;
             }
@@ -464,7 +461,7 @@ namespace CADability.UserInterface
                     CommandState.Enabled = true; // naja isses ja immer
                     return true;
                 case "MenuId.Approximate":
-                    CommandState.Enabled = (frame.ActiveAction is SelectObjectsAction);
+                    CommandState.Enabled = (Frame.ActiveAction is SelectObjectsAction);
                     return true;
             }
             return false;

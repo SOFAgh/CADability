@@ -3589,7 +3589,7 @@ namespace CADability.Actions
                 SetBooleanEvent(val);
                 Value = val;
                 constructAction.RefreshDependantProperties();
-                BooleanChanged(this, val);                
+                BooleanChanged(this, val);
             }
 
             /// <summary>
@@ -3829,7 +3829,7 @@ namespace CADability.Actions
                 if (ReadOnly) return;
                 SetChoiceEvent(val);
                 Choice = val;
-                constructAction.RefreshDependantProperties();                
+                constructAction.RefreshDependantProperties();
             }
 
             /// <summary>
@@ -4927,7 +4927,7 @@ namespace CADability.Actions
                 {
                     SnapPointFinder.DidSnapModes DidSnap;
                     GeoPoint p = constructAction.SnapPoint(e, vw, out DidSnap);
-                    if (DidSnap!=SnapPointFinder.DidSnapModes.DidNotSnap)
+                    if (DidSnap != SnapPointFinder.DidSnapModes.DidNotSnap)
                     {
                         GeoObject.Point pnt = GeoObject.Point.Construct();
                         pnt.Location = p;
@@ -6665,7 +6665,7 @@ namespace CADability.Actions
         private void SetCurrentInputIndex(int Index, bool ActivateMouse)
         {
             // diese Abfrage ist wichtig, sonst gibt es eine Endlosschleife
-            if (currentInputIndex == Index) return;            
+            if (currentInputIndex == Index) return;
             currentInputIndex = Index;
             for (int i = 0; i < InputDefinitions.Length; ++i)
             {
@@ -7176,20 +7176,20 @@ namespace CADability.Actions
                     StateChangedEvent(this, new StateChangedArgs(StateChangedArgs.State.CollapseSubEntries));
             }
         }
-		public bool HideButtons { get; set; } = false;
-		PropertyEntryType IPropertyEntry.Flags
-		{
-			get
-			{
-				PropertyEntryType flags = PropertyEntryType.Selectable | PropertyEntryType.HasSubEntries;
-				if(!HideButtons)
-				{
-					flags |= PropertyEntryType.OKButton | PropertyEntryType.CancelButton;
-				}
+        public bool HideButtons { get; set; } = false;
+        PropertyEntryType IPropertyEntry.Flags
+        {
+            get
+            {
+                PropertyEntryType flags = PropertyEntryType.Selectable | PropertyEntryType.HasSubEntries;
+                if (!HideButtons)
+                {
+                    flags |= PropertyEntryType.OKButton | PropertyEntryType.CancelButton;
+                }
 
-				return flags;
-			}
-		}
+                return flags;
+            }
+        }
         bool IPropertyEntry.ReadOnly { get; set; }
         string IPropertyEntry.Label => StringTable.GetString(TitleId + ".Label");
         string IPropertyEntry.Value => null;
@@ -7283,6 +7283,18 @@ namespace CADability.Actions
         {
             // nothing to do
         }
+
+        IPropertyEntry IPropertyEntry.FindSubItem(string helpResourceID)
+        {
+            if ((this as IPropertyEntry).ResourceId == helpResourceID) return this;
+            foreach (IPropertyEntry propertyEntry in SubProperties)
+            {
+                IPropertyEntry found = propertyEntry.FindSubItem(helpResourceID);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
         bool IPropertyEntry.DeferUpdate
         {
             get

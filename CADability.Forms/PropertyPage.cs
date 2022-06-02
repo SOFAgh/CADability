@@ -619,7 +619,11 @@ namespace CADability.Forms
             for (int i = 0; i < entries.Length; i++)
             {
                 entries[i].Index = i;
-                if (!oldEntries.Contains(entries[i])) entries[i].Added(this);
+                if (!oldEntries.Contains(entries[i]))
+                {
+                    entries[i].Added(this);
+                    entries[i].Parent = this; // the propertypage should be responsible that all entries have the correct parent. No other code reqired.
+                }
             }
             int totalHeight = entries.Length * lineHeight;
             AutoScrollMinSize = new Size(0, totalHeight);
@@ -821,13 +825,25 @@ namespace CADability.Forms
                 if (ind >= 0) VerticalScroll.Value = ind * lineHeight; // not testes yet
             }
         }
-        public IPropertyEntry FindFromHelpLink(string helpResourceID)
+        private IPropertyEntry Search(string helpResourceID)
         {
-            //System.Diagnostics.Trace.WriteLine("Looking for: " + helpResourceID);
+            for (int i = 0; i < rootProperties.Count; i++)
+            {
+                IPropertyEntry found = rootProperties[i].FindSubItem(helpResourceID);
+                if (found != null) return found;
+            }
+            return null;
+        }
+        public IPropertyEntry FindFromHelpLink(string helpResourceID, bool searchTreeAndOpen)
+        {
             for (int i = 0; i < entries.Length; i++)
             {
-                System.Diagnostics.Trace.WriteLine("HelpLink: " + entries[i].ResourceId);
-                if (entries[i].ResourceId == helpResourceID) return entries[i];
+                if (entries[i].ResourceId == helpResourceID || (string.IsNullOrEmpty(entries[i].ResourceId) && entries[i].Label == helpResourceID)) return entries[i];
+            }
+            if (searchTreeAndOpen)
+            {
+                IPropertyEntry found = Search(helpResourceID);
+                if (found!=null) return found;
             }
             return null;
         }

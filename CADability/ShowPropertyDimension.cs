@@ -19,7 +19,6 @@ namespace CADability.UserInterface
     internal class ShowPropertyDimension : PropertyEntryImpl, IDisplayHotSpots, IIndexedGeoPoint, ICommandHandler, IGeoObjectShowProperty
     {
         private Dimension dimension; // diese wird dargestellt
-        private IFrame frame; // Frame für diverse Zwecke
         private MultiGeoPointProperty points; // die Punkte der Bemaßung
         private GeoPointProperty dimLineRef; // der DimLineRef
         private GeoVectorProperty direction; // dimLineDirection
@@ -40,11 +39,10 @@ namespace CADability.UserInterface
         private IPropertyEntry[] subProperties;
         private bool ignoreChange;
 
-        public ShowPropertyDimension(Dimension dimension, IFrame frame)
+        public ShowPropertyDimension(Dimension dimension, IFrame frame): base(frame)
         {
             dimension.SortPoints();
             this.dimension = dimension;
-            this.frame = frame;
             switch (dimension.DimType)
             {
                 case Dimension.EDimType.DimPoints: base.resourceId = "Dimension.DimPoints"; break;
@@ -57,7 +55,7 @@ namespace CADability.UserInterface
 
             Init();
 
-            SelectObjectsAction selAct = frame.ActiveAction as SelectObjectsAction;
+            SelectObjectsAction selAct = Frame.ActiveAction as SelectObjectsAction;
             if (selAct != null)
             {
                 selAct.ClickOnSelectedObjectEvent += new CADability.Actions.SelectObjectsAction.ClickOnSelectedObjectDelegate(OnClickOnSelectedObject);
@@ -77,13 +75,13 @@ namespace CADability.UserInterface
                 points.ModifyWithMouseEvent += new CADability.UserInterface.MultiGeoPointProperty.ModifyWithMouseIndexDelegate(OnModifyPointWithMouse);
                 points.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnPointsStateChanged);
                 points.GeoPointSelectionChangedEvent += new CADability.UserInterface.GeoPointProperty.SelectionChangedDelegate(OnPointsSelectionChanged);
-                direction = new GeoVectorProperty("Dimension.Direction", frame, true);
+                direction = new GeoVectorProperty("Dimension.Direction", Frame, true);
                 direction.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetDirection);
                 direction.SetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.SetGeoVectorDelegate(OnSetDirection);
             }
             if (dimension.DimType == Dimension.EDimType.DimRadius)
             {
-                radiusProperty = new DoubleProperty("Dimension.Radius", frame);
+                radiusProperty = new DoubleProperty("Dimension.Radius", Frame);
                 radiusProperty.SetDoubleEvent += new CADability.UserInterface.DoubleProperty.SetDoubleDelegate(OnSetRadius);
                 radiusProperty.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetRadius);
                 radiusProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyRadiusWithMouse);
@@ -91,7 +89,7 @@ namespace CADability.UserInterface
             }
             if (dimension.DimType == Dimension.EDimType.DimDiameter)
             {
-                radiusProperty = new DoubleProperty("Dimension.Diameter", frame);
+                radiusProperty = new DoubleProperty("Dimension.Diameter", Frame);
                 radiusProperty.SetDoubleEvent += new CADability.UserInterface.DoubleProperty.SetDoubleDelegate(OnSetRadius);
                 radiusProperty.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetRadius);
                 radiusProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyRadiusWithMouse);
@@ -102,20 +100,20 @@ namespace CADability.UserInterface
                 dimension.DimType == Dimension.EDimType.DimLocation ||
                 dimension.DimType == Dimension.EDimType.DimAngle)
             {   // haben alle einen Mittelpunkt als Punkt 0
-                centerProperty = new GeoPointProperty("Dimension.Center", frame, true);
+                centerProperty = new GeoPointProperty("Dimension.Center", Frame, true);
                 centerProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetCenter);
                 centerProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetCenter);
                 centerProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyCenterWithMouse);
             }
             if (dimension.DimType == Dimension.EDimType.DimAngle)
             {   // start- und Endwinkel
-                startAngle = new GeoVectorProperty("Dimension.Startangle", frame, true);
+                startAngle = new GeoVectorProperty("Dimension.Startangle", Frame, true);
                 startAngle.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetStartAngle);
                 startAngle.SetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.SetGeoVectorDelegate(OnSetStartAngle);
                 startAngle.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyStartAngleWithMouse);
                 startAngle.SetHotspotPosition(dimension.GetPoint(1));
 
-                endAngle = new GeoVectorProperty("Dimension.Endangle", frame, true);
+                endAngle = new GeoVectorProperty("Dimension.Endangle", Frame, true);
                 endAngle.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetEndAngle);
                 endAngle.SetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.SetGeoVectorDelegate(OnSetEndAngle);
                 endAngle.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyEndAngleWithMouse);
@@ -123,7 +121,7 @@ namespace CADability.UserInterface
                 startAngleHotSpot = new GeoVectorHotSpot(startAngle);
                 endAngleHotSpot = new GeoVectorHotSpot(endAngle);
             }
-            dimLineRef = new GeoPointProperty("Dimension.DimLineRef", frame, true);
+            dimLineRef = new GeoPointProperty("Dimension.DimLineRef", Frame, true);
             dimLineRef.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetDimLineRef);
             dimLineRef.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetDimLineRef);
             dimLineRef.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyDimLineRef);
@@ -145,7 +143,7 @@ namespace CADability.UserInterface
             postfixAlt = new StringProperty[numprop];
             for (int i = 0; i < numprop; ++i)
             {
-                textPos[i] = new DoubleProperty("Dimension.TextPos", frame);
+                textPos[i] = new DoubleProperty("Dimension.TextPos", Frame);
                 textPos[i].UserData.Add("Index", i);
                 textPos[i].GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetTextPos);
                 textPos[i].SetDoubleEvent += new CADability.UserInterface.DoubleProperty.SetDoubleDelegate(OnSetTextPos);
@@ -154,7 +152,7 @@ namespace CADability.UserInterface
                 textPos[i].PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
 
                 textPosHotSpot[i] = new DoubleHotSpot(textPos[i]);
-                textPosHotSpot[i].Position = dimension.GetTextPosCoordinate(i, frame.ActiveView.Projection);
+                textPosHotSpot[i].Position = dimension.GetTextPosCoordinate(i, Frame.ActiveView.Projection);
 
                 dimText[i] = new StringProperty(dimension.GetDimText(i), "Dimension.DimText");
                 dimText[i].UserData.Add("Index", i);
@@ -281,7 +279,7 @@ namespace CADability.UserInterface
                     subProperties[numprop + 7 * i + 5] = postfix[i];
                     subProperties[numprop + 7 * i + 6] = postfixAlt[i];
                 }
-                return PropertyEntryImpl.Concat(subProperties, dimension.GetAttributeProperties(frame));
+                return PropertyEntryImpl.Concat(subProperties, dimension.GetAttributeProperties(Frame));
             }
         }
         public override void Opened(bool IsOpen)
@@ -364,7 +362,7 @@ namespace CADability.UserInterface
             subProperties = null;
             propertyPage.Refresh(this);
             propertyPage.OpenSubEntries(points, true);
-            SelectObjectsAction selAct = frame.ActiveAction as SelectObjectsAction;
+            SelectObjectsAction selAct = Frame.ActiveAction as SelectObjectsAction;
             if (selAct != null)
             {
                 selAct.RemoveSelectedObject(dimension);
@@ -418,7 +416,7 @@ namespace CADability.UserInterface
             gpa.GeoPointProperty = sender as GeoPointProperty;
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetPoint);
             gpa.ActionDoneEvent += new CADability.Actions.GeneralGeoPointAction.ActionDoneDelegate(OnSetPointDone);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
             return false;
         }
 
@@ -546,7 +544,7 @@ namespace CADability.UserInterface
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.DimLineRef, dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         private void OnPointsStateChanged(IPropertyEntry sender, StateChangedArgs args)
@@ -575,17 +573,17 @@ namespace CADability.UserInterface
         private void ModifyTextPosWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             int ind = (int)(sender as DoubleProperty).UserData.GetData("Index");
-            GeoPoint p = dimension.GetTextPosCoordinate(ind, frame.ActiveView.Projection);
+            GeoPoint p = dimension.GetTextPosCoordinate(ind, Frame.ActiveView.Projection);
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(p, dimension);
             gpa.UserData.Add("Index", ind);
             gpa.SetGeoPointEvent += new GeneralGeoPointAction.SetGeoPointDelegate(OnSetTextPos);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         private void OnSetTextPos(GeneralGeoPointAction sender, GeoPoint p)
         {
             int ind = (int)sender.UserData.GetData("Index");
-            dimension.SetTextPosCoordinate(ind, frame.ActiveView.Projection, p);
+            dimension.SetTextPosCoordinate(ind, Frame.ActiveView.Projection, p);
         }
 
         private void DimensionDidChange(IGeoObject Sender, GeoObjectChange Change)
@@ -599,7 +597,7 @@ namespace CADability.UserInterface
                 for (int i = 0; i < textPosHotSpot.Length; ++i)
                 {
                     textPos[i].DoubleChanged();
-                    textPosHotSpot[i].Position = dimension.GetTextPosCoordinate(i, frame.ActiveView.Projection);
+                    textPosHotSpot[i].Position = dimension.GetTextPosCoordinate(i, Frame.ActiveView.Projection);
                     HotspotChangedEvent(textPosHotSpot[i], HotspotChangeMode.Moved);
                 }
                 if (startAngle != null)
@@ -672,7 +670,7 @@ namespace CADability.UserInterface
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(0), dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetRadiusPoint);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         private GeoPoint OnGetCenter(GeoPointProperty sender)
@@ -694,7 +692,7 @@ namespace CADability.UserInterface
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(0), dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetCenterPoint);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         private GeoVector OnGetStartAngle(GeoVectorProperty sender)
@@ -717,7 +715,7 @@ namespace CADability.UserInterface
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(1), dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetStartAnglePoint);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         private void OnSetStartAnglePoint(GeneralGeoPointAction sender, GeoPoint NewValue)
@@ -745,7 +743,7 @@ namespace CADability.UserInterface
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(dimension.GetPoint(2), dimension);
             gpa.GeoPointProperty = sender as GeoPointProperty;
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetEndAnglePoint);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         private void OnSetEndAnglePoint(GeneralGeoPointAction sender, GeoPoint NewValue)
@@ -800,7 +798,7 @@ namespace CADability.UserInterface
                 // der Texteditor macht noch zu große Probleme hier
                 // er ist in der Dimension auch erst für DimText mit Index 0 implementiert ...
                 //				Text text = dimension.EditText(vw.Projection,0,Dimension.EditingMode.editDimText);
-                //				editor = new TextEditor(text,dimText[0],frame);
+                //				editor = new TextEditor(text,dimText[0],Frame);
                 //				editor.OnFilterMouseMessages(SelectObjectsAction.MouseAction.MouseDown, e,vw,ref handled);
                 //				if (handled)
                 //				{
@@ -829,19 +827,19 @@ namespace CADability.UserInterface
             switch (MenuId)
             {
                 case "MenuId.Explode":
-                    if (frame.ActiveAction is SelectObjectsAction)
+                    if (Frame.ActiveAction is SelectObjectsAction)
                     {
-                        using (frame.Project.Undo.UndoFrame)
+                        using (Frame.Project.Undo.UndoFrame)
                         {
                             IGeoObjectOwner addTo = dimension.Owner;
-                            if (addTo == null) addTo = frame.ActiveView.Model;
+                            if (addTo == null) addTo = Frame.ActiveView.Model;
                             GeoObjectList toSelect = dimension.Decompose();
                             addTo.Remove(dimension);
                             for (int i = 0; i < toSelect.Count; ++i)
                             {
                                 addTo.Add(toSelect[i]);
                             }
-                            SelectObjectsAction soa = frame.ActiveAction as SelectObjectsAction;
+                            SelectObjectsAction soa = Frame.ActiveAction as SelectObjectsAction;
                             soa.SetSelectedObjects(toSelect); // alle Teilobjekte markieren
                         }
                     }

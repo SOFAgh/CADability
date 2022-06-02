@@ -14,7 +14,6 @@ namespace CADability.UserInterface
     public class ShowPropertyCircle : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Ellipse circle;
-        private IFrame frame;
         private GeoPointProperty centerProperty;
         private LengthProperty radiusProperty;
         private LengthProperty diameterProperty;
@@ -30,17 +29,16 @@ namespace CADability.UserInterface
         private IPropertyEntry[] subEntries;
         private IPropertyEntry[] attributeProperties; 
 
-        public ShowPropertyCircle(Ellipse circle, IFrame frame)
+        public ShowPropertyCircle(Ellipse circle, IFrame frame): base(frame)
         {
             this.circle = circle;
-            this.frame = frame;
-            centerProperty = new GeoPointProperty("Circle.Center", frame, true);
+            centerProperty = new GeoPointProperty("Circle.Center", Frame, true);
             centerProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetCenter);
             centerProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetCenter);
             centerProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyCenterWithMouse);
             centerProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
 
-            radiusProperty = new LengthProperty("Circle.Radius", frame, true);
+            radiusProperty = new LengthProperty("Circle.Radius", Frame, true);
             radiusProperty.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnGetRadius);
             radiusProperty.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnSetRadius);
             radiusProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyRadiusWithMouse);
@@ -66,7 +64,7 @@ namespace CADability.UserInterface
                 }
             }
 
-            diameterProperty = new LengthProperty("Circle.Diameter", frame, true);
+            diameterProperty = new LengthProperty("Circle.Diameter", Frame, true);
             diameterProperty.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnGetDiameter);
             diameterProperty.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnSetDiameter);
             diameterProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyRadiusWithMouse);
@@ -74,7 +72,7 @@ namespace CADability.UserInterface
 
             if (circle.IsArc)
             {
-                startAngleProperty = new AngleProperty("Arc.StartAngle", frame, true);
+                startAngleProperty = new AngleProperty("Arc.StartAngle", Frame, true);
                 startAngleProperty.GetAngleEvent += new AngleProperty.GetAngleDelegate(OnGetStartAngle);
                 startAngleProperty.SetAngleEvent += new AngleProperty.SetAngleDelegate(OnSetStartAngle);
                 startAngleProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyStartAngleWithMouse);
@@ -82,7 +80,7 @@ namespace CADability.UserInterface
                 startAngleHotSpot = new AngleHotSpot(startAngleProperty);
                 startAngleHotSpot.Position = circle.StartPoint;
 
-                endAngleProperty = new AngleProperty("Arc.EndAngle", frame, true);
+                endAngleProperty = new AngleProperty("Arc.EndAngle", Frame, true);
                 endAngleProperty.GetAngleEvent += new AngleProperty.GetAngleDelegate(OnGetEndAngle);
                 endAngleProperty.SetAngleEvent += new AngleProperty.SetAngleDelegate(OnSetEndAngle);
                 endAngleProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyEndAngleWithMouse);
@@ -96,11 +94,11 @@ namespace CADability.UserInterface
                 directionProperty.GetBooleanEvent += new CADability.UserInterface.BooleanProperty.GetBooleanDelegate(OnGetDirection);
                 directionProperty.SetBooleanEvent += new CADability.UserInterface.BooleanProperty.SetBooleanDelegate(OnSetDirection);
                 // hat keinen Hotspot
-                startPointProperty = new GeoPointProperty("Arc.StartPoint", frame, false);
+                startPointProperty = new GeoPointProperty("Arc.StartPoint", Frame, false);
                 startPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetStartPoint);
                 startPointProperty.ReadOnly = true;
                 startPointProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
-                endPointProperty = new GeoPointProperty("Arc.EndPoint", frame, false);
+                endPointProperty = new GeoPointProperty("Arc.EndPoint", Frame, false);
                 endPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetEndPoint);
                 endPointProperty.ReadOnly = true;
                 endPointProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
@@ -109,7 +107,7 @@ namespace CADability.UserInterface
             {
                 if (Settings.GlobalSettings.GetBoolValue("CircleShowStartPointProperty", false))
                 {
-                    startAngleProperty = new AngleProperty("Arc.StartAngle", frame, true);
+                    startAngleProperty = new AngleProperty("Arc.StartAngle", Frame, true);
                     startAngleProperty.GetAngleEvent += new AngleProperty.GetAngleDelegate(OnGetStartAngle);
                     startAngleProperty.SetAngleEvent += new AngleProperty.SetAngleDelegate(OnSetStartAngle);
                     startAngleProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyStartAngleWithMouse);
@@ -122,17 +120,17 @@ namespace CADability.UserInterface
                     directionProperty.GetBooleanEvent += new CADability.UserInterface.BooleanProperty.GetBooleanDelegate(OnGetDirection);
                     directionProperty.SetBooleanEvent += new CADability.UserInterface.BooleanProperty.SetBooleanDelegate(OnSetDirection);
                     // hat keinen Hotspot
-                    startPointProperty = new GeoPointProperty("Arc.StartPoint", frame, false);
+                    startPointProperty = new GeoPointProperty("Arc.StartPoint", Frame, false);
                     startPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetStartPoint);
                     startPointProperty.ReadOnly = true;
                     startPointProperty.PropertyEntryChangedStateEvent+= new PropertyEntryChangedStateDelegate(OnStateChanged);
                 }
                 base.resourceId = "Circle.Object";
             }
-            arcLengthProperty = new LengthProperty("Circle.ArcLength", frame, true);
+            arcLengthProperty = new LengthProperty("Circle.ArcLength", Frame, true);
             arcLengthProperty.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnGetArcLength);
             arcLengthProperty.ReadOnly = true;
-            attributeProperties = circle.GetAttributeProperties(frame);
+            attributeProperties = circle.GetAttributeProperties(Frame);
         }
         private void OnGeoObjectDidChange(IGeoObject Sender, GeoObjectChange Change)
         {
@@ -259,7 +257,7 @@ namespace CADability.UserInterface
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
-            attributeProperties = circle.GetAttributeProperties(frame);
+            attributeProperties = circle.GetAttributeProperties(Frame);
             propertyPage.Refresh(this);
         }
 
@@ -308,7 +306,7 @@ namespace CADability.UserInterface
         private void ModifyCenterWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(centerProperty, circle);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
         private double OnGetRadius(LengthProperty sender)
         {
@@ -333,7 +331,7 @@ namespace CADability.UserInterface
         private void ModifyRadiusWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gla = new GeneralLengthAction(radiusProperty, circle.Center, circle);
-            frame.SetAction(gla);
+            Frame.SetAction(gla);
         }
         private Angle OnGetStartAngle()
         {
@@ -346,7 +344,7 @@ namespace CADability.UserInterface
         private void ModifyStartAngleWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralAngleAction gaa = new GeneralAngleAction(startAngleProperty, circle.Plane);
-            frame.SetAction(gaa);
+            Frame.SetAction(gaa);
         }
         private Angle OnGetEndAngle()
         {
@@ -375,7 +373,7 @@ namespace CADability.UserInterface
         private void ModifyEndAngleWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralAngleAction gaa = new GeneralAngleAction(endAngleProperty, circle.Plane);
-            frame.SetAction(gaa);
+            Frame.SetAction(gaa);
         }
         private void OnStateChanged(IPropertyEntry sender, StateChangedArgs args)
         {
@@ -452,16 +450,16 @@ namespace CADability.UserInterface
                     (circle as ICurve).Reverse();
                     return true;
                 case "MenuId.CurveSplit":
-                    frame.SetAction(new ConstrSplitCurve(circle));
+                    Frame.SetAction(new ConstrSplitCurve(circle));
                     return true;
                 case "MenuId.Approximate":
-                    if (frame.ActiveAction is SelectObjectsAction && (frame.GetIntSetting("Approximate.Mode", 0) == 0))
+                    if (Frame.ActiveAction is SelectObjectsAction && (Frame.GetIntSetting("Approximate.Mode", 0) == 0))
                     {
-                        Curves.Approximate(frame, circle);
+                        Curves.Approximate(Frame, circle);
                     }
                     return true;
                 case "MenuId.Aequidist":
-                    frame.SetAction(new ConstructAequidist(circle));
+                    Frame.SetAction(new ConstructAequidist(circle));
                     return true;
             }
             return false;
@@ -477,7 +475,7 @@ namespace CADability.UserInterface
                 case "MenuId.CurveSplit":
                     return true;
                 case "MenuId.Approximate":
-                    CommandState.Enabled = (frame.ActiveAction is SelectObjectsAction) && (frame.GetIntSetting("Approximate.Mode", 0) == 0);
+                    CommandState.Enabled = (Frame.ActiveAction is SelectObjectsAction) && (Frame.GetIntSetting("Approximate.Mode", 0) == 0);
                     return true;
             }
             return false;
