@@ -271,15 +271,13 @@ namespace CADability.GeoObject
 
     internal class ShowPropertyUnscaledIcon : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty
     {
-        private IFrame frame;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         private IPropertyEntry[] subEntries;
         private Icon icon;
-        public ShowPropertyUnscaledIcon(Icon icon, IFrame Frame)
+        public ShowPropertyUnscaledIcon(Icon icon, IFrame frame): base(frame)
         {
             this.icon = icon;
-            frame = Frame;
-            attributeProperties = icon.GetAttributeProperties(frame);
+            attributeProperties = icon.GetAttributeProperties(Frame);
             base.resourceId = "Icon.Object";
         }
         #region IPropertyEntry overrides
@@ -291,7 +289,7 @@ namespace CADability.GeoObject
                 if (subEntries == null)
                 {
                     List<IPropertyEntry> prop = new List<IPropertyEntry>();
-                    GeoPointProperty location = new GeoPointProperty("Icon.Location", frame, true);
+                    GeoPointProperty location = new GeoPointProperty("Icon.Location", Frame, true);
                     location.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetRefPoint);
                     location.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetRefPoint);
                     prop.Add(location);

@@ -16,7 +16,6 @@ namespace CADability.Actions
         private HashSet<Face> forwardFaces; // list of the faces in the forward direction
         private HashSet<Face> backwardFaces; // list of the faces in the backward direction
         private bool validResult;
-        private IFrame frame;
         private LengthInput distanceInput; // input filed of the distance
         private MultipleChoiceInput modeInput; // input field for the mode "forward", backward", "symmetric"
         private GeoObjectInput forwardFacesInput; // input field for more faces to modify in forward direction
@@ -113,7 +112,7 @@ namespace CADability.Actions
         //        if (!fromHere.SecondaryFace.Surface.IsExtruded(originalOffset)) faces1.Add(fromHere.SecondaryFace);
         //    }
         //}
-        public ParametricsDistanceAction(IEnumerable<Face> part1, IEnumerable<Face> part2, GeoPoint point1, GeoPoint point2, IFrame frame)
+        public ParametricsDistanceAction(IEnumerable<Face> part1, IEnumerable<Face> part2, GeoPoint point1, GeoPoint point2, IFrame frame): base()
         {
             //distanceFromHere = fromHere;
             //distanceToHere = toHere;
@@ -135,7 +134,7 @@ namespace CADability.Actions
             switch (MenuId)
             {
                 case "MenuId.Parametrics.DistanceTo":
-                    frame.SetAction(this); // this is the way this action comes to life
+                    Frame.SetAction(this); // this is the way this action comes to life
                     return true;
             }
             return false;

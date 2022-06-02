@@ -316,15 +316,13 @@ namespace CADability.GeoObject
 
     internal class ShowPropertyUnscaledGeoObject : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty
     {
-        private IFrame frame;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         private IPropertyEntry[] subEntries;
         private UnscaledGeoObject unscaledGeoObject;
-        public ShowPropertyUnscaledGeoObject(UnscaledGeoObject unscaledGeoObject, IFrame Frame)
+        public ShowPropertyUnscaledGeoObject(UnscaledGeoObject unscaledGeoObject, IFrame frame): base(frame)
         {
             this.unscaledGeoObject = unscaledGeoObject;
-            frame = Frame;
-            attributeProperties = unscaledGeoObject.GetAttributeProperties(frame);
+            attributeProperties = unscaledGeoObject.GetAttributeProperties(Frame);
             base.resourceId = "UnscaledGeoObject.Object";
         }
         #region IPropertyEntry overrides
@@ -336,11 +334,11 @@ namespace CADability.GeoObject
                 if (subEntries == null)
                 {
                     List<IPropertyEntry> prop = new List<IPropertyEntry>();
-                    GeoPointProperty location = new GeoPointProperty("UnscaledGeoObject.Location", frame, true);
+                    GeoPointProperty location = new GeoPointProperty("UnscaledGeoObject.Location", Frame, true);
                     location.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetRefPoint);
                     location.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetRefPoint);
                     prop.Add(location);
-                    IPropertyEntry spgo = unscaledGeoObject.GeoObject.GetShowProperties(frame);
+                    IPropertyEntry spgo = unscaledGeoObject.GeoObject.GetShowProperties(Frame);
                     prop.Add(spgo);
                     IPropertyEntry[] mainProps = prop.ToArray();
                     subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
