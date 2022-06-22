@@ -13,13 +13,11 @@ namespace CADability.UserInterface
         private Hatch hatch;
         private IPropertyEntry[] subEntries;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-        private IFrame frame;
-        public ShowPropertyHatch(Hatch hatch, IFrame frame)
+        public ShowPropertyHatch(Hatch hatch, IFrame frame): base(frame)
         {
             this.hatch = hatch;
-            this.frame = frame;
             base.resourceId = "Hatch.Object";
-            attributeProperties = hatch.GetAttributeProperties(frame);
+            attributeProperties = hatch.GetAttributeProperties(Frame);
         }
         public IPropertyEntry GetHatchStyleProperty()
         {
@@ -33,7 +31,7 @@ namespace CADability.UserInterface
                 if (subEntries == null)
                 {
                     IPropertyEntry[] mainProps = new IPropertyEntry[1];
-                    DoubleProperty dp = new DoubleProperty("Hatch.Area", frame);
+                    DoubleProperty dp = new DoubleProperty("Hatch.Area", Frame);
                     dp.GetDoubleEvent += new CADability.UserInterface.DoubleProperty.GetDoubleDelegate(OnGetArea);
                     dp.Refresh();
                     mainProps[0] = dp;
@@ -63,7 +61,7 @@ namespace CADability.UserInterface
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
-            attributeProperties = hatch.GetAttributeProperties(frame);
+            attributeProperties = hatch.GetAttributeProperties(Frame);
             propertyPage.Refresh(this);
         }
         public override void Removed(IPropertyPage propertyPage)
@@ -84,19 +82,19 @@ namespace CADability.UserInterface
             switch (MenuId)
             {
                 case "MenuId.Explode":
-                    if (frame.ActiveAction is SelectObjectsAction)
+                    if (Frame.ActiveAction is SelectObjectsAction)
                     {
-                        using (frame.Project.Undo.UndoFrame)
+                        using (Frame.Project.Undo.UndoFrame)
                         {
                             IGeoObjectOwner addTo = hatch.Owner;
-                            if (addTo == null) addTo = frame.ActiveView.Model;
+                            if (addTo == null) addTo = Frame.ActiveView.Model;
                             GeoObjectList toSelect = hatch.Decompose();
                             addTo.Remove(hatch);
                             for (int i = 0; i < toSelect.Count; ++i)
                             {
                                 addTo.Add(toSelect[i]);
                             }
-                            SelectObjectsAction soa = frame.ActiveAction as SelectObjectsAction;
+                            SelectObjectsAction soa = Frame.ActiveAction as SelectObjectsAction;
                             soa.SetSelectedObjects(toSelect); // alle Teilobjekte markieren
                         }
                     }

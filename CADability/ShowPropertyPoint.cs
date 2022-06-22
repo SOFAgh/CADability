@@ -11,23 +11,21 @@ namespace CADability.UserInterface
     public class ShowPropertyPoint : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty, IDisplayHotSpots
     {
         private Point point;
-        private IFrame frame;
         private GeoPointProperty locationProperty;
         private IPropertyEntry[] subEntries;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
 
-        public ShowPropertyPoint(Point point, IFrame frame)
+        public ShowPropertyPoint(Point point, IFrame frame): base(frame)
         {
             this.point = point;
-            this.frame = frame;
-            locationProperty = new GeoPointProperty("Point.Location", frame, true);
+            locationProperty = new GeoPointProperty("Point.Location", Frame, true);
             locationProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetLocation);
             locationProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetLocation);
             locationProperty.GeoPointChanged(); // Initialisierung
             locationProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyLocationWithMouse);
             locationProperty.StateChangedEvent += new StateChangedDelegate(OnStateChanged);
 
-            attributeProperties = point.GetAttributeProperties(frame);
+            attributeProperties = point.GetAttributeProperties(Frame);
 
             resourceId = "Point.Object";
         }
@@ -89,7 +87,7 @@ namespace CADability.UserInterface
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
-            attributeProperties = point.GetAttributeProperties(frame);
+            attributeProperties = point.GetAttributeProperties(Frame);
             propertyPage.Refresh(this);
         }
         public override void Removed(IPropertyPage propertyPage)
@@ -111,7 +109,7 @@ namespace CADability.UserInterface
         private void ModifyLocationWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(locationProperty, point);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
         #region ICommandHandler Members
 

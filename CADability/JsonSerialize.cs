@@ -73,6 +73,12 @@ namespace CADability
     public class JsonSerialize : IJsonWriteData
     {
         Dictionary<string, Assembly> loadedAssemblies = null;
+        public delegate Type ResolveTypeDelegate(string typeName, string assemblyName);
+        /// <summary>
+        /// If a type cannot be resolved (maybe you changed the class name) on deserialization, you can return a type here.
+        /// Return null, if you don't handle this type name (but another event consumer does)
+        /// </summary>
+        public static event ResolveTypeDelegate ResolveType;
         /// <summary>
         /// Force the StreamWriter to write numbers with InvariantInfo
         /// </summary>
@@ -319,6 +325,7 @@ namespace CADability
             object IJsonReadData.GetProperty(string name, Type type)
             {
                 object val = this[name];
+                if (root.typeVersions.TryGetValue(type.FullName,out int tv) && tv==-1) return val; // maybe it was ISerialize in an old version and is now SerializeAsStruct: this would fail
                 if (SerializeAsStruct(type))
                 {
                     ConstructorInfo cie = type.GetConstructor(BindingFlags.CreateInstance | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, new Type[] { typeof(IJsonReadStruct) }, null);
@@ -475,7 +482,6 @@ namespace CADability
 
         public JsonSerialize()
         {
-
         }
         private static object Parse(object val, Type tp)
         {
@@ -905,6 +911,18 @@ namespace CADability
                 if (tp == null)
                 {
                     if (loadedAssemblies.TryGetValue(assemblyName, out Assembly assembly)) tp = assembly.GetType(typeName);
+                }
+                if (tp == null)
+                {
+                    if (ResolveType != null)
+                    {
+                        Delegate[] ds = ResolveType.GetInvocationList();
+                        foreach (Delegate d in ds)
+                        {
+                            tp = (d as ResolveTypeDelegate)(typeName, assemblyName);
+                            if (tp != null) break;
+                        }
+                    }
                 }
                 if (tp == null)
                 {

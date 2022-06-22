@@ -492,7 +492,6 @@ namespace CADability.GeoObject
 
     public class ShowPropertyPicture : PropertyEntryImpl, ICommandHandler, IGeoObjectShowProperty, IDisplayHotSpots
     {
-        private IFrame frame;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
         private IPropertyEntry[] subEntries;
         private Picture picture;
@@ -505,28 +504,27 @@ namespace CADability.GeoObject
         BooleanProperty rectangular;
         private GeoVectorHotSpot dirWidthHotSpot, dirHeightHotSpot; // Hotspot für Richtung
 
-        public ShowPropertyPicture(Picture picture, IFrame Frame)
+        public ShowPropertyPicture(Picture picture, IFrame Frame): base(Frame)
         {
             this.picture = picture;
-            frame = Frame;
-            attributeProperties = picture.GetAttributeProperties(frame);
+            attributeProperties = picture.GetAttributeProperties(Frame);
             base.resourceId = "Picture.Object";
 
-            location = new GeoPointProperty("Picture.Location", frame, true);
+            location = new GeoPointProperty("Picture.Location", Frame, true);
             location.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetRefPoint);
             location.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetRefPoint);
             location.ModifyWithMouseEvent += new ModifyWithMouseDelegate(OnModifyLocationWithMouse);
-            width = new LengthProperty("Picture.Width", frame, true);
+            width = new LengthProperty("Picture.Width", Frame, true);
             width.GetLengthEvent += new LengthProperty.GetLengthDelegate(OnGetWidth);
             width.SetLengthEvent += new LengthProperty.SetLengthDelegate(OnSetWidth);
-            height = new LengthProperty("Picture.Height", frame, true);
+            height = new LengthProperty("Picture.Height", Frame, true);
             height.GetLengthEvent += new LengthProperty.GetLengthDelegate(OnGetHeight);
             height.SetLengthEvent += new LengthProperty.SetLengthDelegate(OnSetHeight);
-            dirWidth = new GeoVectorProperty("Picture.DirWidth", frame, true);
+            dirWidth = new GeoVectorProperty("Picture.DirWidth", Frame, true);
             dirWidth.GetGeoVectorEvent += new GeoVectorProperty.GetGeoVectorDelegate(OnGetDirWidth);
             dirWidth.SetGeoVectorEvent += new GeoVectorProperty.SetGeoVectorDelegate(OnSetDirWidth);
             dirWidth.ModifyWithMouseEvent += new ModifyWithMouseDelegate(OnModifyDirWidthWithMouse);
-            dirHeight = new GeoVectorProperty("Picture.DirHeight", frame, true);
+            dirHeight = new GeoVectorProperty("Picture.DirHeight", Frame, true);
             dirHeight.GetGeoVectorEvent += new GeoVectorProperty.GetGeoVectorDelegate(OnGetDirHeight);
             dirHeight.SetGeoVectorEvent += new GeoVectorProperty.SetGeoVectorDelegate(OnSetDirHeight);
             dirHeight.ModifyWithMouseEvent += new ModifyWithMouseDelegate(OnModifyDirHeightWithMouse);
@@ -567,18 +565,18 @@ namespace CADability.GeoObject
         void OnModifyDirHeightWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, picture.Location, picture);
-            frame.SetAction(gva);
+            Frame.SetAction(gva);
         }
         void OnModifyDirWidthWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, picture.Location, picture);
-            frame.SetAction(gva);
+            Frame.SetAction(gva);
         }
 
         void OnModifyLocationWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(location, picture);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         #region IPropertyEntry overrides

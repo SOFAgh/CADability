@@ -40,7 +40,7 @@ namespace CADability.UserInterface
                 if (propertyPage != null && propertyPage.Frame != null) return propertyPage.Frame;
                 if (Parent != null && Parent is PropertyEntryImpl pei) return pei.Frame;
                 if (Parent != null && Parent is IPropertyPage pp) return pp.Frame;
-                return null;
+                return ActiveFrame.Frame;
             }
             set
             {

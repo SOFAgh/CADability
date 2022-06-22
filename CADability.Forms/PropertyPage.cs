@@ -479,12 +479,14 @@ namespace CADability.Forms
         private void ShowTextBox(int index, Point location, bool showValue)
         {
             if (propertiesExplorer.EntryWithTextBox == entries[index]) return; // is already shown (maybe this is beeing called twice)
+            if (propertiesExplorer.ActivePropertyPage != this) return; // cannot edit an invisible textbox
             entries[index].StartEdit(showValue);
             if (showValue) propertiesExplorer.ShowTextBox(RectangleToScreen(ValueArea(index)), entries[index].Value, entries[index], PointToScreen(location));
             else propertiesExplorer.ShowTextBox(RectangleToScreen(LabelArea(index)), entries[index].Label, entries[index], PointToScreen(location));
         }
         private void ShowDropDown(int index)
         {
+            if (propertiesExplorer.ActivePropertyPage != this) return; // cannot use an invisible listbox
             if (propertiesExplorer.EntryWithListBox == entries[index])
             {
                 // is already shown

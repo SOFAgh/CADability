@@ -279,13 +279,17 @@ namespace CADability
                     isLinear = true;
                     return Plane.XYPlane;
                 }
-                prec = BoxedSurfaceExtension.LineFit(Points, ext.Size * 1e-6, out lpos, out ldir);
-                // prec = GaussNewtonMinimizer.LineFit(Points.ToIArray(), ext.Size * 1e-6, out lpos, out ldir);
-                if (prec < ext.Size * 1e-6)
+                try
                 {
-                    isLinear = true;
-                    return Plane.XYPlane;
+                    prec = BoxedSurfaceExtension.LineFit(Points, ext.Size * 1e-6, out lpos, out ldir);
+                    // prec = GaussNewtonMinimizer.LineFit(Points.ToIArray(), ext.Size * 1e-6, out lpos, out ldir);
+                    if (prec < ext.Size * 1e-6)
+                    {
+                        isLinear = true;
+                        return Plane.XYPlane;
+                    }
                 }
+                catch  { }
                 // there must be a better way than this!
                 double mindist = double.MaxValue;
                 GeoVector dir=GeoVector.NullVector;

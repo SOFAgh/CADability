@@ -11,7 +11,6 @@ namespace CADability.UserInterface
     public class ShowPropertyLine : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Line line; // die dargestellte Linie
-        private IFrame frame; // Frame für diverse Zwecke
         private GeoPointProperty startPointProperty; // Anzeige Startpunkt, gleichzeitig HotSpot
         private GeoPointProperty endPointProperty; // Anzeige Endpunkt, gleichzeitig HotSpot
         private LengthProperty lengthProperty; // Anzeige Länge
@@ -25,23 +24,22 @@ namespace CADability.UserInterface
             // aus irgend einem Grund wird ShowPropertyLine ewig behalten. 
             // Der Grund ist unklar, muss aber dringend noch erforscht werden...
         }
-        public ShowPropertyLine(Line line, IFrame frame)
+        public ShowPropertyLine(Line line, IFrame frame): base(frame)
         {
             this.line = line;
-            this.frame = frame;
 
-            startPointProperty = new GeoPointProperty("Line.StartPoint", frame, true);
+            startPointProperty = new GeoPointProperty("Line.StartPoint", Frame, true);
             startPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetStartPoint);
             startPointProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetStartPoint);
             startPointProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyStartPointWithMouse);
             startPointProperty.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
 
-            endPointProperty = new GeoPointProperty("Line.EndPoint", frame, true);
+            endPointProperty = new GeoPointProperty("Line.EndPoint", Frame, true);
             endPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetEndPoint);
             endPointProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetEndPoint);
             endPointProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyEndPointWithMouse);
             endPointProperty.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
-            lengthProperty = new LengthProperty("Line.Length", frame, true);
+            lengthProperty = new LengthProperty("Line.Length", Frame, true);
             lengthProperty.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnGetLength);
             lengthProperty.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnSetLength);
             lengthProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyLengthWithMouse);
@@ -49,7 +47,7 @@ namespace CADability.UserInterface
             lengthHotSpot = new LengthHotSpot(lengthProperty);
             lengthHotSpot.Position = line.PointAt(2.0 / 3.0);
 
-            directionProperty = new GeoVectorProperty("Line.Direction", frame, false);
+            directionProperty = new GeoVectorProperty("Line.Direction", Frame, false);
             directionProperty.IsNormedVector = true;
             directionProperty.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetDirection);
             directionProperty.SetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.SetGeoVectorDelegate(OnSetDirection);
@@ -58,7 +56,7 @@ namespace CADability.UserInterface
             directionHotSpot = new GeoVectorHotSpot(directionProperty);
             directionHotSpot.Position = line.PointAt(1.0 / 3.0);
 
-            IPropertyEntry[] sp = line.GetAttributeProperties(frame); // change signature of GetAttributeProperties
+            IPropertyEntry[] sp = line.GetAttributeProperties(Frame); // change signature of GetAttributeProperties
             attributeProperties = new IPropertyEntry[sp.Length];
             for (int i = 0; i < sp.Length; i++)
             {
@@ -99,7 +97,7 @@ namespace CADability.UserInterface
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
-            IPropertyEntry[] sp = line.GetAttributeProperties(frame); // change signature of GetAttributeProperties
+            IPropertyEntry[] sp = line.GetAttributeProperties(Frame); // change signature of GetAttributeProperties
             attributeProperties = new IPropertyEntry[sp.Length];
             for (int i = 0; i < sp.Length; i++)
             {
@@ -194,18 +192,18 @@ namespace CADability.UserInterface
         private void ModifyStartPointWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(startPointProperty, line);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
 
         private void ModifyEndPointWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(endPointProperty, line);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
         private void ModifyLengthWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gla = new GeneralLengthAction(lengthProperty, line.StartPoint, line);
-            frame.SetAction(gla);
+            Frame.SetAction(gla);
         }
 
         private void ModifyDirectionWithMouse(IPropertyEntry sender, bool StartModifying)
@@ -213,7 +211,7 @@ namespace CADability.UserInterface
             // (läuft auch über die GeoVectorProperty) ausgelöst. Die GeneralGeoVectorAction arbeitet
             // direkt über die GeoVectorProperty, so dass keine weiteren Events nötig sind.
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(sender as GeoVectorProperty, line.StartPoint, line);
-            frame.SetAction(gva);
+            Frame.SetAction(gva);
         }
 
         // OnGetXxx OnSetXxx dient der Kommunikation mit den IShowProperties und somit auch
@@ -319,7 +317,7 @@ namespace CADability.UserInterface
                     (line as ICurve).Reverse();
                     return true;
                 case "MenuId.CurveSplit":
-                    frame.SetAction(new ConstrSplitCurve(line));
+                    Frame.SetAction(new ConstrSplitCurve(line));
                     return true;
             }
             return false;
