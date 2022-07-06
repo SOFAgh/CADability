@@ -1049,6 +1049,9 @@ namespace CADability
         public bool ToStream(Stream stream, object toSerialize, bool closeStream = true)
         {
             verbose = Settings.GlobalSettings.GetBoolValue("Json.Verbose", false);
+#if DEBUG
+            //verbose = true;
+#endif
             outStream = new FormattingStreamWriter(stream);
             firstEntry = new Stack<bool>();
             //using (new PerformanceTick("Json"))

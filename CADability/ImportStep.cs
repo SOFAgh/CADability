@@ -1379,6 +1379,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     // *shapeRepresentation* muss sich das Objekt merken, denn contextDependentShapeRepresentation(5490)->representationRelationship(5489)->shapeRepresentation(5473)
                     // ist das Einfügen selbst. Das sind die wichtigen roots: shapeDefinitionRepresentation, contextDependentShapeRepresentation, shapeRepresentationRelationship
 #endif
+                    //Settings.GlobalSettings.SetValue("StepImport.Parallel", false);
                     if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", true))
                     {
                         Parallel.For(0, roots[Item.ItemType.shapeDefinitionRepresentation].Count, i =>
@@ -1563,15 +1564,19 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                     }
+                    GeoObjectList rmiList = new GeoObjectList();
                     if (rootMappedItems.Count > 0)
                     {
-                        res.Clear();
                         foreach (Item mi in rootMappedItems)
                         {
                             object l = CreateEntity(mi);
-                            if (l is GeoObjectList) res.AddRange(l as GeoObjectList);
-                            if (l is IGeoObject) res.Add(l as IGeoObject); // must be a Block 
+                            if (l is GeoObjectList) rmiList.AddRange(l as GeoObjectList);
+                            if (l is IGeoObject) rmiList.Add(l as IGeoObject); // must be a Block 
                         }
+                    }
+                    if (rootMappedItems.Count > 0 && rmiList.Count > 0)
+                    {
+                        res = rmiList;
                     }
                     else
                     {
@@ -2334,7 +2339,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             ColorDef cd = null;
                             string nm = item.SubString(0);
-                            List<Item> sublist = item.SubList(1);
+                            List<Item> sublist = item.parameter["styles"].val as List<Item>;
                             for (int i = 0; i < sublist.Count; i++)
                             {
                                 object o = CreateEntity(sublist[i]);
@@ -4379,7 +4384,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 if (definedColors == null) definedColors = new Dictionary<string, ColorDef>();
             }
             lock (definedColors)
-            { 
+            {
                 if (definedColors.TryGetValue(cd.Name, out ColorDef found))
                 {
                     if (found.Color != cd.Color)
@@ -4932,7 +4937,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             int start, length;
             string line;
 #if DEBUG
-            if (index == 22099)
+            if (index == 361)
             { }
 #endif
             if (!tk.NextToken(out line, out start, out length)) return;
