@@ -22,6 +22,7 @@ namespace CADability.Actions
     using CADability.Attribute;
     using Shapes;
     using System.Collections.Generic;
+    using System.Text;
     using System.Threading;
 
     /// <summary>
@@ -6118,9 +6119,9 @@ namespace CADability.Actions
                 }
             }
         }
-        private static Dictionary<Style.EDefaultFor, Style> lastStyle = new Dictionary<Style.EDefaultFor, Style>(); // hiermit gehts weiter...
+        private static Dictionary<Style.EDefaultFor, Dictionary<Type, string>> lastStyle = new Dictionary<Style.EDefaultFor, Dictionary<Type, string>>(); // hiermit gehts weiter...
         internal static void ClearLastStyles()
-        {
+        {   // probably not necessary
             lastStyle.Clear();
         }
         /// <summary>
@@ -6180,8 +6181,54 @@ namespace CADability.Actions
         /// <param name="go">Object to get the style from</param>
         protected virtual void KeepAsLastStyle(IGeoObject go)
         {
-            lastStyle[activeObject.PreferredStyle] = Style.GetFromGeoObject(go);
+            lastStyle[activeObject.PreferredStyle] = AttributeNamesFromGeoObject(go);
         }
+
+        private Dictionary<Type, string> AttributeNamesFromGeoObject(IGeoObject go)
+        {
+            // wird nur verwendet um bei Konstruktionsaktionen den zuletzt verwendeten Stil zu merken
+            // if (go.Style != null && go.Style.Check(go)) return go.Style; // der Stil stimmt
+            // die Abfrage war schlecht: der Stil stimmte, die konkrete Ausführung an dem Objekt war aber anders
+            Dictionary<Type, string> res = new Dictionary<Type, string>();
+            res[typeof(Layer)] = go.Layer.Name;
+            IColorDef icolorDef = go as IColorDef;
+            if (icolorDef != null)
+            {
+                res[typeof(ColorDef)] = icolorDef.ColorDef.Name;
+            }
+            ILineWidth ilineWidth = go as ILineWidth;
+            if (ilineWidth != null)
+            {
+                res[typeof(LineWidth)] = ilineWidth.LineWidth.Name;
+            }
+            ILinePattern ilinePattern = go as ILinePattern;
+            if (ilinePattern != null)
+            {
+                res[typeof(LinePattern)] = ilinePattern.LinePattern.Name;
+            }
+            IHatchStyle ihatchStyle = go as IHatchStyle;
+            if (ihatchStyle != null)
+            {
+                res[typeof(HatchStyle)] = ihatchStyle.HatchStyle.Name;
+            }
+            IDimensionStyle idimensionStyle = go as IDimensionStyle;
+            if (idimensionStyle != null)
+            {
+                res[typeof(DimensionStyle)] = idimensionStyle.DimensionStyle.Name;
+            }
+            return res;
+
+        }
+        private void SetAttribute(IGeoObject go, Dictionary<Type, string> attributeNames)
+        {
+            if (attributeNames.TryGetValue(typeof(Layer), out string name) && go is ILayer layer) layer.Layer = Frame.Project.LayerList.Find(name);
+            if (attributeNames.TryGetValue(typeof(ColorDef), out name) && go is IColorDef colorDef) colorDef.ColorDef = Frame.Project.ColorList.Find(name);
+            if (attributeNames.TryGetValue(typeof(LineWidth), out name) && go is ILineWidth lineWidth) lineWidth.LineWidth = Frame.Project.LineWidthList.Find(name);
+            if (attributeNames.TryGetValue(typeof(LinePattern), out name) && go is ILinePattern linePattern) linePattern.LinePattern = Frame.Project.LinePatternList.Find(name);
+            if (attributeNames.TryGetValue(typeof(HatchStyle), out name) && go is IHatchStyle hatchStyle) hatchStyle.HatchStyle = Frame.Project.HatchStyleList.Find(name);
+            if (attributeNames.TryGetValue(typeof(DimensionStyle), out name) && go is IDimensionStyle dimensionStyle) dimensionStyle.DimensionStyle = Frame.Project.DimensionStyleList.Find(name);
+        }
+
         /// <summary>
         /// Call this method in an override to <see cref="OnSetAction"/> to specify the input
         /// parameters of this action. Objects given as parameters may be any of <see cref="AngleInput"/>,
@@ -6265,7 +6312,6 @@ namespace CADability.Actions
                 }
                 else
                 {
-                    // lastStyle[activeObject.PreferredStyle] = Style.GetFromGeoObject(activeObject);
                     KeepAsLastStyle(activeObject);
                     if (CurrentMouseView == null)
                     {   // kommt vor, wenn die Maus noch nicht über einem Fenster war
@@ -6732,18 +6778,9 @@ namespace CADability.Actions
                 // insbesondere wenn man mit Programmtext den Stil und die Farben setzt kommt man nicht durch
                 if (Settings.GlobalSettings.GetBoolValue("Action.KeepStyle", false))
                 {
-                    if (lastStyle.ContainsKey(activeObject.PreferredStyle))
+                    if (lastStyle.TryGetValue(activeObject.PreferredStyle, out Dictionary<Type,string> attributeNames))
                     {
-                        // wenn der Stil in der Liste ist, dann Stil setzen, sonst nur Inhalt übernehmen.
-                        if (Frame.Project.StyleList.Contains(lastStyle[activeObject.PreferredStyle]))
-                        {
-                            activeObject.Style = lastStyle[activeObject.PreferredStyle];
-                        }
-                        else
-                        {   // mit Apply wird nur der Inhalt des Stils übernommen, aber die Stil Eigenschaft nicht gesetzt
-                            // das ist wichtig, denn beim Einfügen würde sonst dieser Stil in die Liste übernommen
-                            lastStyle[activeObject.PreferredStyle].Apply(activeObject);
-                        }
+                        SetAttribute(activeObject, attributeNames);
                     }
                 }
             }
@@ -6782,6 +6819,7 @@ namespace CADability.Actions
                 }
             }
         }
+
         /// <summary>
         /// Implements <see cref="Action.OnActivate"/>. If you override this method
         /// don't forget to call the base implementation.
