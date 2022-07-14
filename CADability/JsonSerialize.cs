@@ -325,6 +325,7 @@ namespace CADability
             object IJsonReadData.GetProperty(string name, Type type)
             {
                 object val = this[name];
+                if (root.typeVersions.TryGetValue(type.FullName,out int tv) && tv==-1) return val; // maybe it was ISerialize in an old version and is now SerializeAsStruct: this would fail
                 if (SerializeAsStruct(type))
                 {
                     ConstructorInfo cie = type.GetConstructor(BindingFlags.CreateInstance | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, new Type[] { typeof(IJsonReadStruct) }, null);
@@ -1048,6 +1049,9 @@ namespace CADability
         public bool ToStream(Stream stream, object toSerialize, bool closeStream = true)
         {
             verbose = Settings.GlobalSettings.GetBoolValue("Json.Verbose", false);
+#if DEBUG
+            //verbose = true;
+#endif
             outStream = new FormattingStreamWriter(stream);
             firstEntry = new Stack<bool>();
             //using (new PerformanceTick("Json"))

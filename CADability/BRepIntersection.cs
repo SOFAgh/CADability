@@ -5280,7 +5280,7 @@ namespace CADability
             {
                 // Add all edges of face1, which are inside face2
                 // if face2 has an intersection edge identical to this edge, then it is inside face2
-                Set<Edge> insideFace2 = (Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>).Intersection(ie2);
+                Set<Edge> insideFace2 = (new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2))).Intersection(ie2);
                 bool isInside = false, isOpposite = false;
                 foreach (Edge edgi in insideFace2)
                 {
@@ -5306,7 +5306,7 @@ namespace CADability
             foreach (Edge edg in face2.Edges)
             {
                 // Add all edges of face2, which are inside face1
-                Set<Edge> connectingEdges = Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>;
+                Set<Edge> connectingEdges = new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2));
                 Set<Edge> cmn = connectingEdges.Intersection(toUse);
                 if (cmn.Count > 0 && SameEdge(cmn.First(), edg, precision))
                 {
@@ -5408,7 +5408,7 @@ namespace CADability
             {
                 // Add all edges of face1, which are not inside face2
                 // if face2 has an intersection edge identical to this edge, then it is inside face2
-                Set<Edge> insideFace2 = (Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>).Intersection(ie2);
+                Set<Edge> insideFace2 = (new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2))).Intersection(ie2);
                 if (insideFace2.Count == 0)
                 {
                     Edge clone = edg.CloneWithVertices();
@@ -5419,7 +5419,7 @@ namespace CADability
             foreach (Edge edg in face2.Edges)
             {
                 // Add all edges of face2, which are inside face1
-                Set<Edge> connecting = Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>;
+                Set<Edge> connecting = new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2));
                 Set<Edge> insideFace1 = connecting.Intersection(ie1); // can be more than one
                 bool isInside = false;
                 foreach (Edge edgi in insideFace1)
@@ -5471,7 +5471,7 @@ namespace CADability
                     Set<Edge> intersectionEdges = new Set<Edge>();
                     foreach (Edge ie in ie1)
                     {
-                        Set<Edge> onOutline = (Vertex.ConnectingEdges(ie.Vertex1, ie.Vertex2) as Set<Edge>).Intersection(onNewFace);
+                        Set<Edge> onOutline = (new Set<Edge>(Vertex.ConnectingEdges(ie.Vertex1, ie.Vertex2))).Intersection(onNewFace);
                         bool isInside = false;
                         foreach (Edge edg in onOutline)
                         {
@@ -5522,7 +5522,7 @@ namespace CADability
             {
                 // Add all edges of face1, which are not inside face2
                 // if face2 has an intersection edge identical to this edge, then it is inside face2
-                Set<Edge> insideFace2 = (Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>).Intersection(ie2);
+                Set<Edge> insideFace2 = (new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2))).Intersection(ie2);
                 foreach (Edge if2 in insideFace2.Clone())
                 {
                     if (!SameEdge(if2, edg, precision)) insideFace2.Remove(if2);
@@ -5537,7 +5537,7 @@ namespace CADability
             foreach (Edge edg in face2.Edges)
             {
                 // Add all edges of face2, which are inside face1
-                Set<Edge> connecting = Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>;
+                Set<Edge> connecting = new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2));
                 Set<Edge> insideFace1 = connecting.Intersection(ie1); // can be more than one
                 bool isInside = false;
                 foreach (Edge edgi in insideFace1)
