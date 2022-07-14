@@ -322,17 +322,12 @@ namespace CADability.UserInterface
         {
             add
             {
-                this.StateChangedEvent += delegate (IShowProperty sender, StateChangedArgs args)
-                {
-                    value(this, args);
-                };
+                throw new NotImplementedException();
             }
+
             remove
             {
-                this.StateChangedEvent -= delegate (IShowProperty sender, StateChangedArgs args)
-                {
-                    value(this, args);
-                };
+                throw new NotImplementedException();
             }
         }
         #region IShowProperty Members
