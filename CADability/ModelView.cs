@@ -791,17 +791,14 @@ namespace CADability
                 // HighestDisplayPrecision ist nicht interaktiv einstellbar, nur mit Programmcode
                 // Wenn man weiter hineinzoomt, wird keine weitere Displayliste mehr berechnet
                 // Sollte man dokumentieren
-                if (displayPrecision > 0) paintTo3D.Precision = displayPrecision;
+                if (displayPrecision > 0) paintTo3D.Precision = Math.Min(displayPrecision, Math.Max(1.0 / Projection.WorldToDeviceFactor, Model.Extent.MaxSide / precisionFactor));
                 else paintTo3D.Precision = Math.Max(1.0 / Projection.WorldToDeviceFactor, Model.Extent.MaxSide / precisionFactor);
-                //if (!projectedModel.supressAutoRegeneration)
-                //{
-                //    paintTo3D.Precision = Math.Max(1.0 / Projection.WorldToDeviceFactor, Model.Extent.MaxSide / precisionFactor);
-                //}
 
                 try
                 {
                     if (projectedModel.supressAutoRegeneration) (paintTo3D).DontRecalcTriangulation = true;
                     projectedModel.Paint(paintTo3D);
+                    displayPrecision = paintTo3D.Precision; // keep this precision, even when zooming out
                     PaintBackground(paintTo3D);
                     paintTo3D.UseZBuffer(false);
                     PaintBackgroundEvent?.Invoke(e.ClipRectangle, this, paintTo3D);
