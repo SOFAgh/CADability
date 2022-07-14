@@ -2530,7 +2530,7 @@ namespace CADability.GeoObject
                 double de = atEnd / majorRadius;
                 Angle newStartAngle;
                 Angle newEndAngle;
-                if (sweepParameter>0)
+                if (sweepParameter > 0)
                 {
                     newStartAngle = startParameter - ds;
                     newEndAngle = startParameter + sweepParameter + de;
@@ -2944,7 +2944,7 @@ namespace CADability.GeoObject
             m[0, 1] = plane.DirectionY.x;
             m[1, 0] = plane.DirectionX.y;
             m[1, 1] = plane.DirectionY.y;
-            double[] b = new double[] {  p.x - plane.Location.x ,  p.y - plane.Location.y  };
+            double[] b = new double[] { p.x - plane.Location.x, p.y - plane.Location.y };
             Matrix mx = DenseMatrix.OfArray(m);
             Vector s = (Vector)mx.Solve(new DenseVector(b));
             if (s.IsValid())

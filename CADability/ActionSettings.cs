@@ -8,11 +8,15 @@ namespace CADability
     /// 
     /// </summary>
     [Serializable()]
-    internal class ActionSettings : CADability.Settings
+    internal class ActionSettings : CADability.Settings, IJsonSerialize
     {
-        public ActionSettings()
+        public ActionSettings(bool init)
         {
             this.Initialize();
+        }
+        protected ActionSettings()
+        {
+
         }
         internal void Initialize()
         {
@@ -50,5 +54,16 @@ namespace CADability
             : base(info, context)
         {
         }
+
+        public override void GetObjectData(IJsonWriteData data)
+        {
+            base.GetObjectData(data);
+        }
+
+        public override void SetObjectData(IJsonReadData data)
+        {
+            base.SetObjectData(data);
+        }
+
     }
 }

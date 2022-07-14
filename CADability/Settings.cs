@@ -430,7 +430,7 @@ namespace CADability
             }
             if (!GlobalSettings.ContainsSetting("Action"))
             {
-                GlobalSettings.AddSetting("Action", new ActionSettings());
+                GlobalSettings.AddSetting("Action", new ActionSettings(true));
             }
             else
             {
@@ -443,7 +443,7 @@ namespace CADability
             if (!(GlobalSettings.GetValue("Action.PopProperties") is BooleanProperty))
             {	// das soll BoolenProperty sein, war früher anders
                 GlobalSettings.RemoveSetting("Action");
-                GlobalSettings.AddSetting("Action", new ActionSettings());
+                GlobalSettings.AddSetting("Action", new ActionSettings(true));
             }
             Settings colorSettings = null;
             if (!GlobalSettings.ContainsSetting("Colors"))
@@ -1285,7 +1285,7 @@ namespace CADability
             info.AddValue("Name", myName, typeof(string));
             modified = false;
         }
-        public void GetObjectData(IJsonWriteData data)
+        public virtual void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("SortedEntries", sortedEntries);
             data.AddProperty("ResourceId", resourceId);
@@ -1293,14 +1293,14 @@ namespace CADability
             modified = false;
         }
 
-        public void SetObjectData(IJsonReadData data)
+        public virtual void SetObjectData(IJsonReadData data)
         {
             sortedEntries = data.GetProperty<ArrayList>("SortedEntries");
             resourceId = data.GetProperty<string>("ResourceId");
             myName = data.GetProperty<string>("Name");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        public virtual void SerializationDone()
         {
             OnDeserialization();
         }

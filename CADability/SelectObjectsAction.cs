@@ -33,7 +33,7 @@ namespace CADability.Actions
     /// Select.UseFrame
     /// </summary>
     [Serializable]
-    class SelectObjectsSettings : Settings, IDeserializationCallback
+    class SelectObjectsSettings : Settings, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
         public static SelectObjectsSettings GetDefault()
         {	// erzeuge eine Default Version des Objektes
@@ -177,6 +177,21 @@ namespace CADability.Actions
                 FastFeedbackProperty.BooleanValue = false;
                 AddSetting("FastFeedback", FastFeedbackProperty); // soll der Markierrahmen mit den Handles verwendet werden
             }
+        }
+        public override void GetObjectData(IJsonWriteData data)
+        {
+            base.GetObjectData(data);
+        }
+
+        public override void SetObjectData(IJsonReadData data)
+        {
+            base.SetObjectData(data);
+            data.RegisterForSerializationDoneCallback(this);
+        }
+        public override void SerializationDone()
+        {
+            base.SerializationDone();
+            OnDeserialization();
         }
         #endregion
     }

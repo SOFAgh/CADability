@@ -239,7 +239,9 @@ namespace CADability.UserInterface
 
         void IJsonSerializeDone.SerializationDone()
         {
+            bool val = internalValue;
             this.Initialize(this, "BooleanValue", null, null);
+            internalValue = val;
         }
 
         #endregion
