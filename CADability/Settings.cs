@@ -944,6 +944,7 @@ namespace CADability
         {
             object o = GetValue(Name);
             if (o is int) return (int)o;
+            if (o is double) return (int)(double)o;
             if (o is IntegerProperty) return (int)(o as IntegerProperty);
             if (o is MultipleChoiceSetting) return (o as MultipleChoiceSetting).CurrentSelection;
             else return DefaultValue;
