@@ -304,6 +304,7 @@ namespace CADability
             mruFiles = MRUFiles.GetMRUFiles();
             Settings settings = Settings.GlobalSettings; // to initiate load
             Settings.GlobalSettings.SetValue("Experimental.ParallelOcttree", true);
+            snapMode = (SnapPointFinder.SnapModes)Settings.GlobalSettings.GetIntValue("KeepState.SnapMode", 0);
         }
         public FrameImpl(IControlCenter cc, ICanvas canvas) : this()
         {
