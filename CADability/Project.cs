@@ -1647,7 +1647,9 @@ namespace CADability
         private static Project ReadFromJson(FileStream stream)
         {
             JsonSerialize js = new JsonSerialize();
-            return js.FromStream(stream) as Project;
+            Project res = js.FromStream(stream) as Project;
+            AttributeListContainer.UpdateLists(res, true);
+            return res;
         }
         private static Project ReadConvertedFile(string FileName, bool useProgress)
         {
@@ -2662,7 +2664,7 @@ namespace CADability
             // Problem: die OnDeserialization für die Listen müssen vorher aufgerufen werden
             // wie kann man das erzwingen? zunächst mal wird's jetzt einfach vorher aufgerufen, auf die Gefahr hin, dass
             // es zweimal aufgerufen wird.
-            AttributeListContainer.UpdateLists(this, true);
+            // AttributeListContainer.UpdateLists(this, true);
             filterList.AttributeListContainer = this;
 
             undoRedoSystem = new UndoRedoSystem();
