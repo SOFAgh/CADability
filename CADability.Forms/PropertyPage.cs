@@ -31,6 +31,9 @@ namespace CADability.Forms
         private bool dragMiddlePosition = false;  // true, when the user moves the middle position (between label and value) with the pressed mouse button
         private Timer delay;
 		private PropertiesExplorer propertiesExplorer;
+        private Brush _backColorBrush, _foreColorBrush, _indentBrush;
+        private Color _indentColor;
+        private Pen _foreColorPen, _separatorPen;
 
         public PropertyPage(string titleId, int iconId, PropertiesExplorer propExplorer)
         {
@@ -38,6 +41,7 @@ namespace CADability.Forms
             IconId = iconId;
 
             AutoScroll = true;
+            _indentColor = SystemColors.ControlLight;
             //Font = new Font(Font.FontFamily, 20);
             stringFormat = new StringFormat(StringFormat.GenericDefault);
             stringFormat.FormatFlags = StringFormatFlags.NoWrap;
@@ -51,6 +55,67 @@ namespace CADability.Forms
             toolTip = new ToolTip();
             toolTip.InitialDelay = 500;
 			propertiesExplorer = propExplorer;
+        }
+        public Color IndentColor
+		{
+			get { return _indentColor; }
+			set
+			{
+                if (_indentBrush != null)
+                {
+                    _indentBrush.Dispose();
+                    _indentBrush = null;
+                }
+                _indentColor = value;
+			}
+		}
+        private Brush BackColorBrush
+        {
+            get
+            {
+                if (_backColorBrush == null)
+                    _backColorBrush = new SolidBrush(BackColor);
+                return _backColorBrush;
+            }
+        }
+        private Brush ForeColorBrush
+        {
+            get
+            {
+                if (_foreColorBrush == null)
+                    _foreColorBrush = new SolidBrush(ForeColor);
+                return _foreColorBrush;
+            }
+        }
+        private Brush IndentBrush
+        {
+            get
+            {
+                if (_indentBrush == null)
+                    _indentBrush = new SolidBrush(_indentColor);
+                return _indentBrush;
+            }
+        }
+        private Pen ForeColorPen
+        {
+            get
+            {
+                if (_foreColorPen == null)
+                    _foreColorPen = new Pen(ForeColor);
+                return _foreColorPen;
+            }
+        }
+        private Pen SeparatorPen
+        {
+            get
+            {
+                if (_separatorPen == null)
+                {
+                    _separatorPen = new Pen(ForeColor);
+                }
+                return _separatorPen;
+
+            }
         }
         private Rectangle ItemArea(int index)
         {
@@ -91,11 +156,11 @@ namespace CADability.Forms
             bool firstLine = index == 0;
             if (!firstLine) firstLine = entries[index - 1].IndentLevel == 0;
             Rectangle area = new Rectangle(0, index * lineHeight + AutoScrollPosition.Y, ClientSize.Width, lineHeight);
-            graphics.FillRectangle(SystemBrushes.Window, area);
-            graphics.DrawRectangle(SystemPens.ControlLight, area);
+            graphics.FillRectangle(BackColorBrush, area);
+            graphics.DrawRectangle(SeparatorPen, area);
             Rectangle indent = area;
             indent.Width = entries[index].IndentLevel * buttonWidth;
-            graphics.FillRectangle(SystemBrushes.ControlLight, indent);
+            graphics.FillRectangle(IndentBrush, indent);
             left = entries[index].IndentLevel * buttonWidth + buttonWidth + 1; // left side of the label text
             if (entries[index].Flags.HasFlag(PropertyEntryType.HasSubEntries))
             {   // draw a square with a "+" or "-" sign in front of the label
@@ -103,12 +168,12 @@ namespace CADability.Forms
                 int xm = entries[index].IndentLevel * buttonWidth + buttonWidth / 2 + 1;
                 int s2 = square / 2;
                 int s3 = square / 3;
-                graphics.DrawRectangle(SystemPens.ControlText, xm - s2, ym - s2, square, square);
-                graphics.DrawLine(SystemPens.ControlText, xm - s3, ym, xm + s3, ym); // the horizontal "minus" line
-                if (!entries[index].IsOpen) graphics.DrawLine(SystemPens.ControlText, xm, ym - s3, xm, ym + s3); // the vertical "plus" line
+                graphics.DrawRectangle(ForeColorPen, xm - s2, ym - s2, square, square);
+                graphics.DrawLine(ForeColorPen, xm - s3, ym, xm + s3, ym); // the horizontal "minus" line
+                if (!entries[index].IsOpen) graphics.DrawLine(ForeColorPen, xm, ym - s3, xm, ym + s3); // the vertical "plus" line
             }
             bool showValue = (entries[index].Value != null) && !entries[index].Flags.HasFlag(PropertyEntryType.Checkable);
-            if (showValue) graphics.DrawLine(SystemPens.ControlLight, middle, area.Top, middle, area.Bottom); // the vertical divider line
+            if (showValue) graphics.DrawLine(SeparatorPen, middle, area.Top, middle, area.Bottom); // the vertical divider line
             Rectangle labelRect;
             if (showValue) labelRect = new Rectangle(left, area.Top, middle - left, area.Height);
             else labelRect = new Rectangle(left, area.Top, area.Right - left, area.Height);
@@ -125,26 +190,26 @@ namespace CADability.Forms
             {
                 int ym = (labelRect.Top + labelRect.Bottom) / 2;
                 labelRect.Width -= buttonWidth;
-                graphics.DrawLine(SystemPens.ControlLight, labelRect.Left, ym, labelRect.Right, ym); // the horizontal separator line
+                graphics.DrawLine(SeparatorPen, labelRect.Left, ym, labelRect.Right, ym); // the horizontal separator line
                 StringFormat seperatorFormat = stringFormat.Clone() as StringFormat;
                 seperatorFormat.Alignment = StringAlignment.Center;
-                graphics.DrawString(entries[index].Label, Font, SystemBrushes.ControlText, labelRect, seperatorFormat);
+                graphics.DrawString(entries[index].Label, Font, ForeColorBrush, labelRect, seperatorFormat);
             }
             else
             {
                 if (entries[index].Flags.HasFlag(PropertyEntryType.Highlight))
                     graphics.DrawString(entries[index].Label, Font, new SolidBrush(Color.Red), labelRect, stringFormat);
                 else if (entries[index].Flags.HasFlag(PropertyEntryType.Bold))
-                    graphics.DrawString(entries[index].Label, new Font(Font, FontStyle.Bold), SystemBrushes.ControlText, labelRect, stringFormat);
+                    graphics.DrawString(entries[index].Label, new Font(Font, FontStyle.Bold), ForeColorBrush, labelRect, stringFormat);
                 else
-                    graphics.DrawString(entries[index].Label, Font, SystemBrushes.ControlText, labelRect, stringFormat);
+                    graphics.DrawString(entries[index].Label, Font, ForeColorBrush, labelRect, stringFormat);
             }
             if (showValue)
             {
                 int right = area.Right;
                 if (entries[index].Flags.HasFlag(PropertyEntryType.ContextMenu) || entries[index].Flags.HasFlag(PropertyEntryType.DropDown)) right -= buttonWidth;
                 Rectangle valueRect = new Rectangle(middle, area.Top, right - middle, area.Height);
-                DrawString(graphics, entries[index].Value, Font, SystemBrushes.ControlText, valueRect, false);
+                DrawString(graphics, entries[index].Value, Font, ForeColorBrush, valueRect, false);
             }
             if (entries[index].Flags.HasFlag(PropertyEntryType.ContextMenu))
             {   // draw three vertical dots (maybe we could also use the Unicode "⁞" character
@@ -155,7 +220,7 @@ namespace CADability.Forms
                 int xm = (int)(area.Right - buttonWidth / 2.0);
                 for (int i = 0; i < 3; i++)
                 {
-                    graphics.FillRectangle(SystemBrushes.ControlText, xm - d / 2, buttonRect.Top + dy, d, d);
+                    graphics.FillRectangle(Brushes.Black, xm - d / 2, buttonRect.Top + dy, d, d);
                     dy += 2 * d;
                 }
             }
@@ -166,12 +231,12 @@ namespace CADability.Forms
                 //int numLines = (int)(0.25 * buttonWidth);
                 //int xm = (int)(area.Right - buttonWidth / 2.0);
                 //int ym = (int)(area.Top + 0.4 * area.Height);
-                //graphics.DrawLine(SystemPens.ControlText, xm - numLines, ym - 3, xm + numLines, ym - 3); // the horizontal above line
+                //graphics.DrawLine(ForeColorPen, xm - numLines, ym - 3, xm + numLines, ym - 3); // the horizontal above line
                 //for (int i = 0; i <= numLines; i++)
                 //{
                 //    int w2 = numLines - i;
-                //    if (w2 == 0) graphics.FillRectangle(SystemBrushes.ControlText, xm, ym + i, 1, 1); // a single pixel
-                //    else graphics.DrawLine(SystemPens.ControlText, xm - w2, ym + i, xm + w2, ym + i); // the horizontal "minus" line
+                //    if (w2 == 0) graphics.FillRectangle(ForeColorBrush, xm, ym + i, 1, 1); // a single pixel
+                //    else graphics.DrawLine(ForeColorPen, xm - w2, ym + i, xm + w2, ym + i); // the horizontal "minus" line
                 //}
             }
             else if (entries[index].Flags.HasFlag(PropertyEntryType.CancelButton) || entries[index].Flags.HasFlag(PropertyEntryType.OKButton))
@@ -192,7 +257,7 @@ namespace CADability.Forms
                     RectangleF bnds = rgn[0].GetBounds(graphics);
                     SizeF sz = graphics.MeasureString("✖", fontForSymbols);
                     PointF p = new PointF(buttonRect.Left + (buttonRect.Width - bnds.Width) / 2.0f, buttonRect.Top + (buttonRect.Height - bnds.Height) / 2.0f);
-                    graphics.DrawString("✖", fontForSymbols, SystemBrushes.ControlText, p, sf); // ✓✔✗✘✕✖⋮
+                    graphics.DrawString("✖", fontForSymbols, ForeColorBrush, p, sf); // ✓✔✗✘✕✖⋮
                 }
                 if (entries[index].Flags.HasFlag(PropertyEntryType.OKButton))
                 {
@@ -202,7 +267,7 @@ namespace CADability.Forms
                     RectangleF bnds = rgn[0].GetBounds(graphics);
                     SizeF sz = graphics.MeasureString("✔", fontForSymbols);
                     PointF p = new PointF(buttonRect.Left + (buttonRect.Width - bnds.Width) / 2.0f, buttonRect.Top + (buttonRect.Height - bnds.Height) / 2.0f);
-                    graphics.DrawString("✔", fontForSymbols, SystemBrushes.ControlText, p, sf); // ✓✔✗✘✕✖⋮⁞
+                    graphics.DrawString("✔", fontForSymbols, ForeColorBrush, p, sf); // ✓✔✗✘✕✖⋮⁞
                 }
                 graphics.TextRenderingHint = txtrendr;
             }

@@ -47,7 +47,7 @@ namespace CADability.Forms
             tabControl.SelectedIndexChanged += TabControl_SelectedIndexChanged;
             tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl.SizeMode = TabSizeMode.Fixed;
-            tabControl.ItemSize = new Size(27, 21);
+            tabControl.ItemSize = new Size(LogicalToDeviceUnits(27), LogicalToDeviceUnits(21)); //LogicalToDeviceUnits to support HighDpi, otherwise tab will be very small.
             tabControl.DrawItem += tabControl_DrawItem;
             tabControl.ShowToolTips = true;
 
