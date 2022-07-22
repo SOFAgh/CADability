@@ -32,7 +32,7 @@ namespace CADability.Forms
         private Timer delay;
 		private PropertiesExplorer propertiesExplorer;
         private Brush _backColorBrush, _foreColorBrush, _indentBrush;
-        private Color _indentColor;
+        private Color _indentColor, _separatorColor;
         private Pen _foreColorPen, _separatorPen;
 
         public PropertyPage(string titleId, int iconId, PropertiesExplorer propExplorer)
@@ -41,7 +41,9 @@ namespace CADability.Forms
             IconId = iconId;
 
             AutoScroll = true;
+            BackColor = SystemColors.Window;
             _indentColor = SystemColors.ControlLight;
+            _separatorColor = SystemColors.ControlLight;
             //Font = new Font(Font.FontFamily, 20);
             stringFormat = new StringFormat(StringFormat.GenericDefault);
             stringFormat.FormatFlags = StringFormatFlags.NoWrap;
@@ -69,6 +71,19 @@ namespace CADability.Forms
                 _indentColor = value;
 			}
 		}
+        public Color SeparatorColor
+        {
+            get { return _separatorColor; }
+            set
+            {
+                if (_separatorPen != null)
+                {
+                    _separatorPen.Dispose();
+                    _separatorPen = null;
+                }
+                _separatorColor = value;
+            }
+        }
         private Brush BackColorBrush
         {
             get
@@ -111,7 +126,7 @@ namespace CADability.Forms
             {
                 if (_separatorPen == null)
                 {
-                    _separatorPen = new Pen(ForeColor);
+                    _separatorPen = new Pen(_separatorColor);
                 }
                 return _separatorPen;
 
