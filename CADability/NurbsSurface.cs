@@ -1320,12 +1320,13 @@ namespace CADability.GeoObject
                         if (Math.Abs(radii[0] - radii[2]) < precision && Math.Abs(radii[4] - radii[2]) < precision)
                         {   // could be a cylinder
                             GeoVector axis = (centers[4] - centers[0]).Normalized;
-                            double minerror = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cs);
-                            if (minerror < precision) found = cs;
-                            else
-                            {
+                            // GaussNewtonMinimizer.CylinderFit not working with 6.stp
+                            //double minerror = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cs);
+                            //if (minerror < precision) found = cs;
+                            //else
+                            //{
 
-                            }
+                            //}
                         }
                         else
                         {   // could be a cone
