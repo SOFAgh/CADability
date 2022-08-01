@@ -163,12 +163,12 @@ namespace CADability
             localToGlobal = null;
         }
 
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddValues(Location, DirectionX, DirectionY);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
         }
     }

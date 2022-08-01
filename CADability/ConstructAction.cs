@@ -22,6 +22,7 @@ namespace CADability.Actions
     using CADability.Attribute;
     using Shapes;
     using System.Collections.Generic;
+    using System.Text;
     using System.Threading;
 
     /// <summary>
@@ -735,7 +736,7 @@ namespace CADability.Actions
             void SetFixed(bool isFixed);
         }
         /// <summary>
-        /// Common base class for onput objects for the ConstructAction (see <see cref="ConstructAction.SetInput"/>
+        /// Common base class for input objects for the ConstructAction (see <see cref="ConstructAction.SetInput"/>
         /// </summary>
         public abstract class InputObject
         {
@@ -805,13 +806,6 @@ namespace CADability.Actions
             /// Back reference to the ConstructAction this input is used for.
             /// </summary>
             protected ConstructAction constructAction; // Rückverweis
-            public IShowProperty ShowProperty
-            {
-                get
-                {
-                    return null;
-                }
-            }
             #region IInputObject Helper
             /// <summary>
             /// Internal!
@@ -827,15 +821,6 @@ namespace CADability.Actions
             internal protected virtual void Refresh()
             {
                 // TODO:  Add IInputObjectImpl.Refresh implementation
-            }
-            /// <summary>
-            /// Internal!
-            /// </summary>
-            /// <returns>Internal!</returns>
-            internal protected virtual IShowProperty BuildShowProperty()
-            {
-                // TODO:  Add IInputObjectImpl.BuildShowProperty implementation
-                return null;
             }
             /// <summary>
             /// Internal!
@@ -3605,7 +3590,7 @@ namespace CADability.Actions
                 SetBooleanEvent(val);
                 Value = val;
                 constructAction.RefreshDependantProperties();
-                BooleanChanged(this, val);                
+                BooleanChanged(this, val);
             }
 
             /// <summary>
@@ -3845,7 +3830,7 @@ namespace CADability.Actions
                 if (ReadOnly) return;
                 SetChoiceEvent(val);
                 Choice = val;
-                constructAction.RefreshDependantProperties();                
+                constructAction.RefreshDependantProperties();
             }
 
             /// <summary>
@@ -4811,8 +4796,9 @@ namespace CADability.Actions
             /// false: any kind of curves curves are yielded
             /// </summary>
             public bool ModifiableOnly;
-            public bool EdgesOnly;
-            public bool FacesOnly;
+            public bool EdgesOnly = false;
+            public bool FacesOnly = false;
+            public bool Points = false;
             public bool MultipleInput;
             public Point currentMousePoint;
             private IGeoObject[] geoObjects;
@@ -4938,6 +4924,18 @@ namespace CADability.Actions
                 if (EdgesOnly) l.AddRange(constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleEdge));
                 if (FacesOnly) l.AddRange(constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.singleFace));
                 if (!FacesOnly && !EdgesOnly) l = constructAction.Frame.ActiveView.PickObjects(MousePoint, PickMode.normal);
+                if (Points)
+                {
+                    SnapPointFinder.DidSnapModes DidSnap;
+                    GeoPoint p = constructAction.SnapPoint(e, vw, out DidSnap);
+                    if (DidSnap != SnapPointFinder.DidSnapModes.DidNotSnap)
+                    {
+                        GeoObject.Point pnt = GeoObject.Point.Construct();
+                        pnt.Location = p;
+                        pnt.Symbol = PointSymbol.Cross;
+                        l.Add(pnt);
+                    }
+                }
                 ArrayList c = new ArrayList();
                 for (int i = 0; i < l.Count; ++i)
                 {
@@ -5954,6 +5952,7 @@ namespace CADability.Actions
             autoRepeat = false;
             base.ViewType = typeof(IActionInputView); // gilt nur für ModelViews
             // nach dem ersten Input muss auch das Modell festgelegt werden
+            UseFilter = false; // must be explicitely set to true, if you want to show the Filter property in this action
         }
         event PropertyEntryChangedStateDelegate IPropertyEntry.PropertyEntryChangedStateEvent
         {
@@ -6120,9 +6119,9 @@ namespace CADability.Actions
                 }
             }
         }
-        private static Dictionary<Style.EDefaultFor, Style> lastStyle = new Dictionary<Style.EDefaultFor, Style>(); // hiermit gehts weiter...
+        private static Dictionary<Style.EDefaultFor, Dictionary<Type, string>> lastStyle = new Dictionary<Style.EDefaultFor, Dictionary<Type, string>>(); // hiermit gehts weiter...
         internal static void ClearLastStyles()
-        {
+        {   // probably not necessary
             lastStyle.Clear();
         }
         /// <summary>
@@ -6182,8 +6181,54 @@ namespace CADability.Actions
         /// <param name="go">Object to get the style from</param>
         protected virtual void KeepAsLastStyle(IGeoObject go)
         {
-            lastStyle[activeObject.PreferredStyle] = Style.GetFromGeoObject(go);
+            lastStyle[activeObject.PreferredStyle] = AttributeNamesFromGeoObject(go);
         }
+
+        private Dictionary<Type, string> AttributeNamesFromGeoObject(IGeoObject go)
+        {
+            // wird nur verwendet um bei Konstruktionsaktionen den zuletzt verwendeten Stil zu merken
+            // if (go.Style != null && go.Style.Check(go)) return go.Style; // der Stil stimmt
+            // die Abfrage war schlecht: der Stil stimmte, die konkrete Ausführung an dem Objekt war aber anders
+            Dictionary<Type, string> res = new Dictionary<Type, string>();
+            res[typeof(Layer)] = go.Layer.Name;
+            IColorDef icolorDef = go as IColorDef;
+            if (icolorDef != null)
+            {
+                res[typeof(ColorDef)] = icolorDef.ColorDef.Name;
+            }
+            ILineWidth ilineWidth = go as ILineWidth;
+            if (ilineWidth != null)
+            {
+                res[typeof(LineWidth)] = ilineWidth.LineWidth.Name;
+            }
+            ILinePattern ilinePattern = go as ILinePattern;
+            if (ilinePattern != null)
+            {
+                res[typeof(LinePattern)] = ilinePattern.LinePattern.Name;
+            }
+            IHatchStyle ihatchStyle = go as IHatchStyle;
+            if (ihatchStyle != null)
+            {
+                res[typeof(HatchStyle)] = ihatchStyle.HatchStyle.Name;
+            }
+            IDimensionStyle idimensionStyle = go as IDimensionStyle;
+            if (idimensionStyle != null)
+            {
+                res[typeof(DimensionStyle)] = idimensionStyle.DimensionStyle.Name;
+            }
+            return res;
+
+        }
+        private void SetAttribute(IGeoObject go, Dictionary<Type, string> attributeNames)
+        {
+            if (attributeNames.TryGetValue(typeof(Layer), out string name) && go is ILayer layer) layer.Layer = Frame.Project.LayerList.Find(name);
+            if (attributeNames.TryGetValue(typeof(ColorDef), out name) && go is IColorDef colorDef) colorDef.ColorDef = Frame.Project.ColorList.Find(name);
+            if (attributeNames.TryGetValue(typeof(LineWidth), out name) && go is ILineWidth lineWidth) lineWidth.LineWidth = Frame.Project.LineWidthList.Find(name);
+            if (attributeNames.TryGetValue(typeof(LinePattern), out name) && go is ILinePattern linePattern) linePattern.LinePattern = Frame.Project.LinePatternList.Find(name);
+            if (attributeNames.TryGetValue(typeof(HatchStyle), out name) && go is IHatchStyle hatchStyle) hatchStyle.HatchStyle = Frame.Project.HatchStyleList.Find(name);
+            if (attributeNames.TryGetValue(typeof(DimensionStyle), out name) && go is IDimensionStyle dimensionStyle) dimensionStyle.DimensionStyle = Frame.Project.DimensionStyleList.Find(name);
+        }
+
         /// <summary>
         /// Call this method in an override to <see cref="OnSetAction"/> to specify the input
         /// parameters of this action. Objects given as parameters may be any of <see cref="AngleInput"/>,
@@ -6267,7 +6312,6 @@ namespace CADability.Actions
                 }
                 else
                 {
-                    // lastStyle[activeObject.PreferredStyle] = Style.GetFromGeoObject(activeObject);
                     KeepAsLastStyle(activeObject);
                     if (CurrentMouseView == null)
                     {   // kommt vor, wenn die Maus noch nicht über einem Fenster war
@@ -6667,7 +6711,7 @@ namespace CADability.Actions
         private void SetCurrentInputIndex(int Index, bool ActivateMouse)
         {
             // diese Abfrage ist wichtig, sonst gibt es eine Endlosschleife
-            if (currentInputIndex == Index) return;            
+            if (currentInputIndex == Index) return;
             currentInputIndex = Index;
             for (int i = 0; i < InputDefinitions.Length; ++i)
             {
@@ -6706,6 +6750,7 @@ namespace CADability.Actions
                 }
             }
             SetCurrentInputIndex(-1, false);
+            Frame.Project.Undo.ClearContext(); // the clear context call is necessary here to end a continuous change before updates to the model are made
             OnDone();
         }
         private void ShowPropertyStateChanged(IPropertyEntry sender, StateChangedArgs args)
@@ -6733,18 +6778,9 @@ namespace CADability.Actions
                 // insbesondere wenn man mit Programmtext den Stil und die Farben setzt kommt man nicht durch
                 if (Settings.GlobalSettings.GetBoolValue("Action.KeepStyle", false))
                 {
-                    if (lastStyle.ContainsKey(activeObject.PreferredStyle))
+                    if (lastStyle.TryGetValue(activeObject.PreferredStyle, out Dictionary<Type,string> attributeNames))
                     {
-                        // wenn der Stil in der Liste ist, dann Stil setzen, sonst nur Inhalt übernehmen.
-                        if (Frame.Project.StyleList.Contains(lastStyle[activeObject.PreferredStyle]))
-                        {
-                            activeObject.Style = lastStyle[activeObject.PreferredStyle];
-                        }
-                        else
-                        {   // mit Apply wird nur der Inhalt des Stils übernommen, aber die Stil Eigenschaft nicht gesetzt
-                            // das ist wichtig, denn beim Einfügen würde sonst dieser Stil in die Liste übernommen
-                            lastStyle[activeObject.PreferredStyle].Apply(activeObject);
-                        }
+                        SetAttribute(activeObject, attributeNames);
                     }
                 }
             }
@@ -6783,6 +6819,7 @@ namespace CADability.Actions
                 }
             }
         }
+
         /// <summary>
         /// Implements <see cref="Action.OnActivate"/>. If you override this method
         /// don't forget to call the base implementation.
@@ -7177,20 +7214,20 @@ namespace CADability.Actions
                     StateChangedEvent(this, new StateChangedArgs(StateChangedArgs.State.CollapseSubEntries));
             }
         }
-		public bool HideButtons { get; set; } = false;
-		PropertyEntryType IPropertyEntry.Flags
-		{
-			get
-			{
-				PropertyEntryType flags = PropertyEntryType.Selectable | PropertyEntryType.HasSubEntries;
-				if(!HideButtons)
-				{
-					flags |= PropertyEntryType.OKButton | PropertyEntryType.CancelButton;
-				}
+        public bool HideButtons { get; set; } = false;
+        PropertyEntryType IPropertyEntry.Flags
+        {
+            get
+            {
+                PropertyEntryType flags = PropertyEntryType.Selectable | PropertyEntryType.HasSubEntries;
+                if (!HideButtons)
+                {
+                    flags |= PropertyEntryType.OKButton | PropertyEntryType.CancelButton;
+                }
 
-				return flags;
-			}
-		}
+                return flags;
+            }
+        }
         bool IPropertyEntry.ReadOnly { get; set; }
         string IPropertyEntry.Label => StringTable.GetString(TitleId + ".Label");
         string IPropertyEntry.Value => null;
@@ -7284,6 +7321,18 @@ namespace CADability.Actions
         {
             // nothing to do
         }
+
+        IPropertyEntry IPropertyEntry.FindSubItem(string helpResourceID)
+        {
+            if ((this as IPropertyEntry).ResourceId == helpResourceID) return this;
+            foreach (IPropertyEntry propertyEntry in SubProperties)
+            {
+                IPropertyEntry found = propertyEntry.FindSubItem(helpResourceID);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
         bool IPropertyEntry.DeferUpdate
         {
             get

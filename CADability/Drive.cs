@@ -22,7 +22,7 @@ namespace CADability
         /// </summary>
         IDrive DependsOn { get; set; }
         /// <summary>
-        /// Gets or sets the current position of the driven objects. 
+        /// Gets or sets the current position of the driven objects.
         /// </summary>
         double Position { get; set; }
         /// <summary>
@@ -90,12 +90,12 @@ namespace CADability
 
         #endregion
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Drives", drives.ToArray());
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             drives = new List<IDrive>(data.GetProperty<IDrive[]>("Drives"));
         }
@@ -172,7 +172,7 @@ namespace CADability
         /// <summary>
         /// Defines a CurveDrive providing the curve for the movement and the object beeing moved.
         /// The currentPosition describes the position of the object as it is defined in the model
-        /// relative to the startpoint of the curve. It must be between 0.0 and the 
+        /// relative to the startpoint of the curve. It must be between 0.0 and the
         /// <see cref="ICurve.Length">length</see> of the curve.
         /// </summary>
         /// <param name="along">Curve for the movement</param>
@@ -255,8 +255,8 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Gets or sets the tangential movement property. If true, the orientation of the driven 
-        /// objects will follow the tangent of the curve, if false, the orientation of the driven 
+        /// Gets or sets the tangential movement property. If true, the orientation of the driven
+        /// objects will follow the tangent of the curve, if false, the orientation of the driven
         /// objects will stay fixed in space.
         /// </summary>
         public bool Tangential
@@ -428,7 +428,7 @@ namespace CADability
         }
         IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -501,7 +501,7 @@ namespace CADability
         }
         #endregion
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", name);
             data.AddProperty("MoveAlong", moveAlong);
@@ -512,7 +512,7 @@ namespace CADability
             data.AddProperty("DependsOn", dependsOn);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             name = data.GetProperty<string>("Name");
             moveAlong = data.GetProperty<ICurve>("MoveAlong");
@@ -769,7 +769,7 @@ namespace CADability
         }
         IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -914,7 +914,7 @@ namespace CADability
 
         #endregion
         #region IJsonSerialize Members
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", name);
             data.AddProperty("Drive1", drive1);
@@ -923,7 +923,7 @@ namespace CADability
             data.AddProperty("Stretch", stretch);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             name = data.GetProperty<string>("Name");
             drive1 = data.GetProperty<CurveDrive>("Drive1");
@@ -961,7 +961,7 @@ namespace CADability
         IGeoObject[] movedObjectsDeserialized;
         private ListWithEvents<IGeoObject> movedObjects;
         /// <summary>
-        /// Defines a AxisDrive object. The axis and the driven objects must be provided. The 
+        /// Defines a AxisDrive object. The axis and the driven objects must be provided. The
         /// position is meassured in radians.
         /// </summary>
         /// <param name="location">Location of the axis</param>
@@ -1136,12 +1136,12 @@ namespace CADability
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>,
         /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
         /// </summary>
         IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -1257,7 +1257,7 @@ namespace CADability
         {
             base.resourceId = "AxisDrive";
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", name);
             data.AddProperty("Location", location);
@@ -1266,7 +1266,7 @@ namespace CADability
             data.AddProperty("DependsOn", dependsOn);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             name = data.GetProperty<string>("Name");
             location = data.GetProperty<GeoPoint>("Location");
@@ -1308,11 +1308,11 @@ namespace CADability
         }
         IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>,
         /// returns the number of subentries in this property view.
         /// </summary>
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -1472,7 +1472,7 @@ namespace CADability
         }
         IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -1490,24 +1490,6 @@ namespace CADability
                 }
                 return subEntries;
             }
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyPage"></param>
-        public override void Added(IPropertyPage propertyPage)
-        {
-            base.Added(propertyPage);
-            //propertyPage.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Removed (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyPage"></param>
-        public override void Removed(IPropertyPage propertyPage)
-        {
-            base.Removed(propertyPage);
-            //propertyPage.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
         }
         #endregion
         #region ICommandHandler Members
@@ -1583,7 +1565,7 @@ namespace CADability
         }
         IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
+        /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -1597,24 +1579,6 @@ namespace CADability
                 }
                 return subEntries;
             }
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Added (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyPage"></param>
-        public override void Added(IPropertyPage propertyPage)
-        {
-            base.Added(propertyPage);
-            //propertyPage.FocusChangedEvent += new FocusChangedDelegate(OnFocusChanged);
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.Removed (IPropertyTreeView)"/>
-        /// </summary>
-        /// <param name="propertyPage"></param>
-        public override void Removed(IPropertyPage propertyPage)
-        {
-            base.Removed(propertyPage);
-            //propertyPage.FocusChangedEvent -= new FocusChangedDelegate(OnFocusChanged);
         }
         //void OnFocusChanged(IPropertyPage sender, IPropertyEntry NewFocus, IPropertyEntry OldFocus)
         //{

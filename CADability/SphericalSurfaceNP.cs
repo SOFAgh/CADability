@@ -10,12 +10,12 @@ namespace CADability.GeoObject
     /// <summary>
     /// A spherical surface with a non periodic u/v system. It also has no poles. It cannot represent a whole sphere, there must be some part
     /// which is outside the usable area. The center, xAxis, yAxis and zAxis define a coordinate system. The plane defined by (center, xAxis and yAxis)
-    /// is the equator plane of the sphere, (center+zAxis) is the north pole. (center-zAxis9 is the south pole, which may not be part of the used area.
+    /// is the equator plane of the sphere, (center+zAxis) is the north pole. (center-zAxis) is the south pole, which may not be part of the used area.
     /// The u/v system is the u/v system of the equator area. The point of the sphere for a provided u/v point is the projection of this point from the south pole 
     /// to the surface. All circular arcs on the sphere (e.g. planar intersections) are elliptical arcs in the u/v system (or lines, when they pass the north pole)
     /// </summary>
     [Serializable]
-    public class SphericalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable
+    public class SphericalSurfaceNP : ISurfaceImpl, IJsonSerialize, ISerializable, ISphere
     {
         GeoPoint center;
         GeoVector xAxis, yAxis, zAxis;
@@ -193,7 +193,8 @@ namespace CADability.GeoObject
             try
             {
                 return Plane.XYPlane.Intersect(beam); // intersection of XY plane
-            } catch (PlaneException pe)
+            }
+            catch (PlaneException pe)
             {
                 return GeoPoint2D.Invalid;
             }
@@ -284,7 +285,7 @@ namespace CADability.GeoObject
         public override void CopyData(ISurface CopyFrom)
         {
             SphericalSurfaceNP snp = CopyFrom as SphericalSurfaceNP;
-            if (snp!=null)
+            if (snp != null)
             {
                 center = snp.center;
                 xAxis = snp.xAxis;
@@ -321,7 +322,7 @@ namespace CADability.GeoObject
             return implicitPolynomial;
         }
         public override bool UvChangesWithModification => true;
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Center", center);
             data.AddProperty("XAxis", xAxis);
@@ -329,7 +330,7 @@ namespace CADability.GeoObject
             data.AddProperty("ZAxis", zAxis);
         }
         protected SphericalSurfaceNP() { } // for JSON
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             center = data.GetProperty<GeoPoint>("Center");
             xAxis = data.GetProperty<GeoVector>("XAxis");
@@ -355,7 +356,7 @@ namespace CADability.GeoObject
             List<GeoPoint2D> res = new List<GeoPoint2D>();
             double radius = xAxis.Length;
             // assuming the same radius in all directions
-            GeoPoint2D p = PositionOf(center + radius*GeoVector.XAxis);
+            GeoPoint2D p = PositionOf(center + radius * GeoVector.XAxis);
             if (p.IsValid) res.Add(p);
             p = PositionOf(center - radius * GeoVector.XAxis);
             if (p.IsValid) res.Add(p);
@@ -377,7 +378,7 @@ namespace CADability.GeoObject
                 GeoPoint2D[] positions = new GeoPoint2D[5];
                 for (int i = 0; i < 5; i++)
                 {
-                    positions[i] = PositionOf(elli.PointAtParam(i*Math.PI*2.0/6.0));
+                    positions[i] = PositionOf(elli.PointAtParam(i * Math.PI * 2.0 / 6.0));
                 }
                 Ellipse2D elli2d = Ellipse2D.FromFivePoints(positions, true);
                 double prec = precision;
@@ -396,6 +397,7 @@ namespace CADability.GeoObject
                 //GeoPoint2D min = PositionOf(elli.Center + elli.MinorAxis);
                 //Geometry.PrincipalAxis(maj - center, min - center, out GeoVector2D majorAxis, out GeoVector2D minorAxis);
                 //Ellipse2D elli2d = new Ellipse2D(center, maj - center, min - center);
+                if (elli2d == null) return base.GetProjectedCurve(curve, precision);
                 if (elli.IsArc)
                 {
                     double sp = elli2d.PositionOf(PositionOf(elli.StartPoint));
@@ -431,6 +433,14 @@ namespace CADability.GeoObject
             se.Add(radius);
             return new GroupProperty("SphericalSurface", se.ToArray());
         }
+
+        public bool OutwardOriented => ((xAxis ^ yAxis) * zAxis) > 0;
+
+        GeoPoint ISphere.Center { get => center; set => center = value; }
+
+        bool ISurfaceWithRadius.IsModifiable => true; // this is always a real sphere
+
+        double ISurfaceWithRadius.Radius { get => xAxis.Length; set => xAxis.Length = yAxis.Length = zAxis.Length = value; }
 #if DEBUG
         public override GeoObjectList DebugGrid
         {
@@ -440,7 +450,7 @@ namespace CADability.GeoObject
                 GeoObjectList res = new GeoObjectList();
                 int n = 25;
                 for (int i = 0; i <= n; i++)
-                {   
+                {
                     GeoPoint[] pu = new GeoPoint[n + 1];
                     GeoPoint[] pv = new GeoPoint[n + 1];
                     for (int j = 0; j <= n; j++)

@@ -33,7 +33,7 @@ namespace CADability.Shapes
     [System.Diagnostics.DebuggerVisualizer(typeof(BorderVisualizer))]
 #endif
     [Serializable()]
-    public class Border : ISerializable, IDeserializationCallback
+    public class Border : ISerializable, IDeserializationCallback, IJsonSerialize
     {
         static private int idCounter = 0;
         private int id;
@@ -105,7 +105,7 @@ namespace CADability.Shapes
                 // hier rekursiv gehen
             }
         }
-        private Border()
+        protected Border()
         {
             id = ++idCounter;
         }
@@ -216,7 +216,7 @@ namespace CADability.Shapes
         {   // the QuadTree is only calculated when needed
             get
             {
-                if (quadTree==null)
+                if (quadTree == null)
                 {
                     quadTree = new QuadTree(Extent);
                     quadTree.MaxDeepth = -1; // dynamic quadTree
@@ -671,7 +671,7 @@ namespace CADability.Shapes
             //    }
             //}
             if (cleanSegments.Count == 0) return null;
-            return new Border(cleanSegments.ToArray(), true);
+            return new Border(cleanSegments.ToArray(), forceClosed);
         }
         internal static Border FromOrientedList(ICurve2D[] segments)
         {
@@ -4222,6 +4222,49 @@ namespace CADability.Shapes
                     segments[i] = segments[i].Trim(0, infl[0]);
                 }
             }
+            bool found = false;
+            do
+            {   // now remove all inner loops
+                found = false;
+                for (int seg1 = 0; seg1 < segments.Count; seg1++)
+                {
+                    for (int seg2 = 0; seg2 < segments.Count; seg2++)
+                    {
+                        if (seg2 == (seg1 + 1) % segments.Count) continue;
+                        if (Precision.IsEqual(segments[seg1].EndPoint, segments[seg2].StartPoint))
+                        {
+                            List<ICurve2D> part1 = new List<ICurve2D>();
+                            List<ICurve2D> part2 = new List<ICurve2D>();
+                            if (seg1 > seg2)
+                            {
+                                for (int i = 0; i < segments.Count; i++)
+                                {
+                                    if (i <= seg1 && i >= seg2) part1.Add(segments[i]);
+                                    else part2.Add(segments[i]);
+                                }
+                            }
+                            else
+                            {
+                                for (int i = 0; i < segments.Count; i++)
+                                {
+                                    if (i <= seg1 || i >= seg2) part1.Add(segments[i]);
+                                    else part2.Add(segments[i]);
+                                }
+                            }
+                            double a1 = SignedArea(part1);
+                            double a2 = SignedArea(part2);
+                            if (a1 > 0 && a2 > 0) // we have an outer loop and an inner loop, remove the inner loop
+                            {
+                                segments.Clear();
+                                if (a1 > a2) segments.AddRange(part1);
+                                else segments.AddRange(part2);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } while (found);
             // 1. remove segments, which are an inner bulge
             for (int i = 0; i < segments.Count; i++)
             {
@@ -4230,7 +4273,6 @@ namespace CADability.Shapes
                     segments[i] = new Line2D(segments[i].StartPoint, segments[i].EndPoint);
                 }
             }
-            bool found = false;
             do
             {
                 found = false;
@@ -4429,6 +4471,7 @@ namespace CADability.Shapes
                     }
                 }
             } while (found);
+
             return new Border(segments.ToArray());
         }
         /// <summary>
@@ -4474,6 +4517,16 @@ namespace CADability.Shapes
                                                                       mi.Factor * ext.Width);
                 return sbr;
             }
+        }
+
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Segments", segment);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            segment = data.GetProperty<ICurve2D[]>("Segments");
         }
 
         //private static double MaxDistance(ICurve2D curve1, ICurve2D curve2)

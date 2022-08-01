@@ -38,6 +38,31 @@ namespace CADability.GeoObject
                     vol.SetDouble(0.0);
                     vol.ReadOnly = true;
                     se.Add(vol);
+                    // parametric properties are part of the shell. But we show them at the solid, which seems more natural
+                    List<IPropertyEntry> pps = new List<IPropertyEntry>();
+                    GroupProperty gpParametricProperties = new GroupProperty("Solid.ParametricProperties", pps.ToArray());
+                    foreach (Shell shell in solid.Shells)
+                    {
+                        List<IPropertyEntry> shellProperties = shell.GetParameterProperties(Frame, gpParametricProperties);
+                        pps.AddRange(shellProperties);
+                    }
+                    if (pps.Count > 0)
+                    {
+                        gpParametricProperties.SetSubEntries(pps.ToArray());
+                        se.Add(gpParametricProperties);
+                    }
+                    pps = new List<IPropertyEntry>();
+                    GroupProperty gpFeatureProperties = new GroupProperty("Solid.FeatureProperties", pps.ToArray());
+                    foreach (Shell shell in solid.Shells)
+                    {
+                        List<IPropertyEntry> shellFeatureProperties = shell.GetFeatureProperties(Frame, gpFeatureProperties);
+                        pps.AddRange(shellFeatureProperties);
+                    }
+                    if (pps.Count > 0)
+                    {
+                        gpFeatureProperties.SetSubEntries(pps.ToArray());
+                        se.Add(gpFeatureProperties);
+                    }
                     foreach (Shell shell in solid.Shells)
                     {
                         IPropertyEntry sp = shell.GetShowProperties(base.Frame);
@@ -46,11 +71,16 @@ namespace CADability.GeoObject
                     }
                     se.AddRange(attributeProperties);
                     subEntries = se.ToArray();
+                    for (int i = 0; i < subEntries.Length; i++)
+                    {
+                        subEntries[i].Parent = this;
+                    }
                     Task task = Task.Run(() => { vol.SetDouble(solid.Volume(0.0)); });
                 }
                 return subEntries;
             }
         }
+
         public override MenuWithHandler[] ContextMenu
         {
             get
@@ -140,7 +170,7 @@ namespace CADability.GeoObject
         internal static bool octTreeAlsoCheckInside = false; // global setting: auch das innere der Solids für den octTree überprüfen (Anforderung von Hilgers)
         private Shell[] shells; // List of Shells defining this Solid. The first (and in most cases only) entry is the outer hull, the following are non intersecting inner holes (faces oriented to point into the inside of the hole)
         private string name; // aus STEP oder IGES kommen benannte solids (Shells, Faces?)
-        [FlagsAttribute] private enum Flags { oriented = 1 };
+        [FlagsAttribute] private enum Flags { oriented = 1, unchanged = 2 };
         private Flags flags;
         private Edge[] edges; // secondary data, not serialized
         /// <summary>
@@ -198,8 +228,30 @@ namespace CADability.GeoObject
                 return shells;
             }
         }
+        private void OnWillChange(IGeoObject Sender, GeoObjectChange Change)
+        {
+            if (isChanging == 0)
+            {
+                FireWillChange(Change);
+            }
+        }
+        private void OnDidChange(IGeoObject Sender, GeoObjectChange Change)
+        {
+            if (isChanging == 0)
+            {
+                FireDidChange(Change);
+            }
+        }
         public void SetShell(Shell sh)
         {
+            if (shells != null)
+            {
+                for (int i = 0; i < shells.Length; i++)
+                {
+                    shells[i].WillChangeEvent -= new ChangeDelegate(OnWillChange);
+                    shells[i].DidChangeEvent -= new ChangeDelegate(OnDidChange);
+                }
+            }
             if (Shells != null && Shells.Length > 0)
             {
                 using (new Changing(this, "SetShell", Shells[0]))
@@ -215,11 +267,18 @@ namespace CADability.GeoObject
                 sh.Owner = this;
                 edges = null;
             }
+            for (int i = 0; i < shells.Length; i++)
+            {
+                shells[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                shells[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
+            }
         }
         protected void RemoveShell(Shell sh)
         {
             if (Shells.Length > 0 && sh == Shells[0])
             {
+                sh.WillChangeEvent -= new ChangeDelegate(OnWillChange);
+                sh.DidChangeEvent -= new ChangeDelegate(OnDidChange);
                 using (new Changing(this, "SetShell", sh))
                 {
                     shells = new Shell[0];
@@ -327,6 +386,7 @@ namespace CADability.GeoObject
                 }
             }
         }
+
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.Clone ()"/>
         /// </summary>
@@ -531,7 +591,7 @@ namespace CADability.GeoObject
             {   // es könnte sein, dass die Box ganz innerhalb des Solids liegt
                 if (GetBoundingCube().Contains(cube))
                 {
-                    if (shells[0].IsInside(cube.GetCenter())) return true;
+                    if (shells[0].Contains(cube.GetCenter())) return true;
                 }
             }
             // Edges braucht man doch nicht auch noch, oder?
@@ -647,18 +707,11 @@ namespace CADability.GeoObject
         /// <returns>union or null</returns>
         static public Solid Unite(Solid solid1, Solid solid2)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
+            BRepOperation bro = new BRepOperation(solid1.shells[0], solid2.shells[0], BRepOperation.Operation.union);
+            Shell[] res = bro.Result();
+            if (res.Length == 1)
             {
-                BRepOperation bro = new BRepOperation(solid1.shells[0], solid2.shells[0], BRepOperation.Operation.union);
-                Shell[] res = bro.Result();
-                if (res.Length == 1)
-                {
-                    return MakeSolid(res[0]);
-                }
-                else
-                {
-                    return null;
-                }
+                return MakeSolid(res[0]);
             }
             else
             {
@@ -674,19 +727,15 @@ namespace CADability.GeoObject
         /// <returns>array of common parts</returns>
         static public Solid[] Intersect(Solid solid1, Solid solid2)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
+            // hier fehlt noch der Löcherkäse: Solids mit mehreren Shells
+            BRepOperation bro = new BRepOperation(solid1.shells[0], solid2.shells[0], BRepOperation.Operation.intersection);
+            Shell[] res = bro.Result();
+            Solid[] sres = new Solid[res.Length];
+            for (int i = 0; i < res.Length; i++)
             {
-                // hier fehlt noch der Löcherkäse: Solids mit mehreren Shells
-                BRepOperation bro = new BRepOperation(solid1.shells[0], solid2.shells[0], BRepOperation.Operation.intersection);
-                Shell[] res = bro.Result();
-                Solid[] sres = new Solid[res.Length];
-                for (int i = 0; i < res.Length; i++)
-                {
-                    sres[i] = MakeSolid(res[i]);
-                }
-                return sres;
+                sres[i] = MakeSolid(res[i]);
             }
-            return null;
+            return sres;
         }
         /// <summary>
         /// Returns the difference of two solids. The second solid is removed from the first solid. If the
@@ -698,20 +747,16 @@ namespace CADability.GeoObject
         /// <returns>the difference</returns>
         static public Solid[] Subtract(Solid first, Solid second)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
+            // hier fehlt noch der Löcherkäse: Solids mit mehreren Shells
+            BRepOperation bro = new BRepOperation(first.shells[0], second.shells[0], BRepOperation.Operation.difference);
+            Shell[] res = bro.Result();
+            Solid[] sres = new Solid[res.Length];
+            for (int i = 0; i < res.Length; i++)
             {
-                // hier fehlt noch der Löcherkäse: Solids mit mehreren Shells
-                BRepOperation bro = new BRepOperation(first.shells[0], second.shells[0], BRepOperation.Operation.difference);
-                Shell[] res = bro.Result();
-                Solid[] sres = new Solid[res.Length];
-                for (int i = 0; i < res.Length; i++)
-                {
-                    sres[i] = MakeSolid(res[i]);
-                }
-                return sres;
+                sres[i] = MakeSolid(res[i]);
             }
-
-            return null;
+            if (sres.Length == 1 && bro.Unchanged) sres[0].flags |= Flags.unchanged;
+            return sres;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.Decompose ()"/>
@@ -771,7 +816,7 @@ namespace CADability.GeoObject
                 {
                     for (int i = 0; i < Shells.Length; i++)
                     {
-                        Shells [i].ShowFeatureAxis = value;
+                        Shells[i].ShowFeatureAxis = value;
                     }
                 }
             }
@@ -823,18 +868,18 @@ namespace CADability.GeoObject
             info.AddValue("ColorDef", colorDef);
             info.AddValue("Name", name);
         }
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public override void SetObjectData(IJsonReadData data)
         {
-            base.JsonSetObjectData(data);
+            base.SetObjectData(data);
             shells = data.GetProperty<Shell[]>("Shells");
             colorDef = data.GetPropertyOrDefault<ColorDef>("ColorDef");
             name = data.GetPropertyOrDefault<string>("Name");
             flags = data.GetPropertyOrDefault<Flags>("Flags");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public override void GetObjectData(IJsonWriteData data)
         {
-            base.JsonGetObjectData(data);
+            base.GetObjectData(data);
             data.AddProperty("Shells", shells);
             data.AddProperty("ColorDef", colorDef);
             data.AddProperty("Name", name);
@@ -848,6 +893,8 @@ namespace CADability.GeoObject
             {
                 shells[i].Owner = this;
                 shells[i].Layer = this.Layer;
+                shells[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                shells[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
             }
             if (Constructed != null) Constructed(this);
         }
@@ -857,6 +904,8 @@ namespace CADability.GeoObject
             {
                 shells[i].Owner = this;
                 shells[i].Layer = this.Layer;
+                shells[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                shells[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
             }
             if (Constructed != null) Constructed(this);
         }
@@ -1024,7 +1073,24 @@ namespace CADability.GeoObject
             {
                 switch (MenuId)
                 {
-                    case "MenuId.Solid.RemoveThisFromAll":
+                    case "MenuId.Solid.RemoveFromAll":
+                        foreach (Solid sld in other)
+                        {
+                            Solid[] res = Solid.Subtract(sld, solid);
+                            if (res != null)
+                            {
+                                if (res.Length != 1 || !res[0].flags.HasFlag(Flags.unchanged))
+                                {
+                                    IGeoObjectOwner owner = sld.Owner;
+                                    owner.Remove(sld);
+                                    for (int i = 0; i < res.Length; i++)
+                                    {
+                                        owner.Add(res[i]);
+                                    }
+                                }
+                            }
+                        }
+                        solid.Owner.Remove(solid);
                         break;
                 }
                 return false;
@@ -1039,6 +1105,17 @@ namespace CADability.GeoObject
                 return true;
             }
         }
+
+        public bool SameGeometry(Solid other)
+        {
+            if (this.Shells.Length != other.Shells.Length) return false;
+            for (int i = 0; i < this.Shells.Length; i++)
+            {
+                if (!Shells[i].SameGeometry(other.Shells[i])) return false;
+            }
+            return true;
+        }
+
         /// <summary>
         /// Returns a menu, which is shown when there is a right click on the solid
         /// </summary>
@@ -1147,6 +1224,7 @@ namespace CADability.GeoObject
                 }
                 Layer layer = frame.Project.LayerList.CreateOrFind("CADability.Hidden");
                 Layer = layer;
+                if (frame.ActiveView is ModelView mv) mv.SetLayerVisibility(layer, false);
                 return true;
             });
             res.Add(mhhide);

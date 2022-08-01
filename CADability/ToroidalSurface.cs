@@ -2482,24 +2482,10 @@ namespace CADability.GeoObject
                     }
                 }
             }
-            //if (other is CylindricalSurface)
-            //{   // we need tangential points to split the result there
-            //    CylindricalSurface cs = other as CylindricalSurface;
-            //    GeoVector axis = toUnit * cs.Axis;
-            //    GeoPoint loc = toUnit * cs.Location;
-            //    GeoVector2D axis2d = axis.To2D();
-            //    GeoPoint2D loc2d = loc.To2D();
-            //    if (axis2d.IsNullVector())
-            //    {
-            //        // still to implement
-            //    }
-            //    else
-            //    {
-            //        double u1 = axis2d.Angle.Radian + Math.PI;
-            //        double u2 = axis2d.Angle.Radian - Math.PI;
-            //        double d = Geometry.DistPL(GeoPoint2D.Origin, loc2d, axis2d);
-            //    }
-            //}
+            if (other is CylindricalSurface cylindricalSurface) 
+            {   // we need tangential points to split the result there
+                return cylindricalSurface.GetDualSurfaceCurves(otherBounds,this,thisBounds,seeds,extremePositions);
+            }
             return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
 

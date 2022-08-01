@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Wintellect.PowerCollections;
 using System.Threading;
+using System.Diagnostics;
 #if WEBASSEMBLY
 using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
@@ -641,6 +642,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
         }
 #endif
+        [DebuggerDisplayAttribute("Item: {DebugString}")]
         class Item
         {
             public enum ItemType
@@ -697,6 +699,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                 }
             }
+            internal string DebugString
+            {
+                get
+                {
+                    return type.ToString();
+                }
+            }
 #endif
 #if DEBUG
             static int counter = 0;
@@ -708,7 +717,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 parameter = new Dictionary<string, Item>();
 #if DEBUG
                 this.definingIndex = --counter;
-                if (definingIndex == -206838) { }
+                if (definingIndex == -1051604) { }
                 usedBy = new List<Item>();
 #endif
             }
@@ -1370,6 +1379,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     // *shapeRepresentation* muss sich das Objekt merken, denn contextDependentShapeRepresentation(5490)->representationRelationship(5489)->shapeRepresentation(5473)
                     // ist das Einfügen selbst. Das sind die wichtigen roots: shapeDefinitionRepresentation, contextDependentShapeRepresentation, shapeRepresentationRelationship
 #endif
+                    //Settings.GlobalSettings.SetValue("StepImport.Parallel", false);
                     if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", true))
                     {
                         Parallel.For(0, roots[Item.ItemType.shapeDefinitionRepresentation].Count, i =>
@@ -1447,12 +1457,45 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                     }
+                    for (int i = 0; i < roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation].Count; i++)
+                    {   // we do this before we do the shapeRepresentationRelationship iteration, because here the colors are set and in the next loop the objects are cloned
+                        Item item = definitions[roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation][i]];
+                        GeoObjectList go = CreateEntity(item) as GeoObjectList;
+                    }
+                    for (int i = 0; i < roots[Item.ItemType.styledItem].Count; i++)
+                    {   // in most cases the styled items are already created (e.g. as part of mechanicalDesignGeometricPresentationRepresentation), but in some files (e.g. SSSS4912PCAM.stp) 
+                        // there are unreferenced styledItems. Upon creation the objects referenced by the styled item are styled (color set)
+                        Item item = definitions[roots[Item.ItemType.styledItem][i]];
+                        object o = CreateEntity(item);
+                    }
                     for (int i = 0; i < roots[Item.ItemType.shapeRepresentationRelationship].Count; i++)
                     {
                         Item item = definitions[roots[Item.ItemType.shapeRepresentationRelationship][i]];
                         GeoObjectList go = CreateEntity(item) as GeoObjectList;
+#if DEBUG
+                        //System.Diagnostics.Trace.WriteLine(SubTree(item.definingIndex, 5));
+#endif
                         string name = null;
                         if (item.parameter["rep_1"].parameter.TryGetValue("name", out Item shapeRepresentation)) name = shapeRepresentation.sval;
+                        // I do not understand the semantics of the STEP file in respect to shapeRepresentationRelationship, representationRelationship, shapeRepresentation and so on...
+                        // in file 1211_EDS-EL.stp there are some representationRelationship items and some shapeRepresentationRelationship items which have identical "rep_1" parameters
+                        // but the representationRelationship items don't refer to a geometry and the shapeRepresentationRelationship items don't refer to a transformation. In other files
+                        // this connection is build by the product, productDefinition items, but here we combine the shapeRepresentationRelationship items and the (via "rep_1") corresponding
+                        // representationRelationship items to have both the geometry and the transformation.
+                        ModOp tranMop = ModOp.Identity;
+                        Item transformation = null;
+                        if (!item.parameter.TryGetValue("transformation_operator", out transformation))
+                        {
+                            item.parameter["rep_1"].parameter.TryGetValue("transformation_operator", out transformation);
+                        }
+                        if (transformation != null)
+                        {
+                            object o = CreateEntity(transformation);
+                            if (o is ModOp)
+                            {
+                                tranMop = (ModOp)o;
+                            }
+                        }
                         if (item.parameter["rep_2"].val is GeoObjectList gol)
                         {
                             if (gol.Count > 1)
@@ -1461,30 +1504,25 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (string.IsNullOrWhiteSpace(name)) name = $"Item {item.definingIndex}";
                                 blk.Name = name;
                                 blk.Set(gol.CloneObjects());
+                                if (!tranMop.IsIdentity(0.0)) blk.Modify(tranMop);
                                 res.Add(blk);
                             }
                             else
-                            {
+                            {   // we could also make a block here with a single solid
                                 if (!string.IsNullOrWhiteSpace(name))
                                 {
-                                    for (int j = 0; j < gol.Count; j++)
-                                    {
-                                        if (gol[j] is Solid sld) sld.Name = name;
-                                        if (gol[j] is Shell shl) shl.Name = name;
-                                    }
+                                    if (gol[0] is Solid sld) sld.Name = name;
+                                    if (gol[0] is Shell shl) shl.Name = name;
                                 }
-                                res.AddRange(gol);
+                                IGeoObject clone = gol[0].Clone();
+                                if (!tranMop.IsIdentity(0.0)) clone.Modify(tranMop);
+                                res.Add(clone);
                             }
                         }
                     }
                     for (int i = 0; i < roots[Item.ItemType.contextDependentShapeRepresentation].Count; i++)
                     {
                         Item item = definitions[roots[Item.ItemType.contextDependentShapeRepresentation][i]];
-                        GeoObjectList go = CreateEntity(item) as GeoObjectList;
-                    }
-                    for (int i = 0; i < roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation].Count; i++)
-                    {
-                        Item item = definitions[roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation][i]];
                         GeoObjectList go = CreateEntity(item) as GeoObjectList;
                     }
                     for (int i = 0; i < roots[Item.ItemType.presentationLayerAssignment].Count; i++)
@@ -1504,12 +1542,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     for (int i = 0; i < roots[Item.ItemType.draughtingModel].Count; i++)
                     {
                         Item item = definitions[roots[Item.ItemType.draughtingModel][i]];
-                        object o = CreateEntity(item);
-                    }
-                    for (int i = 0; i < roots[Item.ItemType.styledItem].Count; i++)
-                    {   // in most cases the styled items are already created (e.g. as part of mechanicalDesignGeometricPresentationRepresentation), but in some files (e.g. SSSS4912PCAM.stp) 
-                        // there are unreferenced styledItems. Upon creation the objects referenced by the styled item are styled (color set)
-                        Item item = definitions[roots[Item.ItemType.styledItem][i]];
                         object o = CreateEntity(item);
                     }
                     for (int i = 0; i < roots[Item.ItemType.itemDefinedTransformation].Count; i++)
@@ -1532,15 +1564,19 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             }
                         }
                     }
+                    GeoObjectList rmiList = new GeoObjectList();
                     if (rootMappedItems.Count > 0)
                     {
-                        res.Clear();
                         foreach (Item mi in rootMappedItems)
                         {
                             object l = CreateEntity(mi);
-                            if (l is GeoObjectList) res.AddRange(l as GeoObjectList);
-                            if (l is IGeoObject) res.Add(l as IGeoObject); // must be a Block 
+                            if (l is GeoObjectList) rmiList.AddRange(l as GeoObjectList);
+                            if (l is IGeoObject) rmiList.Add(l as IGeoObject); // must be a Block 
                         }
+                    }
+                    if (rootMappedItems.Count > 0 && rmiList.Count > 0)
+                    {
+                        res = rmiList;
                     }
                     else
                     {
@@ -1699,6 +1735,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         }
         private void CreateProduct(Item product)
         {
+            //System.Diagnostics.Trace.WriteLine(SubTree(product.definingIndex, 5));
             //System.Diagnostics.Trace.Write(product.parameter["id"].sval + ": ");
             //for (int i = 0; i < product.parameter["frame_of_reference"].lval.Count; i++)
             //{
@@ -1754,11 +1791,24 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             {
                                 Object o = CreateEntity(rel.lval[k]);
                                 if (o is IGeoObject) res.Add(o as IGeoObject);
-                                else if (o is GeoObjectList) res.AddRange(o as GeoObjectList);
+                                else if (o is GeoObjectList gl)
+                                {
+                                    if (gl.Count > 1)
+                                    {
+                                        Block blk = Block.Construct();
+                                        blk.Add(gl);
+                                        if (!string.IsNullOrWhiteSpace(name)) blk.Name = name;
+                                        res.Add(blk);
+                                    }
+                                    else
+                                    {
+                                        res.AddRange(gl);
+                                    }
+                                }
                                 if (!string.IsNullOrWhiteSpace(name))
                                 {
-                                    if (o is Solid sld && string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
-                                    if (o is Shell shl && string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
+                                    if (o is Solid sld) sld.Name = name; // was "&& string.IsNullOrWhiteSpace(sld.Name)" before, so here we overwrite the shapes name
+                                    if (o is Shell shl) shl.Name = name; // && string.IsNullOrWhiteSpace(shl.Name)
                                 }
                             }
                         }
@@ -1768,12 +1818,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         for (int k = 0; k < assoc.lval.Count; k++)
                         {
                             Object o = CreateEntity(assoc.lval[k]);
-                            if (o is IGeoObject) res.Add(o as IGeoObject);
+                            if (o is IGeoObject) res.AddUnique(o as IGeoObject);
                             else if (o is GeoObjectList) res.AddRange(o as GeoObjectList);
                             if (!string.IsNullOrWhiteSpace(name))
                             {
-                                if (o is Solid sld && !string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
-                                if (o is Shell shl && !string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
+                                if (o is Solid sld && string.IsNullOrWhiteSpace(sld.Name)) sld.Name = name;
+                                if (o is Shell shl && string.IsNullOrWhiteSpace(shl.Name)) shl.Name = name;
                             }
                         }
                     }
@@ -1848,6 +1898,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         {
             if (ignoreInSubTree.Contains(item.type)) return "";
             StringBuilder res = new StringBuilder();
+            if (item.type == Item.ItemType.axis2Placement_3d)
+            {
+            }
             if (!used.Contains(item))
             {
                 used.Add(item);
@@ -1858,6 +1911,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 else if (item.val is int || item.val is double)
                 {
                     res.Append(prefix + name + ": " + item.val.ToString() + Environment.NewLine);
+                }
+                else if (item.val is FreeCoordSys fcs)
+                {
+                    res.Append(prefix + name + ": " + item.val.ToString() + " (" + item.definingIndex + ")" + Environment.NewLine);
                 }
                 else
                 {
@@ -2064,6 +2121,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 
         private object CreateEntity(Item item)
         {
+            if (item == null) return null;
             int defind = -1;
             if (item.type == Item.ItemType.index)
             {
@@ -2071,7 +2129,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (50134 == item.definingIndex)
+            if (4428 == item.definingIndex || 2459 == item.definingIndex)
             {
 
             }
@@ -2092,11 +2150,26 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             GetContext(item.parameter["context_of_items"]);
                             List<Item> lst = item.SubList(1);
                             GeoObjectList gl = new GeoObjectList();
-                            for (int i = 0; i < lst.Count; i++)
+                            if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", true))
                             {
-                                object o = CreateEntity(lst[i]);
-                                if (o is IGeoObject) gl.Add(o as IGeoObject);
-                                else if (o is IGeoObject[]) gl.AddRange(o as IGeoObject[]);
+                                Parallel.For(0, lst.Count, i =>
+                                {
+                                    object o = CreateEntity(lst[i]);
+                                    lock (gl)
+                                    {
+                                        if (o is IGeoObject) gl.Add(o as IGeoObject);
+                                        else if (o is IGeoObject[]) gl.AddRange(o as IGeoObject[]);
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                for (int i = 0; i < lst.Count; i++)
+                                {
+                                    object o = CreateEntity(lst[i]);
+                                    if (o is IGeoObject) gl.Add(o as IGeoObject);
+                                    else if (o is IGeoObject[]) gl.AddRange(o as IGeoObject[]);
+                                }
                             }
                             item.val = gl;
                         }
@@ -2119,17 +2192,20 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             Item context = item.parameter["used_representation"].parameter["context_of_items"];
                             Item product = prodDef.parameter["formation"].parameter["of_product"];
                             Item assoc, _context;
-                            if (!product.parameter.TryGetValue("_association", out assoc))
+                            lock (product)
                             {
-                                product.parameter["_association"] = assoc = new Item(Item.ItemType.created, new List<Item>());
-                                product.parameter["_context"] = _context = new Item(Item.ItemType.created, new List<Item>());
+                                if (!product.parameter.TryGetValue("_association", out assoc))
+                                {
+                                    product.parameter["_association"] = assoc = new Item(Item.ItemType.created, new List<Item>());
+                                    product.parameter["_context"] = _context = new Item(Item.ItemType.created, new List<Item>());
+                                }
+                                else
+                                {
+                                    _context = product.parameter["_context"];
+                                }
+                                assoc.lval.AddRange(usedrep);
+                                _context.lval.Add(context);
                             }
-                            else
-                            {
-                                _context = product.parameter["_context"];
-                            }
-                            assoc.lval.AddRange(usedrep);
-                            _context.lval.Add(context);
                             lock (products)
                             {
                                 products.Add(product);
@@ -2166,10 +2242,17 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             for (int i = 0; i < elements.lval.Count; i++)
                             {
                                 object o = CreateEntity(elements.lval[i]);
-                                if (o is IGeoObject) val.Add(o as IGeoObject);
-                                if (o is GeoObjectList) val.AddRange(o as GeoObjectList);
-                                if (o is IGeoObject[]) val.AddRange(o as IGeoObject[]);
-                                if (o is NurbsSurface nurbsSurface)
+                                if (o is GeoPoint)
+                                {
+                                    GeoObject.Point pnt = GeoObject.Point.Construct();
+                                    pnt.Location = (GeoPoint)o;
+                                    pnt.Symbol = PointSymbol.Cross;
+                                    val.Add(pnt);
+                                }
+                                else if (o is IGeoObject) val.Add(o as IGeoObject);
+                                else if (o is GeoObjectList) val.AddRange(o as GeoObjectList);
+                                else if (o is IGeoObject[]) val.AddRange(o as IGeoObject[]);
+                                else if (o is NurbsSurface nurbsSurface)
                                 {
                                     BoundingRect ext;
                                     nurbsSurface.GetNaturalBounds(out ext.Left, out ext.Right, out ext.Bottom, out ext.Top);
@@ -2182,6 +2265,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         val.Add(face);
                                     }
                                 }
+                                else { }
                             }
                             item.val = val;
                         }
@@ -2255,7 +2339,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             ColorDef cd = null;
                             string nm = item.SubString(0);
-                            List<Item> sublist = item.SubList(1);
+                            List<Item> sublist = item.parameter["styles"].val as List<Item>;
                             for (int i = 0; i < sublist.Count; i++)
                             {
                                 object o = CreateEntity(sublist[i]);
@@ -2498,7 +2582,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (19216 == item.definingIndex || 19216 == item.definingIndex)
+                            if (35899 == item.definingIndex || 13754 == item.definingIndex)
                             {
                             }
 #endif
@@ -2572,7 +2656,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (34947 == item.definingIndex || 37368 == item.definingIndex)
+                            if (4428 == item.definingIndex)
                             {
                             }
 #endif
@@ -2625,8 +2709,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                             importProblems[item.definingIndex] = "inconsistent face";
                                         }
                                         ++faceCount;
-                                        if (2859 == item.definingIndex || 3219 == item.definingIndex)
-                                            (item.val as Face[])[i].AssureTriangles(0.004); // remove when done
+                                        //if (2859 == item.definingIndex || 3219 == item.definingIndex)
+                                        //    (item.val as Face[])[i].AssureTriangles(0.004); // remove when done
 
                                         //foreach (Edge edg in (item.val as Face[])[i].AllEdgesIterated())
                                         //{
@@ -3608,6 +3692,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             Item context2 = item.parameter["rep_2"].parameter["context_of_items"];
                             if (item.parameter.TryGetValue("transformation_operator", out Item transformationOperator))
                             {
+                                if (!(item.parameter["rep_1"].parameter.TryGetValue("transformation_operator", out Item dumy)))
+                                {
+                                    item.parameter["rep_1"].parameter["transformation_operator"] = transformationOperator;
+                                }
                             }
                             if (!context1.parameter.TryGetValue("_relationship", out Item rel1))
                             {
@@ -3690,7 +3778,6 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             // TODO: Debug TKStep project, follow STEPControl_ActorRead::TransferEntity (multiple definitions)
                             // wenn beide Listen null sind, dann über represented_product_relation, nextAssemblyUsageOccurrence auf product gehen
                             // und dort die Transformation anwenden
-
                             Item repProdRel = item.parameter["represented_product_relation"];
                             Item repRel = item.parameter["representation_relation"];
                             if (repProdRel != null)
@@ -3719,6 +3806,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 relatingProduct.parameter["_children"].lval.Add(child);
                                 products.Add(relatingProduct);
                             }
+#if DEBUG
+                            //System.Diagnostics.Trace.WriteLine(SubTree(item.definingIndex, 5));
+#endif
                             //GeoObjectList golist1 = null;
                             //GeoObjectList golist2 = null;
                             //GeoObjectList golist = new GeoObjectList();
@@ -4215,13 +4305,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.mappedItem:
                         {
 #if DEBUG
-                            System.Diagnostics.Trace.WriteLine(" ----- ");
-                            System.Diagnostics.Trace.WriteLine(SubTree(item.definingIndex, 5));
-                            string[] up = UsagePaths(item);
-                            for (int i = 0; i < up.Length; i++)
-                            {
-                                System.Diagnostics.Trace.WriteLine(up[i]);
-                            }
+                            //System.Diagnostics.Trace.WriteLine(" ----- ");
+                            //System.Diagnostics.Trace.WriteLine(SubTree(item.definingIndex, 5));
+                            //string[] up = UsagePaths(item);
+                            //for (int i = 0; i < up.Length; i++)
+                            //{
+                            //    System.Diagnostics.Trace.WriteLine(up[i]);
+                            //}
 #endif
                             mappedItems.Add(item);
                             string name = item.parameter["name"].sval;
@@ -4289,18 +4379,24 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
 
         private void AvoidDuplicateColorNames(ColorDef cd)
         {   // some step files name all their colors with the same name (e.g. "Colour"). The name is the key for the ColorDef, so all colors would be replaced by the first color with this name
-            if (definedColors == null) definedColors = new Dictionary<string, ColorDef>();
-            if (definedColors.TryGetValue(cd.Name, out ColorDef found))
+            lock (this)
             {
-                if (found.Color != cd.Color)
-                {   // same name but different colors
-                    cd.Name = cd.Name + " (rgb:" + cd.Color.R.ToString() + "_" + cd.Color.G.ToString() + "_" + cd.Color.B.ToString() + ")";
+                if (definedColors == null) definedColors = new Dictionary<string, ColorDef>();
+            }
+            lock (definedColors)
+            {
+                if (definedColors.TryGetValue(cd.Name, out ColorDef found))
+                {
+                    if (found.Color != cd.Color)
+                    {   // same name but different colors
+                        cd.Name = cd.Name + " (rgb:" + cd.Color.R.ToString() + "_" + cd.Color.G.ToString() + "_" + cd.Color.B.ToString() + ")";
+                        definedColors[cd.Name] = cd;
+                    }
+                }
+                else
+                {
                     definedColors[cd.Name] = cd;
                 }
-            }
-            else
-            {
-                definedColors[cd.Name] = cd;
             }
         }
 
@@ -4841,7 +4937,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             int start, length;
             string line;
 #if DEBUG
-            if (index == 22099)
+            if (index == 361)
             { }
 #endif
             if (!tk.NextToken(out line, out start, out length)) return;

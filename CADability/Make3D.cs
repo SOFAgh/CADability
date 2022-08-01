@@ -656,14 +656,7 @@ namespace CADability.GeoObject
         /// <returns>difference of the two solids or null</returns>
         public static Solid[] Difference(Solid s1, Solid s2)
         {
-            if (Settings.GlobalSettings.GetBoolValue("UseNewBrepOperations", false))
-            {
-                return Solid.Subtract(s1, s2);
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+            return Solid.Subtract(s1, s2);
         }
         /// <summary>
         /// Returns the remains of a shell when a solid is subtracted.
@@ -774,6 +767,16 @@ namespace CADability.GeoObject
             if (secondPath.IsClosed && secondPath.Count == 1)
             {
                 secondPath.Set(secondPath.Split(0.5));
+            }
+            if (makeSolid && firstPath.IsClosed && secondPath.IsClosed && firstPath.GetPlanarState() == PlanarState.Planar && secondPath.GetPlanarState() == PlanarState.Planar)
+            {
+                Plane firstpln = firstPath.GetPlane();
+                Plane secondpln = secondPath.GetPlane();
+                if (firstpln.Normal * secondpln.Normal < 0) secondpln.Reverse();
+                Plane pln = new Plane(new GeoPoint(firstpln.Location, secondpln.Location), new GeoVector(firstpln.Normal, secondpln.Normal));
+                double a1 = Border.FromOrientedList((firstPath.GetProjectedCurve(pln) as Path2D).SubCurves, true).Area;
+                double a2 = Border.FromOrientedList((secondPath.GetProjectedCurve(pln) as Path2D).SubCurves, true).Area;
+                if (Math.Sign(a1) != Math.Sign(a2)) (secondPath as ICurve).Reverse();
             }
             if (firstPath.IsClosed && secondPath.IsClosed)
             {   // find the shortest connection of the vertices of the two paths. 
@@ -919,7 +922,9 @@ namespace CADability.GeoObject
                             {
                                 GeoPoint apex = l1.PointAt(ips[0]); // returns points in the prolongation of l1
                                 Angle semiAngle = new Angle((e1.Center - apex), (e1.StartPoint - apex));
-                                return new ConicalSurface(apex, e1.MajorAxis.Normalized, e1.MinorAxis.Normalized, e1.Normal.Normalized, semiAngle);
+                                Plane epln = e1.Plane;
+                                epln.Reverse();
+                                return new ConicalSurface(apex, epln.DirectionX, epln.DirectionY, epln.Normal, semiAngle);
                             }
                         }
                     }
@@ -1732,17 +1737,21 @@ namespace CADability.GeoObject
                 Shell res = BRepOperation.RoundEdges(sh, edges, radius);
                 affectedShellsOrSolids = new IGeoObject[] { sh };
                 if (res != null) return new IGeoObject[] { res };
-                //BRepRoundEdges brre = new BRepRoundEdges(sh, new Set<Edge>(edges));
-                //Shell shres = brre.Round(radius, true);
-                //affectedShellsOrSolids = new IGeoObject[] { sh };
-                //return new IGeoObject[] { shres };
             }
             affectedShellsOrSolids = null;
             return null;
         }
         public static IGeoObject[] MakeChamfer(Face primaryFace, Edge[] edges, double primaryDist, double secondaryDist, out IGeoObject[] affectedShellsOrSolids)
         {
-            throw new NotImplementedException();
+            Shell sh = primaryFace.Owner as Shell;
+            if (sh != null)
+            {
+                Shell res = BRepOperation.ChamferEdges(primaryFace, edges, primaryDist, secondaryDist);
+                affectedShellsOrSolids = new IGeoObject[] { sh };
+                if (res != null) return new IGeoObject[] { res };
+            }
+            affectedShellsOrSolids = null;
+            return null;
         }
         /// <summary>
         /// Takes all faces and shells from the given list and tries to sew them together. When two or more faces have

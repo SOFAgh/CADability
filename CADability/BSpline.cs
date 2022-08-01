@@ -2061,7 +2061,7 @@ namespace CADability.GeoObject
             if (!nurbsHelper) MakeNurbsHelper();
             lock (this)
             {
-                if (plane.HasValue)
+                if (plane.HasValue && (nubs2d != null | nurbs2d != null))
                 {
                     if (nubs2d != null)
                     {
@@ -3373,6 +3373,10 @@ namespace CADability.GeoObject
         double ICurve.PositionToParameter(double position)
         {
             return startParam + position * (endParam - startParam);
+        }
+        bool ICurve.Extend(double atStart, double atEnd)
+        {
+            return false;
         }
         BoundingCube ICurve.GetExtent()
         {

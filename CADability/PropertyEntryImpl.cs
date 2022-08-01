@@ -40,7 +40,7 @@ namespace CADability.UserInterface
                 if (propertyPage != null && propertyPage.Frame != null) return propertyPage.Frame;
                 if (Parent != null && Parent is PropertyEntryImpl pei) return pei.Frame;
                 if (Parent != null && Parent is IPropertyPage pp) return pp.Frame;
-                return null;
+                return ActiveFrame.Frame;
             }
             set
             {
@@ -121,6 +121,7 @@ namespace CADability.UserInterface
         public virtual void Added(IPropertyPage pp)
         {
             propertyPage = pp;
+            PropertyEntryChangedState(new StateChangedArgs(StateChangedArgs.State.Added));
         }
 
         /// <summary>
@@ -210,6 +211,7 @@ namespace CADability.UserInterface
         {
             propertyPage?.Frame?.Project?.Undo.ClearContext(); // not the best place to do this here, but needed in the following scenario:
             // a property of an IGeoObject is being edited and the user clicks into the canvas, which in turn removes this property without ending the context
+            PropertyEntryChangedState(new StateChangedArgs(StateChangedArgs.State.Removed));
             propertyPage = null;
         }
 
@@ -237,6 +239,21 @@ namespace CADability.UserInterface
             PropertyEntryChangedState(new StateChangedArgs(StateChangedArgs.State.UnSelected));
         }
         public virtual bool ReadOnly { get; set; }
+        public virtual IPropertyEntry FindSubItem(string helpResourceID)
+        {
+            if (this.ResourceId == helpResourceID || (string.IsNullOrEmpty(ResourceId) && labelText == helpResourceID)) return this;
+            if (SubItems != null)
+            {
+                for (int i = 0; i < SubItems.Length; i++)
+                {
+                    SubItems[i].Parent = this; // this is necessary here: if the subitems have not been opened yet, the parent has not been set. this search goes throu all subitems, open or not
+                    IPropertyEntry found = SubItems[i].FindSubItem(helpResourceID);
+                    if (found != null) return found;
+                }
+            }
+            return null;
+        }
+
         #endregion
 
         #region dumy implementation of IShowProperty. Will be removed when IShowProperty is eliminated. dumy is always null

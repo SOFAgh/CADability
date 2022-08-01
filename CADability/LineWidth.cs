@@ -12,7 +12,7 @@ namespace CADability.Attribute
     /// 
     /// </summary>
     [Serializable()]
-    public class LineWidth : PropertyEntryImpl, INamedAttribute, ISerializable, ICommandHandler
+    public class LineWidth : PropertyEntryImpl, INamedAttribute, ISerializable, ICommandHandler, IJsonSerialize
     {
         private string name;
         private double width;
@@ -281,6 +281,21 @@ namespace CADability.Attribute
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
         #endregion
+        #region IJsonSerialize
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Name", name);
+            data.AddProperty("Width", width);
+            data.AddProperty("Scale", scale);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            name = data.GetStringProperty("Name");
+            width = data.GetProperty<double>("Width");
+            scale = data.GetProperty<Scaling>("Scale");
+        }
+#endregion
     }
 
 

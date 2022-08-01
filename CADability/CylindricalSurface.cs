@@ -8,13 +8,18 @@ using Wintellect.PowerCollections;
 
 namespace CADability.GeoObject
 {
+    public interface ISurfaceWithRadius
+    {
+        bool IsModifiable { get; }
+        double Radius { get; set; }
+
+    }
     /// <summary>
     /// Interface to handle both CylindricalSurface and CylindricalSurfaceNP
     /// </summary>
-    public interface ICylinder
+    public interface ICylinder: ISurfaceWithRadius
     {
         Axis Axis { get; set;  }
-        double Radius { get; set; }
         bool OutwardOriented { get; }
     }
     /// <summary>
@@ -22,7 +27,8 @@ namespace CADability.GeoObject
     /// cylinder. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
     [Serializable()]
-    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, IExportStep, ISurfaceOfArcExtrusion, ICylinder
+    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, 
+        IExportStep, ISurfaceOfArcExtrusion, ICylinder, IJsonSerialize
     {
         // Der Zylinder ist so beschaffen, dass er lediglich durch eine ModOp definiert ist.
         // Der Einheitszylinder steht im Ursprung mit Radius 1, u beschreibt einen Kreis, v eine Mantellinie
@@ -909,6 +915,7 @@ namespace CADability.GeoObject
                                 if (i == 0)
                                 {   // these two points are the points where the two ellipses intersect. We return 4 ellipse arcs
                                     // BRepIntersection needs this two points as additional vertices
+                                    if (seeds == null) seeds = new List<GeoPoint>();
                                     seeds.Add(elli.StartPoint);
                                     seeds.Add(elli.EndPoint);
                                 }
@@ -2037,6 +2044,18 @@ namespace CADability.GeoObject
             // sonst die allgemeine Überprüfung
             return base.SameGeometry(thisBounds, other, otherBounds, precision, out firstToSecond);
         }
+        public override double IsParallel(BoundingRect thisBounds, ISurface other, BoundingRect otherBounds)
+        {
+            if (other is ICylinder c)
+            {
+                if (c.Axis.SameGeometry((this as ICylinder).Axis))
+                {
+                    return Math.Abs(Math.Abs((this as ICylinder).Radius) - Math.Abs(c.Radius));
+                }
+            }
+            return double.MaxValue;
+        }
+
         public override Polynom GetImplicitPolynomial()
         {
             if (implicitPolynomial == null)
@@ -2317,7 +2336,7 @@ namespace CADability.GeoObject
             }
         }
 
-        double ICylinder.Radius
+        double ISurfaceWithRadius.Radius
         {
             get => RadiusX;
             set
@@ -2328,6 +2347,10 @@ namespace CADability.GeoObject
                 toUnit = toCylinder.GetInverse();
             }
         }
+        bool ISurfaceWithRadius.IsModifiable => true;
+
+        bool ICylinder.OutwardOriented => throw new NotImplementedException();
+
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             //CYLINDRICAL_SURFACE
@@ -2338,5 +2361,19 @@ namespace CADability.GeoObject
             else return res;
         }
 
+        protected CylindricalSurface(): base(null)
+        {
+            // empty constructor for Json
+        }
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("ToCylinder", toCylinder);
+        }
+
+        public void SetObjectData(IJsonReadData data)
+        {
+            toCylinder = data.GetProperty<ModOp>("ToCylinder");
+            toUnit = toCylinder.GetInverse();
+        }
     }
 }

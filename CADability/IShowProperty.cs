@@ -21,7 +21,7 @@ namespace CADability.UserInterface
 
     public class StateChangedArgs : EventArgs
     {
-        public enum State { OpenSubEntries, CollapseSubEntries, Selected, UnSelected, SubEntrySelected, Added, Removed }
+        public enum State { OpenSubEntries, CollapseSubEntries, Selected, UnSelected, SubEntrySelected, Added, Removed, EditEnded }
         private State state;
         public StateChangedArgs(State state)
         {
@@ -317,7 +317,25 @@ namespace CADability.UserInterface
         {
             this.frame = null;
         }
-#region IShowProperty Members
+
+        event PropertyEntryChangedStateDelegate IPropertyEntry.PropertyEntryChangedStateEvent
+        {
+            add
+            {
+                this.StateChangedEvent += delegate (IShowProperty sender, StateChangedArgs args)
+                {
+                    value(this, args);
+                };
+            }
+            remove
+            {
+                this.StateChangedEvent -= delegate (IShowProperty sender, StateChangedArgs args)
+                {
+                    value(this, args);
+                };
+            }
+        }
+        #region IShowProperty Members
         /* So ist die Lösung um interface methoden nicht public machen zu müssen
          * ist aber viel Schreibartbeit
          */
@@ -575,8 +593,8 @@ namespace CADability.UserInterface
             }
         }
         private bool toolTipInhibited;
-#endregion
-#region Helper Methoden
+        #endregion
+        #region Helper Methoden
         /// <summary>
         /// Static helper method to concatenate two arrays of <see cref="IShowProperty"/>.
         /// </summary>
@@ -686,7 +704,7 @@ namespace CADability.UserInterface
                 }
             }
         }
-#endregion
+        #endregion
         // a quick implementation of IPropertyEntry based on the old IShowProperty implementation. 
         // should be disentangled in future
         private bool isOpen = false;
@@ -760,7 +778,7 @@ namespace CADability.UserInterface
         public virtual void Added(IPropertyPage pp)
         {
             propertyPage = pp;
-            Parent = pp;
+            // Parent = pp;  no! all items and subitems will have the Added called, but changing theis parent would be wrong
         }
         public virtual void Removed(IPropertyPage pp)
         {
@@ -802,6 +820,16 @@ namespace CADability.UserInterface
             PropertyEntryChangedStateEvent?.Invoke(this, args);
         }
 
+        public virtual IPropertyEntry FindSubItem(string helpResourceID)
+        {   // also check for LabeText, which would be the name of an item in the list
+            if (ResourceId == helpResourceID || (string.IsNullOrEmpty(ResourceId) && labelText == helpResourceID)) return this;
+            for (int i = 0; i < SubItems.Length; i++)
+            {
+                IPropertyEntry found = SubItems[i].FindSubItem(helpResourceID);
+                if (found != null) return found;
+            }
+            return null;
+        }
     }
 
     /// <summary>

@@ -8,7 +8,7 @@ using System.Runtime.Serialization;
 namespace CADability.UserInterface
 {
     /// <summary>
-    /// Display an editable integer value in the property grid. 
+    /// Display an editable integer value in the property grid.
     /// </summary>
     [Serializable()]
     public class IntegerProperty : EditableProperty<int>, ISerializable, ISettingChanged, ICommandHandler, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
@@ -239,16 +239,6 @@ namespace CADability.UserInterface
         }
 
         #region IShowPropertyImpl Overrides
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Added"/>
-        /// </summary>
-        /// <param name="propertyPage"></param>
-        public override void Added(IPropertyPage propertyPage)
-        {
-            //propertyPage.InfoPopup.Add(numericUpDown,resourceId);
-            //propertyPage.InfoPopup.Add(textBox, resourceId);
-            base.Added(propertyPage);
-        }
         public override PropertyEntryType Flags
         {
             get
@@ -324,14 +314,6 @@ namespace CADability.UserInterface
             }
         }
         /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.Removed"/>
-        /// </summary>
-        /// <param name="propertyPage">the IPropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyPage propertyPage)
-        {
-            base.Removed(propertyPage);
-        }
-        /// <summary>
         /// Overrides <see cref="CADability.UserInterface.IShowPropertyImpl.UnSelected ()"/>
         /// </summary>
         //public override void UnSelected()
@@ -386,7 +368,7 @@ namespace CADability.UserInterface
             info.AddValue("SpecialValues", specialValues, typeof(Dictionary<int, string>));
         }
         protected IntegerProperty() { } // needed for IJsonSerialize
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("InternalValue", internalValue);
             data.AddProperty("resourceId", resourceId);
@@ -394,7 +376,7 @@ namespace CADability.UserInterface
             if (specialValues != null) data.AddProperty("SpecialValues", specialValues);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             internalValue = data.GetProperty<int>("InternalValue");
             resourceId = data.GetProperty<string>("resourceId");

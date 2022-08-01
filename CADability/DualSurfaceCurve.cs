@@ -738,7 +738,7 @@ namespace CADability
                 endParam = 0.0;
             }
 #if DEBUG
-            this.MakeTringulation();
+            this.MakeTriangulation();
 #endif
         }
         public ProjectedCurve(ICurve curve3D, ISurface surface, double startParam, double endParam, BoundingRect domain)

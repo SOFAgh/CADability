@@ -1167,7 +1167,7 @@ namespace CADability.GeoObject
             // upars, vpars describe an almost evenly spaced 5x5 grid while singularities and seams (of closed surface) are avoided
             // now lets see, whether in the middle we have a line or circular arc
 
-            precision = Math.Min(precision, PolesExtent.Size * 1e-5);
+            precision = Math.Max(precision, PolesExtent.Size * 1e-3);
 
             GeoPoint[,] samples = new GeoPoint[5, 5];
             for (int i = 0; i < 5; i++)
@@ -1236,16 +1236,16 @@ namespace CADability.GeoObject
                     // now in each direction there are either 3 circles or 3 lines
                     if (uIsLine && vIsLine)
                     {   // a plane or a hyperboloid
-                        double minerror = GaussNewtonMinimizer.PlaneFit(samples.Linear(), precision, out Plane pln);
-                        if (minerror < precision)
-                        {
-                            found = new PlaneSurface(pln);
-                        }
-                        else
-                        {
-                            Plane dbg = Plane.FromPoints(samples.Linear().ToArray(), out double maxdist1, out bool islin1);
-                            if (maxdist1 < precision) found = new PlaneSurface(dbg); // GaussNewtonMinimizer not well implemented
-                        }
+                        //double minerror = GaussNewtonMinimizer.PlaneFit(samples.Linear(), precision, out Plane pln);
+                        //if (minerror < precision)
+                        //{
+                        //    found = new PlaneSurface(pln);
+                        //}
+                        //else
+                        //{
+                            Plane plfp = Plane.FromPoints(samples.Linear().ToArray(), out double maxdist1, out bool islin1);
+                            if (maxdist1 < precision) found = new PlaneSurface(plfp); // GaussNewtonMinimizer not well implemented
+                        //}
 
                     }
                     else if (uIsCircle && vIsCircle)
@@ -1320,12 +1320,13 @@ namespace CADability.GeoObject
                         if (Math.Abs(radii[0] - radii[2]) < precision && Math.Abs(radii[4] - radii[2]) < precision)
                         {   // could be a cylinder
                             GeoVector axis = (centers[4] - centers[0]).Normalized;
-                            double minerror = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cs);
-                            if (minerror < precision) found = cs;
-                            else
-                            {
+                            // GaussNewtonMinimizer.CylinderFit not working with 6.stp
+                            //double minerror = GaussNewtonMinimizer.CylinderFit(samples.Linear(), centers[2], axis, radii[0], precision, out CylindricalSurface cs);
+                            //if (minerror < precision) found = cs;
+                            //else
+                            //{
 
-                            }
+                            //}
                         }
                         else
                         {   // could be a cone

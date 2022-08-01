@@ -34,6 +34,11 @@ namespace CADability.Curve2D
             sweep = new SweepAngle(StartPoint - center, EndPoint - center);
             // sweep ist zwischen -pi und +pi, also der Bogen ist maximal ein Halbkreis.
             // counterclock gibt aber die Richtung vor, deshalb ggf. umdrehen
+            if ((StartPoint | EndPoint) < radius * 1e-10)
+            {
+                if (counterclock) sweep = SweepAngle.Full;
+                else sweep = SweepAngle.FullReverse;
+            }
             if (counterclock && sweep <= 0.0) sweep += 2.0 * Math.PI;
             if (!counterclock && sweep >= 0.0) sweep -= 2.0 * Math.PI;
         }

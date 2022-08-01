@@ -40,14 +40,6 @@ namespace CADability
             return cs.color;
         }
         #region IShowPropertyImpl Overrides
-        public override void Added(IPropertyPage pp)
-        {
-            base.Added(pp);
-        }
-        public override void Removed(IPropertyPage pp)
-        {
-            base.Removed(pp);
-        }
         public override string Label { get => StringTable.GetString(resourceId); }
         public override string Value
         {

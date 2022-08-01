@@ -168,12 +168,21 @@ namespace CADability.GeoObject
     }
 
     [Serializable()]
-    public class Shell : IGeoObjectImpl, ISerializable, IColorDef, IGetSubShapes, IGeoObjectOwner, IDeserializationCallback, IExportStep
+    public class Shell : IGeoObjectImpl, ISerializable, IColorDef, IGetSubShapes, IGeoObjectOwner, IDeserializationCallback, IExportStep, IJsonSerialize, IJsonSerializeDone
     {
-        private Face[] faces; // das eigentliche Datum
-        private Edge[] edges; // sekundär: alle gesammelten edges
-        private string name; // aus STEP oder IGES kommen benannte solids (Shells, Faces?)
+        private Face[] faces; // the faces that make the shell
+        private Edge[] edges; // all edges of the faces, the faces are connected so we do not have duplicate edges
+        private string name; // the name of the shell, may be null
+        private List<ParametricProperty> parametricProperties;
         private bool orientedAndSeamless; // soll bedeuten, dass alle Faces "outwardoriented" sind und es keine Säume gibt (Kanten, die ein Face mit sich verbinden)
+        [Flags]
+        public enum ShellFlags
+        {
+            NonPeriodicFaces = 0x1,
+            FacesCombined = 0x2,
+            EdgesCombined = 0x4
+        }
+        public ShellFlags State;
         private GeoObjectList featureAxis;
         #region polymorph construction
         public delegate Shell ConstructionDelegate();
@@ -270,6 +279,7 @@ namespace CADability.GeoObject
             foreach (Face fc in Faces)
             {
                 fc.GetTriangulation(precision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
+                if (triangleIndex == null) continue;
                 // tried to use normals for correction, but the distance from plane had better results
                 //GeoVector[] triangleNormals = new GeoVector[triangleUVPoint.Length];
                 //for (int i = 0; i < triangleUVPoint.Length; i++)
@@ -299,6 +309,492 @@ namespace CADability.GeoObject
                 }
             }
             return sum / 6 + corr;
+        }
+
+        internal List<ParametricProperty> ParametricProperties { get { return parametricProperties; } }
+
+        internal void AddParametricProperty(ParametricProperty parametricProperty)
+        {
+            if (parametricProperties == null) parametricProperties = new List<ParametricProperty>();
+            parametricProperties.Add(parametricProperty);
+            // need to sort according to dependencies and affection
+        }
+
+        internal void RemoveParametricProperty(string name)
+        {   // there may be multiple properties with the same name
+            if (parametricProperties != null)
+            {
+                for (int i = parametricProperties.Count - 1; i >= 0; i--)
+                {
+                    if (parametricProperties[i].Name == name) parametricProperties.RemoveAt(i);
+                }
+            }
+        }
+        internal double GetParametricValue(string name)
+        {
+            for (int i = 0; i < parametricProperties.Count; i++)
+            {
+                if (parametricProperties[i].Name == name) return parametricProperties[i].Value;
+            }
+            return double.MaxValue;
+        }
+        internal List<IPropertyEntry> GetParameterProperties(IFrame frame, GroupProperty groupProperty)
+        {
+            List<IPropertyEntry> res = new List<IPropertyEntry>();
+            IView activeView = frame.ActiveView;
+            if (ParametricProperties != null)
+            {
+                HashSet<string> ppnames = new HashSet<string>();
+                for (int i = 0; i < ParametricProperties.Count; i++)
+                {
+                    ppnames.Add(ParametricProperties[i].Name); // there may be duplicate names
+                }
+                foreach (string name in ppnames)
+                {
+                    LengthProperty pp = new LengthProperty(frame); // maybe we also will need an AngleProperty depending on the property type
+                    pp.LabelText = name;
+                    string capturedName = name;
+                    pp.OnGetValue = delegate () { return GetParametricValue(capturedName); };
+                    pp.OnSetValue = delegate (double val) { SetParametricValue(capturedName, val); };
+                    pp.PropertyEntryChangedStateEvent += ParameterPropertyEntryChangedStateEvent;
+                    MenuWithHandler menu = new MenuWithHandler("MenuId.ParametricProperty.Remove");
+                    menu.OnCommand = delegate (string id)
+                    {
+                        RemoveParametricProperty(capturedName);
+                        List<IPropertyEntry> items = new List<IPropertyEntry>(groupProperty.SubItems);
+                        for (int i = 0; i < items.Count; i++)
+                        {
+                            if (items[i] is PropertyEntryImpl impl && impl.LabelText == capturedName)
+                            {
+                                items.RemoveAt(i);
+                                break; // name are unique
+                            }
+                        }
+                        groupProperty.SetSubEntries(items.ToArray());
+                        return true;
+                    };
+                    pp.PrependContextMenu = new MenuWithHandler[] { menu };
+                    var paintHandler = new PaintView(delegate (Rectangle Extent, IView View, IPaintTo3D PaintTo3D)
+                    {
+                        PaintParametricFeedback(capturedName, View, PaintTo3D);
+                    });
+                    pp.PropertyEntryChangedStateEvent += delegate (IPropertyEntry sender, StateChangedArgs args)
+                    {
+                        System.Diagnostics.Trace.WriteLine("State changed: " + capturedName + ", " + args.EventState.ToString());
+                        switch (args.EventState)
+                        {
+                            case StateChangedArgs.State.Selected:
+                                activeView.SetPaintHandler(PaintBuffer.DrawingAspect.Select, paintHandler);
+                                activeView.Invalidate(PaintBuffer.DrawingAspect.Select, activeView.DisplayRectangle);
+                                break;
+                            case StateChangedArgs.State.UnSelected:
+                            case StateChangedArgs.State.Removed:
+                                activeView.RemovePaintHandler(PaintBuffer.DrawingAspect.Select, paintHandler);
+                                break;
+                        }
+                    };
+                    res.Add(pp);
+                }
+            }
+            return res;
+        }
+
+        private void ParameterPropertyEntryChangedStateEvent(IPropertyEntry sender, StateChangedArgs args)
+        {
+            switch (args.EventState)
+            {
+                case StateChangedArgs.State.Added:
+                    for (int i = 0; i < ParametricProperties.Count; i++)
+                    {
+                        if (sender.Label == ParametricProperties[i].Name) ParametricProperties[i].PropertyEntry = sender;
+                    }
+                    break;
+                case StateChangedArgs.State.Removed:
+                    for (int i = 0; i < ParametricProperties.Count; i++)
+                    {
+                        if (sender.Label == ParametricProperties[i].Name) ParametricProperties[i].PropertyEntry = null;
+                    }
+                    break;
+                case StateChangedArgs.State.EditEnded:
+                    if (sender is LengthProperty lp) lp.Refresh();
+                    break;
+            }
+        }
+
+        private void PaintParametricFeedback(string name, IView view, IPaintTo3D paintTo3D)
+        {
+            paintTo3D.PushState();
+            bool oldSelect = paintTo3D.SelectMode;
+            paintTo3D.SelectMode = true;
+            paintTo3D.SelectColor = Color.FromArgb(128, Color.Yellow);
+            int wobbleWidth = -1; // i.e. also show faces which are behind other faces
+            if ((paintTo3D.Capabilities & PaintCapabilities.ZoomIndependentDisplayList) != 0)
+            {
+                paintTo3D.OpenList("select-context");
+                for (int i = 0; i < ParametricProperties.Count; i++)
+                {
+                    if (ParametricProperties[i].Name == name) // there may be duplicate names
+                    {
+                        GeoObjectList feedback = ParametricProperties[i].GetFeedback(view.Projection);
+                        if (feedback != null)
+                        {
+                            foreach (IGeoObject geoObject in feedback)
+                            {
+                                geoObject.PaintTo3D(paintTo3D);
+                            }
+                        }
+                    }
+                }
+                IPaintTo3DList displayList = paintTo3D.CloseList();
+                paintTo3D.SelectedList(displayList, wobbleWidth);
+            }
+            paintTo3D.SelectMode = oldSelect;
+            paintTo3D.PopState();
+        }
+
+        internal void SetParametricValue(string name, double val)
+        {
+            HashSet<ParametricProperty> parametricPropertiesToCheck = new HashSet<ParametricProperty>();
+            Parametric pm = new Parametric(this);
+            for (int i = 0; i < parametricProperties.Count; i++)
+            {   // there may be multiple parametric properties with the same name and value
+                if (parametricProperties[i].Name == name)
+                {
+                    parametricProperties[i].Value = val;
+                    parametricProperties[i].Execute(pm);
+                    parametricPropertiesToCheck.Add(parametricProperties[i]);
+                }
+            }
+            // We could use dependencies in the following meaning:
+            // The parametric(s) that was just executed may have changed (e.g.) an edge which ist the "fromHere" object of another parametric in the same shell
+            // This would be a dependent parametric, i.e. its startpoint has changed, but its value is still there in the editbox the old value, but in the
+            // modified shell, the value has changed.
+            // We could argue that this value has to be kept unchanged and therefore we execute this dependent parametric with the unchanged od value from the edit box.
+            // the following code does exactely that, with one part missing: The calculation of the actual value in the dependent parametric relies on the original shell
+            // and not on the modified shall in the parametric. We would have to use the parametrics dictionaries to acces the modified edges.
+            // This is not difficult. e.g. in the ParametricDistanceProperty we would have to pass the parametric to the GetDistanceVector method and use the modified edges
+            // (or faces or vertices) there.
+            // But do we really want this behaviour? In a parametric we can specify more faces to modify to establish such a dependency there.
+            // So the following code is disabled
+            //Dictionary<ParametricProperty,List<ParametricProperty>> dependencies = new Dictionary<ParametricProperty,List<ParametricProperty>>();
+            //foreach (ParametricProperty pp in parametricProperties)
+            //{
+            //    HashSet<object> affectedObjects = new HashSet<object>(pp.GetAffectedObjects());
+            //    dependencies[pp] = new List<ParametricProperty>();
+            //    foreach (ParametricProperty ppp in parametricProperties)
+            //    {
+            //        if (pp == ppp) continue;
+            //        if (affectedObjects.Contains(ppp.GetAnchor())) dependencies[pp].Add(ppp);
+            //    }
+            //}
+            //HashSet<ParametricProperty> appliedParametricProperties = new HashSet<ParametricProperty>();
+            //while (true)
+            //{
+            //    HashSet<ParametricProperty> nextLevel = new HashSet<ParametricProperty>();
+            //    foreach (ParametricProperty pp in parametricPropertiesToCheck)
+            //    {
+            //        if (appliedParametricProperties.Contains(pp)) continue;
+            //        appliedParametricProperties.Add(pp);
+            //        foreach (ParametricProperty ppp in dependencies[pp])
+            //        {
+            //            if (appliedParametricProperties.Contains(ppp)) continue;
+            //            ppp.Execute(pm);
+            //            nextLevel.Add(ppp);
+            //        }
+            //    }
+            //    if (nextLevel.Count > 0)
+            //    {
+            //        parametricPropertiesToCheck = nextLevel;
+            //    }
+            //    else break;
+            //}
+            Shell modified = pm.Result();
+            // now we need to copy the geometry back onto the faces, edges, vertices
+            if (modified != null)
+            {
+                using (new Changing(this))
+                {
+                    pm.GetDictionaries(out Dictionary<Face, Face> faceDict, out Dictionary<Edge, Edge> edgeDict, out Dictionary<Vertex, Vertex> vertexDict);
+                    foreach (Face face in Faces)
+                    {
+                        if (faceDict.TryGetValue(face, out Face modifiedFace))
+                        {
+                            face.CopyGeometryNoEdges(modifiedFace);
+                        }
+                    }
+                    foreach (Edge edge in Edges)
+                    {
+                        if (edgeDict.TryGetValue(edge, out Edge modifiedEdge))
+                        {
+                            edge.Curve3D = modifiedEdge.Curve3D;
+                            edge.PrimaryCurve2D = modifiedEdge.PrimaryCurve2D;
+                            edge.SecondaryCurve2D = modifiedEdge.SecondaryCurve2D;
+                        }
+                    }
+                    foreach (Vertex vertex in Vertices)
+                    {
+                        if (vertexDict.TryGetValue(vertex, out Vertex modifiedVertex))
+                        {
+                            vertex.Position = modifiedVertex.Position;
+                        }
+                    }
+                }
+                for (int i = 0; i < parametricProperties.Count; i++)
+                {
+                    if (parametricProperties[i].Name != name)
+                    {   // refresh the values of the other parameters
+                        if (parametricProperties[i].PropertyEntry is PropertyEntryImpl pe) pe.Refresh();
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < parametricProperties.Count; i++)
+                {
+                    if (parametricProperties[i].Name == name)
+                    {   // refresh this values (because the value entered is not possible
+                        if (parametricProperties[i].PropertyEntry is PropertyEntryImpl pe) pe.Refresh();
+                    }
+                }
+            }
+        }
+
+        internal List<IPropertyEntry> GetFeatureProperties(IFrame frame, GroupProperty groupProperty)
+        {
+            List<IPropertyEntry> res = new List<IPropertyEntry>();
+            IView activeView = frame.ActiveView;
+            Dictionary<string, HashSet<Face>> features = GetFeatures();
+            foreach (KeyValuePair<string,HashSet<Face>> feature in features)
+            {
+                List<IPropertyEntry> faceProperties = new List<IPropertyEntry>();
+                foreach (Face face in feature.Value)
+                {
+                    faceProperties.Add(face.GetShowProperties(frame));
+                }
+                GroupProperty featureProperty = new GroupProperty("", faceProperties.ToArray());
+                featureProperty.LabelText = feature.Key;
+                featureProperty.SetFlags(featureProperty.Flags | PropertyEntryType.LabelEditable);
+                res.Add(featureProperty);
+            }
+            return res;
+        }
+
+        public Dictionary<string, HashSet<Face>> GetFeatures()
+        {
+            Dictionary<string, HashSet<Face>> features = new Dictionary<string, HashSet<Face>>();
+            foreach (Face face in Faces)
+            {
+                HashSet<string> featureNames = face.UserData["CADability.Feature"] as HashSet<string>;
+                if (featureNames != null)
+                {
+                    foreach (string featureName in featureNames)
+                    {
+                        if (!features.TryGetValue(featureName, out HashSet<Face> faces))
+                        {
+                            faces = new HashSet<Face>();
+                            features[featureName] = faces;
+                        }
+                        faces.Add(face);
+                    }
+                }
+            }
+            return features;
+        }
+        public void AddFeature(string name, IEnumerable<Face> faces)
+        {
+            foreach (Face face in faces)
+            {
+                HashSet<string> featureNames = face.UserData["CADability.Feature"] as HashSet<string>;
+                if (featureNames == null)
+                {
+                    face.UserData["CADability.Feature"] = new SerializableHashSetString(new string[] { name });
+                }
+                else
+                {
+                    featureNames.Add(name);
+                }
+            }
+        }
+        public void RemoveFeature(string name)
+        {
+            foreach (Face face in faces)
+            {
+                HashSet<string> featureNames = face.UserData["CADability.Feature"] as HashSet<string>;
+                if (featureNames != null)
+                {
+                    featureNames.Remove(name);
+                }
+            }
+        }
+        public string GetNewFeatureName()
+        {
+            int maxNameindex = 0;
+            Dictionary<string, HashSet<Face>> features = GetFeatures();
+            string nn = StringTable.GetString("Solid.NewFeatureName");
+            foreach (string name in features.Keys)
+            {
+                if (name.StartsWith(nn))
+                {
+                    string nni = name.Substring(nn.Length);
+                    if (int.TryParse(nni, out int index))
+                    {
+                        maxNameindex = Math.Max(maxNameindex,index);
+                    }
+                }
+            }
+            return nn + (maxNameindex + 1).ToString();
+        }
+        internal double GetGauge(Face startHere, out HashSet<Face> frontSide, out HashSet<Face> backSide)
+        {
+            double thickness = double.MaxValue;
+            frontSide = new HashSet<Face>();
+            backSide = new HashSet<Face>();
+            HashSet<Face> alreadyChecked = new HashSet<Face>();
+            // look for all faces, which are parallel
+            foreach (Face face in faces)
+            {
+                if (face == startHere) continue;
+                if (face.IsOppositeParallel(startHere) != double.MaxValue)
+                {
+                    backSide.Add(face);
+                }
+            }
+            if (backSide.Count == 0) return double.MaxValue;
+            if (backSide.Count > 1)
+            {   // find the best parallel face (which may be arbitrary)
+                // special case for plane faces
+                if (startHere.Surface is PlaneSurface ps)
+                {   // with parallel planar faces we can project the outlines of the faces onto the "startHere" face, and look at the size of the intersection area
+                    // select the face with the biggest intersection area
+                    Face bestFace = null;
+                    double maxArea = 0.0;
+                    foreach (Face face in backSide)
+                    {
+                        List<ICurve2D> outline = new List<ICurve2D>();
+                        for (int i = 0; i < face.OutlineEdges.Length; i++)
+                        {
+                            ICurve2D projected = ps.GetProjectedCurve(face.OutlineEdges[i].Curve3D, 0.0);
+                            if (!face.OutlineEdges[i].Forward(face)) projected.Reverse();
+                            outline.Add(projected);
+                        }
+                        Border faceOutline = new Border(outline.ToArray());
+                        try
+                        {
+                            BorderOperation bo = new BorderOperation(startHere.Area.Outline, faceOutline);
+                            if (bo.Position != BorderOperation.BorderPosition.disjunct)
+                            {
+                                double a;
+                                if (bo.Position == BorderOperation.BorderPosition.identical) a = double.MaxValue; // best case: identical parallel faces
+                                else a = bo.Intersection().Area;
+                                if (a > maxArea)
+                                {
+                                    maxArea = a;
+                                    bestFace = face;
+                                }
+                            }
+                        }
+                        catch (Exception ex) { }
+                    }
+                    backSide.Clear();
+                    if (bestFace != null) backSide.Add(bestFace);
+                }
+                else
+                {   // this is not perfect
+                    HashSet<Face> goodFaces = new HashSet<Face>();
+                    GeoPoint2D sp = startHere.Area.GetSomeInnerPoint();
+                    GeoPoint lstart = startHere.Surface.PointAt(sp);
+                    GeoVector ldir = startHere.Surface.GetNormal(sp);
+                    foreach (Face face in backSide)
+                    {
+                        GeoPoint2D[] pos = face.Surface.GetLineIntersection(lstart, ldir);
+                        for (int i = 0; i < pos.Length; i++)
+                        {
+                            if (face.Area.Outline.GetPosition(pos[i]) == Border.Position.Inside)
+                            {
+                                goodFaces.Add(face);
+                                break;
+                            }
+                        }
+                    }
+                    backSide.Clear();
+                    if (goodFaces.Any())
+                    {
+                        backSide.Add(goodFaces.First());
+                    }
+                }
+            }
+            frontSide.Add(startHere);
+            if (backSide.Count == 1)
+            {
+                thickness = startHere.IsOppositeParallel(backSide.First());
+                bool found = false;
+                do
+                {
+                    found = false;
+                    HashSet<Face> frontTangential = new HashSet<Face>();
+                    HashSet<Face> backTangential = new HashSet<Face>();
+                    foreach (Face face in frontSide)
+                    {
+                        foreach (Edge edge in face.AllEdgesIterated())
+                        {
+                            if (edge.IsTangentialEdge() && !frontSide.Contains(edge.OtherFace(face)) && !backSide.Contains(edge.OtherFace(face)))
+                            {
+                                frontTangential.Add(edge.OtherFace(face));
+                            }
+                        }
+                    }
+                    foreach (Face face in backSide)
+                    {
+                        foreach (Edge edge in face.AllEdgesIterated())
+                        {
+                            if (edge.IsTangentialEdge() && !backSide.Contains(edge.OtherFace(face)) && !frontSide.Contains(edge.OtherFace(face)))
+                            {
+                                backTangential.Add(edge.OtherFace(face));
+                            }
+                        }
+                    }
+                    foreach (Face front in frontTangential)
+                    {
+                        foreach (Face back in backTangential)
+                        {
+                            if (Math.Abs(Math.Abs(front.IsOppositeParallel(back)) - Math.Abs(thickness)) < Precision.eps)
+                            {
+                                backTangential.Remove(back);
+                                backSide.Add(back);
+                                frontSide.Add(front);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                } while (found);
+            }
+            return thickness;
+        }
+        internal int GetFaceDistances(Face distanceFrom, out List<Face> distanceTo, out List<double> distance, out List<GeoPoint> pointsFrom, out List<GeoPoint> pointsTo)
+        {
+            distanceTo = new List<Face>();
+            distance = new List<double>();
+            pointsFrom = new List<GeoPoint>();
+            pointsTo = new List<GeoPoint>();
+            foreach (Face face in Faces)
+            {
+                if (face == distanceFrom) continue;
+                if (Surfaces.ParallelDistance(distanceFrom.Surface, distanceFrom.Domain, face.Surface, face.Domain, out GeoPoint2D uv1, out GeoPoint2D uv2))
+                {
+                    GeoPoint pFrom = distanceFrom.Surface.PointAt(uv1);
+                    GeoPoint pTo = face.Surface.PointAt(uv2);
+                    double dist = pFrom | pTo;
+                    if (dist > Precision.eps)
+                    {
+                        distanceTo.Add(face);
+                        distance.Add(dist);
+                        pointsFrom.Add(pFrom);
+                        pointsTo.Add(pTo);
+                    }
+                }
+            }
+            return distanceTo.Count;
         }
 
         /// <summary>
@@ -566,6 +1062,17 @@ namespace CADability.GeoObject
             return null; // verschwindet in der Projektion, oder Fehler
         }
 
+        public bool SameGeometry(Shell other)
+        {
+            if (Faces.Length != other.Faces.Length) return false;
+            if (Vertices.Length != other.Vertices.Length) return false;
+            if (edges.Length != other.Edges.Length) return false;
+            // now remains the hard work, which has still to be implemented
+            double precision = this.GetExtent(0.0).Size * 1e-3;
+            if (Math.Abs(Volume(precision) - other.Volume(precision)) > precision) return false; // this is the lazy version. We would have to at least fit all vertices
+            return true;
+        }
+
         public bool TestIntersection(List<ICurve> toTestWith)
         {
             for (int i = 0; i < Faces.Length; i++)
@@ -756,6 +1263,7 @@ namespace CADability.GeoObject
         {   // hier kann es sich um ein unabhängiges oder um ein von einem Solid abhängiges Shell handeln.
             // im letzteren Fall bleiben die edges undefiniert
             if (clonedVertices == null) clonedVertices = new Dictionary<Vertex, Vertex>();
+            if (clonedFaces == null && parametricProperties != null) clonedFaces = new Dictionary<Face, Face>();
             Shell res = Shell.Construct();
             res.CopyAttributes(this); // damit die Faces ihre Attribute beibehalten
             res.Name = Name;
@@ -766,10 +1274,29 @@ namespace CADability.GeoObject
                 res.faces[i].Owner = res;
                 if (clonedFaces != null) clonedFaces[faces[i]] = res.faces[i];
             }
+            res.State = State;
 #if DEBUG
             bool ok = res.CheckConsistency();
 #endif
-            // res.RecalcVertices(); not needed any more, since cloning already sets the vertices
+            if (parametricProperties != null)
+            {
+                for (int i = 0; i < parametricProperties.Count; i++)
+                {
+                    res.AddParametricProperty(parametricProperties[i].Clone(clonedFaces, clonedEdges, clonedVertices));
+                }
+            }
+            return res;
+        }
+        internal List<Face> ClonePart(IEnumerable<Face> toClone)
+        {
+            Dictionary<Edge, Edge> clonedEdges = new Dictionary<Edge, Edge>();
+            Dictionary<Vertex, Vertex> clonedVertices = new Dictionary<Vertex, Vertex>();
+            List<Face> res = new List<Face>();
+            foreach (Face face in toClone)
+            {
+                Face clone = face.Clone(clonedEdges, clonedVertices);
+                res.Add(clone);
+            }
             return res;
         }
         /// <summary>
@@ -785,22 +1312,42 @@ namespace CADability.GeoObject
             res.edges = new Edge[clonedEdges.Values.Count];
             clonedEdges.Values.CopyTo(res.edges, 0);
             res.orientedAndSeamless = orientedAndSeamless;
+            res.State = State;
 
             return res;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.CopyGeometry (IGeoObject)"/>
         /// </summary>
-        /// <param name="ToCopyFrom"></param>
-        public override void CopyGeometry(IGeoObject ToCopyFrom)
+        /// <param name="toCopyFrom"></param>
+        public override void CopyGeometry(IGeoObject toCopyFrom)
         {
-            Shell cc = ToCopyFrom as Shell;
+            Shell cc = toCopyFrom as Shell;
+            //using (new Changing(this))
+            //{
+            //    CopyGeometryNoEdges(cc);
+            //    for (int i = 0; i < Edges.Length; ++i)
+            //    {
+            //        edges[i].RecalcCurve3D();
+            //    }
+            //}
+            // we expect a totally synchronous face "toCopyFrom"
             using (new Changing(this))
             {
-                CopyGeometryNoEdges(cc);
-                for (int i = 0; i < Edges.Length; ++i)
+                HashSet<Edge> usedEdges = new HashSet<Edge>();
+                for (int i = 0; i < faces.Length; ++i)
                 {
-                    edges[i].RecalcCurve3D();
+                    faces[i].Surface.CopyData(cc.Faces[i].Surface);
+                    for (int j = 0; j < faces[i].AllEdges.Length; j++)
+                    {
+                        Edge edg = faces[i].AllEdges[j];
+                        if (!usedEdges.Contains(edg))
+                        {
+                            usedEdges.Add(edg);
+                            edg.CopyGeometry(cc.faces[i].AllEdges[j]);
+                        }
+                    }
+                    faces[i].InvalidateSecondaryData();
                 }
             }
         }
@@ -2111,7 +2658,6 @@ namespace CADability.GeoObject
             if (name != null) info.AddValue("Name", name);
             info.AddValue("OrientedAndSeamless", orientedAndSeamless);
         }
-
         #endregion
         #region IDeserializationCallback Members
         void IDeserializationCallback.OnDeserialization(object sender)
@@ -2121,10 +2667,39 @@ namespace CADability.GeoObject
                 faces[i].Owner = this;
             }
             if (Constructed != null) Constructed(this);
-            //RecalcVertices();
-            //Repair();
         }
         #endregion
+        public override void GetObjectData(IJsonWriteData data)
+        {
+            base.GetObjectData(data);
+            data.AddProperty("Faces", faces);
+            if (colorDef != null) data.AddProperty("ColorDef", colorDef);
+            if (name != null) data.AddProperty("Name", name);
+            data.AddProperty("State", State);
+            if (parametricProperties != null) data.AddProperty("ParametricProperties", parametricProperties);
+        }
+
+        public override void SetObjectData(IJsonReadData data)
+        {
+            base.SetObjectData(data);
+            faces = data.GetProperty<Face[]>("Faces");
+            colorDef = data.GetPropertyOrDefault<ColorDef>("ColorDef");
+            name = data.GetPropertyOrDefault<string>("Name");
+            State = data.GetProperty<ShellFlags>("State");
+            parametricProperties = data.GetPropertyOrDefault<List<ParametricProperty>>("ParametricProperties");
+            data.RegisterForSerializationDoneCallback(this);
+        }
+        void IJsonSerializeDone.SerializationDone()
+        {
+            for (int i = 0; i < faces.Length; ++i)
+            {
+                faces[i].Owner = this;
+                // what about:
+                //faces[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                //faces[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
+                // like in Solid or Block?
+            }
+        }
 #if DEBUG
 #endif
         public void FreeCachedMemory()
@@ -2854,6 +3429,10 @@ namespace CADability.GeoObject
         }
 #endif
         public bool IsInside(GeoPoint toTest)
+        {
+            return Contains(toTest);
+        }
+        public bool Contains(GeoPoint toTest)
         {
             // suche einen Face-Mittelpunkt, so dass kein Schnittpunkt zwischen toTest und dem Facemittelpunkt liegt
             // wenn gefunden, dann bestimme ob der Strahl von toTest und diesem Punkt von innen oder außen scheidet (Orientierung vorausgesetzt)
@@ -4804,7 +5383,7 @@ namespace CADability.GeoObject
 #if DEBUG
             if (!CheckConsistency()) { }
 #endif
-            RecalcVertices(); 
+            RecalcVertices();
 #if DEBUG
             if (!CheckConsistency()) { }
 #endif
@@ -4958,6 +5537,8 @@ namespace CADability.GeoObject
                 }
                 this.edges = null;
                 Edge[] allEdges = Edges;
+                State |= ShellFlags.EdgesCombined;
+                State |= ShellFlags.FacesCombined;
                 return res;
             }
         }
@@ -5210,129 +5791,133 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public Shell FeatureFromFace(Face toStartWith)
         {
-            Set<Face> featureFaces = new Set<Face>();
-            featureFaces.Add(toStartWith); // start with the provided face as part of the feature
-            while (featureFaces.Count < Faces.Length) // not all faces used
+            try
             {
-                Set<Edge> openFeatureEdges = new Set<Edge>(); // open edges of the feature
-                foreach (Face fc in featureFaces)
+                Set<Face> featureFaces = new Set<Face>();
+                featureFaces.Add(toStartWith); // start with the provided face as part of the feature
+                while (featureFaces.Count < Faces.Length) // not all faces used
                 {
-                    foreach (Edge edg in fc.OutlineEdges)
+                    Set<Edge> openFeatureEdges = new Set<Edge>(); // open edges of the feature
+                    foreach (Face fc in featureFaces)
                     {
-                        if (!featureFaces.Contains(edg.PrimaryFace) || !featureFaces.Contains(edg.SecondaryFace)) openFeatureEdges.Add(edg);
+                        foreach (Edge edg in fc.OutlineEdges)
+                        {
+                            if (!featureFaces.Contains(edg.PrimaryFace) || !featureFaces.Contains(edg.SecondaryFace)) openFeatureEdges.Add(edg);
+                        }
                     }
-                }
-                // try to find a loop from one of the open edges
-                List<Edge[]> loops = new List<Edge[]>();
-                List<Set<Face>> outsideFaces = new List<Set<Face>>();
-                foreach (Edge edg in openFeatureEdges)
-                {
-                    Set<Face> loopFaces = new Set<Face>(); // faces connecting to the loop but not part of the feature
-                    Edge[] loop = FindHole(edg, featureFaces, loopFaces);
-                    if (loop != null)
+                    // try to find a loop from one of the open edges
+                    List<Edge[]> loops = new List<Edge[]>();
+                    List<Set<Face>> outsideFaces = new List<Set<Face>>();
+                    foreach (Edge edg in openFeatureEdges)
                     {
-                        // found a loop making a hole on the loopfaces and beeing connected to one of the open edges of the feature
-                        // make sure not to add a loop already created
-                        Set<Edge> thisLoop = new Set<Edge>(loop);
-                        bool foundloop = false;
+                        Set<Face> loopFaces = new Set<Face>(); // faces connecting to the loop but not part of the feature
+                        Edge[] loop = FindHole(edg, featureFaces, loopFaces);
+                        if (loop != null)
+                        {
+                            // found a loop making a hole on the loopfaces and beeing connected to one of the open edges of the feature
+                            // make sure not to add a loop already created
+                            Set<Edge> thisLoop = new Set<Edge>(loop);
+                            bool foundloop = false;
+                            for (int i = 0; i < loops.Count; i++)
+                            {
+                                if (thisLoop.ContainsAll(loops[i]))
+                                {
+                                    foundloop = true;
+                                    break;
+                                }
+                            }
+                            if (!foundloop)
+                            {
+                                loops.Add(loop);
+                                outsideFaces.Add(loopFaces);
+                            }
+                        }
+                    }
+                    if (loops.Count > 0)
+                    {
+                        Set<Edge> barrier = new Set<Edge>(); // barrier is a set of edges which should isolate the feature, it consist of one ore more loops
                         for (int i = 0; i < loops.Count; i++)
                         {
-                            if (thisLoop.ContainsAll(loops[i]))
+                            barrier.AddMany(loops[i]);
+                        }
+                        Set<Face> testFeature = new Set<Face>(featureFaces);
+                        if (CollectFaces(testFeature, barrier))
+                        {   // there is a true subset of this shell isolated by the barrier, which makes the feature
+                            Dictionary<Edge, Edge> clonedEdges = new Dictionary<Edge, Edge>();
+                            Dictionary<Vertex, Vertex> clonedVertices = new Dictionary<Vertex, Vertex>();
+                            List<Face> clonedFeature = new List<Face>(); // clone the result to make it independat from this shell
+                            foreach (Face fc in testFeature)
                             {
-                                foundloop = true;
-                                break;
+                                clonedFeature.Add(fc.Clone(clonedEdges, clonedVertices));
                             }
-                        }
-                        if (!foundloop)
-                        {
-                            loops.Add(loop);
-                            outsideFaces.Add(loopFaces);
-                        }
-                    }
-                }
-                if (loops.Count > 0)
-                {
-                    Set<Edge> barrier = new Set<Edge>(); // barrier is a set of edges which should isolate the feature, it consist of one ore more loops
-                    for (int i = 0; i < loops.Count; i++)
-                    {
-                        barrier.AddMany(loops[i]);
-                    }
-                    Set<Face> testFeature = new Set<Face>(featureFaces);
-                    if (CollectFaces(testFeature, barrier))
-                    {   // there is a true subset of this shell isolated by the barrier, which makes the feature
-                        Dictionary<Edge, Edge> clonedEdges = new Dictionary<Edge, Edge>();
-                        Dictionary<Vertex, Vertex> clonedVertices = new Dictionary<Vertex, Vertex>();
-                        List<Face> clonedFeature = new List<Face>(); // clone the result to make it independat from this shell
-                        foreach (Face fc in testFeature)
-                        {
-                            clonedFeature.Add(fc.Clone(clonedEdges, clonedVertices));
-                        }
-                        for (int j = 0; j < loops.Count; j++) // for each loop construct a face which closes the open loop of the feature
-                        {
-                            Edge[] lidEdges = new Edge[loops[j].Length];
-                            for (int i = 0; i < loops[j].Length; i++)
+                            for (int j = 0; j < loops.Count; j++) // for each loop construct a face which closes the open loop of the feature
                             {
-                                lidEdges[i] = clonedEdges[loops[j][i]];
-                            }
-                            Face lid = Face.Construct();
-                            Face outside = outsideFaces[j].GetAny();
-                            ISurface srf = outside.Surface.Clone(); // all cutoff faces are asumed to have (geometrically) the same surface
-                            BoundingRect domain = outside.Area.GetExtent();
-                            for (int i = 0; i < lidEdges.Length; i++)
-                            {
-                                if (lidEdges[i].Curve3D is InterpolatedDualSurfaceCurve)
+                                Edge[] lidEdges = new Edge[loops[j].Length];
+                                for (int i = 0; i < loops[j].Length; i++)
                                 {
-                                    InterpolatedDualSurfaceCurve dsc = lidEdges[i].Curve3D as InterpolatedDualSurfaceCurve;
-                                    ISurface oldSurface;
-                                    ModOp2D oldToNew;
-                                    if (dsc.Surface1 == lidEdges[i].PrimaryFace.Surface)
-                                    {
-                                        oldSurface = dsc.Surface2;
-                                        oldSurface.SameGeometry(domain, srf, domain, Precision.eps, out oldToNew);
-                                    }
-                                    else
-                                    {
-                                        oldSurface = dsc.Surface1;
-                                        oldSurface.SameGeometry(domain, srf, domain, Precision.eps, out oldToNew);
-                                    }
-                                    dsc.ReplaceSurface(oldSurface, srf, oldToNew);
+                                    lidEdges[i] = clonedEdges[loops[j][i]];
                                 }
-                                lidEdges[i].SetSecondary(lid, srf.GetProjectedCurve(lidEdges[i].Curve3D, 0.0), !lidEdges[i].Forward(lidEdges[i].PrimaryFace));
+                                Face lid = Face.Construct();
+                                Face outside = outsideFaces[j].GetAny();
+                                ISurface srf = outside.Surface.Clone(); // all cutoff faces are asumed to have (geometrically) the same surface
+                                BoundingRect domain = outside.Area.GetExtent();
+                                for (int i = 0; i < lidEdges.Length; i++)
+                                {
+                                    if (lidEdges[i].Curve3D is InterpolatedDualSurfaceCurve)
+                                    {
+                                        InterpolatedDualSurfaceCurve dsc = lidEdges[i].Curve3D as InterpolatedDualSurfaceCurve;
+                                        ISurface oldSurface;
+                                        ModOp2D oldToNew;
+                                        if (dsc.Surface1 == lidEdges[i].PrimaryFace.Surface)
+                                        {
+                                            oldSurface = dsc.Surface2;
+                                            oldSurface.SameGeometry(domain, srf, domain, Precision.eps, out oldToNew);
+                                        }
+                                        else
+                                        {
+                                            oldSurface = dsc.Surface1;
+                                            oldSurface.SameGeometry(domain, srf, domain, Precision.eps, out oldToNew);
+                                        }
+                                        dsc.ReplaceSurface(oldSurface, srf, oldToNew);
+                                    }
+                                    lidEdges[i].SetSecondary(lid, srf.GetProjectedCurve(lidEdges[i].Curve3D, 0.0), !lidEdges[i].Forward(lidEdges[i].PrimaryFace));
+                                }
+                                Array.Reverse(lidEdges);
+                                lid.Set(srf, new Edge[][] { lidEdges });
+                                lid.UserData.Add("Feature.Lid", true);
+                                clonedFeature.Add(lid);
                             }
-                            Array.Reverse(lidEdges);
-                            lid.Set(srf, new Edge[][] { lidEdges });
-                            lid.UserData.Add("Feature.Lid", true);
-                            clonedFeature.Add(lid);
+                            Shell res = Shell.MakeShell(clonedFeature.ToArray());
+                            res.AssertOutwardOrientation();
+                            if (res.Faces.Length <= 3)
+                            {   // it might be a face as a simple piece of a plane with the same face as a lid. We dont want that.
+                                loops.Clear(); // to find faces outside this loop
+                            }
+                            else if (!res.HasOpenEdgesExceptPoles()) return res;
                         }
-                        Shell res = Shell.MakeShell(clonedFeature.ToArray());
-                        res.AssertOutwardOrientation();
-                        if (res.Faces.Length <= 3)
-                        {   // it might be a face as a simple piece of a plane with the same face as a lid. We dont want that.
-                            loops.Clear(); // to find faces outside this loop
+                    }
+                    bool found = false;
+                    Set<Edge> loopEdges = new Set<Edge>();
+                    for (int i = 0; i < loops.Count; i++) loopEdges.AddMany(loops[i]);
+                    foreach (Edge edg in openFeatureEdges)
+                    {
+                        if (loopEdges.Contains(edg)) continue;
+                        if (!featureFaces.Contains(edg.PrimaryFace))
+                        {
+                            featureFaces.Add(edg.PrimaryFace);
+                            found = true;
                         }
-                        else if (!res.HasOpenEdgesExceptPoles()) return res;
+                        else if (edg.SecondaryFace != null && !featureFaces.Contains(edg.SecondaryFace))
+                        {
+                            featureFaces.Add(edg.SecondaryFace);
+                            found = true;
+                        }
+                        if (found) break;
                     }
+                    if (!found) return null; // no more faces to test left
                 }
-                bool found = false;
-                Set<Edge> loopEdges = new Set<Edge>();
-                for (int i = 0; i < loops.Count; i++) loopEdges.AddMany(loops[i]);
-                foreach (Edge edg in openFeatureEdges)
-                {
-                    if (loopEdges.Contains(edg)) continue;
-                    if (!featureFaces.Contains(edg.PrimaryFace))
-                    {
-                        featureFaces.Add(edg.PrimaryFace);
-                        found = true;
-                    }
-                    else if (edg.SecondaryFace != null && !featureFaces.Contains(edg.SecondaryFace))
-                    {
-                        featureFaces.Add(edg.SecondaryFace);
-                        found = true;
-                    }
-                    if (found) break;
-                }
-                if (!found) return null; // no more faces to test left
             }
+            catch { } // this should not happen and should be examined. For now, no feature is returned from this face
             return null;
         }
 
@@ -5409,7 +5994,7 @@ namespace CADability.GeoObject
                     }
                     if (goOnWith != null)
                     {
-                        ICurve2D c2d = goOnWith.Curve2D(goOnFace);
+                        ICurve2D c2d = goOnWith.Curve2D(goOnFace).Clone(); // Clone is needed because of interpolatedDualSurfaceCurve.ProjectedCurve.GetModified, which changes the 3d curve
                         if (!toMainFace.IsIdentity) c2d = c2d.GetModified(toMainFace);
                         loop.Add(c2d);
                         res.Add(goOnWith);
@@ -5592,7 +6177,207 @@ namespace CADability.GeoObject
             }
             return null;
         }
-
+        private static HashSet<Edge> UnconnectedEdges(IEnumerable<Face> faces)
+        {
+            HashSet<Edge> edges = new HashSet<Edge>();
+            foreach (Face face in faces)
+            {
+                foreach (Edge edge in face.Edges)
+                {
+                    if (edges.Contains(edge)) continue;
+                    Face otherFace = edge.OtherFace(face);
+                    if (otherFace != null && faces.Contains(otherFace)) continue;
+                    edges.Add(edge);
+                }
+            }
+            return edges;
+        }
+        private static List<Edge> FindCommonSurfaceLoop(Edge startHere, Face toExclude)
+        {
+            Vertex v = startHere.Vertex1;
+            // to continue, work in progress
+            return null;
+        }
+        private static Face CommonFace(IEnumerable<Edge> edges, bool acceptSameGeometry)
+        {
+            Face face = null;
+            if (!edges.Any()) return null;
+            Edge edge1 = edges.First();
+            Edge edge2 = edges.Last();
+            if (edge1 == edge2) return null; // only a single edge
+            if (edge1.PrimaryFace == edge2.PrimaryFace) face = edge1.PrimaryFace;
+            else if (edge1.PrimaryFace == edge2.SecondaryFace) face = edge1.PrimaryFace;
+            else if (edge1.SecondaryFace == edge2.PrimaryFace) face = edge1.SecondaryFace;
+            else if (edge1.SecondaryFace == edge2.SecondaryFace) face = edge1.SecondaryFace;
+            if (face == null && acceptSameGeometry)
+            {
+                if (edge1.PrimaryFace.SameSurface(edge2.PrimaryFace)) face = edge1.PrimaryFace;
+                else if (edge1.PrimaryFace.SameSurface(edge2.SecondaryFace)) face = edge1.PrimaryFace;
+                else if (edge1.SecondaryFace.SameSurface(edge2.PrimaryFace)) face = edge1.SecondaryFace;
+                else if (edge1.SecondaryFace.SameSurface(edge2.SecondaryFace)) face = edge1.SecondaryFace;
+            }
+            if (face != null)
+            {
+                foreach (Edge edge in edges)
+                {
+                    if (edge == edge1) continue;
+                    if (edge == edge2) continue;
+                    if (edge.PrimaryFace == face || edge.SecondaryFace == face) continue;
+                    if (acceptSameGeometry)
+                    {
+                        if (face.SameSurface(edge.PrimaryFace) || face.SameSurface(edge.SecondaryFace)) continue;
+                    }
+                    face = null;
+                    break;
+                }
+            }
+            return face;
+        }
+        /// <summary>
+        /// Returns "features" of the shell. A feature is a subset of the faces of the shell, which is seperated by the provided <paramref name="loops"/>. Since such a feature
+        /// has open edges, there is also a face or multiple faces, which close the feature to make it to a solid.
+        /// </summary>
+        /// <param name="bounds"></param>
+        public void FeaturesFromEdges(List<Edge[]> loops, List<IEnumerable<Face>> features, List<IEnumerable<Face>> lids, IEnumerable<Face> startWith)
+        {
+            HashSet<Edge> margin = new HashSet<Edge>();
+            for (int i = 0; i < loops.Count; i++)
+            {
+                margin.UnionWith(loops[i]);
+            }
+            HashSet<Face> collection = new HashSet<Face>(startWith);
+            HashSet<Edge> edgeToConnect = new HashSet<Edge>();
+            foreach (Face face in collection)
+            {
+                foreach (Edge edge in face.Edges)
+                {
+                    if (margin.Contains(edge)) continue;
+                    if (edge.IsPartOfHole(edge.OtherFace(face)))
+                    {
+                        List<Edge[]> loopsCloned = new List<Edge[]>(loops);
+                        Edge[] hole = edge.OtherFace(face).GetHole(edge);
+                        if (hole != null)
+                        {
+                            loopsCloned.Add(hole);
+                            FeaturesFromEdges(loopsCloned, features, lids, collection); // maybe adds some more features, which are delimited by the hole
+                        }
+                    }
+                    edgeToConnect.Add(edge);
+                }
+            }
+            do
+            {
+                HashSet<Edge> unconnected = UnconnectedEdges(collection);
+                unconnected.ExceptWith(margin);
+                Face commonFace = CommonFace(unconnected, true);
+                if (commonFace != null && !collection.Contains(commonFace)) features.Add(new HashSet<Face>(collection));
+                HashSet<Face> found = new HashSet<Face>();
+                foreach (Edge edge in unconnected)
+                {
+                    if (!collection.Contains(edge.PrimaryFace)) found.Add(edge.PrimaryFace);
+                    if (!collection.Contains(edge.SecondaryFace)) found.Add(edge.SecondaryFace);
+                }
+                if (!found.Any()) break;
+                collection.UnionWith(found);
+            } while (true);
+        }
+        public List<Shell> FeaturesFromEdges(ICollection<Edge> bounds)
+        {
+            List<Shell> res = new List<Shell>();
+            List<List<Edge>> loops = new List<List<Edge>>(); // a list of loops from bounds (most cases: there is only one loop)
+            HashSet<Edge> toUse = new HashSet<Edge>(bounds); // copy of the set to not destroy the provided set
+            while (toUse.Any())
+            {
+                List<Edge> loop = new List<Edge>();
+                Edge edge = toUse.First();
+                toUse.Remove(edge);
+                loop.Add(edge);
+                Vertex comingFrom = edge.Vertex1;
+                Vertex connectTo = edge.Vertex2;
+                do
+                {
+                    edge = toUse.Intersect(connectTo.AllEdges).FirstOrDefault();
+                    if (edge != null)
+                    {
+                        toUse.Remove(edge);
+                        loop.Add(edge);
+                        if (connectTo == edge.Vertex1) connectTo = edge.Vertex2;
+                        else connectTo = edge.Vertex1;
+                    }
+                    else break;
+                } while (true);
+                loops.Add(loop);
+            }
+            HashSet<Face> usedFaces = new HashSet<Face>();
+            List<HashSet<Face>> subsets = new List<HashSet<Face>>();
+            foreach (Edge edg in bounds)
+            {
+                if (usedFaces.Contains(edg.PrimaryFace) || usedFaces.Contains(edg.SecondaryFace)) continue;
+                HashSet<Face> connectedToPrimary = new HashSet<Face>();
+                edg.PrimaryFace.CollectConnectedFaces(connectedToPrimary, bounds);
+                HashSet<Face> connectedToSecondary = new HashSet<Face>();
+                edg.SecondaryFace.CollectConnectedFaces(connectedToSecondary, bounds);
+                if (connectedToPrimary.Intersect(connectedToSecondary).Any())
+                {   // the two sets should be disjunct, otherwise the bounds do not seperate two parts
+                    return res; // which is probably empty
+                }
+                subsets.Add(connectedToPrimary);
+                subsets.Add(connectedToSecondary);
+                usedFaces.UnionWith(connectedToPrimary);
+                usedFaces.UnionWith(connectedToSecondary);
+            }
+            foreach (HashSet<Face> subset in subsets)
+            {   // now each subset has one or more loops of open edges, which must be closed by a new face
+                List<Face> caps = new List<Face>();
+                foreach (List<Edge> loop in loops)
+                {
+                    HashSet<Face> connectedFaces = new HashSet<Face>();
+                    if (subset.Contains(loop[0].PrimaryFace) || subset.Contains(loop[0].SecondaryFace))
+                    {
+                        for (int i = 0; i < loop.Count; i++)
+                        {
+                            if (subset.Contains(loop[i].PrimaryFace)) connectedFaces.Add(loop[i].SecondaryFace);
+                            else connectedFaces.Add(loop[i].PrimaryFace);
+                        }
+                        ISurface surface = null;
+                        if (connectedFaces.Count == 1)
+                        {
+                            surface = connectedFaces.First().Surface;
+                        }
+                        else if (connectedFaces.Count == 2)
+                        {   // maybe two faces with the same surface
+                            Face face0 = connectedFaces.ElementAt(0);
+                            Face face1 = connectedFaces.ElementAt(1);
+                            if (face0.Surface.SameGeometry(face0.Domain, face1.Surface, face1.Domain, 0.0, out ModOp2D _)) surface = face0.Surface;
+                        }
+                        if (surface != null)
+                        {
+                            List<ICurve2D> curve2Ds = new List<ICurve2D>(loop.Count);
+                            for (int i = 0; i < loop.Count; i++)
+                            {
+                                curve2Ds.Add(surface.GetProjectedCurve(loop[i].Curve3D, 0.0));
+                            }
+                            Border bdr = Border.FromUnorientedList(curve2Ds.ToArray(), false);
+                            if (bdr != null && bdr.IsClosed && bdr.Area > 0)
+                            {
+                                Face cap = Face.MakeFace(surface, new SimpleShape(bdr));
+                                if (cap != null && cap.CheckConsistency()) caps.Add(cap);
+                            }
+                        }
+                    }
+                }
+                if (caps.Count > 0)
+                {
+                    List<Face> feature = ClonePart(subset);
+                    feature.AddRange(caps);
+                    Shell.connectFaces(feature.ToArray(), Precision.eps);
+                    Shell fs = Shell.MakeShell(feature.ToArray(), false);
+                    fs.AssertOutwardOrientation();
+                    res.Add(fs);
+                }
+            }
+            return res;
+        }
         private static void AccumulateConnectedFaces(Set<Face> connectedFaces)
         {
             Set<Edge> edgesToTest = new Set<Edge>();
@@ -5783,5 +6568,6 @@ namespace CADability.GeoObject
             res.Add(mhadd);
             return res.ToArray();
         }
+
     }
 }

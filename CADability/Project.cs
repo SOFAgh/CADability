@@ -1021,7 +1021,9 @@ namespace CADability
             object o = Settings.GlobalSettings.GetValue("DefaultModelSize");
             if (o != null)
             {
-                m.Extent = (BoundingCube)o;
+                if (o is BoundingCube) m.Extent = (BoundingCube)o;
+                else if (o is List<object> lo) m.Extent = new BoundingCube((double)lo[0], (double)lo[1], (double)lo[2], (double)lo[3], (double)lo[4], (double)lo[5]);
+                else m.Extent = new BoundingCube(0, 100, 0, 100, 0, 100);
             }
             else
             {
@@ -1645,7 +1647,9 @@ namespace CADability
         private static Project ReadFromJson(FileStream stream)
         {
             JsonSerialize js = new JsonSerialize();
-            return js.FromStream(stream) as Project;
+            Project res = js.FromStream(stream) as Project;
+            AttributeListContainer.UpdateLists(res, true);
+            return res;
         }
         private static Project ReadConvertedFile(string FileName, bool useProgress)
         {
@@ -1808,7 +1812,7 @@ namespace CADability
                     Project project = Project.CreateSimpleProject();
                     foreach (IGeoObject go in list)
                     {
-                        if (go is IColorDef icd && icd.ColorDef == null) icd.ColorDef = project.ColorList.CreateOrFind("Standard", Color.Red);
+                        if (go is IColorDef icd && icd.ColorDef == null) icd.SetTopLevel(project.ColorList.CreateOrFind("Standard", Color.Red), true);
                         if (go.Layer == null) go.Layer = project.LayerList.CreateOrFind("Standard");
                         AttributeListContainer.UpdateObjectAttrinutes(project, go);
                         go.UpdateAttributes(project);
@@ -2353,7 +2357,7 @@ namespace CADability
             info.AddValue("ActiveViewName", activeViewName);
             if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Models", models);
             data.AddProperty("ActiveModelIndex", activeModelIndex);
@@ -2372,7 +2376,7 @@ namespace CADability
             if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             int version = data.Version;
             models = new ArrayList(data.GetPropertyOrDefault<List<Model>>("Models"));
@@ -2660,7 +2664,7 @@ namespace CADability
             // Problem: die OnDeserialization für die Listen müssen vorher aufgerufen werden
             // wie kann man das erzwingen? zunächst mal wird's jetzt einfach vorher aufgerufen, auf die Gefahr hin, dass
             // es zweimal aufgerufen wird.
-            AttributeListContainer.UpdateLists(this, true);
+            // AttributeListContainer.UpdateLists(this, true);
             filterList.AttributeListContainer = this;
 
             undoRedoSystem = new UndoRedoSystem();

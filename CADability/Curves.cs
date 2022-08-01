@@ -327,6 +327,14 @@ namespace CADability.GeoObject
         /// <param name="position"></param>
         /// <returns></returns>
         double PositionToParameter(double position);
+        /// <summary>
+        /// Extend the curve at the beginning or/and end. Not all curves are extendable, if they are not extendable they should return false.
+        /// The units is the actual length of the curve, not the parameter space.
+        /// </summary>
+        /// <param name="atStart"></param>
+        /// <param name="atEnd"></param>
+        /// <returns></returns>
+        bool Extend(double atStart, double atEnd);
     }
     /// <summary>
     /// Enumeration for direction of curve extension
@@ -353,7 +361,7 @@ namespace CADability.GeoObject
     public interface IExtentedableCurve
     {
         /// <summary>
-        /// Returns the IOctTreeInsertable object categorizing this curve. Ususally used to search
+        /// Returns the IOctTreeInsertable object categorizing this curve. Usually used to search
         /// in an <see cref="OctTree{T}"/>.
         /// </summary>
         /// <param name="direction">Extend direction</param>

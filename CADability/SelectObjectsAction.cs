@@ -33,7 +33,7 @@ namespace CADability.Actions
     /// Select.UseFrame
     /// </summary>
     [Serializable]
-    class SelectObjectsSettings : Settings, IDeserializationCallback
+    class SelectObjectsSettings : Settings, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
         public static SelectObjectsSettings GetDefault()
         {	// erzeuge eine Default Version des Objektes
@@ -178,10 +178,25 @@ namespace CADability.Actions
                 AddSetting("FastFeedback", FastFeedbackProperty); // soll der Markierrahmen mit den Handles verwendet werden
             }
         }
+        public override void GetObjectData(IJsonWriteData data)
+        {
+            base.GetObjectData(data);
+        }
+
+        public override void SetObjectData(IJsonReadData data)
+        {
+            base.SetObjectData(data);
+            data.RegisterForSerializationDoneCallback(this);
+        }
+        public override void SerializationDone()
+        {
+            base.SerializationDone();
+            OnDeserialization();
+        }
         #endregion
     }
 
-    internal class SetSelection: ICommandHandler
+    internal class SetSelection : ICommandHandler
     {
         IGeoObject toSelect;
         SelectObjectsAction selectObjectsAction;
@@ -273,6 +288,8 @@ namespace CADability.Actions
         private bool pickParent; // z.Z. unveränderlich: nur Parent picken
         // private bool pickEdges; // lieber Kanten als Flächen Picken, offensichtlich nirgends verwendet
         private PickMode pickMode;
+        private PickMode oldPickMode; // fallback value when overwritten by context menu
+        private bool accumulateObjects; // if set, no need to hold ctrl key to accumulate objects
         internal bool dragDrop;
         /// <summary>
         /// Constructs a new SelectObjectsAction. This is automatically done when a <see cref="IFrame"/> derived object
@@ -294,11 +311,12 @@ namespace CADability.Actions
             pickParent = true;
             dragDrop = true;
             base.ViewType = typeof(IActionInputView); // arbeitet nur auf ModelView Basis
-            pickMode = PickMode.normal;
-#if TESTNEWCONTEXTMENU
-            SelectActionContextMenu sacm = new SelectActionContextMenu(this);
-            FilterMouseMessagesEvent += sacm.FilterMouseMessages;
-#endif
+            oldPickMode = pickMode = PickMode.normal;
+            if (Settings.GlobalSettings.GetBoolValue("Experimental.TestNewContextMenu", false))
+            {
+                SelectActionContextMenu sacm = new SelectActionContextMenu(this);
+                FilterMouseMessagesEvent += sacm.FilterMouseMessages;
+            }
         }
 
         void OnFocusedObjectChanged(SelectedObjectsProperty sender, IGeoObject focused)
@@ -642,8 +660,20 @@ namespace CADability.Actions
             }
             set
             {
-                pickMode = value;
+                oldPickMode = pickMode = value;
+                accumulateObjects = false;
             }
+        }
+        public void OverwriteMode(PickMode mode)
+        {
+            oldPickMode = this.pickMode;
+            this.pickMode = mode;
+            accumulateObjects = true;
+        }
+        public void ResetMode()
+        {
+            accumulateObjects = false;
+            pickMode = oldPickMode;
         }
         /// <summary>
         /// Adds the provided GeoObject to the list of selected objects.
@@ -674,9 +704,9 @@ namespace CADability.Actions
                     //sh.RecalcVertices();
                     //sh.CombineConnectedFaces();
                     //ok = sh.CheckConsistency();
-                    string serialized = JsonSerialize.ToString(selObj[0] as Solid);
-                    Solid dbg = JsonSerialize.FromString(serialized) as Solid;
-                    ok = dbg.Shells[0].CheckConsistency();
+                    //string serialized = JsonSerialize.ToString(selObj[0] as Solid);
+                    //Solid dbg = JsonSerialize.FromString(serialized) as Solid;
+                    //ok = dbg.Shells[0].CheckConsistency();
                     //foreach (Edge edg in (selObj[0] as Solid).Shells[0].Edges)
                     //{
 
@@ -788,6 +818,14 @@ namespace CADability.Actions
                 }
             }
             if (SelectedObjectListChangedEvent != null) SelectedObjectListChangedEvent(this, selectedObjects);
+        }
+        /// <summary>
+        /// Sets the provided object as the only selected object
+        /// </summary>
+        /// <param name="toSelect"></param>
+        public void SetSelectedObject(IGeoObject toSelect)
+        {
+            SetSelectedObjects(new GeoObjectList(toSelect));
         }
         /// <summary>
         /// Replaces the contents of the list of selected objects by the contents of the provided list.
@@ -951,6 +989,7 @@ namespace CADability.Actions
                     //vw.RemovePaintHandler(PaintBuffer.DrawingAspect.Select, new RepaintView(OnRepaintSelect));
                     vw.RemovePaintHandler(PaintBuffer.DrawingAspect.Select, new PaintView(OnRepaintSelect));
                 }
+                ResetMode(); // when the context menu did switch to a collecting mode, we must stop it here
             }
             base.Frame.SettingChangedEvent -= new SettingChangedDelegate(OnSettingChanged);
             Model m = base.Frame.Project.GetActiveModel();
@@ -1413,7 +1452,7 @@ namespace CADability.Actions
                 if (mode == Mode.DragRect)
                 {
                     GeoObjectList found = ObjectsInsideDragRect(vw);
-                    if (Frame.UIService.ModifierKeys == Keys.Control)
+                    if (Frame.UIService.ModifierKeys == Keys.Control || accumulateObjects)
                     {
                         GeoObjectList l = selectedObjects.Clone();
                         SetSelectedObjects(new GeoObjectList()); // leer
@@ -1431,7 +1470,7 @@ namespace CADability.Actions
                 }
                 else if (mode == Mode.DragMove)
                 {
-                    if (Frame.UIService.ModifierKeys == Keys.Control)
+                    if (Frame.UIService.ModifierKeys == Keys.Control || accumulateObjects)
                     {
                         Frame.ActiveView.Model.Add(activeObjects);
                         SetSelectedObjects(activeObjects);
@@ -1462,7 +1501,7 @@ namespace CADability.Actions
                     }
                     else
                     {
-                        if (Frame.UIService.ModifierKeys == Keys.Control)
+                        if (Frame.UIService.ModifierKeys == Keys.Control || accumulateObjects)
                         {
                             GeoObjectList undercursor = ObjectsUnderCursor(e, vw, true);
                             GeoObjectList toSelect = selectedObjects.Clone();
@@ -1622,7 +1661,7 @@ namespace CADability.Actions
                         {
                             ClickOnSelectedObjectEvent(selectedObjects[0], vw, e, ref done);
                         }
-                        canStartDrag = vw .AllowDrag;
+                        canStartDrag = vw.AllowDrag;
                     }
                 }
                 else
@@ -2074,7 +2113,7 @@ namespace CADability.Actions
                             Solid toAdd = Solid.Unite(s1, s2);
                             if (toAdd != null)
                             {
-                                    toAdd.CopyAttributes(s1);
+                                toAdd.CopyAttributes(s1);
                                 ClearSelectedObjects();
                                 using (Frame.Project.Undo.UndoFrame)
                                 {
@@ -2447,10 +2486,10 @@ namespace CADability.Actions
                     CommandState.Enabled = selectedObjects.Count > 0;
                     return true;
                 case "MenuId.Edit.Paste":
-					if (!Settings.GlobalSettings.GetBoolValue("DontCheckClipboardContent", false))
-					{
-						CommandState.Enabled = Frame.UIService.HasClipboardData(typeof(GeoObjectList));
-					}
+                    if (!Settings.GlobalSettings.GetBoolValue("DontCheckClipboardContent", false))
+                    {
+                        CommandState.Enabled = Frame.UIService.HasClipboardData(typeof(GeoObjectList));
+                    }
                     return true;
                 case "MenuId.SelectedObjects.Mode.All":
                     CommandState.Checked = pickMode == PickMode.normal;
@@ -2682,8 +2721,8 @@ namespace CADability.Actions
         /// Get the last hotspot under the cursor
         /// </summary>
         public IHotSpot LastCursorHotspot
-        { 
-            get { return lastCursorHotspot; } 
+        {
+            get { return lastCursorHotspot; }
         }
 
         /// <summary>
@@ -2691,8 +2730,8 @@ namespace CADability.Actions
         /// e.g. EmptySpace or Hotspot
         /// </summary>
         public CursorPosition LastCursorPosition
-        { 
-            get { return lastCursorPosition; } 
+        {
+            get { return lastCursorPosition; }
         }
     }
 }

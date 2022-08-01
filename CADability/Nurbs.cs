@@ -2,6 +2,7 @@
 using MathNet.Numerics.LinearAlgebra.Factorization;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace CADability
 {
@@ -2032,14 +2033,6 @@ namespace CADability
             span = FindSpanU(n, udegree, u);
             double[] N; // N sollte mit stackalloc alokiert werden, da es nur lokal gebraucht wird
             BasisFunsU(span, u, udegree, out N);
-#if DEBUG
-            //string[] Nstr;
-            //BasisFunsString(span, u, udegree, out Nstr);
-            //for (int i = 0; i < Nstr.Length; i++)
-            //{
-            //    System.Diagnostics.Trace.WriteLine("N[" + i.ToString() + "] = " + Nstr[i]);
-            //}
-#endif
             T res = new T();
             for (int j = 0; j <= udegree; ++j)
             {
@@ -2047,6 +2040,44 @@ namespace CADability
                 // res = res + N[j] * Poles[span - degree + j];
             }
             return res;
+        }
+        /// <summary>
+        /// Writes a NURBS of a certain degree to a string that you can use as input for maxima. The poles are p0x, p0y,p0z,p0w,...,...p4w
+        /// </summary>
+        /// <param name="u"></param>
+        /// <returns></returns>
+        internal string CurvePointForMaxima(double u)
+        {
+            StringBuilder res = new StringBuilder();
+            int span;
+            int n = uknots.Length - udegree - 1;
+            span = FindSpanU(n, udegree, u);
+            string[] Nstr;
+            BasisFunsString(span, u, udegree, out Nstr);
+            string uknotstring = "[";
+            for (int i = 0; i < uknots.Length; i++) uknotstring = uknotstring + uknots[i].ToString() + ",";
+            uknotstring = uknotstring.Substring(0, uknotstring.Length - 1) + "]";
+            for (int i = 0; i < Nstr.Length; i++)
+            {
+                res.AppendLine("N" + i.ToString() + "(u,span,uknots) := " + Nstr[i] + ";");
+                // res.AppendLine("N" + i.ToString() + "(u," + (span + 1).ToString() + "," + uknotstring + ");");
+            }
+            string resstring = "0";
+            for (int j = 0; j <= udegree; ++j)
+            {
+                resstring = "(" + resstring + ") + N" + j.ToString() + "(u," + (span + 1).ToString() + "," + uknotstring + ")*p" + (span - udegree + j).ToString() + "w";
+            }
+            // to get the rational bSpline, remove the "w(u):="  and "/w(u)"
+            res.AppendLine("w(u):=" + resstring + ";");
+            res.AppendLine("x(u):= (" + resstring.Replace('w', 'x') + ")/w(u);");
+            res.AppendLine("y(u):= (" + resstring.Replace('w', 'y') + ")/w(u);");
+            res.AppendLine("z(u):= (" + resstring.Replace('w', 'z') + ")/w(u);");
+            res.AppendLine("w(u);");
+            res.AppendLine("x(u);");
+            res.AppendLine("y(u);");
+            res.AppendLine("z(u);");
+
+            return res.ToString();
         }
 
         public string[] CurvePointFormula(double u)

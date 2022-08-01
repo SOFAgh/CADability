@@ -1600,7 +1600,7 @@ namespace CADability.Curve2D
                 interpol[i] = PointAt(interparam[i]);
             }
         }
-        protected void MakeTringulation()
+        protected void MakeTriangulation()
         {   // ACHTUNG: Probleme sind hier Singularitäten und doppelte Punkte. Das muss noch überprüft werden
             // am Besten mit bösartigen BSplines (mehrfach identische Pole)
             GeoPoint2D[] points;
@@ -1728,7 +1728,7 @@ namespace CADability.Curve2D
 
         virtual public void GetTriangulationPoints(out GeoPoint2D[] basisPoints, out GeoPoint2D[] vertices, out GeoVector2D[] directions, out double[] parameters)
         {
-            if (interpol == null) MakeTringulation();
+            if (interpol == null) MakeTriangulation();
             basisPoints = interpol.Clone() as GeoPoint2D[];
             directions = interdir.Clone() as GeoVector2D[];
             parameters = interparam.Clone() as double[];
@@ -1785,7 +1785,7 @@ namespace CADability.Curve2D
         {
             get
             {
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 DebuggerContainer res = new DebuggerContainer();
                 for (int i = 0; i < interpol.Length - 1; ++i)
                 {
@@ -1802,13 +1802,13 @@ namespace CADability.Curve2D
         }
         public void DebugMakeTriangulation()
         {
-            MakeTringulation();
+            MakeTriangulation();
         }
         internal Polyline2D Debug100Points
         {
             get
             {
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 GeoPoint2D[] pnts = new GeoPoint2D[100];
                 for (int i = 0; i < 100; i++) pnts[i] = PointAt(i / 99.0);
                 return new Polyline2D(pnts);
@@ -1819,7 +1819,7 @@ namespace CADability.Curve2D
             get
             {
                 DebuggerContainer res = new DebuggerContainer();
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 GeoPoint2D[] pnts = new GeoPoint2D[100];
                 for (int i = 0; i < 100; i++) pnts[i] = PointAt(i / 99.0);
                 res.Add(new Polyline2D(pnts), System.Drawing.Color.Red, 0);
@@ -1839,12 +1839,12 @@ namespace CADability.Curve2D
         {
             get
             {
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 return interpol[0];
             }
             set
             {
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 interpol[0] = value; // für nur geringe Änderungen ist das wohl ok
             }
         }
@@ -1853,12 +1853,12 @@ namespace CADability.Curve2D
         {
             get
             {
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 return interpol[interpol.Length - 1];
             }
             set
             {
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 interpol[interpol.Length - 1] = value; // für nur geringe Änderungen ist das wohl ok
             }
         }
@@ -1867,7 +1867,7 @@ namespace CADability.Curve2D
         {
             get
             {
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 return interdir[0];
             }
         }
@@ -1876,7 +1876,7 @@ namespace CADability.Curve2D
         {
             get
             {
-                if (interpol == null) MakeTringulation();
+                if (interpol == null) MakeTriangulation();
                 return interdir[interdir.Length - 1];
             }
         }
@@ -1911,7 +1911,49 @@ namespace CADability.Curve2D
         public virtual double PositionOf(GeoPoint2D p)
         {
             double res;
-            bool found = FindPerpendicularFoot(p, 0.0, 1.0, StartPoint, EndPoint, StartDirection.ToRight(), EndDirection.ToRight(), out res);
+            if (interpol == null) MakeTriangulation();
+            // find the best segment to start with
+            int ind = -1;
+            double bestdist = double.MaxValue;
+            for (int i = 0; i < interpol.Length - 1; ++i)
+            {
+                double pos = Geometry.LinePar(interpol[i], interpol[i + 1], p);
+                if (pos > -1e-8 && pos < 1 + 1e-8)
+                {
+                    double d = Math.Abs(Geometry.DistPL(p, interpol[i], interpol[i + 1]));
+                    if (d < bestdist)
+                    {
+                        bestdist = d;
+                        ind = i;
+                    }
+                }
+            }
+            if (this is IExplicitPCurve2D explicitP)
+            {
+                ExplicitPCurve2D explicitPCurve2D = explicitP.GetExplicitPCurve2D();
+                if (explicitPCurve2D != null)
+                {
+                    if (ind >= 0)
+                    {
+                        double epos = explicitPCurve2D.PositionOf(p, out double dist, interparam[ind], interparam[ind + 1]);
+                        if (dist < double.MaxValue) return explicitPCurve2D.NormaliseParameter(epos);
+                    }
+                    else
+                    {
+                        double epos = explicitPCurve2D.PositionOf(p, out double dist);
+                        if (dist < double.MaxValue) return explicitPCurve2D.NormaliseParameter(epos);
+                    }
+                }
+            }
+            bool found = false;
+            if (ind >= 0)
+            {
+                found = FindPerpendicularFoot(p, interparam[ind], interparam[ind + 1], interpol[ind], interpol[ind + 1], interdir[ind].ToRight(), interdir[ind + 1].ToRight(), out res);
+            }
+            else
+            {
+                found = FindPerpendicularFoot(p, 0.0, 1.0, StartPoint, EndPoint, StartDirection.ToRight(), EndDirection.ToRight(), out res);
+            }
             if (!found) return double.MinValue;
             return res;
         }
@@ -2627,11 +2669,11 @@ namespace CADability.Curve2D
             GeoPoint2D[] pts1, pts2;
             GeoVector2D[] dirs1, dirs2;
             double[] par1, par2;
-            if (curve1.interpol == null) curve1.MakeTringulation();
+            if (curve1.interpol == null) curve1.MakeTriangulation();
             pts1 = curve1.interpol;
             par1 = curve1.interparam;
             dirs1 = curve1.interdir;
-            if (curve2.interpol == null) curve2.MakeTringulation();
+            if (curve2.interpol == null) curve2.MakeTriangulation();
             pts2 = curve2.interpol;
             par2 = curve2.interparam;
             dirs2 = curve2.interdir;
@@ -2699,7 +2741,7 @@ namespace CADability.Curve2D
         public virtual GeoPoint2D[] PerpendicularFoot(GeoPoint2D fromHere)
         {
             List<GeoPoint2D> res = new List<GeoPoint2D>();
-            if (interpol == null) MakeTringulation();
+            if (interpol == null) MakeTriangulation();
             for (int i = 0; i < interpol.Length - 1; ++i)
             {
                 GeoVector2D snorm = interdir[i].ToRight();
@@ -2740,6 +2782,7 @@ namespace CADability.Curve2D
                     }, ref iterations, spar - stepTolerance, epar + stepTolerance, functionTolerance, stepTolerance);
                     if (par != double.MaxValue && Math.Abs((PointAt(par) - fromHere) * DirectionAt(par)) < Precision.eps) return true;
                 }
+                par = (spar + epar) / 2.0;
                 if (NewtonPerpendicular(fromHere, ref par) && !double.IsNaN(par) && par != double.MaxValue)
                 {
                     return true;
@@ -2770,6 +2813,19 @@ namespace CADability.Curve2D
             {
                 if (FindPerpendicularFoot(fromHere, mpar, epar, mp, ep, mnorm, enorm, out par))
                 {
+                    return true;
+                }
+            }
+            else
+            {
+                if ((fromHere | sp) < Precision.eps)
+                {
+                    par = 0.0;
+                    return true;
+                }
+                if ((fromHere | ep) < Precision.eps)
+                {
+                    par = 1.0;
                     return true;
                 }
             }
@@ -2838,7 +2894,51 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual GeoPoint2D[] TangentPoints(GeoPoint2D FromHere, GeoPoint2D CloseTo)
         {
-            return new GeoPoint2D[] { };
+            if (tringulation == null) MakeTriangulation();
+            List<GeoPoint2D> res = new List<GeoPoint2D>();
+            for (int i = 0; i < tringulation.Length; ++i)
+            {
+                if (Geometry.OnSameSide(interpol[i], interpol[i + 1], FromHere, tringulation[i]))
+                {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
+                    // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
+                    // Punkte und Richtungen legen und die Position der Tangente nehmen...
+                    double sparam = interparam[i];
+                    double eparam = interparam[i + 1];
+                    GeoVector2D sdir = interdir[i];
+                    GeoVector2D edir = interdir[i + 1];
+                    GeoPoint2D spoint = interpol[i];
+                    GeoPoint2D epoint = interpol[i + 1];
+                    GeoVector2D tdir = tringulation[i] - FromHere;
+                    double sz = sdir.x * tdir.y - sdir.y * tdir.x;
+                    double ez = edir.x * tdir.y - edir.y * tdir.x;
+                    // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
+                    // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
+                    GeoPoint2D mpoint;
+                    do
+                    {
+                        double mparam = (sparam + eparam) / 2.0;
+                        GeoVector2D mdir;
+                        mpoint = PointAt(mparam);
+                        mdir = DirectionAt(mparam);
+                        tdir = mpoint - FromHere;
+                        double mz = mdir.x * tdir.y - mdir.y * tdir.x;
+                        if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
+                        {
+                            sz = mz;
+                            sparam = mparam;
+                        }
+                        else
+                        {
+                            ez = mz;
+                            eparam = mparam;
+                        }
+                    }
+                    while (Math.Abs(eparam - sparam) > 1e-8); // parameter space if from 0 to 1
+                    res.Add(mpoint);
+                }
+            }
+            res.Sort(new GeoPoint2D.CompareCloseTo(CloseTo));
+            return res.ToArray();
         }
 
         /// <summary>
@@ -2849,7 +2949,50 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual GeoPoint2D[] TangentPointsToAngle(Angle ang, GeoPoint2D CloseTo)
         {
-            return new GeoPoint2D[] { };
+            GeoVector2D direction = new GeoVector2D(ang);
+            List<GeoPoint2D> res = new List<GeoPoint2D>();
+            for (int i = 0; i < tringulation.Length; ++i)
+            {
+                if (Geometry.OnSameSide(interpol[i], interpol[i + 1], tringulation[i], direction))
+                {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
+                    // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
+                    // Punkte und Richtungen legen und die Position der Tangente nehmen...
+                    double sparam = interparam[i];
+                    double eparam = interparam[i + 1];
+                    GeoVector2D sdir = interdir[i];
+                    GeoVector2D edir = interdir[i + 1];
+                    GeoPoint2D spoint = interpol[i];
+                    GeoPoint2D epoint = interpol[i + 1];
+                    GeoVector2D tdir = direction;
+                    double sz = sdir.x * tdir.y - sdir.y * tdir.x;
+                    double ez = edir.x * tdir.y - edir.y * tdir.x;
+                    // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
+                    // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
+                    GeoPoint2D mpoint;
+                    do
+                    {
+                        double mparam = (sparam + eparam) / 2.0;
+                        GeoVector2D mdir;
+                        mpoint = PointAt(mparam);
+                        mdir = DirectionAt(mparam);
+                        double mz = mdir.x * tdir.y - mdir.y * tdir.x;
+                        if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
+                        {
+                            sz = mz;
+                            sparam = mparam;
+                        }
+                        else
+                        {
+                            ez = mz;
+                            eparam = mparam;
+                        }
+                    }
+                    while (Math.Abs(eparam - sparam) > 1e-8);
+                    res.Add(mpoint);
+                }
+            }
+            res.Sort(new GeoPoint2D.CompareCloseTo(CloseTo));
+            return res.ToArray();
         }
 
         /// <summary>
@@ -2858,8 +3001,51 @@ namespace CADability.Curve2D
         /// <param name="direction"></param>
         /// <returns></returns>
         public virtual double[] TangentPointsToAngle(GeoVector2D direction)
-        {   // need to implement a general solution!
-            return new double[] { };
+        {
+            List<double> res = new List<double>();
+            if (tringulation == null) MakeTriangulation();
+            for (int i = 0; i < tringulation.Length; ++i)
+            {
+                if (Geometry.OnSameSide(interpol[i], interpol[i + 1], tringulation[i], direction))
+                {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
+                    // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
+                    // Punkte und Richtungen legen und die Position der Tangente nehmen...
+                    double sparam = interparam[i];
+                    double eparam = interparam[i + 1];
+                    GeoVector2D sdir = interdir[i];
+                    GeoVector2D edir = interdir[i + 1];
+                    GeoPoint2D spoint = interpol[i];
+                    GeoPoint2D epoint = interpol[i + 1];
+                    GeoVector2D tdir = direction;
+                    double sz = sdir.x * tdir.y - sdir.y * tdir.x;
+                    double ez = edir.x * tdir.y - edir.y * tdir.x;
+                    // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
+                    // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
+                    GeoPoint2D mpoint;
+                    double mparam;
+                    do
+                    {
+                        mparam = (sparam + eparam) / 2.0;
+                        GeoVector2D mdir;
+                        mpoint = PointAt(mparam);
+                        mdir = DirectionAt(mparam);
+                        double mz = mdir.x * tdir.y - mdir.y * tdir.x;
+                        if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
+                        {
+                            sz = mz;
+                            sparam = mparam;
+                        }
+                        else
+                        {
+                            ez = mz;
+                            eparam = mparam;
+                        }
+                    }
+                    while (Math.Abs(eparam - sparam) > 1e-8);
+                    res.Add(mparam);
+                }
+            }
+            return res.ToArray();
         }
         /// <summary>
         /// Implements <see cref="CADability.Curve2D.ICurve2D.GetInflectionPoints ()"/>
@@ -2868,7 +3054,7 @@ namespace CADability.Curve2D
         public virtual double[] GetInflectionPoints()
         {
             List<double> res = new List<double>();
-            if (interpol == null) MakeTringulation();
+            if (interpol == null) MakeTriangulation();
             for (int i = 0; i < interpol.Length - 2; ++i)
             {
                 if (Precision.IsPointOnLine(tringulation[i], interpol[i], interpol[i + 1])) continue;
@@ -2928,7 +3114,7 @@ namespace CADability.Curve2D
 
         protected BSpline2D ToBspline(double precision)
         {
-            if (interpol == null) MakeTringulation();
+            if (interpol == null) MakeTriangulation();
             double len = 0.0;
             for (int i = 1; i < interpol.Length; i++)
             {
@@ -3036,7 +3222,7 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual ICurve2D Approximate(bool linesOnly, double maxError)
         {
-            if (interpol == null) MakeTringulation();
+            if (interpol == null) MakeTriangulation();
             if (maxError == 0.0)
             {   // nur gemäß Stützpunkten
                 if (linesOnly)
@@ -3288,7 +3474,7 @@ namespace CADability.Curve2D
 
         public virtual BoundingRect GetExtent()
         {
-            if (interpol == null) MakeTringulation();
+            if (interpol == null) MakeTriangulation();
             BoundingRect ext = BoundingRect.EmptyBoundingRect;
             for (int i = 0; i < interpol.Length; ++i)
             {
@@ -3419,7 +3605,7 @@ namespace CADability.Curve2D
         public virtual bool HitTest(ref BoundingRect rect, bool includeControlPoints)
         {
             ClipRect clr = new ClipRect(ref rect);
-            if (interpol == null) MakeTringulation();
+            if (interpol == null) MakeTriangulation();
             for (int i = 0; i < interpol.Length - 1; ++i)
             {
                 if (TriangleHitTest(ref clr, interpol[i], interpol[i + 1], tringulation[i], interparam[i], interparam[i + 1], interdir[i], interdir[i + 1]))

@@ -5,51 +5,37 @@
     /// eintry which contains some subentries. A folder in the treeview of the controlcenter.
     /// The subentries mus be specified in the constructur.
     /// </summary>
-    public class GroupProperty : IShowPropertyImpl
+    public class GroupProperty : PropertyEntryImpl
     {
         private IPropertyEntry[] subEntries;
+        PropertyEntryType flags;
         public GroupProperty(string resourceId, IPropertyEntry[] subEntries)
         {
             this.resourceId = resourceId;
             this.subEntries = subEntries;
+            flags = PropertyEntryType.GroupTitle | PropertyEntryType.Selectable;
+            if (subEntries.Length > 0) flags |= PropertyEntryType.HasSubEntries;
         }
         public void SetSubEntries(IPropertyEntry[] subEntries)
         {
+            if (subEntries.Length > 0) flags |= PropertyEntryType.HasSubEntries;
             this.subEntries = subEntries;
-            propertyTreeView.Refresh(this);
+            propertyPage?.Refresh(this);
         }
         #region IShowProperty Members
 
-        public override ShowPropertyLabelFlags LabelType
+        public override PropertyEntryType Flags
         {
-            get
-            {
-                return ShowPropertyLabelFlags.Selectable;
-            }
+            get { return flags; }
         }
-        /// <summary>
-        /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
-        /// returns <see cref="ShowPropertyEntryType.GroupTitle"/>.
-        /// </summary>
-        public override ShowPropertyEntryType EntryType
+        public void SetFlags(PropertyEntryType flags)
         {
-            get
-            {
-                return ShowPropertyEntryType.GroupTitle;
-            }
+            this.flags = flags;
         }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntriesCount"/>, 
         /// returns the number of subentries in this property view.
         /// </summary>
-        public override int SubEntriesCount
-        {
-            get
-            {
-                if (subEntries == null) return 0;
-                return subEntries.Length;
-            }
-        }
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.SubEntries"/>, 
         /// returns the subentries in this property view.

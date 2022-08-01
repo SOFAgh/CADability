@@ -401,7 +401,10 @@ namespace CADability.Attribute
             current = this[0];
         }
         IAttributeList IAttributeList.Clone() { return clone() as IAttributeList; }
-        void IAttributeList.Update(bool AddMissingToList) { }
+        void IAttributeList.Update(bool AddMissingToList)
+        {
+            OnUpdateFromProject();
+        }
         void IAttributeList.Update(IGeoObject Object2Update)
         {
             if (Object2Update is ILayer)
@@ -497,15 +500,20 @@ namespace CADability.Attribute
             {
                 used[layer.Name] = layer;
             }
-            foreach (Model m in Frame.Project)
+            Project project = this.owner as Project;
+            if (project == null && Frame != null) project = Frame.Project;
+            if (project != null)
             {
-                foreach (IGeoObject go in m) GetAllLayer(used, go);
-            }
-            foreach (KeyValuePair<string, Layer> ds in used)
-            {
-                if (!entries.ContainsKey(ds.Key))
+                foreach (Model m in project)
                 {
-                    this.Add(ds.Value);
+                    foreach (IGeoObject go in m) GetAllLayer(used, go);
+                }
+                foreach (KeyValuePair<string, Layer> ds in used)
+                {
+                    if (!entries.ContainsKey(ds.Key))
+                    {
+                        this.Add(ds.Value);
+                    }
                 }
             }
         }

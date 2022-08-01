@@ -384,7 +384,7 @@ namespace CADability.Attribute
             }
         }
         public override PropertyEntryType Flags
-        { 
+        {
             get
             {
                 PropertyEntryType flags = PropertyEntryType.LabelEditable | PropertyEntryType.Selectable | PropertyEntryType.ContextMenu | PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries;
@@ -395,7 +395,7 @@ namespace CADability.Attribute
         }
         private IPropertyEntry[] subEntries;
         /// <summary>
-        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -468,14 +468,6 @@ namespace CADability.Attribute
             base.Added(propertyPage);
             base.resourceId = "StyleName";
         }
-        /// <summary>
-        /// Overrides <see cref="IPropertyEntryImpl.Removed"/>
-        /// </summary>
-        /// <param name="propertyPage">the PropertyTreeView from which it was removed</param>
-        public override void Removed(IPropertyPage propertyPage)
-        {
-            base.Removed(propertyPage);
-        }
         public override void EndEdit(bool aborted, bool modified, string newValue)
         {
             try
@@ -543,7 +535,7 @@ namespace CADability.Attribute
             info.AddValue("Parent", parent);
             info.AddValue("DefaultFor", defaultFor);
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", styleName);
             if (layer != null) data.AddProperty("Layer", layer);
@@ -556,7 +548,7 @@ namespace CADability.Attribute
             data.AddProperty("DefaultFor", defaultFor);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             styleName = data.GetPropertyOrDefault<string>("Name");
             layer = data.GetPropertyOrDefault<Layer>("Layer");
@@ -1033,7 +1025,7 @@ namespace CADability.Attribute
         #region PropertyEntryImpl Overrides
         public override PropertyEntryType Flags => PropertyEntryType.GroupTitle | PropertyEntryType.HasSubEntries | PropertyEntryType.ContextMenu | PropertyEntryType.Selectable;
         /// <summary>
-        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>, 
+        /// Overrides <see cref="PropertyEntryImpl.SubItems"/>,
         /// returns the subentries in this property view.
         /// </summary>
         public override IPropertyEntry[] SubItems
@@ -1069,7 +1061,7 @@ namespace CADability.Attribute
             return this.Clone();
         }
         #endregion
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             Style[] styleArray = new Style[styles.Count];
             for (int i = 0; i < styles.Count; i++)
@@ -1080,7 +1072,7 @@ namespace CADability.Attribute
             data.AddProperty("Current", current);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             unsortedEntries = data.GetProperty<Style[]>("UnsortedEntries");
             current = data.GetProperty("Current") as Style;

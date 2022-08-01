@@ -163,13 +163,13 @@ namespace CADability
             protected Pair() // Constructor for JSonSerialize
             {
             }
-            void IJsonSerialize.GetObjectData(IJsonWriteData data)
+            public void GetObjectData(IJsonWriteData data)
             {
                 data.AddProperty("Name", Name);
                 data.AddProperty("Value", Value);
             }
 
-            void IJsonSerialize.SetObjectData(IJsonReadData data)
+            public void SetObjectData(IJsonReadData data)
             {
                 Name = data.GetStringProperty("Name");
                 Value = data.GetProperty<object>("Value");
@@ -427,7 +427,7 @@ namespace CADability
             }
             if (!GlobalSettings.ContainsSetting("Action"))
             {
-                GlobalSettings.AddSetting("Action", new ActionSettings());
+                GlobalSettings.AddSetting("Action", new ActionSettings(true));
             }
             else
             {
@@ -440,7 +440,7 @@ namespace CADability
             if (!(GlobalSettings.GetValue("Action.PopProperties") is BooleanProperty))
             {	// das soll BoolenProperty sein, war früher anders
                 GlobalSettings.RemoveSetting("Action");
-                GlobalSettings.AddSetting("Action", new ActionSettings());
+                GlobalSettings.AddSetting("Action", new ActionSettings(true));
             }
             Settings colorSettings = null;
             if (!GlobalSettings.ContainsSetting("Colors"))
@@ -606,6 +606,13 @@ namespace CADability
                 makeBlocks.BooleanValue = true;
                 StepImportSetting.AddSetting("Blocks", makeBlocks);
             }
+            if (!GlobalSettings.ContainsSetting("StepImport.PreferNonPeriodic"))
+            {
+                Settings StepImportSetting = GlobalSettings.GetSubSetting("StepImport");
+                BooleanProperty preferNonPeriodic = new BooleanProperty("StepImport.PreferNonPeriodic", "YesNo.Values", "PreferNonPeriodic");
+                preferNonPeriodic.BooleanValue = false;
+                StepImportSetting.AddSetting("PreferNonPeriodic", preferNonPeriodic);
+            }
             if (!GlobalSettings.ContainsSetting("Grid"))
             {
                 Settings GridSetting = new Settings();
@@ -678,19 +685,20 @@ namespace CADability
                 UseZOrder.BooleanValue = true;
                 PrintSetting.AddSetting("UseZOrder", UseZOrder);
             }
-            //if (GlobalSettings.ContainsSetting("XDistance"))
-            //{
-            //    GlobalSettings.RemoveSetting("XDistance");
-            //}
-            //if (!GlobalSettings.ContainsSetting("XDistance"))
-            //{
-            //    StringProperty dxProperty = new StringProperty("XDistance", "Grid.XDistance");
-            //    GlobalSettings.AddSetting("XDistance", dxProperty);
-            //}
-
-            // diese Stelle kommt einmalig am Anfang dran, deshalb hier auch OnExit
-            //Application.ApplicationExit -= new EventHandler(GlobalSettings.OnApplicationExit);
-            //Application.ApplicationExit += new EventHandler(GlobalSettings.OnApplicationExit);
+            if (!GlobalSettings.ContainsSetting("Experimental"))
+            {
+                Settings ExperimentalSetting = new Settings();
+                ExperimentalSetting.resourceId = "Experimental";
+                ExperimentalSetting.myName = "Experimental";
+                GlobalSettings.AddSetting("Experimental", ExperimentalSetting);
+            }
+            if (!GlobalSettings.ContainsSetting("Experimental.TestNewContextMenu"))
+            {
+                Settings ExperimentalSetting = GlobalSettings.GetSubSetting("Experimental");
+                BooleanProperty TestNewContextMenu = new BooleanProperty("Experimental.TestNewContextMenu", "YesNo.Values", "TestNewContextMenu");
+                TestNewContextMenu.BooleanValue = false;
+                ExperimentalSetting.AddSetting("TestNewContextMenu", TestNewContextMenu);
+            }
         }
         private static Settings StandardFormatting
         {
@@ -936,6 +944,7 @@ namespace CADability
         {
             object o = GetValue(Name);
             if (o is int) return (int)o;
+            if (o is double) return (int)(double)o;
             if (o is IntegerProperty) return (int)(o as IntegerProperty);
             if (o is MultipleChoiceSetting) return (o as MultipleChoiceSetting).CurrentSelection;
             else return DefaultValue;
@@ -1274,7 +1283,7 @@ namespace CADability
             info.AddValue("Name", myName, typeof(string));
             modified = false;
         }
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public virtual void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("SortedEntries", sortedEntries);
             data.AddProperty("ResourceId", resourceId);
@@ -1282,14 +1291,14 @@ namespace CADability
             modified = false;
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public virtual void SetObjectData(IJsonReadData data)
         {
             sortedEntries = data.GetProperty<ArrayList>("SortedEntries");
             resourceId = data.GetProperty<string>("ResourceId");
             myName = data.GetProperty<string>("Name");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        public virtual void SerializationDone()
         {
             OnDeserialization();
         }

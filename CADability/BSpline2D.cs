@@ -54,22 +54,23 @@ namespace CADability.Curve2D
         // die folgenden Daten sind für die schnelle Berechnung und können null sein
         private Nurbs<GeoPoint2D, GeoPoint2DPole> nubs; // nicht rational, nur einer der beiden wird gesetzt
         private Nurbs<GeoPoint2DH, GeoPoint2DHPole> nurbs; // rational
-        private GeoPoint2D[] interpol; // gewisse Stützpunkte für jeden Knoten und ggf Zwischenpunkte (Wendepunkte, zu große Dreiecke)
-        private GeoVector2D[] interdir; // Richtungen an den Stützpunkten
-        private double[] interparam; // Parameterwerte an den Stützpunkten
-        private GeoPoint2D[] tringulation; // Dreiecks-Zwischenpunkte (einer weniger als interpol)
+        //private GeoPoint2D[] interpol; // gewisse Stützpunkte für jeden Knoten und ggf Zwischenpunkte (Wendepunkte, zu große Dreiecke)
+        //private GeoVector2D[] interdir; // Richtungen an den Stützpunkten
+        //private double[] interparam; // Parameterwerte an den Stützpunkten
+        //private GeoPoint2D[] tringulation; // Dreiecks-Zwischenpunkte (einer weniger als interpol)
         private BoundingRect extend; // Umgebendes Rechteck nur einmal berechnen
         private bool extendIsValid; // schon berechnet?
         private double parameterEpsilon; // ein epsilon, welches sich auf den Parameter bezieht. Abbruch für Iterationen
         private double distanceEpsilon; // ein epsilon, welches sich auf die Ausdehnung bezieht. Abbruch für Iterationen
-        private ExplicitPCurve2D explicitPCurve2D;
+        WeakReference<ExplicitPCurve2D> explicitPCurve2D;
 
         private void InvalidateCache()
         {
-            interpol = null;
-            interdir = null;
-            interparam = null;
-            tringulation = null;
+            base.ClearTriangulation();
+            //interpol = null;
+            //interdir = null;
+            //interparam = null;
+            //tringulation = null;
             extendIsValid = false;
             nubs = null;
             nurbs = null;
@@ -182,94 +183,94 @@ namespace CADability.Curve2D
             }
             distanceEpsilon = (ext.Width + ext.Height) * 1e-14;
         }
-        private void MakeTriangulation()
-        {
-            List<GeoPoint2D> tristart = new List<GeoPoint2D>();
-            List<GeoPoint2D> triinter = new List<GeoPoint2D>();
-            List<GeoVector2D> tridir = new List<GeoVector2D>();
-            List<double> tripar = new List<double>();
-            GeoPoint2D p1;
-            GeoVector2D v1, v12;
-            double[] tknots = knots;
-            if (knots.Length == 2)
-            {   // es kommen Splines vor, die nur zwei Knoten haben und geschlossene Kreise sind
-                // (degree z.B. 14). Dann wird einfach ein Knoten dazwischengehängt
-                tknots = new double[3];
-                tknots[0] = knots[0];
-                tknots[1] = (knots[0] + knots[1]) / 2.0;
-                tknots[2] = knots[1];
-            }
-            PointDirAt2(tknots[0], out p1, out v1, out v12);
-            for (int i = 0; i < tknots.Length - 1; ++i)
-            {   // iterieren über die echten Knoten, die doppelten interessieren nicht.
-                // Wenn zwischen zwei Knoten ein Wendepunkt ist, wird der als Stützpunkt mitgenommen
-                // Wir gehen hier davon aus dass der ganze Bereich des knotenvektors verwendet wird
-                // startParam und endParam werden nicht berücksichtigt. (Überhaupt: ist startParam nicht immer
-                // knots[0] und endParam knots[letzer]?)
-                // was noch fehlt: Kurven, die einen Knick haben sollten am Knick ein Nulldreieck einfügen
-                // dazu müsste allerdings die Nurbs Methode in der Lage sein die Ableitungen unmittelbar VOR einem Knoten
-                // zu berechnen. Wenn ein Knoten als Parameter eingegeben wird, dann kommt immer die Ableitung nach dem
-                // Knoten heraus
-                double sp = tknots[i];
-                double ep = tknots[i + 1];
-                GeoPoint2D p2;
-                GeoVector2D v2, v22;
-                PointDirAt2(ep, out p2, out v2, out v22);
-                double ip;
-                if (FindInflectionPoint(sp, p1, v1, v12, ep, p2, v2, v22, out ip))
-                {
-                    PointDirAt(sp, out p1, out v1);
-                    PointDirAt(ip, out p2, out v2);
-                    // Nulldreiecke machen Probleme
-                    // und Splines mit hoherm Grad, die aber Linien sind, produzieren viele "InflectionPoints"
-                    if (ip - sp > this.parameterEpsilon)
-                    {
-                        MakeTriangle(sp, ip, p1, v1, p2, v2, tristart, triinter, tridir, tripar, 0);
-                        p1 = p2;
-                        v1 = v2;
-                    }
-                    if (ep - ip > this.parameterEpsilon)
-                    {
-                        PointDirAt(ep, out p2, out v2);
-                        MakeTriangle(ip, ep, p1, v1, p2, v2, tristart, triinter, tridir, tripar, 0);
-                    }
-                }
-                else
-                {
-                    MakeTriangle(sp, ep, p1, v1, p2, v2, tristart, triinter, tridir, tripar, 0);
-                }
-                // Daten für die nächste Runde übernehmen
-                p1 = p2;
-                v1 = v2;
-                v12 = v22;
-            }
-            // den letzten Punkt noch zufügen
-            GeoPoint2D pe;
-            GeoVector2D ve;
-            PointDirAt(knots[knots.Length - 1], out pe, out ve);
-            tristart.Add(pe);
-            tridir.Add(ve);
-            tripar.Add(knots[knots.Length - 1]);
+        //        private void MakeTriangulation()
+        //        {
+        //            List<GeoPoint2D> tristart = new List<GeoPoint2D>();
+        //            List<GeoPoint2D> triinter = new List<GeoPoint2D>();
+        //            List<GeoVector2D> tridir = new List<GeoVector2D>();
+        //            List<double> tripar = new List<double>();
+        //            GeoPoint2D p1;
+        //            GeoVector2D v1, v12;
+        //            double[] tknots = knots;
+        //            if (knots.Length == 2)
+        //            {   // es kommen Splines vor, die nur zwei Knoten haben und geschlossene Kreise sind
+        //                // (degree z.B. 14). Dann wird einfach ein Knoten dazwischengehängt
+        //                tknots = new double[3];
+        //                tknots[0] = knots[0];
+        //                tknots[1] = (knots[0] + knots[1]) / 2.0;
+        //                tknots[2] = knots[1];
+        //            }
+        //            PointDirAt2(tknots[0], out p1, out v1, out v12);
+        //            for (int i = 0; i < tknots.Length - 1; ++i)
+        //            {   // iterieren über die echten Knoten, die doppelten interessieren nicht.
+        //                // Wenn zwischen zwei Knoten ein Wendepunkt ist, wird der als Stützpunkt mitgenommen
+        //                // Wir gehen hier davon aus dass der ganze Bereich des knotenvektors verwendet wird
+        //                // startParam und endParam werden nicht berücksichtigt. (Überhaupt: ist startParam nicht immer
+        //                // knots[0] und endParam knots[letzer]?)
+        //                // was noch fehlt: Kurven, die einen Knick haben sollten am Knick ein Nulldreieck einfügen
+        //                // dazu müsste allerdings die Nurbs Methode in der Lage sein die Ableitungen unmittelbar VOR einem Knoten
+        //                // zu berechnen. Wenn ein Knoten als Parameter eingegeben wird, dann kommt immer die Ableitung nach dem
+        //                // Knoten heraus
+        //                double sp = tknots[i];
+        //                double ep = tknots[i + 1];
+        //                GeoPoint2D p2;
+        //                GeoVector2D v2, v22;
+        //                PointDirAt2(ep, out p2, out v2, out v22);
+        //                double ip;
+        //                if (FindInflectionPoint(sp, p1, v1, v12, ep, p2, v2, v22, out ip))
+        //                {
+        //                    PointDirAt(sp, out p1, out v1);
+        //                    PointDirAt(ip, out p2, out v2);
+        //                    // Nulldreiecke machen Probleme
+        //                    // und Splines mit hoherm Grad, die aber Linien sind, produzieren viele "InflectionPoints"
+        //                    if (ip - sp > this.parameterEpsilon)
+        //                    {
+        //                        MakeTriangle(sp, ip, p1, v1, p2, v2, tristart, triinter, tridir, tripar, 0);
+        //                        p1 = p2;
+        //                        v1 = v2;
+        //                    }
+        //                    if (ep - ip > this.parameterEpsilon)
+        //                    {
+        //                        PointDirAt(ep, out p2, out v2);
+        //                        MakeTriangle(ip, ep, p1, v1, p2, v2, tristart, triinter, tridir, tripar, 0);
+        //                    }
+        //                }
+        //                else
+        //                {
+        //                    MakeTriangle(sp, ep, p1, v1, p2, v2, tristart, triinter, tridir, tripar, 0);
+        //                }
+        //                // Daten für die nächste Runde übernehmen
+        //                p1 = p2;
+        //                v1 = v2;
+        //                v12 = v22;
+        //            }
+        //            // den letzten Punkt noch zufügen
+        //            GeoPoint2D pe;
+        //            GeoVector2D ve;
+        //            PointDirAt(knots[knots.Length - 1], out pe, out ve);
+        //            tristart.Add(pe);
+        //            tridir.Add(ve);
+        //            tripar.Add(knots[knots.Length - 1]);
 
-            interpol = tristart.ToArray();
-            interdir = tridir.ToArray();
-            interparam = tripar.ToArray();
-            tringulation = triinter.ToArray();
-#if DEBUG
-            for (int i = 0; i < interpol.Length; i++)
-            {
-                if (interpol[i].IsNan)
-                {
+        //            interpol = tristart.ToArray();
+        //            interdir = tridir.ToArray();
+        //            interparam = tripar.ToArray();
+        //            tringulation = triinter.ToArray();
+        //#if DEBUG
+        //            for (int i = 0; i < interpol.Length; i++)
+        //            {
+        //                if (interpol[i].IsNan)
+        //                {
 
-                }
-            }
-            if (interpol.Length > maxTriangleCount)
-            {
-                maxTriangleCount = interpol.Length;
-                //System.Diagnostics.Trace.WriteLine("MaxTraingleCount: " + maxTriangleCount.ToString());
-            }
-#endif
-        }
+        //                }
+        //            }
+        //            if (interpol.Length > maxTriangleCount)
+        //            {
+        //                maxTriangleCount = interpol.Length;
+        //                //System.Diagnostics.Trace.WriteLine("MaxTraingleCount: " + maxTriangleCount.ToString());
+        //            }
+        //#endif
+        //        }
 #if DEBUG
         private static int maxTriangleCount = 0;
 #endif
@@ -778,7 +779,7 @@ namespace CADability.Curve2D
             return new BSpline2D(throughpoints, 3, false);
         }
         /// <summary>
-        /// Creates a (segment of a) hyperbola defined by its endpoints (startPoint, endPoint), the intersectionpoint of the tangents at the endpoints and a point
+        /// Creates a (segment of a) hyperbola defined by its endpoints (startPoint, endPoint), the intersection-point of the tangents at the endpoints and a point
         /// located on the hyperbola where the hyperbola intersects with the line [midpoint(startPoint, endPoint), tangentIntersectionPoint]
         /// </summary>
         /// <param name="startPoint"></param>
@@ -960,7 +961,7 @@ namespace CADability.Curve2D
             nubs.InitDeriv1();
 
             nubs.InitDeriv2();
-            MakeTriangulation();
+            //MakeTriangulation();
             nubs.ClearDeriv2();
 
             parameterEpsilon = Math.Max(Math.Abs(startParam), Math.Abs(endParam)) * 1e-14;
@@ -1021,7 +1022,7 @@ namespace CADability.Curve2D
             nubs.InitDeriv1();
 
             nubs.InitDeriv2();
-            MakeTriangulation();
+            //MakeTriangulation();
             nubs.ClearDeriv2();
 
             parameterEpsilon = Math.Max(Math.Abs(startParam), Math.Abs(endParam)) * 1e-14;
@@ -1938,17 +1939,6 @@ namespace CADability.Curve2D
                 }
             }
         }
-        public Path2D ApproximateWithArcs(double maxError)
-        {
-            List<ICurve2D> res = new List<ICurve2D>();
-            if (tringulation == null) MakeTriangulation();
-            for (int i = 0; i < interparam.Length - 1; i++)
-            {
-                AddApproximateArc(interparam[i], interparam[i + 1], maxError, res);
-            }
-            double[] ips = GetInflectionPoints();
-            return new Path2D(res.ToArray(), true);
-        }
 
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Parallel (double, bool, double, double)"/>
@@ -2098,129 +2088,7 @@ namespace CADability.Curve2D
             GeoVector2D res = dir.ToVector();
             return res;
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.PositionOf (GeoPoint2D)"/>
-        /// </summary>
-        /// <param name="p"></param>
-        /// <returns></returns>
-        public override double PositionOf(GeoPoint2D p)
-        {
-            // p ist "nahe" an der Kurve, sonst müsste man sämtliche Lotfußpunkte bestimmen
-            // diese Lösung kann bei selbstüberschneidenden BSplines zu Fehlern führen. Dann müsste man
-            // alle Intervalle in Betracht ziehen und die beste Lösung nehmen...
 
-            ExplicitPCurve2D exc2d = (this as IExplicitPCurve2D).GetExplicitPCurve2D();
-            double epos = exc2d.PositionOf(p, out double dist);
-            if (dist < double.MaxValue) return (epos - startParam) / (endParam - startParam);
-            if (interpol == null) MakeTriangulation();
-            int ind = -1;
-            double bestdist = double.MaxValue;
-            for (int i = 0; i < interpol.Length - 1; ++i)
-            {
-                double pos = Geometry.LinePar(interpol[i], interpol[i + 1], p);
-                if (pos > -1e-8 && pos < 1 + 1e-8)
-                {
-                    double d = Math.Abs(Geometry.DistPL(p, interpol[i], interpol[i + 1]));
-                    if (d < bestdist)
-                    {
-                        bestdist = d;
-                        ind = i;
-                    }
-                }
-            }
-            if (ind >= 0)
-            {
-                GeoPoint2D sp = interpol[ind];
-                GeoPoint2D ep = interpol[ind + 1];
-                double spar = interparam[ind];
-                double epar = interparam[ind + 1];
-                double pos = Geometry.LinePar(sp, ep, p);
-                GeoPoint2D mp = sp;
-                int dbgc = 0;
-                double mpar = spar;
-                double poscorrfactor = 2.0;
-                do
-                {
-                    // nicht mittig aufteilen sondern proportional
-                    // geht öfter viel schneller, manchmal etwas langsamer als die  reine Bisektion
-                    // Das Problem beim proportionalen Aufteilen scheint zu sein: wenn der Punkt sehr gut getroffen
-                    // wurde, dann wird das Intervall z.B. immer am Anfang ein klitzekleines Stück
-                    // abgeschnitten, aber das Ende bleibt unverändert. Dann nähert es sich nur sehr langsam an.
-                    // Deshalb im Fall, wo eine Intervallgrenze viel besser ist als die andere den Faktor etwas erhöhen,
-                    // damit wir über das Ziel hinausschießen und die andere Intervallseite verändert wird.
-                    // 0.01 und 2 sind an wenigen Beispielen ausprobierte Werte.
-                    // Jetzt mit dem adaptiven System verbessert (poscorrfactor)
-                    // Der wert von pos ist natürlich bei sehr flachem Schnitt nicht so gut wie bei einem eher senkrechten
-                    // Schnitt. Wenn man mit Dreiecken arbeitet, dann könnte man zu dem Schnitt mit der Basislinie
-                    // noch den Schnitt mit den beiden Dreiecksseiten verwenden, wobei die erste Seite von 0..0.5 und die zweite
-                    // von 0.5..1 gehen würde.
-                    if (pos < 0.25) pos *= poscorrfactor;
-                    if (pos > 0.75) pos = 1 - (1 - pos) * poscorrfactor;
-                    if (dbgc >= 30) pos = 0.5; // Notbremse
-                    double m = spar + pos * (epar - spar);
-                    if (m == mpar) break; // genau getroffen
-                    mpar = m;
-                    //Bisektion: mpar = (epar + spar)/2.0;
-                    mp = PointAtParam(mpar);
-                    double pos1 = Geometry.LinePar(sp, mp, p);
-                    double pos2 = Geometry.LinePar(mp, ep, p);
-                    // auf welchem Abschnitt liegt der Punkt?
-                    double pos1abs = Math.Abs(pos1 - 0.5);
-                    double pos2abs = Math.Abs(pos2 - 0.5);
-                    if (pos1abs < pos2abs)
-                    {
-                        if (pos > 0.75)
-                        {
-                            poscorrfactor *= 2;
-                        }
-                        else
-                        {
-                            ep = mp;
-                            epar = mpar;
-                            pos = pos1;
-                            poscorrfactor = 2.0;
-                        }
-                    }
-                    else
-                    {
-                        if (pos < 0.25)
-                        {
-                            poscorrfactor *= 2;
-                        }
-                        else
-                        {
-                            sp = mp;
-                            spar = mpar;
-                            pos = pos2;
-                            poscorrfactor = 2.0;
-                        }
-                    }
-                    ++dbgc;
-                    //if (dbgc == 30) // was soll das???
-                    //{
-                    //    spar = interparam[ind];
-                    //    epar = interparam[ind + 1];
-                    //}
-                }
-                while (Math.Abs(epar - spar) > parameterEpsilon && dbgc < 32);
-                return (mpar - startParam) / (endParam - startParam);
-            }
-            else
-            {   // keinen passenden Abschnitt gefunden
-                bestdist = double.MaxValue;
-                for (int i = 0; i < interpol.Length; ++i)
-                {
-                    double d = Geometry.Dist(interpol[i], p);
-                    if (d < bestdist)
-                    {
-                        bestdist = d;
-                        ind = i;
-                    }
-                }
-                if (ind >= 0) return (interparam[ind] - startParam) / (endParam - startParam);
-                else return 0.0; // Notausgang!
-            }
-        }
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Intersect (ICurve2D)"/>
         /// </summary>
@@ -2622,274 +2490,153 @@ namespace CADability.Curve2D
 
             #endregion
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.TangentPoints (GeoPoint2D, GeoPoint2D)"/>
-        /// </summary>
-        /// <param name="FromHere"></param>
-        /// <param name="CloseTo"></param>
-        /// <returns></returns>
-        public override GeoPoint2D[] TangentPoints(GeoPoint2D FromHere, GeoPoint2D CloseTo)
-        {   // wenn eine Linie vom Ausgangspunkt durch eine Dreiecksspitze nicht durch die Basislinie geht,
-            // dann ist es eine Tangente.
-            if (tringulation == null) MakeTriangulation();
-            List<GeoPoint2D> res = new List<GeoPoint2D>();
-            for (int i = 0; i < tringulation.Length; ++i)
-            {
-                if (Geometry.OnSameSide(interpol[i], interpol[i + 1], FromHere, tringulation[i]))
-                {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
-                    // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
-                    // Punkte und Richtungen legen und die Position der Tangente nehmen...
-                    double sparam = interparam[i];
-                    double eparam = interparam[i + 1];
-                    GeoVector2D sdir = interdir[i];
-                    GeoVector2D edir = interdir[i + 1];
-                    GeoPoint2D spoint = interpol[i];
-                    GeoPoint2D epoint = interpol[i + 1];
-                    GeoVector2D tdir = tringulation[i] - FromHere;
-                    double sz = sdir.x * tdir.y - sdir.y * tdir.x;
-                    double ez = edir.x * tdir.y - edir.y * tdir.x;
-                    // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
-                    // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
-                    GeoPoint2D mpoint;
-                    do
-                    {
-                        double mparam = (sparam + eparam) / 2.0;
-                        GeoVector2D mdir;
-                        PointDirAt(mparam, out mpoint, out mdir);
-                        tdir = mpoint - FromHere;
-                        double mz = mdir.x * tdir.y - mdir.y * tdir.x;
-                        if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
-                        {
-                            sz = mz;
-                            sparam = mparam;
-                        }
-                        else
-                        {
-                            ez = mz;
-                            eparam = mparam;
-                        }
-                    }
-                    while (Math.Abs(eparam - sparam) > parameterEpsilon);
-                    res.Add(mpoint);
-                }
-            }
-            res.Sort(new CompareCloseTo(CloseTo));
-            return res.ToArray();
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.TangentPointsToAngle (Angle, GeoPoint2D)"/>
-        /// </summary>
-        /// <param name="ang"></param>
-        /// <param name="CloseTo"></param>
-        /// <returns></returns>
-        public override GeoPoint2D[] TangentPointsToAngle(Angle ang, GeoPoint2D CloseTo)
-        {
-            GeoVector2D direction = new GeoVector2D(ang);
-            List<GeoPoint2D> res = new List<GeoPoint2D>();
-            for (int i = 0; i < tringulation.Length; ++i)
-            {
-                if (Geometry.OnSameSide(interpol[i], interpol[i + 1], tringulation[i], direction))
-                {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
-                    // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
-                    // Punkte und Richtungen legen und die Position der Tangente nehmen...
-                    double sparam = interparam[i];
-                    double eparam = interparam[i + 1];
-                    GeoVector2D sdir = interdir[i];
-                    GeoVector2D edir = interdir[i + 1];
-                    GeoPoint2D spoint = interpol[i];
-                    GeoPoint2D epoint = interpol[i + 1];
-                    GeoVector2D tdir = direction;
-                    double sz = sdir.x * tdir.y - sdir.y * tdir.x;
-                    double ez = edir.x * tdir.y - edir.y * tdir.x;
-                    // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
-                    // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
-                    GeoPoint2D mpoint;
-                    do
-                    {
-                        double mparam = (sparam + eparam) / 2.0;
-                        GeoVector2D mdir;
-                        PointDirAt(mparam, out mpoint, out mdir);
-                        double mz = mdir.x * tdir.y - mdir.y * tdir.x;
-                        if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
-                        {
-                            sz = mz;
-                            sparam = mparam;
-                        }
-                        else
-                        {
-                            ez = mz;
-                            eparam = mparam;
-                        }
-                    }
-                    while (Math.Abs(eparam - sparam) > parameterEpsilon);
-                    res.Add(mpoint);
-                }
-            }
-            res.Sort(new CompareCloseTo(CloseTo));
-            return res.ToArray();
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.TangentPointsToAngle (GeoVector2D)"/>
-        /// </summary>
-        /// <param name="direction"></param>
-        /// <returns></returns>
-        public override double[] TangentPointsToAngle(GeoVector2D direction)
-        {   // Ähnlich wie TangentPoints: Die Linie hat keinen Ausgangspunkt sondern einen festen Winkel
-            List<double> res = new List<double>();
-            for (int i = 0; i < tringulation.Length; ++i)
-            {
-                if (Geometry.OnSameSide(interpol[i], interpol[i + 1], tringulation[i], direction))
-                {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
-                    // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
-                    // Punkte und Richtungen legen und die Position der Tangente nehmen...
-                    double sparam = interparam[i];
-                    double eparam = interparam[i + 1];
-                    GeoVector2D sdir = interdir[i];
-                    GeoVector2D edir = interdir[i + 1];
-                    GeoPoint2D spoint = interpol[i];
-                    GeoPoint2D epoint = interpol[i + 1];
-                    GeoVector2D tdir = direction;
-                    double sz = sdir.x * tdir.y - sdir.y * tdir.x;
-                    double ez = edir.x * tdir.y - edir.y * tdir.x;
-                    // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
-                    // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
-                    GeoPoint2D mpoint;
-                    double mparam;
-                    do
-                    {
-                        mparam = (sparam + eparam) / 2.0;
-                        GeoVector2D mdir;
-                        PointDirAt(mparam, out mpoint, out mdir);
-                        double mz = mdir.x * tdir.y - mdir.y * tdir.x;
-                        if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
-                        {
-                            sz = mz;
-                            sparam = mparam;
-                        }
-                        else
-                        {
-                            ez = mz;
-                            eparam = mparam;
-                        }
-                    }
-                    while (Math.Abs(eparam - sparam) > parameterEpsilon);
-                    res.Add((mparam - startParam) / (endParam - startParam));
-                    // war vorher einfach "mparam", es sollte aber der normierte Parameter geliefert werden
-                }
-            }
-            return res.ToArray();
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.GetSelfIntersections ()"/>
-        /// </summary>
-        /// <returns></returns>
-        public override double[] GetSelfIntersections()
-        {   
-            // this is currently out of order, since the triangulation of the BSpline should not be used any more. Instead use the triangulation of the base class
-            return base.GetSelfIntersections();
-            SortedDictionary<double, GeoPoint2DWithParameter> list = new SortedDictionary<double, GeoPoint2DWithParameter>();
-            for (int i = 0; i < tringulation.Length; ++i)
-            {
-                // Zwei benachbarte Dreicke sollten sich nicht schneiden. Bei zewi benachbarten Dreicken
-                // ist halt das problem, dass der gemeinsame Eckpunkt als Schnittpunkt gefunden wird.
-                for (int j = i + 2; j < tringulation.Length; ++j)
-                {
-                    // der Schnittest für dreiecke findet schon dort statt
-                    Intersect(this, interpol[i], interparam[i], interdir[i], interpol[i + 1], interparam[i + 1], interdir[i + 1], tringulation[i],
-                        interpol[j], interparam[j], interdir[j], interpol[j + 1], interparam[j + 1], interdir[j + 1], tringulation[j], list);
-                }
-            }
-            List<double> res = new List<double>();
-            double lastpar = -1.0;
-            foreach (KeyValuePair<double, GeoPoint2DWithParameter> de in list)
-            {
-                if (lastpar >= 0.0 && de.Key - lastpar < 2 * parameterEpsilon) continue; // gleiche Punkte verwerfen (Genauigkeit beim Erzeugen ist eps)
-                lastpar = de.Key;
-                if (de.Value.par1 != de.Value.par2)
-                {   // die beiden Parameter müssen verschieden sein, sonst ist es der selbe Punkt und keine Selbstüberschneidung
-                    res.Add(de.Value.par1);
-                    res.Add(de.Value.par2); // beide Parameter werden zugefügt
-                }
-            }
-            return res.ToArray();
-        }
-        /// <summary>
-        /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.PerpendicularFoot (GeoPoint2D)"/>
-        /// </summary>
-        /// <param name="FromHere"></param>
-        /// <returns></returns>
-        public override GeoPoint2D[] PerpendicularFoot(GeoPoint2D FromHere)
-        {
-            return base.PerpendicularFoot(FromHere);
-            // es gibt genau dann einen Fußpunkt, wenn der Punkt FromHere zwischen den beiden Normaln am Start- und Endpunkt des
-            // Dreiecks liegt.
-            List<GeoPoint2D> res = new List<GeoPoint2D>();
-            for (int i = 0; i < tringulation.Length; ++i)
-            {
-                double l1 = Geometry.DistPL(FromHere, interpol[i], interdir[i].ToLeft());
-                double l2 = Geometry.DistPL(FromHere, interpol[i + 1], interdir[i + 1].ToLeft());
-                int dbgc = 0;
-                if ((l1 < 0 && l2 >= 0) || (l1 >= 0 && l2 < 0))
-                {   // der Punkt liegt in diesem Segment
-                    GeoPoint2D sp = interpol[i];
-                    GeoPoint2D ep = interpol[i + 1];
-                    GeoVector2D sd = interdir[i];
-                    GeoVector2D ed = interdir[i + 1];
-                    double su = interparam[i];
-                    double eu = interparam[i + 1];
-                    GeoPoint2D mp = sp;
-                    GeoVector2D md;
-                    double mu = su;
-                    double poscorrfactor = 2.0;
-                    do
-                    {
-                        double pos = l1 / (l1 - l2);
-                        if (pos < 0.25) pos *= poscorrfactor;
-                        if (pos > 0.75) pos = 1 - (1 - pos) * poscorrfactor;
-                        double muu = su + pos * (eu - su);
-                        if (muu == mu) break; // keine Veränderung mehr
-                        mu = muu; // manchmal tut sich nichts mehr obwohl pos !=1 oder !=0 ist
-                        PointDirAt(mu, out mp, out md);
-                        double l3 = Geometry.DistPL(FromHere, mp, md.ToLeft());
-                        if ((l1 < 0 && l3 >= 0) || (l1 >= 0 && l3 < 0))
-                        {
-                            if (pos > 0.75)
-                            {
-                                poscorrfactor *= 2;
-                            }
-                            else
-                            {
-                                eu = mu;
-                                ep = mp;
-                                ed = md;
-                                l2 = l3;
-                                poscorrfactor = 2.0;
-                            }
-                        }
-                        else
-                        {
-                            if (pos < 0.25)
-                            {
-                                poscorrfactor *= 2;
-                            }
-                            else
-                            {
-                                su = mu;
-                                sp = mp;
-                                sd = md;
-                                l1 = l3;
-                                poscorrfactor = 2.0;
-                            }
-                        }
-                        ++dbgc;
-                        if (dbgc > 30) { }
-                    }
-                    while (Math.Abs(eu - su) > parameterEpsilon);
-                    res.Add(mp);
-                }
-            }
-            return res.ToArray();
-        }
+
+        // now using base implementation
+        //public override GeoPoint2D[] TangentPoints(GeoPoint2D FromHere, GeoPoint2D CloseTo)
+        //{   // wenn eine Linie vom Ausgangspunkt durch eine Dreiecksspitze nicht durch die Basislinie geht,
+        //    // dann ist es eine Tangente.
+        //    if (tringulation == null) MakeTriangulation();
+        //    List<GeoPoint2D> res = new List<GeoPoint2D>();
+        //    for (int i = 0; i < tringulation.Length; ++i)
+        //    {
+        //        if (Geometry.OnSameSide(interpol[i], interpol[i + 1], FromHere, tringulation[i]))
+        //        {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
+        //            // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
+        //            // Punkte und Richtungen legen und die Position der Tangente nehmen...
+        //            double sparam = interparam[i];
+        //            double eparam = interparam[i + 1];
+        //            GeoVector2D sdir = interdir[i];
+        //            GeoVector2D edir = interdir[i + 1];
+        //            GeoPoint2D spoint = interpol[i];
+        //            GeoPoint2D epoint = interpol[i + 1];
+        //            GeoVector2D tdir = tringulation[i] - FromHere;
+        //            double sz = sdir.x * tdir.y - sdir.y * tdir.x;
+        //            double ez = edir.x * tdir.y - edir.y * tdir.x;
+        //            // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
+        //            // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
+        //            GeoPoint2D mpoint;
+        //            do
+        //            {
+        //                double mparam = (sparam + eparam) / 2.0;
+        //                GeoVector2D mdir;
+        //                PointDirAt(mparam, out mpoint, out mdir);
+        //                tdir = mpoint - FromHere;
+        //                double mz = mdir.x * tdir.y - mdir.y * tdir.x;
+        //                if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
+        //                {
+        //                    sz = mz;
+        //                    sparam = mparam;
+        //                }
+        //                else
+        //                {
+        //                    ez = mz;
+        //                    eparam = mparam;
+        //                }
+        //            }
+        //            while (Math.Abs(eparam - sparam) > parameterEpsilon);
+        //            res.Add(mpoint);
+        //        }
+        //    }
+        //    res.Sort(new CompareCloseTo(CloseTo));
+        //    return res.ToArray();
+        //}
+
+        // now using base implementation
+        //public override GeoPoint2D[] TangentPointsToAngle(Angle ang, GeoPoint2D CloseTo)
+        //{
+        //    GeoVector2D direction = new GeoVector2D(ang);
+        //    List<GeoPoint2D> res = new List<GeoPoint2D>();
+        //    for (int i = 0; i < tringulation.Length; ++i)
+        //    {
+        //        if (Geometry.OnSameSide(interpol[i], interpol[i + 1], tringulation[i], direction))
+        //        {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
+        //            // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
+        //            // Punkte und Richtungen legen und die Position der Tangente nehmen...
+        //            double sparam = interparam[i];
+        //            double eparam = interparam[i + 1];
+        //            GeoVector2D sdir = interdir[i];
+        //            GeoVector2D edir = interdir[i + 1];
+        //            GeoPoint2D spoint = interpol[i];
+        //            GeoPoint2D epoint = interpol[i + 1];
+        //            GeoVector2D tdir = direction;
+        //            double sz = sdir.x * tdir.y - sdir.y * tdir.x;
+        //            double ez = edir.x * tdir.y - edir.y * tdir.x;
+        //            // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
+        //            // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
+        //            GeoPoint2D mpoint;
+        //            do
+        //            {
+        //                double mparam = (sparam + eparam) / 2.0;
+        //                GeoVector2D mdir;
+        //                PointDirAt(mparam, out mpoint, out mdir);
+        //                double mz = mdir.x * tdir.y - mdir.y * tdir.x;
+        //                if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
+        //                {
+        //                    sz = mz;
+        //                    sparam = mparam;
+        //                }
+        //                else
+        //                {
+        //                    ez = mz;
+        //                    eparam = mparam;
+        //                }
+        //            }
+        //            while (Math.Abs(eparam - sparam) > parameterEpsilon);
+        //            res.Add(mpoint);
+        //        }
+        //    }
+        //    res.Sort(new CompareCloseTo(CloseTo));
+        //    return res.ToArray();
+        //}
+
+        // now using base implementation
+        //public override double[] TangentPointsToAngle(GeoVector2D direction)
+        //{   // Ähnlich wie TangentPoints: Die Linie hat keinen Ausgangspunkt sondern einen festen Winkel
+        //    List<double> res = new List<double>();
+        //    for (int i = 0; i < tringulation.Length; ++i)
+        //    {
+        //        if (Geometry.OnSameSide(interpol[i], interpol[i + 1], tringulation[i], direction))
+        //        {   // notwendige und hinreichende Bedingung für eine tangente. Für die Eckpunkte ggf kritisch
+        //            // erstmal als Bisektion implementiert. Man könnte auch einen Ellipsenbogen durch die beiden
+        //            // Punkte und Richtungen legen und die Position der Tangente nehmen...
+        //            double sparam = interparam[i];
+        //            double eparam = interparam[i + 1];
+        //            GeoVector2D sdir = interdir[i];
+        //            GeoVector2D edir = interdir[i + 1];
+        //            GeoPoint2D spoint = interpol[i];
+        //            GeoPoint2D epoint = interpol[i + 1];
+        //            GeoVector2D tdir = direction;
+        //            double sz = sdir.x * tdir.y - sdir.y * tdir.x;
+        //            double ez = edir.x * tdir.y - edir.y * tdir.x;
+        //            // sz und ez sind die ZKomponente des Vektorproduktes, d.h. der sin des Winkels
+        //            // zwischen der angenäherten tangente und der NURBS Kurve. Uns interessiert nur das Vorzeichen
+        //            GeoPoint2D mpoint;
+        //            double mparam;
+        //            do
+        //            {
+        //                mparam = (sparam + eparam) / 2.0;
+        //                GeoVector2D mdir;
+        //                PointDirAt(mparam, out mpoint, out mdir);
+        //                double mz = mdir.x * tdir.y - mdir.y * tdir.x;
+        //                if ((mz < 0 && sz < 0) || (mz >= 0 && sz >= 0))
+        //                {
+        //                    sz = mz;
+        //                    sparam = mparam;
+        //                }
+        //                else
+        //                {
+        //                    ez = mz;
+        //                    eparam = mparam;
+        //                }
+        //            }
+        //            while (Math.Abs(eparam - sparam) > parameterEpsilon);
+        //            res.Add((mparam - startParam) / (endParam - startParam));
+        //            // war vorher einfach "mparam", es sollte aber der normierte Parameter geliefert werden
+        //        }
+        //    }
+        //    return res.ToArray();
+        //}
+
         /// <summary>
         /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Intersect (GeoPoint2D, GeoPoint2D)"/>
         /// </summary>
@@ -2982,19 +2729,16 @@ namespace CADability.Curve2D
         }
         public override double GetArea()
         {
-            // ExplicitPCurve2D uses alot of memory, that is why I made it lokal here
+            // ExplicitPCurve2D uses alot of memory, it is a WeakReference now
             ExplicitPCurve2D epc2d = (this as IExplicitPCurve2D).GetExplicitPCurve2D();
-            if (epc2d.IsRational) return base.GetArea();
+            if (epc2d==null || epc2d.IsRational) return base.GetArea();
             else
             {
                 double epca = epc2d.Area();
                 double repca = epc2d.RawArea();
-                if (Math.Sign(epca) != Math.Sign(repca) || Math.Abs(epca - repca) > 0.1 * Math.Max(Math.Abs(epca) , Math.Abs(repca))) return base.GetArea();
+                if (Math.Sign(epca) != Math.Sign(repca) || Math.Abs(epca - repca) > 0.1 * Math.Max(Math.Abs(epca), Math.Abs(repca))) return base.GetArea();
                 return epca;
             }
-            //if (explicitPCurve2D==null) explicitPCurve2D = (this as IExplicitPCurve2D).GetExplicitPCurve2D();
-            //if (explicitPCurve2D.IsRational) return base.GetArea();
-            //return explicitPCurve2D.Area();
         }
         #endregion
         #region IQuadTreeInsertable Members
@@ -3007,48 +2751,6 @@ namespace CADability.Curve2D
         {
             if (nubs == null && nurbs == null) Init(); // this is sometimes the case when a file is read
             return base.GetExtent();
-            if (!extendIsValid)
-            {
-                // erstmaliges berechnen:
-                if (tringulation == null) MakeTriangulation();
-                BoundingRect res = BoundingRect.EmptyBoundingRect;
-                for (int i = 0; i < interpol.Length; ++i)
-                {
-                    res.MinMax(interpol[i]);
-                }
-                for (int i = 0; i < tringulation.Length; ++i)
-                {
-                    if (!(tringulation[i] < res))
-                    {
-                        // die Dreieckspitze ist nicht im extend
-                        if (interdir[i].y > 0.0 && interdir[i + 1].y < 0.0)
-                        {
-                            // möglicherweise ein Maximum
-                            double y = FindVMax(interparam[i], interparam[i + 1], Math.Max(interpol[i].y, interpol[i + 1].y));
-                            if (y > res.Top) res.Top = y;
-                        }
-                        if (interdir[i].y < 0.0 && interdir[i + 1].y > 0.0)
-                        {
-                            double y = FindVMin(interparam[i], interparam[i + 1], Math.Min(interpol[i].y, interpol[i + 1].y));
-                            if (y < res.Bottom) res.Bottom = y;
-                        }
-                        if (interdir[i].x > 0.0 && interdir[i + 1].x < 0.0)
-                        {
-                            // möglicherweise ein Maximum
-                            double x = FindHMax(interparam[i], interparam[i + 1], Math.Max(interpol[i].x, interpol[i + 1].x));
-                            if (x > res.Right) res.Right = x;
-                        }
-                        if (interdir[i].x < 0.0 && interdir[i + 1].x > 0.0)
-                        {
-                            double x = FindHMin(interparam[i], interparam[i + 1], Math.Min(interpol[i].x, interpol[i + 1].x));
-                            if (x < res.Left) res.Left = x;
-                        }
-                    }
-                }
-                extend = res;
-                extendIsValid = true;
-            }
-            return extend;
         }
 
         private double FindVMax(double par1, double par2, double max)
@@ -3138,29 +2840,6 @@ namespace CADability.Curve2D
                 if (Math.Abs(par2 - par1) < parameterEpsilon || counter > 30) return pmiddle.x;
             }
             while (true);
-        }
-
-        /// <summary>
-        /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.HitTest (ref BoundingRect, bool)"/>
-        /// </summary>
-        /// <param name="Rect"></param>
-        /// <param name="IncludeControlPoints"></param>
-        /// <returns></returns>
-        public override bool HitTest(ref BoundingRect Rect, bool IncludeControlPoints)
-        {
-            return base.HitTest(ref Rect, IncludeControlPoints);
-            if (interpol == null) MakeTriangulation();
-            // 1. überprüfen ob ein Punkt drin ist
-            for (int i = 0; i < interpol.Length; ++i)
-            {
-                if (interpol[i] < Rect) return true;
-            }
-            ClipRect clr = new ClipRect(Rect);
-            for (int i = 0; i < interpol.Length - 1; ++i)
-            {
-                if (TringleHitTest(ref clr, interpol[i], tringulation[i], interpol[i + 1], interdir[i], interdir[i + 1], interparam[i], interparam[i + 1])) return true;
-            }
-            return false;
         }
 
         private bool TringleHitTest(ref ClipRect clr, GeoPoint2D p1, GeoPoint2D pm, GeoPoint2D p2, GeoVector2D v1, GeoVector2D v2, double sp, double ep)
@@ -3327,28 +3006,28 @@ namespace CADability.Curve2D
             simpleCurve = null;
             return false;
         }
-        public ICurve2D IsPartOf(double precision, ICurve2D simpleCurve)
-        {
-            if (simpleCurve.MinDistance(this.StartPoint) > precision) return null;
-            if (simpleCurve.MinDistance(this.EndPoint) > precision) return null;
-            if (tringulation == null) MakeTriangulation();
-            for (int i = 0; i < interpol.Length; i++)
-            {
-                if (simpleCurve.MinDistance(interpol[i]) > precision) return null;
-            }
-            double ps = simpleCurve.PositionOf(this.StartPoint);
-            double pe = simpleCurve.PositionOf(this.EndPoint);
-            if (ps < pe)
-            {
-                return simpleCurve.Trim(ps, pe);
-            }
-            else
-            {
-                ICurve2D res = simpleCurve.Trim(pe, ps);
-                res.Reverse();
-                return res;
-            }
-        }
+        //public ICurve2D IsPartOf(double precision, ICurve2D simpleCurve)
+        //{
+        //    if (simpleCurve.MinDistance(this.StartPoint) > precision) return null;
+        //    if (simpleCurve.MinDistance(this.EndPoint) > precision) return null;
+        //    if (tringulation == null) MakeTriangulation();
+        //    for (int i = 0; i < interpol.Length; i++)
+        //    {
+        //        if (simpleCurve.MinDistance(interpol[i]) > precision) return null;
+        //    }
+        //    double ps = simpleCurve.PositionOf(this.StartPoint);
+        //    double pe = simpleCurve.PositionOf(this.EndPoint);
+        //    if (ps < pe)
+        //    {
+        //        return simpleCurve.Trim(ps, pe);
+        //    }
+        //    else
+        //    {
+        //        ICurve2D res = simpleCurve.Trim(pe, ps);
+        //        res.Reverse();
+        //        return res;
+        //    }
+        //}
         public override string ToString()
         {
             return "BSpline2D: (" + StartPoint.DebugString + ") (" + EndPoint.DebugString + ")";
@@ -3393,31 +3072,6 @@ namespace CADability.Curve2D
             return res;
         }
 #if DEBUG
-        internal DebuggerContainer TringleHull
-        {
-            get
-            {
-                DebuggerContainer dc = new DebuggerContainer();
-                dc.Add(this);
-                for (int i = 0; i < interpol.Length - 2; ++i)
-                {
-                    Line2D l1 = new Line2D(interpol[i], interpol[i + 1]);
-                    dc.Add(l1, Color.Blue, i);
-                    Line2D l2 = new Line2D(interpol[i], tringulation[i]);
-                    dc.Add(l2, Color.Green, i);
-                    Line2D l3 = new Line2D(interpol[i + 1], tringulation[i]);
-                    dc.Add(l3, Color.Green, i);
-                }
-                for (int i = 0; i < interpol.Length - 2; ++i)
-                {
-                    if (Geometry.OnLeftSide(interpol[i], interpol[i + 1], tringulation[i]) != Geometry.OnLeftSide(interpol[i + 1], interpol[i + 2], tringulation[i + 1]))
-                    {   // das sind die Wendepunkte
-                        dc.Add(interpol[i + 1], Color.Black, i + 1);
-                    }
-                }
-                return dc;
-            }
-        }
         public GeoObjectList DEbugList
         {
             get
@@ -3477,47 +3131,53 @@ namespace CADability.Curve2D
         }
         ExplicitPCurve2D IExplicitPCurve2D.GetExplicitPCurve2D()
         {
-            ExplicitPCurve2D res = null;
-            if (nurbs != null)
+            if (explicitPCurve2D == null || !explicitPCurve2D.TryGetTarget(out ExplicitPCurve2D res))
             {
-                Polynom[] px = new Polynom[knots.Length - 1];
-                Polynom[] py = new Polynom[knots.Length - 1];
-                Polynom[] pz = new Polynom[knots.Length - 1];
-                Polynom[] pw = new Polynom[knots.Length - 1];
-                for (int i = 0; i < knots.Length - 1; i++)
+                if (nurbs != null)
                 {
-                    Polynom[] pn = nurbs.CurvePointPolynom((knots[i] + knots[i + 1]) / 2.0);
-                    // das sind 4 Polynome, px,py,pz,pw
-                    px[i] = pn[0];
-                    py[i] = pn[1];
-                    pw[i] = pn[2];
-                }
-                bool isRational = false;
-                for (int i = 0; i < weights.Length; i++)
-                {
-                    if (weights[i] != 1.0)
+                    Polynom[] px = new Polynom[knots.Length - 1];
+                    Polynom[] py = new Polynom[knots.Length - 1];
+                    Polynom[] pz = new Polynom[knots.Length - 1];
+                    Polynom[] pw = new Polynom[knots.Length - 1];
+                    for (int i = 0; i < knots.Length - 1; i++)
                     {
-                        isRational = true;
-                        break;
+                        Polynom[] pn = nurbs.CurvePointPolynom((knots[i] + knots[i + 1]) / 2.0);
+                        // das sind 4 Polynome, px,py,pz,pw
+                        px[i] = pn[0];
+                        py[i] = pn[1];
+                        pw[i] = pn[2];
                     }
+                    bool isRational = false;
+                    for (int i = 0; i < weights.Length; i++)
+                    {
+                        if (weights[i] != 1.0)
+                        {
+                            isRational = true;
+                            break;
+                        }
+                    }
+                    if (isRational) res = new ExplicitPCurve2D(px, py, pw, knots);
+                    else res = new ExplicitPCurve2D(px, py, null, knots);
+                    explicitPCurve2D = new WeakReference<ExplicitPCurve2D>(res);
+                    return res;
                 }
-                if (isRational) res = new ExplicitPCurve2D(px, py, pw, knots);
-                else res = new ExplicitPCurve2D(px, py, null, knots);
-            }
-            if (nubs != null)
-            {
-                Polynom[] px = new Polynom[knots.Length - 1];
-                Polynom[] py = new Polynom[knots.Length - 1];
-                for (int i = 0; i < knots.Length - 1; i++)
+                if (nubs != null)
                 {
-                    Polynom[] pn = nubs.CurvePointPolynom((knots[i] + knots[i + 1]) / 2.0);
-                    // das sind 4 Polynome, px,py,pz,pw
-                    px[i] = pn[0];
-                    py[i] = pn[1];
+                    Polynom[] px = new Polynom[knots.Length - 1];
+                    Polynom[] py = new Polynom[knots.Length - 1];
+                    for (int i = 0; i < knots.Length - 1; i++)
+                    {
+                        Polynom[] pn = nubs.CurvePointPolynom((knots[i] + knots[i + 1]) / 2.0);
+                        // das sind 4 Polynome, px,py,pz,pw
+                        px[i] = pn[0];
+                        py[i] = pn[1];
+                    }
+                    res = new ExplicitPCurve2D(px, py, null, knots);
+                    explicitPCurve2D = new WeakReference<ExplicitPCurve2D>(res);
+                    return res;
                 }
-                res = new ExplicitPCurve2D(px, py, null, knots);
             }
-            return res;
+            return null;
         }
 
         //protected override void GetTriangulationBasis(out GeoPoint2D[] points, out GeoVector2D[] directions, out double[] parameters)

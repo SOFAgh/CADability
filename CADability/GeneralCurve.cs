@@ -22,14 +22,12 @@ namespace CADability.GeoObject
     internal class ShowPropertyGeneralCurve : PropertyEntryImpl
     {
         private GeneralCurve generalCurve;
-        private IFrame frame;
         private IPropertyEntry[] subEntries;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-        public ShowPropertyGeneralCurve(GeneralCurve GeneralCurve, IFrame Frame)
+        public ShowPropertyGeneralCurve(GeneralCurve GeneralCurve, IFrame frame): base(frame)
         {
             this.generalCurve = GeneralCurve;
-            this.frame = Frame;
-            attributeProperties = generalCurve.GetAttributeProperties(frame);
+            attributeProperties = generalCurve.GetAttributeProperties(Frame);
             base.resourceId = "General.Curve";
         }
         #region PropertyEntryImpl Overrides
@@ -46,9 +44,9 @@ namespace CADability.GeoObject
             {
                 if (subEntries == null)
                 {
-                    GeoPointProperty startPointProperty = new GeoPointProperty(this, "StartPoint", "GeneralCurve.StartPoint", frame, false);
+                    GeoPointProperty startPointProperty = new GeoPointProperty(this, "StartPoint", "GeneralCurve.StartPoint", Frame, false);
                     startPointProperty.ReadOnly = true;
-                    GeoPointProperty endPointProperty = new GeoPointProperty(this, "EndPoint", "GeneralCurve.EndPoint", frame, false);
+                    GeoPointProperty endPointProperty = new GeoPointProperty(this, "EndPoint", "GeneralCurve.EndPoint", Frame, false);
                     endPointProperty.ReadOnly = true;
 
                     IPropertyEntry[] mainProps = {
@@ -756,7 +754,10 @@ namespace CADability.GeoObject
         {
             return position;
         }
-
+        bool ICurve.Extend(double atStart, double atEnd)
+        {
+            return false;
+        }
         BoundingCube ICurve.GetExtent()
         {
             if (tetraederBase == null) MakeTetraederHull();
@@ -1248,7 +1249,7 @@ namespace CADability.GeoObject
         internal static void GetTetraederPoints(GeoPoint p1, GeoPoint p2, GeoVector v1, GeoVector v2, out GeoPoint tv1, out GeoPoint tv2)
         {
             GeoVector d = p2 - p1;
-            if (Precision.SameDirection(v1, d, false) || Precision.SameDirection(v2, d, false))
+            if (Precision.SameDirection(v1, d, false) || Precision.SameDirection(v2, d, false) || d.IsNullVector())
             {
                 GeoPoint pm = new GeoPoint(p1, p2);
                 tv1 = pm;
@@ -1257,6 +1258,13 @@ namespace CADability.GeoObject
             }
             GeoVector v1x = d ^ v1;
             GeoVector v2x = d ^ v2;
+            if (v1x.IsNullVector() || v2x.IsNullVector())
+            {
+                GeoPoint pm = new GeoPoint(p1, p2);
+                tv1 = pm;
+                tv2 = pm;
+                return;
+            }
             try
             {
                 Plane pl1 = new Plane(p1, v1x, v1); // Ebene am Startpunkt tangential zur Kurve

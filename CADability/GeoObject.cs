@@ -585,31 +585,6 @@ namespace CADability.GeoObject
         /// then the object is in a stable state.
         /// </summary>
         protected int isChanging; // wenn >0, dann läuft gerade eine Änderung von WillChage-DidChange
-        //		internal static GeoObjectList FromOCasShape(TopoDS.Shape shp, bool edgesOnly)
-        //		{	// erzeugt aus einem OpenCascade Shape ein GeoObject.
-        //			// z.Z. nur implementiert: edgesOnly==true: es wird alles bis auf kanten heruntergebrochen
-        //			TopAbs.ShapeEnum se = shp.TShape().ShapeType();
-        //			if (edgesOnly)
-        //			{
-        //				GeoObjectList lst = new GeoObjectList();
-        //				TopExp.Explorer Ex = new TopExp.Explorer();
-        //				for (Ex.Init(shp, TopAbs.ShapeEnum.EDGE,TopAbs.ShapeEnum.SHAPE); Ex.More(); Ex.Next())
-        //				{
-        //					if (Ex.Current().TShape().ShapeType()==TopAbs.ShapeEnum.EDGE)
-        //					{
-        //						CndOCas.Edge edg = new CndOCas.Edge();
-        //						edg.SetShape(Ex.Current(),CndOCas.TShapeType.EdgeShape);
-        //						IGeoObject part = FromOCasEdge(edg);
-        //						if (part!=null) lst.Add(part);
-        //					}
-        //				}
-        //				return lst;
-        //			}
-        //			else
-        //			{
-        //				throw new NotImplementedException("FromOCasShape: edgesOnly==false");
-        //			}
-        //		}
         /// <summary>
         /// An ApplicationException thrown when an error happens during a change operation.
         /// </summary>
@@ -2003,7 +1978,7 @@ namespace CADability.GeoObject
             return this.GetExtent(1.0);
         }
 
-        protected void JsonGetObjectData(IJsonWriteData data)
+        public virtual void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("UserData", userData);
             if (layer != null) data.AddProperty("Layer", layer);
@@ -2013,7 +1988,7 @@ namespace CADability.GeoObject
         }
 
 
-        protected void JsonSetObjectData(IJsonReadData data)
+        public virtual void SetObjectData(IJsonReadData data)
         {
             userData = data.GetPropertyOrDefault<UserData>("UserData");
             layer = data.GetPropertyOrDefault<Layer>("Layer");

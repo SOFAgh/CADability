@@ -15,7 +15,6 @@ namespace CADability.UserInterface
     public class ShowPropertyEllipse : PropertyEntryImpl, IDisplayHotSpots, ICommandHandler, IGeoObjectShowProperty
     {
         private Ellipse ellipse;
-        private IFrame frame;
         private GeoPointProperty centerProperty;
         private LengthProperty majorRadiusProperty;
         private LengthHotSpot[] majorRadiusHotSpot;
@@ -36,10 +35,9 @@ namespace CADability.UserInterface
         private IPropertyEntry[] subEntries;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
 
-        public ShowPropertyEllipse(Ellipse Ellipse, IFrame Frame)
+        public ShowPropertyEllipse(Ellipse Ellipse, IFrame frame): base(frame)
         {
             this.ellipse = Ellipse;
-            this.frame = Frame;
 
             centerProperty = new GeoPointProperty("Ellipse.Center", Frame, true);
             centerProperty.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetCenter);
@@ -116,11 +114,11 @@ namespace CADability.UserInterface
                 directionProperty.GetBooleanEvent += new CADability.UserInterface.BooleanProperty.GetBooleanDelegate(OnGetDirection);
                 directionProperty.SetBooleanEvent += new CADability.UserInterface.BooleanProperty.SetBooleanDelegate(OnSetDirection);
                 // hat keinen Hotspot
-                startPointProperty = new GeoPointProperty("Ellipse.StartPoint", frame, false);
+                startPointProperty = new GeoPointProperty("Ellipse.StartPoint", Frame, false);
                 startPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetStartPoint);
                 startPointProperty.ReadOnly = true;
                 startPointProperty.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
-                endPointProperty = new GeoPointProperty("Ellipse.EndPoint", frame, false);
+                endPointProperty = new GeoPointProperty("Ellipse.EndPoint", Frame, false);
                 endPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetEndPoint);
                 endPointProperty.ReadOnly = true;
                 endPointProperty.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
@@ -130,7 +128,7 @@ namespace CADability.UserInterface
             {
                 if (Settings.GlobalSettings.GetBoolValue("CircleShowStartPointProperty", false))
                 {
-                    startAngleProperty = new AngleProperty("Ellipse.StartAngle", frame, true);
+                    startAngleProperty = new AngleProperty("Ellipse.StartAngle", Frame, true);
                     startAngleProperty.GetAngleEvent += new AngleProperty.GetAngleDelegate(OnGetStartAngle);
                     startAngleProperty.SetAngleEvent += new AngleProperty.SetAngleDelegate(OnSetStartAngle);
                     startAngleProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyStartAngleWithMouse);
@@ -143,7 +141,7 @@ namespace CADability.UserInterface
                     directionProperty.GetBooleanEvent += new CADability.UserInterface.BooleanProperty.GetBooleanDelegate(OnGetDirection);
                     directionProperty.SetBooleanEvent += new CADability.UserInterface.BooleanProperty.SetBooleanDelegate(OnSetDirection);
                     // hat keinen Hotspot
-                    startPointProperty = new GeoPointProperty("Ellipse.StartPoint", frame, false);
+                    startPointProperty = new GeoPointProperty("Ellipse.StartPoint", Frame, false);
                     startPointProperty.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetStartPoint);
                     startPointProperty.ReadOnly = true;
                     startPointProperty.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnStateChanged);
@@ -151,7 +149,7 @@ namespace CADability.UserInterface
                 base.resourceId = "Ellipse.Object";
             }
 
-            attributeProperties = ellipse.GetAttributeProperties(frame);
+            attributeProperties = ellipse.GetAttributeProperties(Frame);
         }
         private void OnGeoObjectDidChange(IGeoObject Sender, GeoObjectChange Change)
         {
@@ -208,7 +206,7 @@ namespace CADability.UserInterface
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
-            attributeProperties = ellipse.GetAttributeProperties(frame);
+            attributeProperties = ellipse.GetAttributeProperties(Frame);
             propertyPage.Refresh(this);
         }
 
@@ -334,12 +332,12 @@ namespace CADability.UserInterface
         private void ModifyCenterWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(centerProperty, ellipse);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
         private void ModifyMajorAxisWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralGeoVectorAction gva = new GeneralGeoVectorAction(majorAxisProperty, ellipse.Center, ellipse);
-            frame.SetAction(gva);
+            Frame.SetAction(gva);
         }
         private void OnSetMajorAxis(GeneralGeoPointAction sender, GeoPoint NewValue)
         {
@@ -358,7 +356,7 @@ namespace CADability.UserInterface
         {
             GeneralGeoPointAction gpa = new GeneralGeoPointAction(ellipse.Center, ellipse);
             gpa.SetGeoPointEvent += new CADability.Actions.GeneralGeoPointAction.SetGeoPointDelegate(OnSetMinorAxis);
-            frame.SetAction(gpa);
+            Frame.SetAction(gpa);
         }
         private void OnSetMinorAxis(GeneralGeoPointAction sender, GeoPoint NewValue)
         {
@@ -402,7 +400,7 @@ namespace CADability.UserInterface
         private void ModifyMajorRadiusWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gla = new GeneralLengthAction(majorRadiusProperty, ellipse.Center, ellipse);
-            frame.SetAction(gla);
+            Frame.SetAction(gla);
         }
         private void OnSetMinorRadius(LengthProperty sender, double l)
         {
@@ -415,7 +413,7 @@ namespace CADability.UserInterface
         private void ModifyMinorRadiusWithMouse(IPropertyEntry sender, bool StartModifying)
         {
             GeneralLengthAction gla = new GeneralLengthAction(minorRadiusProperty, ellipse.Center, ellipse);
-            frame.SetAction(gla);
+            Frame.SetAction(gla);
         }
         private void OnSetMajorAxis(GeoVectorProperty sender, GeoVector v)
         {
@@ -465,7 +463,7 @@ namespace CADability.UserInterface
         {
             GeneralAngleAction gaa = new GeneralAngleAction(startAngleProperty, ellipse.Center);
             gaa.CalculateAngleEvent += new CADability.Actions.GeneralAngleAction.CalculateAngleDelegate(OnCalculateEllipseParameter);
-            frame.SetAction(gaa);
+            Frame.SetAction(gaa);
         }
         private Angle OnGetEndAngle()
         {
@@ -480,7 +478,7 @@ namespace CADability.UserInterface
         {
             GeneralAngleAction gaa = new GeneralAngleAction(endAngleProperty, ellipse.Center);
             gaa.CalculateAngleEvent += new CADability.Actions.GeneralAngleAction.CalculateAngleDelegate(OnCalculateEllipseParameter);
-            frame.SetAction(gaa);
+            Frame.SetAction(gaa);
         }
         private bool OnGetDirection()
         {
@@ -621,16 +619,16 @@ namespace CADability.UserInterface
                     (ellipse as ICurve).Reverse();
                     return true;
                 case "MenuId.CurveSplit":
-                    frame.SetAction(new ConstrSplitCurve(ellipse));
+                    Frame.SetAction(new ConstrSplitCurve(ellipse));
                     return true;
                 case "MenuId.Approximate":
-                    if (frame.ActiveAction is SelectObjectsAction)
+                    if (Frame.ActiveAction is SelectObjectsAction)
                     {
-                        Curves.Approximate(frame, ellipse);
+                        Curves.Approximate(Frame, ellipse);
                     }
                     return true;
                 case "MenuId.Aequidist":
-                    frame.SetAction(new ConstructAequidist(ellipse));
+                    Frame.SetAction(new ConstructAequidist(ellipse));
                     return true;
             }
             return false;
@@ -646,7 +644,7 @@ namespace CADability.UserInterface
                 case "MenuId.CurveSplit":
                     return true;
                 case "MenuId.Ellipse.ToLines":
-                    CommandState.Enabled = (frame.ActiveAction is SelectObjectsAction);
+                    CommandState.Enabled = (Frame.ActiveAction is SelectObjectsAction);
                     return true;
             }
             return false;

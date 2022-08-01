@@ -698,13 +698,13 @@ namespace CADability.Curve2D
             info.AddValue("EndPoint", endPoint);
         }
         protected Line2D() { } // needed for IJsonSerialize
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("StartPoint", startPoint);
             data.AddProperty("EndPoint", endPoint);
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData data)
+        public void SetObjectData(IJsonReadData data)
         {
             startPoint = data.GetProperty<GeoPoint2D>("StartPoint");
             endPoint = data.GetProperty<GeoPoint2D>("EndPoint");

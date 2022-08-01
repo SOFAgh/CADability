@@ -222,14 +222,14 @@ namespace CADability.Attribute
 #endregion
 #region IJsonSerialize
         // Needs an empty constructor or an constructor with IJsonSerialize as a parameter
-        void IJsonSerialize.GetObjectData(IJsonWriteData data)
+        public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Name", name);
             data.AddProperty("Source", source);
             data.AddProperty("Color", color.ToArgb());
         }
 
-        void IJsonSerialize.SetObjectData(IJsonReadData dict)
+        public void SetObjectData(IJsonReadData dict)
         {
             name = dict.GetProperty("Name") as string;
             source = dict.GetProperty<ColorSource>("Source");

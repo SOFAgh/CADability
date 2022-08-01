@@ -15,13 +15,11 @@ namespace CADability.UserInterface
         private IGeoObject ContextMenuSource;
         MultiObjectsProperties multiObjectsProperties;
         private IPropertyEntry[] subEntries;
-        private IFrame frame;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-        public ShowPropertyBlock(Block Block, IFrame Frame)
+        public ShowPropertyBlock(Block Block, IFrame frame): base(frame)
         {
             block = Block;
-            frame = Frame;
-            attributeProperties = block.GetAttributeProperties(frame);
+            attributeProperties = block.GetAttributeProperties(Frame);
             base.resourceId = "Block.Object";
         }
         public void EditName()
@@ -38,18 +36,18 @@ namespace CADability.UserInterface
                 {
                     List<IPropertyEntry> prop = new List<IPropertyEntry>();
                     prop.Add(new NameProperty(this.block, "Name", "Block.Name"));
-                    GeoPointProperty refPointPro = new GeoPointProperty("Block.RefPoint", frame, true);
+                    GeoPointProperty refPointPro = new GeoPointProperty("Block.RefPoint", Frame, true);
                     refPointPro.GetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.GetGeoPointDelegate(OnGetRefPoint);
                     refPointPro.SetGeoPointEvent += new CADability.UserInterface.GeoPointProperty.SetGeoPointDelegate(OnSetRefPoint);
                     prop.Add(refPointPro);
                     if (!block.UserData.ContainsData("Block.HideCommonProperties") || !(bool)block.UserData.GetData("Block.HideCommonProperties")) // with this UserData you can disable the common properties of the block
                     {   
-                        multiObjectsProperties = new MultiObjectsProperties(frame, block.Children);
+                        multiObjectsProperties = new MultiObjectsProperties(Frame, block.Children);
                         prop.Add(multiObjectsProperties.attributeProperties);
                         ShowPropertyGroup spg = new ShowPropertyGroup("Block.Children");
                         for (int i = 0; i < block.Count; ++i)
                         {
-                            IPropertyEntry sp = block.Item(i).GetShowProperties(frame);
+                            IPropertyEntry sp = block.Item(i).GetShowProperties(Frame);
                             if (sp is IGeoObjectShowProperty)
                             {
                                 (sp as IGeoObjectShowProperty).CreateContextMenueEvent += new CreateContextMenueDelegate(OnCreateContextMenueChild);
@@ -68,7 +66,7 @@ namespace CADability.UserInterface
         void OnCreateContextMenueChild(IGeoObjectShowProperty sender, List<MenuWithHandler> toManipulate)
         {
             ContextMenuSource = sender.GetGeoObject();
-            MenuWithHandler[] toAdd = MenuResource.LoadMenuDefinition("MenuId.SelectedObject", false, frame.CommandHandler);
+            MenuWithHandler[] toAdd = MenuResource.LoadMenuDefinition("MenuId.SelectedObject", false, Frame.CommandHandler);
             toManipulate.AddRange(toAdd);
         }
         public override MenuWithHandler[] ContextMenu
@@ -91,7 +89,7 @@ namespace CADability.UserInterface
         void OnUserDataAdded(string name, object value)
         {
             this.subEntries = null;
-            attributeProperties = block.GetAttributeProperties(frame);
+            attributeProperties = block.GetAttributeProperties(Frame);
             propertyPage.Refresh(this);
         }
         public override void Removed(IPropertyPage propertyPage)
@@ -115,15 +113,15 @@ namespace CADability.UserInterface
             switch (MenuId)
             {
                 case "MenuId.Explode":
-                    if (frame.ActiveAction is SelectObjectsAction)
+                    if (Frame.ActiveAction is SelectObjectsAction)
                     {
-                        SelectObjectsAction soa = frame.ActiveAction as SelectObjectsAction;
+                        SelectObjectsAction soa = Frame.ActiveAction as SelectObjectsAction;
                         soa.SetSelectedObjects(new GeoObjectList());
                         //Application.DoEvents();
-                        using (frame.Project.Undo.UndoFrame)
+                        using (Frame.Project.Undo.UndoFrame)
                         {
                             IGeoObjectOwner addTo = block.Owner;
-                            if (addTo == null) addTo = frame.ActiveView.Model;
+                            if (addTo == null) addTo = Frame.ActiveView.Model;
                             addTo.Remove(block);
                             GeoObjectList toSelect = block.Decompose();
                             for (int i = 0; i < toSelect.Count; i++)

@@ -344,4 +344,6 @@ healthchecksdb
 CADability.Forms/Unfold.cs
 CADability.Forms/DebuggerPlayground.cs
 CADability.Forms/LaserParameter.cs
-/docs/CADabilityFormsDoc/api/CADability.Forms.PropertyPage.html
+CADability.Forms/log.txt
+
+/CADability/_ToDo.txt

@@ -22,7 +22,7 @@ using System.IO;
 namespace CADability.DXF
 {
     // ODAFileConverter "C:\Zeichnungen\DxfDwg\Stahl" "C:\Zeichnungen\DxfDwg\StahlConverted" "ACAD2010" "DWG" "0" "0"
-    // only converts whole directories. 
+    // only converts whole directories.
     /// <summary>
     /// Imports a DXF file, converts it to a project
     /// </summary>
@@ -383,7 +383,7 @@ namespace CADability.DXF
             if (sweep < 0.0) sweep += Math.PI * 2.0;
             // if (sweep < Precision.epsa) sweep = Math.PI * 2.0;
             if (start == end) sweep = 0.0;
-            if (start == Math.PI * 2.0 && end == 0.0) sweep = 0.0; // see in modena.dxf 
+            if (start == Math.PI * 2.0 && end == 0.0) sweep = 0.0; // see in modena.dxf
             // Arcs are always counterclockwise, but maybe the normal is (0,0,-1) in 2D drawings.
             e.SetArcPlaneCenterRadiusAngles(plane, GeoPoint(arc.Center), arc.Radius, start, sweep);
             if (sweep != 0.0 && Math.Abs(sweep / arc.Radius) < 1e-7)
@@ -686,7 +686,7 @@ namespace CADability.DXF
                     if (list.Count > 1)
                     {
                         GeoObject.Block block = GeoObject.Block.Construct();
-                        block.Set(new GeoObjectList(list));
+                        block.Set(new GeoObjectList(list as  ICollection<IGeoObject>));
                         return block;
                     }
                     else return res;
@@ -1101,7 +1101,7 @@ namespace CADability.DXF
                 {
                     GeoObject.Block blk = GeoObject.Block.Construct();
                     blk.Name = "Mesh";
-                    blk.Set(new GeoObjectList(faces));
+                    blk.Set(new GeoObjectList(faces as ICollection<IGeoObject>));
                     return blk;
                 }
             }

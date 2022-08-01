@@ -17,12 +17,17 @@ namespace CADability
         private LengthInput diameterInput;
         private bool validResult;
         private bool useRadius;
+        private bool isFillet;
         public ParametricsRadius(Face[] facesWithRadius, IFrame frame, bool useRadius)
         {
             this.facesWithRadius = facesWithRadius;
             this.frame = frame;
             this.useRadius = useRadius;
             shell = facesWithRadius[0].Owner as Shell;
+            // Prametrics class has a problem with subdevided edges, which are connected in CombineConnectedFaces via CombineConnectedSameSurfaceEdges
+            // we call this here, because during the action there is a problem with changing a GeoObject of the model and continuous changes.
+            if (!shell.State.HasFlag(Shell.ShellFlags.FacesCombined)) shell.CombineConnectedFaces();
+            isFillet = facesWithRadius[0].IsFillet();
         }
 
         public override string GetID()
@@ -103,15 +108,15 @@ namespace CADability
             validResult = false;
             if (shell != null && length > 0.0)
             {
-                Parametrics pm = new Parametrics(shell);
+                Parametric pm = new Parametric(shell);
                 bool ok = false;
-                if (facesWithRadius.Length == 1) ok = pm.ModifyRadius(facesWithRadius[0], length);
-                else ok = pm.ModifyFilletRadius(facesWithRadius, length);
+                if (isFillet) ok = pm.ModifyFilletRadius(facesWithRadius, length);
+                else ok = pm.ModifyRadius(facesWithRadius, length);
                 if (ok)
                 {
-                    Shell sh = pm.Result(out HashSet<Face> involvedFaces);
-                    if (sh != null)
+                    if (pm.Apply())
                     {
+                        Shell sh = pm.Result();
                         ActiveObject = sh;
                         validResult = true;
                         return true;
@@ -145,19 +150,22 @@ namespace CADability
         {
             if (validResult && ActiveObject != null)
             {
-                Solid sld = shell.Owner as Solid;
-                if (sld != null)
-                {   // the shell was part of a Solid
-                    IGeoObjectOwner owner = sld.Owner; // Model or Block
-                    owner.Remove(sld);
-                    Solid replacement = Solid.MakeSolid(ActiveObject as Shell);
-                    owner.Add(replacement);
-                }
-                else
+                using (Frame.Project.Undo.UndoFrame)
                 {
-                    IGeoObjectOwner owner = shell.Owner;
-                    owner.Remove(shell);
-                    owner.Add(ActiveObject);
+                    Solid sld = shell.Owner as Solid;
+                    if (sld != null)
+                    {   // the shell was part of a Solid
+                        IGeoObjectOwner owner = sld.Owner; // Model or Block
+                        owner.Remove(sld);
+                        Solid replacement = Solid.MakeSolid(ActiveObject as Shell);
+                        owner.Add(replacement);
+                    }
+                    else
+                    {
+                        IGeoObjectOwner owner = shell.Owner;
+                        owner.Remove(shell);
+                        owner.Add(ActiveObject);
+                    }
                 }
             }
             ActiveObject = null;

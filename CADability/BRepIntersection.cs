@@ -1392,6 +1392,7 @@ namespace CADability
         private Shell shell2;
         private PlaneSurface splittingOnplane; // when splitting a Shell with a plane, this is the surface
         private bool allowOpenEdges;
+        private bool shellsAreUnchanged;
 #if DEBUG
         Edge debugEdge;
 #endif
@@ -1477,6 +1478,10 @@ namespace CADability
                 double[] uOnCurve3D;
                 Border.Position[] position;
                 double prec = precision / ef.edge.Curve3D.Length;
+                if (knownIntersections != null && knownIntersections.TryGetValue(ef.edge, out Tuple<Face, Face> ki))
+                {
+                    if (ki.Item1 == ef.face || ki.Item2 == ef.face) continue;
+                }
                 ef.face.IntersectAndPosition(ef.edge, out ip, out uvOnFace, out uOnCurve3D, out position, precision);
                 for (int i = 0; i < ip.Length; ++i)
                 {
@@ -1988,7 +1993,52 @@ namespace CADability
             Shell[] lower = brep.Result();
             return (upper, lower);
         }
+        /// <summary>
+        /// Chamfer or bevel the provided edges. the edges must be connected and only two edges may have a common vertex. The edges must build a path.
+        /// We have two distances from the edge to make chamfers with different angles. All edges must belong to the <paramref name="primaryFace"/>. 
+        /// The first distance is on the primary face, the second on the other face (in most cases the distances are equal).
+        /// </summary>
+        /// <param name="primaryFace"></param>
+        /// <param name="edges"></param>
+        /// <param name="primaryDist"></param>
+        /// <param name="secondaryDist"></param>
+        /// <returns></returns>
+        public static Shell ChamferEdges(Face primaryFace, Edge[] edges, double primaryDist, double secondaryDist)
+        {
+            Shell toChamfer = primaryFace.Owner as Shell;
+            if (toChamfer == null) return null;
+            // sort the edges in the connection order
+            if (edges.Length > 1)
+            {
+                HashSet<Edge> toSort = new HashSet<Edge>(edges);
+                List<Edge> sorted = new List<Edge>();
+                Edge startWith = toSort.First();
+                toSort.Remove(startWith);
+                sorted.Add(startWith);
+                while (toSort.Any())
+                {
+                    Edge endconnection = new HashSet<Edge>(sorted.Last().EndVertex(primaryFace).AllEdges).Intersect(toSort).FirstOrDefault();
+                    if (endconnection != null)
+                    {
+                        toSort.Remove(endconnection);
+                        sorted.Add(endconnection);
+                        continue;
+                    }
+                    Edge startconnection = new HashSet<Edge>(sorted.First().StartVertex(primaryFace).AllEdges).Intersect(toSort).FirstOrDefault();
+                    if (startconnection != null)
+                    {
+                        toSort.Remove(startconnection);
+                        sorted.Insert(0, startconnection);
+                        continue;
+                    }
+                    break;
+                }
+                if (toSort.Count > 0) return null; // the edges are not in a consecutive path
+                edges = sorted.ToArray(); // edges are now sorted
+            }
 
+            return null;
+        }
         public static Shell RoundEdges(Shell toRound, Edge[] edges, double radius)
         {
             // the edges must be connected, and no more than three edges may connect in a vertex
@@ -2013,6 +2063,7 @@ namespace CADability
                 srfc1.SetBounds(edg.PrimaryFace.GetUVBounds());
                 srfc2.SetBounds(edg.SecondaryFace.GetUVBounds()); // for BoxedSurfaceEx
                 ICurve[] cvs = srfc1.Intersect(edg.PrimaryFace.GetUVBounds(), srfc2, edg.SecondaryFace.GetUVBounds());
+                // there is a problem with the length of the curves: should use "Surfaces.Intersect(srfc1, srfc2);" and fix the length below
                 if (cvs == null || cvs.Length == 0) continue;
                 // if there are more than one intersection curves, take the one closest to the edge
                 ICurve crv = cvs[0];
@@ -2026,7 +2077,7 @@ namespace CADability
                         crv = cvs[i];
                     }
                 }
-                // clip the intersection curve to the length of the edg
+                // clip the intersection curve to the length of the edge
                 double pos1 = crv.PositionOf(edg.Vertex1.Position);
                 double pos2 = crv.PositionOf(edg.Vertex2.Position);
                 if (pos1 >= -1e-6 && pos1 <= 1.0 + 1e-6 && pos2 >= -1e-6 && pos2 <= 1.0 + 1e-6)
@@ -2035,11 +2086,12 @@ namespace CADability
                     else
                     {
                         crv.Trim(pos2, pos1);
-                        crv.Reverse(); // important, we expect crv going from vertex1 to vertex2
+                        crv.Reverse(); // important, we expect _crv_ going from vertex1 to vertex2
                     }
                 }
-                else continue; // maybe the offset surfaces of a nurbs surface only intersect with a short intersectin curve. What could you do in this case?
-                               // update the connection status, the vertex to involved edges list.
+                else continue; // maybe the offset surfaces of a nurbs surface only intersect with a short intersection curve. What could you do in this case?
+                crv.Extend(radius, radius); // make it long enough so that two adjacent fillets fully intersect
+                // update the connection status, the vertex to involved edges list.
                 if (!joiningVertices.TryGetValue(edg.Vertex1, out List<Edge> joining))
                 {
                     joiningVertices[edg.Vertex1] = joining = new List<Edge>();
@@ -2056,7 +2108,7 @@ namespace CADability
                 GeoVector dirx = edg.Curve3D.PointAt(edg.Curve3D.PositionOf(crv.StartPoint)) - crv.StartPoint;
                 GeoVector diry = crv.StartDirection ^ dirx;
                 dirx = crv.StartDirection ^ diry;
-                Plane pln = new Plane(crv.StartPoint, dirx, diry); // Plane perpendicular to the startdirection of the axis-curve, plane's x-axis pointing away from edge.
+                Plane pln = new Plane(crv.StartPoint, dirx, diry); // Plane perpendicular to the start-direction of the axis-curve, plane's x-axis pointing away from edge.
                 arc.SetArcPlaneCenterRadiusAngles(pln, crv.StartPoint, radius, Math.PI / 2.0, Math.PI);
                 Face fillet = Make3D.ExtrudeCurveToFace(arc, crv);
 
@@ -2102,6 +2154,17 @@ namespace CADability
                 }
                 rawFillets[edg] = new Tuple<ICurve, Face>(crv, part); // here we keep the original fillets, maybe they will be modified when we make junctions between fillets
             }
+#if DEBUG
+            DebuggerContainer dcEdges = new DebuggerContainer();
+            DebuggerContainer dcCurves = new DebuggerContainer();
+            DebuggerContainer dcFillets = new DebuggerContainer();
+            foreach (var item in rawFillets)
+            {
+                dcEdges.Add(item.Key.Curve3D as IGeoObject, item.Key.GetHashCode());
+                dcCurves.Add(item.Value.Item1 as IGeoObject);
+                dcFillets.Add(item.Value.Item2);
+            }
+#endif
             foreach (KeyValuePair<Vertex, List<Edge>> vertexToEdge in joiningVertices)
             {
                 if (vertexToEdge.Value.Count == 1)
@@ -2152,7 +2215,7 @@ namespace CADability
                     if (arc != null)
                     {
                         // create a cylindrical elongation at the end of the fillet
-                        Line l1 = Line.TwoPoints(cnt, cnt + 2 * radius * dir); // 2*radius ist willkürlich!
+                        Line l1 = Line.TwoPoints(cnt, cnt + 2 * radius * dir); // 2*radius is arbitrary!
                         Face filletExtend = Make3D.ExtrudeCurveToFace(arc, l1);
                         // this cylindrical face has two line edges, which may or may not be tangential to the primary and secondary face of the rounded edge
                         foreach (Edge cedg in filletExtend.AllEdgesIterated())
@@ -2176,8 +2239,8 @@ namespace CADability
                 {
                     // two edges (to be rounded) are connected at this vertex
                     // we try to intersect the two raw fillets. If they do intersect, we cut off the extend
-                    // if they don't intersect, we add a toriodal fitting part
-                    // we need to reconstruct tangentialIntersectionEdges when the brep intersection modifies the faces (and shortens the tangential edges)
+                    // if they don't intersect, we add a toroidal fitting part
+                    // we need to reconstruct tangentialIntersectionEdges when the BRep intersection modifies the faces (and shortens the tangential edges)
                     // we use UserData for this purpose.
                     GeoVector edge0dir, edg1dir;
                     if (vertexToEdge.Value[0].Vertex1 == vertexToEdge.Key) edge0dir = vertexToEdge.Value[0].Curve3D.StartDirection;
@@ -2209,7 +2272,7 @@ namespace CADability
                                     // we have to replace the old faces and edges with the new ones in rawFillets and tangentialIntersectionEdges
                                     int hc0 = (int)fcs[0].UserData["BrepFillet.OriginalFace"];
                                     int hc1 = (int)fcs[1].UserData["BrepFillet.OriginalFace"];
-                                    // we did save the HasCodes instead of the objects themselves, because cloning the userdata with a face, which has a userdata with a face... infinite loop
+                                    // we did save the HasCodes instead of the objects themselves, because cloning the UserData with a face, which has a UserData with a face... infinite loop
                                     Dictionary<Face, Face> oldToNew = new Dictionary<Face, Face>();
                                     if (hc0 == rawFillets[vertexToEdge.Value[0]].Item2.GetHashCode())
                                     {
@@ -2242,10 +2305,11 @@ namespace CADability
                                     }
                                 }
                             }
+                            else { }
                         }
                         else
                         {
-                            // no proper intersection, try to add a toriodal junction between the two fillets
+                            // no proper intersection, try to add a toroidal junction between the two fillets
                             Face fc1 = rawFillets[vertexToEdge.Value[0]].Item2;
                             Face fc2 = rawFillets[vertexToEdge.Value[1]].Item2;
                             GeoPoint cnt1, cnt2;
@@ -3089,6 +3153,7 @@ namespace CADability
                 return true;
             }
         }
+        public bool Unchanged => shellsAreUnchanged;
         public Shell[] Result()
         {
             // this method relies on
@@ -3802,6 +3867,40 @@ namespace CADability
             List<Shell> res = new List<Shell>(); // the result of this method.
                                                  // allFaces now contains all the trimmed faces plus the faces, which are (directly or indirectly) connected (via edges) to the trimmed faces
             List<Face> nonManifoldParts = new List<Face>();
+            shellsAreUnchanged = (allFaces.Count == 0);
+            if (allFaces.Count == 0)
+            {
+                if (operation == Operation.union)
+                {
+                    shell1.ReverseOrientation(); // both shells have been reversed, undo this reversion
+                    shell2.ReverseOrientation();
+                    if (shell2.Contains(shell1.Vertices[0].Position)) res.Add(shell2); // shell2 contains shell1, the result ist shell2
+                    else if (shell1.Contains(shell2.Vertices[0].Position)) res.Add(shell1); // shell1 contains shell2, the result ist shell1
+                    else
+                    {   // shells are disjunct, as union we return both
+                        res.Add(shell1);
+                        res.Add(shell2);
+                    }
+                }
+                else if (operation == Operation.difference)
+                {   // no intersection: shell1 - shell2, shell2 is reversed, i.e. IsInside means outside of the original
+                    if (shell2.Contains(shell1.Vertices[0].Position)) res.Add(shell1); // shell1 remains unchanged, because shell2 is outside
+                    else if (shell1.Contains(shell2.Vertices[0].Position)) 
+                    {   // this is a solid with an inner hole. This is currently not implemented by Solid as it is very rarely used
+                        // the correct result would be shell1 and shell2 in its reversed form
+                        res.Add(shell1);
+                        res.Add(shell2);
+                    }
+                    // else: the result is empty, because shell2 contains shell1 completely (nothing to do here, return empty result)
+                }
+                else if (operation == Operation.intersection)
+                {
+                    if (shell2.Contains(shell1.Vertices[0].Position)) res.Add(shell1); // shell2 contains shell1, the result ist shell1
+                    else if (shell1.Contains(shell2.Vertices[0].Position)) res.Add(shell2); // shell1 contains shell2, the result ist shell2
+                    // else: shells are disjunct, the result is empty
+                    
+                }
+            }
             while (allFaces.Count > 0)
             {
                 Set<Face> connected = extractConnectedFaces(allFaces, allFaces.GetAny());
@@ -5181,7 +5280,7 @@ namespace CADability
             {
                 // Add all edges of face1, which are inside face2
                 // if face2 has an intersection edge identical to this edge, then it is inside face2
-                Set<Edge> insideFace2 = (Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>).Intersection(ie2);
+                Set<Edge> insideFace2 = (new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2))).Intersection(ie2);
                 bool isInside = false, isOpposite = false;
                 foreach (Edge edgi in insideFace2)
                 {
@@ -5207,7 +5306,7 @@ namespace CADability
             foreach (Edge edg in face2.Edges)
             {
                 // Add all edges of face2, which are inside face1
-                Set<Edge> connectingEdges = Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>;
+                Set<Edge> connectingEdges = new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2));
                 Set<Edge> cmn = connectingEdges.Intersection(toUse);
                 if (cmn.Count > 0 && SameEdge(cmn.First(), edg, precision))
                 {
@@ -5309,7 +5408,7 @@ namespace CADability
             {
                 // Add all edges of face1, which are not inside face2
                 // if face2 has an intersection edge identical to this edge, then it is inside face2
-                Set<Edge> insideFace2 = (Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>).Intersection(ie2);
+                Set<Edge> insideFace2 = (new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2))).Intersection(ie2);
                 if (insideFace2.Count == 0)
                 {
                     Edge clone = edg.CloneWithVertices();
@@ -5320,7 +5419,7 @@ namespace CADability
             foreach (Edge edg in face2.Edges)
             {
                 // Add all edges of face2, which are inside face1
-                Set<Edge> connecting = Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>;
+                Set<Edge> connecting = new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2));
                 Set<Edge> insideFace1 = connecting.Intersection(ie1); // can be more than one
                 bool isInside = false;
                 foreach (Edge edgi in insideFace1)
@@ -5372,7 +5471,7 @@ namespace CADability
                     Set<Edge> intersectionEdges = new Set<Edge>();
                     foreach (Edge ie in ie1)
                     {
-                        Set<Edge> onOutline = (Vertex.ConnectingEdges(ie.Vertex1, ie.Vertex2) as Set<Edge>).Intersection(onNewFace);
+                        Set<Edge> onOutline = (new Set<Edge>(Vertex.ConnectingEdges(ie.Vertex1, ie.Vertex2))).Intersection(onNewFace);
                         bool isInside = false;
                         foreach (Edge edg in onOutline)
                         {
@@ -5423,7 +5522,7 @@ namespace CADability
             {
                 // Add all edges of face1, which are not inside face2
                 // if face2 has an intersection edge identical to this edge, then it is inside face2
-                Set<Edge> insideFace2 = (Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>).Intersection(ie2);
+                Set<Edge> insideFace2 = (new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2))).Intersection(ie2);
                 foreach (Edge if2 in insideFace2.Clone())
                 {
                     if (!SameEdge(if2, edg, precision)) insideFace2.Remove(if2);
@@ -5438,7 +5537,7 @@ namespace CADability
             foreach (Edge edg in face2.Edges)
             {
                 // Add all edges of face2, which are inside face1
-                Set<Edge> connecting = Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2) as Set<Edge>;
+                Set<Edge> connecting = new Set<Edge>(Vertex.ConnectingEdges(edg.Vertex1, edg.Vertex2));
                 Set<Edge> insideFace1 = connecting.Intersection(ie1); // can be more than one
                 bool isInside = false;
                 foreach (Edge edgi in insideFace1)
