@@ -2353,7 +2353,7 @@ namespace CADability
             info.AddValue("FilterList", filterList);
             info.AddValue("AnimatedViews", animatedViews.ToArray());
             info.AddValue("ActiveViewName", activeViewName);
-            if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
+            //if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
         }
         public void GetObjectData(IJsonWriteData data)
         {
@@ -2371,7 +2371,7 @@ namespace CADability
             data.AddProperty("FilterList", filterList);
             data.AddProperty("AnimatedViews", animatedViews);
             data.AddProperty("ActiveViewName", activeViewName);
-            if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings);
+            //if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings); //NET6 is no more serializzable.
         }
 
         public void SetObjectData(IJsonReadData data)
