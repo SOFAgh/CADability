@@ -810,6 +810,7 @@ namespace CADability.UserInterface
         }
         public virtual void ListBoxSelected(int selectedIndex) { }
         public bool DeferUpdate { get; set; } = false;
+        bool IPropertyEntry.IsLocked { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         /// <summary>
         /// Implementation of <see cref="IPropertyEntry.PropertyEntryChangedStateEvent"/>.
