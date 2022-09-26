@@ -5,6 +5,12 @@ using System;
 using System.ComponentModel;
 using System.IO;
 
+//[assembly: System.Diagnostics.DebuggerVisualizer(
+//typeof(TestDebuggerVisualizer.DebuggerSide),
+//typeof(VisualizerObjectSource),
+//Target = typeof(System.String),
+//Description = "My First Visualizer")]
+
 namespace CADability.Forms
 {
 #if DEBUG

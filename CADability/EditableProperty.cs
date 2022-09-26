@@ -245,10 +245,11 @@ namespace CADability.UserInterface
             get
             {
                 PropertyEntryType res = PropertyEntryType.Selectable;
-                if (!ReadOnly) res |= PropertyEntryType.ValueEditable;
+                if (!ReadOnly && !Locked) res |= PropertyEntryType.ValueEditable;
                 if (contextMenuId != null) res |= PropertyEntryType.ContextMenu;
                 if (LabelIsEditable) res |= PropertyEntryType.LabelEditable;
                 if (Highlight) res |= PropertyEntryType.Highlight;
+                if (Lockable) res |= PropertyEntryType.Lockable;
                 return res;
             }
         }
@@ -353,6 +354,14 @@ namespace CADability.UserInterface
             else
             {
                 if (!aborted) LabelChanged(newValue);
+            }
+        }
+        public override bool IsLocked { get => Locked; set => Locked = value; }
+        public override void ButtonClicked(PropertyEntryButton button)
+        {
+            if (button == PropertyEntryButton.locked)
+            {
+                Locked = !Locked;
             }
         }
     }

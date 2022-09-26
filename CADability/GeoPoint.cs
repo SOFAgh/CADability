@@ -5,8 +5,10 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Runtime.Serialization;
+using CADability;
 using CADability.GeoObject;
 using MathNet.Numerics.LinearAlgebra.Double;
+using Microsoft.VisualStudio.DebuggerVisualizers;
 
 namespace CADability
 {

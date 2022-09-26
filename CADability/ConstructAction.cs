@@ -2558,11 +2558,12 @@ namespace CADability.Actions
                 if (sender == geoPointProperty && !args.Control)
                 {
                     if (geoPointProperty.IsOpen && !geoPointProperty.IsSelected)
-                    {
-                        IShowProperty[] subentries = geoPointProperty.SubEntries;
+                    {   // there muste be one of the x, y or z entries selected
+                        IPropertyEntry[] subentries = geoPointProperty.SubItems;
+                        IPropertyEntry selected = (geoPointProperty.Parent as IPropertyPage).GetCurrentSelection();
                         for (int i = 0; i < subentries.Length; i++)
                         {
-                            if (subentries[i].IsSelected)
+                            if (subentries[i]==selected)
                             {
                                 if (i == subentries.Length - 1)
                                 {   // Enter auf die letzte Komponente
@@ -2572,7 +2573,7 @@ namespace CADability.Actions
                                 }
                                 else
                                 {
-                                    subentries[i + 1].IsSelected = true; // den nächsten selektieren
+                                    subentries[i + 1].Select(); // .IsSelected = true; // den nächsten selektieren
                                     return true;
                                 }
                             }
@@ -3056,10 +3057,11 @@ namespace CADability.Actions
                 {
                     if (geoVectorProperty.IsOpen && !geoVectorProperty.IsSelected)
                     {
-                        IShowProperty[] subentries = geoVectorProperty.SubEntries;
+                        IPropertyEntry[] subentries = geoVectorProperty.SubItems;
+                        IPropertyEntry selected = (geoVectorProperty.Parent as IPropertyPage).GetCurrentSelection();
                         for (int i = 0; i < subentries.Length; i++)
                         {
-                            if (subentries[i].IsSelected)
+                            if (subentries[i] == selected)
                             {
                                 if (i == subentries.Length - 1)
                                 {   // Enter auf die letzte Komponente
@@ -3069,7 +3071,7 @@ namespace CADability.Actions
                                 }
                                 else
                                 {
-                                    subentries[i + 1].IsSelected = true; // den nächsten selektieren
+                                    subentries[i + 1].Select(); // .IsSelected = true; // den nächsten selektieren
                                     return true;
                                 }
                             }
@@ -6778,7 +6780,7 @@ namespace CADability.Actions
                 // insbesondere wenn man mit Programmtext den Stil und die Farben setzt kommt man nicht durch
                 if (Settings.GlobalSettings.GetBoolValue("Action.KeepStyle", false))
                 {
-                    if (lastStyle.TryGetValue(activeObject.PreferredStyle, out Dictionary<Type,string> attributeNames))
+                    if (lastStyle.TryGetValue(activeObject.PreferredStyle, out Dictionary<Type, string> attributeNames))
                     {
                         SetAttribute(activeObject, attributeNames);
                     }
@@ -7332,7 +7334,14 @@ namespace CADability.Actions
             }
             return null;
         }
-
+        bool IPropertyEntry.IsLocked
+        {
+            get
+            {
+                return false;
+            }
+            set { }
+        }
         bool IPropertyEntry.DeferUpdate
         {
             get
