@@ -738,7 +738,7 @@ namespace CADability.Curve2D
         {
             NewtonMinimizer nm = new NewtonMinimizer(1e-6, 10);
             IObjectiveFunction iof = ObjectiveFunction.GradientHessian(
-                new Func<Vector<double>, Tuple<double, Vector<double>, Matrix<double>>>(delegate (Vector<double> vd)
+                new Func<Vector<double>, (double, Vector<double>, Matrix<double>)>(delegate (Vector<double> vd)
                 {
                     // vd[0] is the 0..1 parameter of the curve
                     TryPointDeriv3At(vd[0], out GeoPoint2D point, out GeoVector2D deriv1, out GeoVector2D deriv2, out GeoVector2D deriv3);
@@ -749,7 +749,7 @@ namespace CADability.Curve2D
                     Vector<double> gradient = new DenseVector(new double[] { 2 * s1 * s2 });
                     Matrix<double> hessian = new DenseMatrix(1, 1);
                     hessian[0, 0] = 2 * s1 * (toPoint * deriv3 - 3 * deriv1 * deriv2) + 2 * sqr(s2);
-                    return new Tuple<double, Vector<double>, Matrix<double>>(val, gradient, hessian);
+                    return (val, gradient, hessian);
                 }));
             try
             {

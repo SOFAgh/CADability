@@ -87,7 +87,7 @@ namespace CADability.GeoObject
             {   // the two circles have a common axis
                 // work in the plane where the circles appear as horizontal lines (c1 is the X-Axis) and the normal of the circles is th Y-axis
                 if (Math.Abs(c1.Radius - c2.Radius) < Precision.eps) return null; // this would be a cylinder
-                if (c1.Radius < c2.Radius) Hlp.Swap(ref c1, ref c2);
+                if (c1.Radius < c2.Radius) (c1, c2) = (c2, c1);
                 Plane pln = new Plane(c1.Center, c1.MajorAxis, c1.Normal);
                 GeoPoint2D c2cnt = pln.Project(c2.Center); //c2cnt.x must be 0.0
                 double y = c2cnt.y / (c1.Radius - c2.Radius) * c1.Radius;

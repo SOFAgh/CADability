@@ -28,7 +28,7 @@ namespace CADability
         {
             NewtonMinimizer nm = new NewtonMinimizer(1e-12, 30);
             IObjectiveFunction iof = ObjectiveFunction.GradientHessian(
-                new Func<Vector<double>, Tuple<double, Vector<double>, Matrix<double>>>(delegate (Vector<double> vd)
+                new Func<Vector<double>, (double, Vector<double>, Matrix<double>)>(delegate (Vector<double> vd)
                 {
                     GeoPoint2D uv = new GeoPoint2D(vd[0], vd[1]);
                     surface.Derivation2At(uv, out GeoPoint loc, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv);
@@ -40,7 +40,7 @@ namespace CADability
                     hessian[0, 0] = -2 * duu.z * (p3d.z - loc.z) - 2 * duu.y * (p3d.y - loc.y) - 2 * duu.x * (p3d.x - loc.x) + 2 * du.z * du.z + 2 * du.y * du.y + 2 * du.x * du.x;
                     hessian[1, 1] = -2 * dvv.z * (p3d.z - loc.z) - 2 * dvv.y * (p3d.y - loc.y) - 2 * dvv.x * (p3d.x - loc.x) + 2 * dv.z * dv.z + 2 * dv.y * dv.y + 2 * dv.x * dv.x;
                     hessian[0, 1] = hessian[1, 0] = -2 * duv.z * (p3d.z - loc.z) - 2 * duv.y * (p3d.y - loc.y) - 2 * duv.x * (p3d.x - loc.x) + 2 * du.z * dv.z + 2 * du.y * dv.y + 2 * du.x * dv.x;
-                    return new Tuple<double, Vector<double>, Matrix<double>>(val, gradient, hessian);
+                    return (val, gradient, hessian);
                 }));
             try
             {
@@ -110,7 +110,7 @@ namespace CADability
         {
             NewtonMinimizer nm = new NewtonMinimizer(1e-30, 30);
             IObjectiveFunction iof = ObjectiveFunction.GradientHessian(
-                new Func<Vector<double>, Tuple<double, Vector<double>, Matrix<double>>>(delegate (Vector<double> vd)
+                new Func<Vector<double>, (double, Vector<double>, Matrix<double>)>(delegate (Vector<double> vd)
                 {
                     double u = vd[0]; // parameter on first curve
                     double v = vd[1]; // parameter on second curve
@@ -124,7 +124,7 @@ namespace CADability
                     hessian[0, 0] = 2 * fuu.x * (f.x - g.x) + 2 * fuu.y * (f.y - g.y) + 2 * fu.x * fu.x + 2 * fu.y * fu.y;
                     hessian[1, 1] = 2 * gvv.x * (f.x - g.x) + 2 * gvv.y * (f.y - g.y) + 2 * gv.x * gv.x + 2 * gv.y * gv.y;
                     hessian[0, 1] = hessian[1, 0] = -2 * fu.x * gv.x - 2 * fu.y * gv.y;
-                    return new Tuple<double, Vector<double>, Matrix<double>>(val, gradient, hessian);
+                    return (val, gradient, hessian);
                 }));
             try
             {
@@ -145,7 +145,7 @@ namespace CADability
             NewtonMinimizer nm = new NewtonMinimizer(1e-12, 30, true);
             GeoPoint lastIp = GeoPoint.Origin;
             IObjectiveFunction iof = ObjectiveFunction.GradientHessian(
-                new Func<Vector<double>, Tuple<double, Vector<double>, Matrix<double>>>(delegate (Vector<double> vd)
+                new Func<Vector<double>, (double, Vector<double>, Matrix<double>)>(delegate (Vector<double> vd)
                 {
                     GeoPoint2D uv = new GeoPoint2D(vd[0], vd[1]); // parameter on surface
                     surface.Derivation2At(uv, out GeoPoint s, out GeoVector su, out GeoVector sv, out GeoVector suu, out GeoVector svv, out GeoVector suv);
@@ -165,7 +165,7 @@ namespace CADability
                     hessian[0, 1] = hessian[1, 0] = 2 * su.x * sv.x + 2 * (s.x - c.x) * suv.x + 2 * su.y * sv.y + 2 * (s.y - c.y) * suv.y + 2 * su.z * sv.z + 2 * (s.z - c.z) * suv.z;
                     hessian[0, 2] = hessian[2, 0] = -2 * ct.x * su.x - 2 * ct.y * su.y - 2 * ct.z * su.z;
                     hessian[1, 2] = hessian[2, 1] = -2 * ct.x * sv.x - 2 * ct.y * sv.y - 2 * ct.z * sv.z;
-                    return new Tuple<double, Vector<double>, Matrix<double>>(val, gradient, hessian);
+                    return (val, gradient, hessian);
                 }));
             try
             {
