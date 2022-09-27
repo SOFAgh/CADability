@@ -533,8 +533,8 @@ namespace CADability.GeoObject
         {
             foreach (IGeoObject go in containedObjects)
             {
-                //go.WillChangeEvent -= new ChangeDelegate(OnWillChange); wg. Trumpf die Events entfernt, werden die bei Schraffur und Bemaßung gebraucht?
-                //go.DidChangeEvent -= new ChangeDelegate(OnDidChange);
+                go.WillChangeEvent -= new ChangeDelegate(OnWillChange); // if some software cannot deal with this (Trumpf...) it must be handeled elsewhere
+                go.DidChangeEvent -= new ChangeDelegate(OnDidChange);
                 go.Owner = null;
                 IColorDef cd = go as IColorDef;
                 if (cd != null && cd.ColorDef != null)
@@ -551,8 +551,8 @@ namespace CADability.GeoObject
                 {
                     containedObjects.Add(go);
                 }
-                //go.WillChangeEvent += new ChangeDelegate(OnWillChange);
-                //go.DidChangeEvent += new ChangeDelegate(OnDidChange);
+                go.WillChangeEvent += new ChangeDelegate(OnWillChange);
+                go.DidChangeEvent += new ChangeDelegate(OnDidChange);
                 go.Owner = this;
                 IColorDef cd = go as IColorDef;
                 if (cd != null && cd.ColorDef != null)

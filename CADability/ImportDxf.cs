@@ -47,7 +47,8 @@ namespace CADability.DXF
         public static bool CanImportVersion(string fileName)
         {
             netDxf.Header.DxfVersion ver = DxfDocument.CheckDxfFileVersion(fileName, out bool isBinary);
-            return ver >= netDxf.Header.DxfVersion.AutoCad2000;
+            // return ver >= netDxf.Header.DxfVersion.AutoCad2000;
+            return true;
         }
         private void FillModelSpace(Model model)
         {
