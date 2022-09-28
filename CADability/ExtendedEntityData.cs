@@ -36,7 +36,7 @@ namespace CADability.DXF
             List<object> values = data.GetProperty<List<object>>("Values");
             for (int i = 0; i < keys.Count; i++)
             {
-                Data.Add(new KeyValuePair<XDataCode, object>((XDataCode)(keys[i]), values[i]));
+                Data.Add(new KeyValuePair<XDataCode, object>((XDataCode)(int)(double)(keys[i]), values[i]));
             }
         }
     }
