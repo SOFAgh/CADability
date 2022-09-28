@@ -3556,6 +3556,22 @@ references:
   commentId: F:CADability.Forms.PaintToOpenGL.MainThread
   fullName: CADability.Forms.PaintToOpenGL.MainThread
   nameWithType: PaintToOpenGL.MainThread
+- uid: CADability.Forms.PaintToOpenGL.PaintToBitmap(CADability.GeoObject.GeoObjectList,CADability.GeoVector,System.Int32,System.Int32,System.Nullable{CADability.BoundingCube})
+  name: PaintToBitmap(GeoObjectList, GeoVector, Int32, Int32, Nullable<BoundingCube>)
+  href: api/CADability.Forms.PaintToOpenGL.html#CADability_Forms_PaintToOpenGL_PaintToBitmap_CADability_GeoObject_GeoObjectList_CADability_GeoVector_System_Int32_System_Int32_System_Nullable_CADability_BoundingCube__
+  commentId: M:CADability.Forms.PaintToOpenGL.PaintToBitmap(CADability.GeoObject.GeoObjectList,CADability.GeoVector,System.Int32,System.Int32,System.Nullable{CADability.BoundingCube})
+  name.vb: PaintToBitmap(GeoObjectList, GeoVector, Int32, Int32, Nullable(Of BoundingCube))
+  fullName: CADability.Forms.PaintToOpenGL.PaintToBitmap(CADability.GeoObject.GeoObjectList, CADability.GeoVector, System.Int32, System.Int32, System.Nullable<CADability.BoundingCube>)
+  fullName.vb: CADability.Forms.PaintToOpenGL.PaintToBitmap(CADability.GeoObject.GeoObjectList, CADability.GeoVector, System.Int32, System.Int32, System.Nullable(Of CADability.BoundingCube))
+  nameWithType: PaintToOpenGL.PaintToBitmap(GeoObjectList, GeoVector, Int32, Int32, Nullable<BoundingCube>)
+  nameWithType.vb: PaintToOpenGL.PaintToBitmap(GeoObjectList, GeoVector, Int32, Int32, Nullable(Of BoundingCube))
+- uid: CADability.Forms.PaintToOpenGL.PaintToBitmap*
+  name: PaintToBitmap
+  href: api/CADability.Forms.PaintToOpenGL.html#CADability_Forms_PaintToOpenGL_PaintToBitmap_
+  commentId: Overload:CADability.Forms.PaintToOpenGL.PaintToBitmap
+  isSpec: "True"
+  fullName: CADability.Forms.PaintToOpenGL.PaintToBitmap
+  nameWithType: PaintToOpenGL.PaintToBitmap
 - uid: CADability.Forms.PaintToOpenGL.SetClientSize(System.Drawing.Size)
   name: SetClientSize(Size)
   href: api/CADability.Forms.PaintToOpenGL.html#CADability_Forms_PaintToOpenGL_SetClientSize_System_Drawing_Size_
@@ -3769,6 +3785,19 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.PropertiesExplorer.EntryWithTextBox
   nameWithType: PropertiesExplorer.EntryWithTextBox
+- uid: CADability.Forms.PropertiesExplorer.FindItem(System.String)
+  name: FindItem(String)
+  href: api/CADability.Forms.PropertiesExplorer.html#CADability_Forms_PropertiesExplorer_FindItem_System_String_
+  commentId: M:CADability.Forms.PropertiesExplorer.FindItem(System.String)
+  fullName: CADability.Forms.PropertiesExplorer.FindItem(System.String)
+  nameWithType: PropertiesExplorer.FindItem(String)
+- uid: CADability.Forms.PropertiesExplorer.FindItem*
+  name: FindItem
+  href: api/CADability.Forms.PropertiesExplorer.html#CADability_Forms_PropertiesExplorer_FindItem_
+  commentId: Overload:CADability.Forms.PropertiesExplorer.FindItem
+  isSpec: "True"
+  fullName: CADability.Forms.PropertiesExplorer.FindItem
+  nameWithType: PropertiesExplorer.FindItem
 - uid: CADability.Forms.PropertiesExplorer.Frame
   name: Frame
   href: api/CADability.Forms.PropertiesExplorer.html#CADability_Forms_PropertiesExplorer_Frame
@@ -4094,12 +4123,12 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.PropertyPage.Dispose
   nameWithType: PropertyPage.Dispose
-- uid: CADability.Forms.PropertyPage.FindFromHelpLink(System.String)
-  name: FindFromHelpLink(String)
-  href: api/CADability.Forms.PropertyPage.html#CADability_Forms_PropertyPage_FindFromHelpLink_System_String_
-  commentId: M:CADability.Forms.PropertyPage.FindFromHelpLink(System.String)
-  fullName: CADability.Forms.PropertyPage.FindFromHelpLink(System.String)
-  nameWithType: PropertyPage.FindFromHelpLink(String)
+- uid: CADability.Forms.PropertyPage.FindFromHelpLink(System.String,System.Boolean)
+  name: FindFromHelpLink(String, Boolean)
+  href: api/CADability.Forms.PropertyPage.html#CADability_Forms_PropertyPage_FindFromHelpLink_System_String_System_Boolean_
+  commentId: M:CADability.Forms.PropertyPage.FindFromHelpLink(System.String,System.Boolean)
+  fullName: CADability.Forms.PropertyPage.FindFromHelpLink(System.String, System.Boolean)
+  nameWithType: PropertyPage.FindFromHelpLink(String, Boolean)
 - uid: CADability.Forms.PropertyPage.FindFromHelpLink*
   name: FindFromHelpLink
   href: api/CADability.Forms.PropertyPage.html#CADability_Forms_PropertyPage_FindFromHelpLink_
@@ -4399,3 +4428,54 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.PropertyPage.ValueChanged
   nameWithType: PropertyPage.ValueChanged
+- uid: CADability.Forms.TestJSonSerialisation
+  name: TestJSonSerialisation
+  href: api/CADability.Forms.TestJSonSerialisation.html
+  commentId: T:CADability.Forms.TestJSonSerialisation
+  fullName: CADability.Forms.TestJSonSerialisation
+  nameWithType: TestJSonSerialisation
+- uid: CADability.Forms.TestJSonSerialisation.#ctor
+  name: TestJSonSerialisation()
+  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation__ctor
+  commentId: M:CADability.Forms.TestJSonSerialisation.#ctor
+  fullName: CADability.Forms.TestJSonSerialisation.TestJSonSerialisation()
+  nameWithType: TestJSonSerialisation.TestJSonSerialisation()
+- uid: CADability.Forms.TestJSonSerialisation.#ctor(System.String)
+  name: TestJSonSerialisation(String)
+  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation__ctor_System_String_
+  commentId: M:CADability.Forms.TestJSonSerialisation.#ctor(System.String)
+  fullName: CADability.Forms.TestJSonSerialisation.TestJSonSerialisation(System.String)
+  nameWithType: TestJSonSerialisation.TestJSonSerialisation(String)
+- uid: CADability.Forms.TestJSonSerialisation.#ctor*
+  name: TestJSonSerialisation
+  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation__ctor_
+  commentId: Overload:CADability.Forms.TestJSonSerialisation.#ctor
+  isSpec: "True"
+  fullName: CADability.Forms.TestJSonSerialisation.TestJSonSerialisation
+  nameWithType: TestJSonSerialisation.TestJSonSerialisation
+- uid: CADability.Forms.TestJSonSerialisation.GetObjectData(CADability.IJsonWriteData)
+  name: GetObjectData(IJsonWriteData)
+  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation_GetObjectData_CADability_IJsonWriteData_
+  commentId: M:CADability.Forms.TestJSonSerialisation.GetObjectData(CADability.IJsonWriteData)
+  fullName: CADability.Forms.TestJSonSerialisation.GetObjectData(CADability.IJsonWriteData)
+  nameWithType: TestJSonSerialisation.GetObjectData(IJsonWriteData)
+- uid: CADability.Forms.TestJSonSerialisation.GetObjectData*
+  name: GetObjectData
+  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation_GetObjectData_
+  commentId: Overload:CADability.Forms.TestJSonSerialisation.GetObjectData
+  isSpec: "True"
+  fullName: CADability.Forms.TestJSonSerialisation.GetObjectData
+  nameWithType: TestJSonSerialisation.GetObjectData
+- uid: CADability.Forms.TestJSonSerialisation.SetObjectData(CADability.IJsonReadData)
+  name: SetObjectData(IJsonReadData)
+  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation_SetObjectData_CADability_IJsonReadData_
+  commentId: M:CADability.Forms.TestJSonSerialisation.SetObjectData(CADability.IJsonReadData)
+  fullName: CADability.Forms.TestJSonSerialisation.SetObjectData(CADability.IJsonReadData)
+  nameWithType: TestJSonSerialisation.SetObjectData(IJsonReadData)
+- uid: CADability.Forms.TestJSonSerialisation.SetObjectData*
+  name: SetObjectData
+  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation_SetObjectData_
+  commentId: Overload:CADability.Forms.TestJSonSerialisation.SetObjectData
+  isSpec: "True"
+  fullName: CADability.Forms.TestJSonSerialisation.SetObjectData
+  nameWithType: TestJSonSerialisation.SetObjectData
