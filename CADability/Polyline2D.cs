@@ -61,6 +61,19 @@ namespace CADability.Curve2D
             if (pnts.Count < 2) return null;
             return new Polyline2D(pnts.ToArray());
         }
+        public static Polyline2D MakePolygon(GeoPoint2D center, GeoPoint2D vertex, int numberOfVertices)
+        {
+            GeoPoint2D[] vtx = new GeoPoint2D[numberOfVertices + 1];
+            ModOp2D rot = ModOp2D.Rotate(center, SweepAngle.Full / numberOfVertices);
+            GeoPoint2D current = vertex;
+            for (int i = 0; i < numberOfVertices; i++)
+            {
+                vtx[i] = current;
+                current = rot * current;
+            }
+            vtx[numberOfVertices] = vtx[0];
+            return new Polyline2D(vtx);
+        }
         public void SetVertices(GeoPoint2D[] vertices)
         {
             vertex = vertices;

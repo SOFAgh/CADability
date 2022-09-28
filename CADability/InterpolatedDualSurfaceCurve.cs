@@ -97,6 +97,10 @@ namespace CADability
         bool forwardOriented; // das Kreuzprodukt der beiden Normalenvektoren bildet die Richtung (oder Gegenrichtung) der Kurve
         ExplicitPCurve3D approxPolynom; // polynom of degree 3 approximating segments between basePoints
         Dictionary<double, SurfacePoint> hashedPositions;
+#if DEBUG
+        static int idcnt = 0;
+        int id;
+#endif
         [Serializable()]
 #if DEBUG
         [System.Diagnostics.DebuggerVisualizer(typeof(Curve2DVisualizer))]
@@ -602,6 +606,9 @@ namespace CADability
         protected InterpolatedDualSurfaceCurve()
         {
             hashedPositions = new Dictionary<double, SurfacePoint>();
+#if DEBUG
+            id = idcnt++;
+#endif
         }
         internal InterpolatedDualSurfaceCurve(ISurface surface1, ISurface surface2, SurfacePoint[] basePoints, bool forwardOriented, ExplicitPCurve3D approxPolynom = null)
             : this()
@@ -1540,7 +1547,7 @@ namespace CADability
             }
         }
 #endif
-        #region IGeoObject override
+#region IGeoObject override
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.GetBoundingCube ()"/>
         /// </summary>
@@ -1685,8 +1692,8 @@ namespace CADability
                 }
             }
         }
-        #endregion
-        #region ICurve Members
+#endregion
+#region ICurve Members
         public override GeoPoint StartPoint
         {
             get
@@ -2789,8 +2796,8 @@ namespace CADability
             }
             return res;
         }
-        #endregion
-        #region ISerializable members
+#endregion
+#region ISerializable members
         protected InterpolatedDualSurfaceCurve(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
@@ -2928,6 +2935,6 @@ namespace CADability
             return v;
         }
 
-        #endregion
+#endregion
     }
 }

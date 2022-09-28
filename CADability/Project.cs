@@ -1647,7 +1647,9 @@ namespace CADability
         private static Project ReadFromJson(FileStream stream)
         {
             JsonSerialize js = new JsonSerialize();
-            return js.FromStream(stream) as Project;
+            Project res = js.FromStream(stream) as Project;
+            AttributeListContainer.UpdateLists(res, true);
+            return res;
         }
         private static Project ReadConvertedFile(string FileName, bool useProgress)
         {
@@ -1712,20 +1714,22 @@ namespace CADability
 
                         //converter = @"C:\Program Files\ODA\ODAFileConverter_title 21.3.0\ODAFileConverter.exe";                        
                         string odaFolder = System.IO.Path.Combine(programFilesPath, "ODA");
-
-                        string[] oda = Directory.GetFiles(odaFolder, "odafileconverter.exe", SearchOption.AllDirectories);
-
-                        for (int i = 0; i < oda.Length; i++)
+                        if (Directory.Exists(odaFolder))
                         {
-                            string fn = System.IO.Path.GetDirectoryName(oda[i]);
-                            if (!string.IsNullOrEmpty(converter))
+                            string[] oda = Directory.GetFiles(odaFolder, "odafileconverter.exe", SearchOption.AllDirectories);
+
+                            for (int i = 0; i < oda.Length; i++)
                             {
-                                string fnc = System.IO.Path.GetDirectoryName(converter);
-                                if (string.Compare(fnc, fn, true) < 0) converter = oda[i];
-                            }
-                            else
-                            {
-                                converter = oda[i];
+                                string fn = System.IO.Path.GetDirectoryName(oda[i]);
+                                if (!string.IsNullOrEmpty(converter))
+                                {
+                                    string fnc = System.IO.Path.GetDirectoryName(converter);
+                                    if (string.Compare(fnc, fn, true) < 0) converter = oda[i];
+                                }
+                                else
+                                {
+                                    converter = oda[i];
+                                }
                             }
                         }
                     }
@@ -2662,7 +2666,7 @@ namespace CADability
             // Problem: die OnDeserialization für die Listen müssen vorher aufgerufen werden
             // wie kann man das erzwingen? zunächst mal wird's jetzt einfach vorher aufgerufen, auf die Gefahr hin, dass
             // es zweimal aufgerufen wird.
-            AttributeListContainer.UpdateLists(this, true);
+            // AttributeListContainer.UpdateLists(this, true);
             filterList.AttributeListContainer = this;
 
             undoRedoSystem = new UndoRedoSystem();

@@ -253,6 +253,7 @@ namespace CADability.UserInterface
             }
             return null;
         }
+        public virtual bool IsLocked { get => false; set => throw new NotImplementedException(); }
 
         #endregion
 

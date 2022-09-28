@@ -2062,6 +2062,46 @@ namespace CADability.Forms
             }
         }
         #endregion
+        public static Bitmap PaintToBitmap(GeoObjectList list, GeoVector viewDirection, int width, int height, BoundingCube? extent = null)
+        {
+            Bitmap bmp = new Bitmap(width, height);
+            System.Drawing.Graphics gr = System.Drawing.Graphics.FromImage(bmp);
+            IntPtr dc = gr.GetHdc();
+            BoundingCube bc;
+            if (extent.HasValue) bc = extent.Value;
+            else bc = list.GetExtent();
+            PaintToOpenGL paintTo3D = new PaintToOpenGL(bc.Size / Math.Max(width, height));
+            paintTo3D.Init(dc, width, height, true);
+            IPaintTo3D ipaintTo3D = paintTo3D;
+            ipaintTo3D.MakeCurrent();
+            ipaintTo3D.Clear(Color.White);
+            ipaintTo3D.AvoidColor(Color.White);
+
+            Projection projection = new Projection(Projection.StandardProjection.FromTop);
+            if (Precision.SameDirection(viewDirection, GeoVector.ZAxis, false)) projection.SetDirection(viewDirection, GeoVector.YAxis, bc);
+            else projection.SetDirection(viewDirection, GeoVector.ZAxis, bc);
+            projection.Precision = bc.Size * 1e-3;
+
+            BoundingRect ext = bc.GetExtent(projection); //  list.GetExtent(projection, true, false);
+            ext = ext * 1.1; // inflate by 10 percent 
+            projection.SetPlacement(new Rectangle(0, 0, bmp.Width, bmp.Height), ext);
+
+            ipaintTo3D.SetProjection(projection, bc);
+            foreach (IGeoObject go in list)
+            {
+                go.PrePaintTo3D(ipaintTo3D);
+            }
+            foreach (IGeoObject go in list)
+            {
+                go.PaintTo3D(ipaintTo3D);
+            }
+
+            gr.ReleaseHdc(dc);
+            bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
+            ipaintTo3D.Dispose();
+            gr.Dispose();
+            return bmp;
+        }
     }
 
     internal class OpenGlList : IPaintTo3DList

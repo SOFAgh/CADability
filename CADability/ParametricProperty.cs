@@ -246,7 +246,7 @@ namespace CADability
                         {   // two parallel lines
                             double spos = Geometry.LinePar(l1.StartPoint, l1.EndPoint, l2.StartPoint);
                             double epos = Geometry.LinePar(l1.StartPoint, l1.EndPoint, l2.EndPoint);
-                            if (epos < spos) Hlp.Swap(ref spos, ref epos);
+                            if (epos < spos) (spos, epos) = (epos, spos);
                             if (epos < 0)
                             {
                                 spos = (epos + 0.0) / 2.0;

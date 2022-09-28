@@ -6822,6 +6822,7 @@ namespace CADability.GeoObject
             }
             if (paintTo3D.PaintEdges && paintTo3D.PaintSurfaceEdges)
             {
+                paintTo3D.SetLineWidth(null);
                 for (int i = 0; i < outline.Length; ++i)
                 {
                     outline[i].PaintTo3D(paintTo3D);
