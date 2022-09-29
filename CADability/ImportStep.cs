@@ -410,6 +410,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         private Dictionary<int, string> importProblems;
         private List<Item> notImportedFaces;
         private Dictionary<string, ColorDef> definedColors;
+
+        /// <summary>
+        /// Progress action.
+        /// To be used when the CadFrame is not used
+        /// </summary>
+        public Action<float> ProgressAction;
+
         class Tokenizer : IDisposable
         {
             StreamReader sr;
@@ -4404,6 +4411,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         {
             Interlocked.Increment(ref createdFaces);
             FrameImpl.MainFrame?.UIService.ShowProgressBar(true, 100.0 * createdFaces / numFaces);
+            this.ProgressAction?.Invoke((float)(100.0 * createdFaces / numFaces));
         }
 
         private ModOp GetTransformation(Item origin, Item target, Item origContext, Item targContext)

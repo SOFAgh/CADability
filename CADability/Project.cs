@@ -203,6 +203,12 @@ namespace CADability
         private List<GDI2DView> gdiViews; // die AnimatedViews
         private List<Layout> layouts; // die zugehörigen Layouts
 #endif
+        /// <summary>
+        /// Progress action for Step Load.
+        /// To be used when the CadFrame is not used.
+        /// </summary>
+        public static Action<float> LoadStepProgressAction;
+
         // für jedes Layout gibt es genau einen View, mehr macht ja keinen Sinn
         // für ein Modell allerdings kann es mehrere Projektionen bzw. Ansichten geben,
         // die hier in einer Liste gespeichert werden
@@ -1807,6 +1813,7 @@ namespace CADability
                 case "step":
                 case "stp":
                     ImportStep importStep = new ImportStep();
+                    importStep.ProgressAction = Project.LoadStepProgressAction;
                     importStep.HierarchyToBlocks = Settings.GlobalSettings.GetBoolValue("ImportStep.UseHierarchy", true);
                     GeoObjectList list = importStep.Read(FileName);
                     Project project = Project.CreateSimpleProject();
