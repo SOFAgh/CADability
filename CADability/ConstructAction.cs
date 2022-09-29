@@ -4195,21 +4195,23 @@ namespace CADability.Actions
             bool IInputObject.OnEnter(IPropertyEntry sender, KeyEventArgs args)
             {	// Enter im MultiPointInput in der Konstruktion: 
                 (this as IInputObject).SetFixed(true); // als Reaktion auf Enter
-                if (constructAction.propertyTreeView.GetCurrentSelection() == multiGeoPointProperty || constructAction.CurrentInput == multiGeoPointProperty || args.Shift || args.KeyData.HasFlag(Keys.Shift))
-                // if (args.Shift)
-                {   // Enter auf alles, also fertig
-                    constructAction.OnDone();
-                }
-                else
-                {   // Enter auf einen Eintrag, also neuen machen
-                    if (forwardTo.GetGeoPointCount() <= activeIndex) --activeIndex;
-                    GeoPoint p = (this as IIndexedGeoPoint).GetGeoPoint(activeIndex);
-                    multiGeoPointProperty.Append(p);
-                    constructAction.BasePoint = p;
-                    activeIndex = forwardTo.GetGeoPointCount() - 1;
-                    multiGeoPointProperty.SetFocusToIndex(activeIndex);
-                    activeIndexIsNewPoint = true;
-                }
+                constructAction.OnDone();
+
+                //if (constructAction.propertyTreeView.GetCurrentSelection() == multiGeoPointProperty || constructAction.CurrentInput == multiGeoPointProperty || args.Shift || args.KeyData.HasFlag(Keys.Shift))
+                ////if (args.Shift)
+                //{   // Enter auf alles, also fertig
+                //    constructAction.OnDone();
+                //}
+                //else
+                //{   // Enter auf einen Eintrag, also neuen machen
+                //    if (forwardTo.GetGeoPointCount() <= activeIndex) --activeIndex;
+                //    GeoPoint p = (this as IIndexedGeoPoint).GetGeoPoint(activeIndex);
+                //    multiGeoPointProperty.Append(p);
+                //    constructAction.BasePoint = p;
+                //    activeIndex = forwardTo.GetGeoPointCount() - 1;
+                //    multiGeoPointProperty.SetFocusToIndex(activeIndex);
+                //    activeIndexIsNewPoint = true;
+                //}
                 return true;
             }
             bool IInputObject.IsFixed()
