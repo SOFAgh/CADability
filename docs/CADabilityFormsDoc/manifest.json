@@ -9,10 +9,10 @@
       "output": {
         ".html": {
           "relative_path": "api/index.html",
-          "hash": "NYfhGEuuWcwUQ2eqT2VzNtk9KKugwpcTZ1Dzc5dEdvg="
+          "hash": "ZcRFJgNhvhM6kAH28Vkb5TxxGPe7FlftmernEpHWKBw="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -21,10 +21,10 @@
       "output": {
         ".html": {
           "relative_path": "articles/intro.html",
-          "hash": "6VACTbmYiniFDCFtaayI+Qys5D4ootRGrPkFXtoyiiM="
+          "hash": "yF4cM99miGSsrT64oV0kgkl56YkQylthgw5Gl1aJqzo="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -45,10 +45,10 @@
       "output": {
         ".html": {
           "relative_path": "index.html",
-          "hash": "vYNVHQgsorI7LdJukLvTAFo+qwwTC0Y/hnHrJWgp/i0="
+          "hash": "GGOovSab6ZFxRkwbTiKX/AxcXz9WU1qSZOSIhjRqq74="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -57,10 +57,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.BitmapTable.html",
-          "hash": "oo50wtkBVhlrKqM3iup8gDGGA41MRq9lq+2JQBo2fBs="
+          "hash": "2UsXH9KH29dQTWqLMcp6DLxyMLtr4g6yB++uZN/Y1ns="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -69,10 +69,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.ButtonImages.html",
-          "hash": "saTbR/5s9VfYH/Axk8fbeac+ruA/JFzBTYXwoyDRf5o="
+          "hash": "vJLp/cuzs/UuLqdr32ndEOe1OI16RY+FEur+FBWh+QM="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -81,10 +81,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadCanvas.html",
-          "hash": "qCn4p1lucDKH41muqDFS4LT6tuywGRJZdNVHwT6qDEM="
+          "hash": "tRaGGILVwSewQ6PO87dqUl9QvgTTCHpH8mKLfOoMcoA="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -93,10 +93,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadControl.html",
-          "hash": "iPEG3QMA7g21C+F1vcWfx4O7F8HHWdLz6UckYWI4k6k="
+          "hash": "rlwggD3jVjWKftSnoXiOgCnGH4qY965hR+m8FOrUCQc="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -105,10 +105,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadForm.html",
-          "hash": "JuRk7kwFDl9mWe+heV3FJ4ugDb7UXXlOah+fo2WM/Ws="
+          "hash": "i3e9fxy2toQgu7js2ZDekSGeGiTwf3sseLP9IrXO4bg="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -117,10 +117,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.CadFrame.html",
-          "hash": "oXAKYGT33fMvxwXkAcdAdYjR5h1F4xze1NDXG7Msiak="
+          "hash": "oYBN0NjZIx6/lWzIx/7RAwvZzv2G4uYBiPjUSgk9F+8="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -129,10 +129,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToBitmap.html",
-          "hash": "EH3YudkXy+UvgY/lLiJ0JpLNFbaVoTrRgVKoKx9ugQQ="
+          "hash": "R0Ogjr/Wvdoo7JAtpvRnr/Cnx/obUiKG1BWONPDB/hg="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -141,10 +141,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToGDI.html",
-          "hash": "qXNnBA0woD3trZRyVZnQEJtVqUJd6iGl13T9iuMDGio="
+          "hash": "N62bB4CSAJGN3Dz6LjR/xq4sSYqSoZtdFogS3jz9HwQ="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -153,10 +153,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGL.html",
-          "hash": "zUeaqqJK7jmvww9DSZ7QhYBPag8MtDOj7Nwjqn4hizE="
+          "hash": "W2Q0iF8/BP3umyPDTkZwEHBp1SvtyLOsGmBn+RQXgf0="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -165,10 +165,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGLException.html",
-          "hash": "UTcC/ZxNuhLsbD6H8chr/V41abX7YtW+gHbJ5A5BVHY="
+          "hash": "Z8XBC5ijjraY9PcpjYywr2bqgCg2XFwJwbF9q2a06Ag="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -177,10 +177,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.ProgressForm.html",
-          "hash": "nfRhER3olVjea4PSkUDfH1HIy59ZbEfVWNgLal9Suj4="
+          "hash": "1E6qeIWwMeNyJiJCQ8LwgekScl9cV9rDchIXrjlzpkY="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -189,10 +189,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PropertiesExplorer.html",
-          "hash": "/MRQHtYbJJ33/s4EDWZ3qLboRpjEUYKdb7pWbbD8RnY="
+          "hash": "DhChTAwuCN4LHxeAB3uveAav5RD/vp+ZR6wrrVYwWSw="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -201,10 +201,22 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PropertyPage.html",
-          "hash": "rayOaPVme3/H2v0MIiWSUULT1XrrvYErfs81jLtRH3g="
+          "hash": "vwuFJn5mdQaxGeBmsZeDOHAQCunoPNQ55ivXhsPFi3o="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.TestJSonSerialisation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.TestJSonSerialisation.html",
+          "hash": "xszFxltuJPzy6e0KTANdRe5ZINvcWNLx8yPnXiuQOBI="
+        }
+      },
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -213,10 +225,10 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.html",
-          "hash": "H9Askk0PWX+6sGmyXGbWqGDJV4GuCoWKF/2VEM8pkus="
+          "hash": "LPgETfrZKett17AS32IKBykY/GFBf3beHQTBRCDpk8c="
         }
       },
-      "is_incremental": true,
+      "is_incremental": false,
       "version": ""
     },
     {
@@ -225,7 +237,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "0MzWu+EZ0GeJGQRAd6CT8vc4LLbMFMrMKZoV3DSdCVw="
+          "hash": "7ZiE5yLm0mq5SSDK46sqIiMl7/aiSMvxFZCdYBKFkHg="
         }
       },
       "is_incremental": false,
@@ -247,23 +259,25 @@
   "incremental_info": [
     {
       "status": {
-        "can_incremental": true,
+        "can_incremental": false,
+        "details": "Cannot build incrementally because docfx version changed from 2.58.9.0 to 2.59.4.0.",
         "incrementalPhase": "build",
         "total_file_count": 0,
-        "skipped_file_count": 0
+        "skipped_file_count": 0,
+        "full_build_reason_code": "DocfxVersionChanged"
       },
       "processors": {
         "ConceptualDocumentProcessor": {
-          "can_incremental": true,
+          "can_incremental": false,
           "incrementalPhase": "build",
           "total_file_count": 3,
-          "skipped_file_count": 3
+          "skipped_file_count": 0
         },
         "ManagedReferenceDocumentProcessor": {
-          "can_incremental": true,
+          "can_incremental": false,
           "incrementalPhase": "build",
-          "total_file_count": 14,
-          "skipped_file_count": 14
+          "total_file_count": 15,
+          "skipped_file_count": 0
         },
         "TocDocumentProcessor": {
           "can_incremental": false,

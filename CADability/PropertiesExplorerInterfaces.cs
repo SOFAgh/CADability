@@ -45,7 +45,7 @@ namespace CADability.UserInterface
         public int x, y;
         public int wheelDiff;
     }
-    public enum PropertyEntryButton { contextMenu, dropDown, ok, cancel, check, value };
+    public enum PropertyEntryButton { contextMenu, dropDown, ok, cancel, check, value, locked };
     [Flags]
     public enum PropertyEntryType
     {
@@ -125,6 +125,10 @@ namespace CADability.UserInterface
         /// Clicking on the (non editable) value calls <see cref="IPropertyEntry.ButtonClicked(PropertyEntryButton)"/> with the flag <see cref="PropertyEntryButton.value"/>
         /// </summary>
         ValueAsButton = 1 << 18,
+        /// <summary>
+        /// The edit part of this entry displays the lock symbol on the rigth hand side
+        /// </summary>
+        Lockable = 1 << 19,
     }
     /// <summary>
     /// Describes a single line in a tab page in the control center. Must be implemented by displayable properties like GeoPointProperty.
@@ -246,6 +250,11 @@ namespace CADability.UserInterface
         bool ReadOnly { get; set; }
 
         IPropertyEntry FindSubItem(string helpResourceID);
+        /// <summary>
+        /// Is the lockable entry is currently locked
+        /// </summary>
+        bool IsLocked { get; set; }
+
     }
     public interface IPropertyPage
     {

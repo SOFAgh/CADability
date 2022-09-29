@@ -5,12 +5,6 @@ namespace CADability
 {
     class Hlp
     {
-        public static void Swap<T>(ref T first, ref T second)
-        {
-            T tmp = first;
-            first = second;
-            second = tmp;
-        }
         /// <summary>
         /// Get the closest object. What "closest" means is defined by the parameter <paramref name="distance"/>.
         /// </summary>

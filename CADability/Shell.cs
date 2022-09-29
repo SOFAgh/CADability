@@ -206,6 +206,13 @@ namespace CADability.GeoObject
             res.SetFaces(faces);
             return res;
         }
+        public static Shell FromFaces(Face[] faces, bool connect = false)
+        {
+            Shell res = Shell.Construct();
+            if (connect) connectFaces(faces, Precision.eps);
+            res.SetFaces(faces);
+            return res;
+        }
         /// <summary>
         /// Returns all the edges of this Shell. Each egde is unique in the array 
         /// but may belong to two different faces.

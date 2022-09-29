@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Class PropertyPage
    ">
-    <meta name="generator" content="docfx 2.58.9.0">
+    <meta name="generator" content="docfx 2.59.4.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -84,7 +84,7 @@
     <div class="level4"><span class="xref">System.Windows.Forms.ScrollableControl</span></div>
     <div class="level5"><span class="xref">PropertyPage</span></div>
   </div>
-  <div classs="implements">
+  <div class="implements">
     <h5>Implements</h5>
     <div><span class="xref">System.Windows.Forms.IDropTarget</span></div>
     <div><span class="xref">System.ComponentModel.ISynchronizeInvoke</span></div>
@@ -1289,7 +1289,7 @@
   <h6><strong>Assembly</strong>: CADability.Forms.dll</h6>
   <h5 id="CADability_Forms_PropertyPage_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public class PropertyPage : ScrollableControl, IDropTarget, ISynchronizeInvoke, IWin32Window, IBindableComponent, IArrangedElement, IComponent, IDisposable, IPropertyPage</code></pre>
+    <pre><code class="lang-csharp hljs">public class PropertyPage : ScrollableControl, IDropTarget, ISynchronizeInvoke, IWin32Window, IBindableComponent, IComponent, IDisposable, IPropertyPage</code></pre>
   </div>
   <h3 id="constructors">Constructors
   </h3>
@@ -1550,12 +1550,12 @@
   
   
   <a id="CADability_Forms_PropertyPage_FindFromHelpLink_" data-uid="CADability.Forms.PropertyPage.FindFromHelpLink*"></a>
-  <h4 id="CADability_Forms_PropertyPage_FindFromHelpLink_System_String_" data-uid="CADability.Forms.PropertyPage.FindFromHelpLink(System.String)">FindFromHelpLink(String)</h4>
+  <h4 id="CADability_Forms_PropertyPage_FindFromHelpLink_System_String_System_Boolean_" data-uid="CADability.Forms.PropertyPage.FindFromHelpLink(System.String,System.Boolean)">FindFromHelpLink(String, Boolean)</h4>
   <div class="markdown level1 summary"></div>
   <div class="markdown level1 conceptual"></div>
   <h5 class="decalaration">Declaration</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public IPropertyEntry FindFromHelpLink(string helpResourceID)</code></pre>
+    <pre><code class="lang-csharp hljs">public IPropertyEntry FindFromHelpLink(string helpResourceID, bool searchTreeAndOpen)</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -1570,6 +1570,11 @@
       <tr>
         <td><span class="xref">System.String</span></td>
         <td><span class="parametername">helpResourceID</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td><span class="parametername">searchTreeAndOpen</span></td>
         <td></td>
       </tr>
     </tbody>
