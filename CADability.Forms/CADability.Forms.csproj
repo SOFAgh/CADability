@@ -109,7 +109,6 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="DebugForm.cs" />
-    <Compile Include="DebuggerPlayground.cs" />
     <Compile Include="MenuManager.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -153,7 +152,6 @@
     <None Include="articles\toc.md" />
     <None Include="docfx.json" />
     <None Include="index.md" />
-    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
