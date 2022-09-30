@@ -2311,13 +2311,13 @@ namespace CADability.Actions
                     OnMakeFilter();
                     return true;
                 case "MenuId.SelectedObjects.Mode.All":
-                    pickMode = PickMode.normal;
+                    PickMode = PickMode.normal;
                     return true;
                 case "MenuId.SelectedObjects.Mode.FacesOnly":
-                    pickMode = PickMode.onlyFaces;
+                    PickMode = PickMode.onlyFaces;
                     return true;
                 case "MenuId.SelectedObjects.Mode.EdgesOnly":
-                    pickMode = PickMode.onlyEdges;
+                    PickMode = PickMode.onlyEdges;
                     return true;
                 default: return false;
             }
