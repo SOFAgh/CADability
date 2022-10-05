@@ -8024,6 +8024,7 @@ namespace CADability.GeoObject
                         holes[i][j].Owner = this;
                     }
                 }
+                Surface.SetBounds(Area.GetExtent());
             }
         }
         #endregion
