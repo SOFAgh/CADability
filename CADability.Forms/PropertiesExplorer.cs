@@ -326,8 +326,9 @@ namespace CADability.Forms
             if (sel != null)
             {
                 sel.SelectNextPropertyEntry(forward);
+                return true;
             }
-            return true;
+            return false;
         }
         public IPropertyPage GetPropertyPage(string titleId)
         {
@@ -445,7 +446,7 @@ namespace CADability.Forms
                     }
                     else if (ActivePropertyPage is PropertyPage pp)
                     {
-                        pp.OnEnter();
+                        pp.OnEnter((e.KeyData & Substitutes.Keys.Control) != 0);
                     }
                     e.Handled = true;
                     break;
@@ -464,12 +465,10 @@ namespace CADability.Forms
                     }
                     break;
                 case Substitutes.Keys.Down:
-                    SelectNextEntry(true);
-                    e.Handled = true;
+                    e.Handled = SelectNextEntry(true);
                     break;
                 case Substitutes.Keys.Up:
-                    SelectNextEntry(false);
-                    e.Handled = true;
+                    e.Handled = SelectNextEntry(false);
                     break;
             }
         }

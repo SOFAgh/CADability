@@ -849,12 +849,24 @@ namespace CADability.Forms
             }
         }
         public IFrame Frame { get; set; }
-        internal void OnEnter()
+        internal void OnEnter(bool ctrl)
         {
             if (selected >= 0)
             {   // activate the edit textbox or if not editable open or close the subentries
                 IPropertyEntry selectedEntry = entries[selected];
-                if (selectedEntry.Flags.HasFlag(PropertyEntryType.ValueEditable))
+                if (ctrl && selectedEntry.Flags.HasFlag(PropertyEntryType.HasSubEntries))
+                {
+                    int added = selectedEntry.OpenOrCloseSubEntries();
+                    if (added != 0)
+                    {
+                        RefreshEntries(FindEntry(selectedEntry), added);
+                    }
+                    else
+                    {
+                        RefreshEntries(-1, 0);
+                    }
+                }
+                else if (selectedEntry.Flags.HasFlag(PropertyEntryType.ValueEditable))
                 {
                     Rectangle area = ValueArea(selected);
                     ShowTextBox(selected, new Point(area.Right, area.Bottom), true);

@@ -2563,7 +2563,7 @@ namespace CADability.Actions
                         IPropertyEntry selected = (geoPointProperty.Parent as IPropertyPage).GetCurrentSelection();
                         for (int i = 0; i < subentries.Length; i++)
                         {
-                            if (subentries[i]==selected)
+                            if (subentries[i] == selected)
                             {
                                 if (i == subentries.Length - 1)
                                 {   // Enter auf die letzte Komponente
@@ -6647,6 +6647,13 @@ namespace CADability.Actions
             }
             else
             {
+                int ci = currentInputIndex;
+                
+                if (InputDefinitions[ci] != null && InputDefinitions[ci].GetShowProperty() != null && InputDefinitions[ci].GetShowProperty().Flags.HasFlag(PropertyEntryType.HasSubEntries))
+                {
+                    propertyTreeView.OpenSubEntries(InputDefinitions[ci].GetShowProperty(), !InputDefinitions[ci].GetShowProperty().IsOpen);
+                    return true;
+                }
                 return false;
             }
         }
@@ -6665,6 +6672,7 @@ namespace CADability.Actions
         public override bool OnTab(object sender)
         {
             int ci = currentInputIndex;
+            if (InputDefinitions[ci] != null && InputDefinitions[ci].GetShowProperty() != null && InputDefinitions[ci].GetShowProperty().IsOpen) return false;
             SetNextInputIndex(true, true);
             return ci != currentInputIndex; // true (handled), if the input field changed to the next input
         }
