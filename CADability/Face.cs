@@ -3459,7 +3459,7 @@ namespace CADability.GeoObject
             this.outline = outline;
             if (holes == null) this.holes = new Edge[0][];
             else this.holes = holes;
-            foreach (Edge e in AllEdgesIterated())
+            foreach (Edge e in Edges)
             {
                 e.Owner = this;
             }
@@ -3472,10 +3472,11 @@ namespace CADability.GeoObject
                 if (surface.IsVPeriodic) vperiod = surface.VPeriod;
                 MakeAreaFromSortedEdges(uperiod, vperiod);
             }
-            foreach (Edge edge in AllEdgesIterated())
+            foreach (Edge edge in Edges)
             {
                 if (edge.Curve3D is IGeoObject go) go.Style = EdgeStyle;
             }
+            if (surface is ISurfaceImpl si) si.usedArea = Domain;
         }
         internal static Face MakeFace(ISurface surface, Edge[] outline)
         {
@@ -3507,6 +3508,7 @@ namespace CADability.GeoObject
             {
                 if (edge.Curve3D is IGeoObject go) go.Style = EdgeStyle;
             }
+            if (res.surface is ISurfaceImpl si) si.usedArea = res.Domain;
 
             return res;
         }
@@ -3563,6 +3565,7 @@ namespace CADability.GeoObject
                 }
             }
             SimpleShape forceArea = res.Area; // das SimpleShape wird hier erstmalig berechnet
+            if (res.surface is ISurfaceImpl si) si.usedArea = res.Domain;
             return res;
         }
         internal void SetSurfaceAndEdges(ISurface surface, Edge[] outline)
@@ -3576,6 +3579,7 @@ namespace CADability.GeoObject
             this.outline = outline;
             this.holes = new Edge[0][]; // keine Löcher
             SimpleShape forceArea = Area; // das SimpleShape wird hier erstmalig berechnet
+            if (surface is ISurfaceImpl si) si.usedArea = Domain;
         }
 
         internal void CheckPeriodic()
