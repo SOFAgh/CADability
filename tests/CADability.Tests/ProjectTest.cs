@@ -12,12 +12,12 @@ namespace CADability.Tests
 
         [TestMethod]
         [DeploymentItem(@"Files/Dxf/square_100x100.dxf", nameof(import_dxf_square_succeds))]
-        [DeploymentItem(@"Files/Dxf/square_100x100.bmp", nameof(import_dxf_square_succeds))]
+        [DeploymentItem(@"Files/Dxf/square_100x100.png", nameof(import_dxf_square_succeds))]
         public void import_dxf_square_succeds()
         {
             var file = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_100x100.dxf");
             Assert.IsTrue(File.Exists(file));
-            var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_100x100.bmp");
+            var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_100x100.png");
             Assert.IsTrue(File.Exists(bmpFile));
 
             var project = Project.ReadFromFile(file, "dxf");
@@ -38,7 +38,7 @@ namespace CADability.Tests
         
         [TestMethod]
         [DeploymentItem(@"Files/Dxf/square_with_reduction.dxf", nameof(import_dxf_square_with_reduction_succeds))]
-        [DeploymentItem(@"Files/Dxf/square_with_reduction.bmp", nameof(import_dxf_square_with_reduction_succeds))]
+        [DeploymentItem(@"Files/Dxf/square_with_reduction.png", nameof(import_dxf_square_with_reduction_succeds))]
         public void import_dxf_square_with_reduction_succeds()
         {
             // This file is s square with a reduction =>
@@ -51,7 +51,7 @@ namespace CADability.Tests
 
             var file = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_with_reduction.dxf");
             Assert.IsTrue(File.Exists(file));
-            var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_with_reduction.bmp");
+            var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_with_reduction.png");
             Assert.IsTrue(File.Exists(bmpFile));
 
             var project = Project.ReadFromFile(file, "dxf");
@@ -74,7 +74,7 @@ namespace CADability.Tests
             {
                 // if you're confident that the acutal result is correct,
                 // save the image and use it as refercene for comparison.
-                // actual.Save(Path.GetFileName(bmpFile), System.Drawing.Imaging.ImageFormat.Bmp);
+                //actual.Save(Path.GetFileName(bmpFile), System.Drawing.Imaging.ImageFormat.Bmp);
                 Assert.That.BitmapsAreEqual(expected, actual);
             }
         }
