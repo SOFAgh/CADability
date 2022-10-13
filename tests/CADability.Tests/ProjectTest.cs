@@ -38,6 +38,8 @@ namespace CADability.Tests
         [DeploymentItem(@"Files/Dxf/issue100.png", nameof(import_dxf_issue100))]
         public void import_dxf_issue100()
         {
+            // file couldn't be imported because of an ArgumentNullException in DxfReader
+            // while reading lineType
             var file = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "issue100.dxf");
             Assert.IsTrue(File.Exists(file));
             var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "issue100.png");
