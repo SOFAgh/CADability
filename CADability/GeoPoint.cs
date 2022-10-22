@@ -890,17 +890,17 @@ namespace CADability
             switch (MainDirection)
             {
                 case GeoVector.Direction.XAxis:
-                    dirx = this ^ GeoVector.YAxis;
+                    dirx = (this ^ GeoVector.YAxis).Normalized;
                     break;
                 case GeoVector.Direction.YAxis:
-                    dirx = this ^ GeoVector.ZAxis;
+                    dirx = (this ^ GeoVector.ZAxis).Normalized;
                     break;
                 default:
                 case GeoVector.Direction.ZAxis:
-                    dirx = this ^ GeoVector.XAxis;
+                    dirx = (this ^ GeoVector.XAxis).Normalized;
                     break;
             }
-            diry = this ^ dirx;
+            diry = (this ^ dirx).Normalized;
         }
         internal enum Direction { XAxis, YAxis, ZAxis };
         internal Direction MainDirection

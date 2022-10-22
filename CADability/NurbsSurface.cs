@@ -1133,7 +1133,7 @@ namespace CADability.GeoObject
                 points2d[i] = pln.Project(pnts[i]);
             }
             GeoPoint2D center2d;
-            if (Geometry.IntersectLL(new GeoPoint2D(points2d[0], points2d[1]), (points2d[0]-points2d[1]).ToLeft(), new GeoPoint2D(points2d[2], points2d[1]), (points2d[2]-points2d[1]).ToLeft(),out GeoPoint2D ip))
+            if (Geometry.IntersectLL(new GeoPoint2D(points2d[0], points2d[1]), (points2d[0] - points2d[1]).ToLeft(), new GeoPoint2D(points2d[2], points2d[1]), (points2d[2] - points2d[1]).ToLeft(), out GeoPoint2D ip))
             {
                 center2d = ip;
                 radius = points2d[0] | ip;
@@ -1145,7 +1145,7 @@ namespace CADability.GeoObject
                 radius = ext.Size / 4.0;
             }
             double error = Circle2D.Fit(points2d, ref center2d, ref radius);
-            if (error<precision)
+            if (error < precision)
             {
                 center = pln.ToGlobal(center2d);
                 return true;
@@ -1243,8 +1243,8 @@ namespace CADability.GeoObject
                         //}
                         //else
                         //{
-                            Plane plfp = Plane.FromPoints(samples.Linear().ToArray(), out double maxdist1, out bool islin1);
-                            if (maxdist1 < precision) found = new PlaneSurface(plfp); // GaussNewtonMinimizer not well implemented
+                        Plane plfp = Plane.FromPoints(samples.Linear().ToArray(), out double maxdist1, out bool islin1);
+                        if (maxdist1 < precision) found = new PlaneSurface(plfp); // GaussNewtonMinimizer not well implemented
                         //}
 
                     }
@@ -1309,6 +1309,14 @@ namespace CADability.GeoObject
                                 else
                                 {
                                     found = ts; // no torus with pole, this is usually meant to be a sphere
+                                    foreach (GeoPoint point in samples)
+                                    {
+                                        if (ts.GetDistance(point) > precision)
+                                        {
+                                            found = null;
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -3297,7 +3305,7 @@ namespace CADability.GeoObject
             {
                 ext.MinMax(this.GetProjectedCurve(orientedCurves[i], 0.0).GetExtent());
             }
-            if (ext.Height<vSpan*1e-6)
+            if (ext.Height < vSpan * 1e-6)
             {
                 ext.Bottom -= vSpan * 1e-4;
                 ext.Top += vSpan * 1e-4;
@@ -3425,7 +3433,18 @@ namespace CADability.GeoObject
         /// <returns></returns>
         public override ISurface Clone()
         {
-            return new NurbsSurface(poles, weights, uKnots, vKnots, uMults, vMults, uDegree, vDegree, uPeriodic, vPeriodic);
+            NurbsSurface res = new NurbsSurface(poles, weights, uKnots, vKnots, uMults, vMults, uDegree, vDegree, uPeriodic, vPeriodic);
+            if (vMinRestrict != vMaxRestrict)
+            {
+                res.vMinRestrict = vMinRestrict;
+                res.vMaxRestrict = vMaxRestrict;
+            }
+            if (uMinRestrict != uMaxRestrict)
+            {
+                res.uMinRestrict = uMinRestrict;
+                res.uMaxRestrict = uMaxRestrict;
+            }
+            return res;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.Modify (ModOp)"/>
@@ -5020,7 +5039,7 @@ namespace CADability.GeoObject
                         }
                         if (Math.Abs(sp.x - ep.x) < uSpan * 1e-5 || Math.Abs(sp.y - ep.y) < vSpan * 1e-5) testLine = new Line2D(sp, ep);
                     }
-                    if (testLine != null && testLine.StartPoint.x >= uKnots[0]- uSpan * 1e-5 && testLine.StartPoint.x <= uKnots[uKnots.Length - 1]+ uSpan * 1e-5 && testLine.StartPoint.y >= vKnots[0]- vSpan * 1e-5 && testLine.StartPoint.y <= vKnots[vKnots.Length - 1]+ vSpan * 1e-5)
+                    if (testLine != null && testLine.StartPoint.x >= uKnots[0] - uSpan * 1e-5 && testLine.StartPoint.x <= uKnots[uKnots.Length - 1] + uSpan * 1e-5 && testLine.StartPoint.y >= vKnots[0] - vSpan * 1e-5 && testLine.StartPoint.y <= vKnots[vKnots.Length - 1] + vSpan * 1e-5)
                     {
                         ICurve crv = Make3dCurve(testLine);
                         if (crv != null)
@@ -5142,7 +5161,7 @@ namespace CADability.GeoObject
                     GeoPoint2D ep = PositionOf(curve.EndPoint);
                     if (Math.Abs(sp.x - ep.x) < uSpan * 1e-5 || Math.Abs(sp.y - ep.y) < vSpan * 1e-5) return new Line2D(sp, ep);
                 }
-            } 
+            }
             return base.GetProjectedCurve(curve, precision);
         }
         public override double MaxDist(GeoPoint2D sp, GeoPoint2D ep, out GeoPoint2D mp)

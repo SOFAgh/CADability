@@ -1267,7 +1267,7 @@ namespace CADability.GeoObject
             {
                 dimLineDirection = dimLineRef - points[0];
                 plane = new Plane(dimLineRef, normal);
-                plane.Align(p.ProjectionPlane, false, true);
+                //plane.Align(p.ProjectionPlane, false, true);
             }
             catch (PlaneException) { return; } // Ebene nicht bestimmbar, was also tun?
             GeoVector2D hor = plane.Project(p.ProjectionPlane.DirectionX);
@@ -1877,7 +1877,8 @@ namespace CADability.GeoObject
             GeoObjectList list = new GeoObjectList();
             try
             {
-                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
+                Recalc(new Projection(-Plane.Normal, plane.DirectionX), list);
+                // Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
             }
             catch (Exception e)
             {
@@ -2212,7 +2213,8 @@ namespace CADability.GeoObject
             GeoObjectList list = new GeoObjectList();
             try
             {
-                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
+                Recalc(new Projection(-Plane.Normal, plane.DirectionX), list);
+                // Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
             }
             catch (Exception e)
             {
