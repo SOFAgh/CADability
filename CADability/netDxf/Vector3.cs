@@ -1,23 +1,26 @@
-#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -213,6 +216,7 @@ namespace netDxf
                     default:
                         throw new ArgumentOutOfRangeException(nameof(index));
                 }
+
                 this.isNormalized = false;
             }
         }
@@ -247,7 +251,7 @@ namespace netDxf
         /// <returns>The dot product.</returns>
         public static double DotProduct(Vector3 u, Vector3 v)
         {
-            return u.X*v.X + u.Y*v.Y + u.Z*v.Z;
+            return u.X * v.X + u.Y * v.Y + u.Z * v.Z;
         }
 
         /// <summary>
@@ -258,9 +262,9 @@ namespace netDxf
         /// <returns>Vector3.</returns>
         public static Vector3 CrossProduct(Vector3 u, Vector3 v)
         {
-            double a = u.Y*v.Z - u.Z*v.Y;
-            double b = u.Z*v.X - u.X*v.Z;
-            double c = u.X*v.Y - u.Y*v.X;
+            double a = u.Y * v.Z - u.Z * v.Y;
+            double b = u.Z * v.X - u.X * v.Z;
+            double c = u.X * v.Y - u.Y * v.X;
             return new Vector3(a, b, c);
         }
 
@@ -283,7 +287,7 @@ namespace netDxf
         /// <returns>Square distance.</returns>
         public static double SquareDistance(Vector3 u, Vector3 v)
         {
-            return (u.X - v.X)*(u.X - v.X) + (u.Y - v.Y)*(u.Y - v.Y) + (u.Z - v.Z)*(u.Z - v.Z);
+            return (u.X - v.X) * (u.X - v.X) + (u.Y - v.Y) * (u.Y - v.Y) + (u.Z - v.Z) * (u.Z - v.Z);
         }
 
         /// <summary>
@@ -294,7 +298,7 @@ namespace netDxf
         /// <returns>Angle in radians.</returns>
         public static double AngleBetween(Vector3 u, Vector3 v)
         {
-            double cos = DotProduct(u, v)/(u.Modulus()*v.Modulus());
+            double cos = DotProduct(u, v) / (u.Modulus() * v.Modulus());
             if (cos >= 1.0)
             {
                 return 0.0;
@@ -316,7 +320,7 @@ namespace netDxf
         /// <returns>Vector3.</returns>
         public static Vector3 MidPoint(Vector3 u, Vector3 v)
         {
-            return new Vector3((v.X + u.X)*0.5, (v.Y + u.Y)*0.5, (v.Z + u.Z)*0.5);
+            return new Vector3((v.X + u.X) * 0.5, (v.Y + u.Y) * 0.5, (v.Z + u.Z) * 0.5);
         }
 
         /// <summary>
@@ -411,7 +415,7 @@ namespace netDxf
                 return NaN;
             }
 
-            double modInv = 1/mod;
+            double modInv = 1 / mod;
             return new Vector3(u.x * modInv, u.y * modInv, u.z * modInv) {isNormalized = true};
         }
 
@@ -492,7 +496,7 @@ namespace netDxf
         /// <returns>The negative vector of u.</returns>
         public static Vector3 operator -(Vector3 u)
         {
-            return new Vector3(-u.X, -u.Y, -u.Z) { isNormalized = u.IsNormalized };
+            return new Vector3(-u.X, -u.Y, -u.Z) {isNormalized = u.IsNormalized};
         }
 
         /// <summary>
@@ -502,7 +506,7 @@ namespace netDxf
         /// <returns>The negative vector of u.</returns>
         public static Vector3 Negate(Vector3 u)
         {
-            return new Vector3(-u.X, -u.Y, -u.Z) { isNormalized = u.IsNormalized };
+            return new Vector3(-u.X, -u.Y, -u.Z) {isNormalized = u.IsNormalized};
         }
 
         /// <summary>
@@ -513,7 +517,7 @@ namespace netDxf
         /// <returns>The multiplication of u times a.</returns>
         public static Vector3 operator *(Vector3 u, double a)
         {
-            return new Vector3(u.X*a, u.Y*a, u.Z*a);
+            return new Vector3(u.X * a, u.Y * a, u.Z * a);
         }
 
         /// <summary>
@@ -524,7 +528,7 @@ namespace netDxf
         /// <returns>The multiplication of u times a.</returns>
         public static Vector3 Multiply(Vector3 u, double a)
         {
-            return new Vector3(u.X*a, u.Y*a, u.Z*a);
+            return new Vector3(u.X * a, u.Y * a, u.Z * a);
         }
 
         /// <summary>
@@ -535,7 +539,7 @@ namespace netDxf
         /// <returns>The multiplication of u times a.</returns>
         public static Vector3 operator *(double a, Vector3 u)
         {
-            return new Vector3(u.X*a, u.Y*a, u.Z*a);
+            return new Vector3(u.X * a, u.Y * a, u.Z * a);
         }
 
         /// <summary>
@@ -546,7 +550,7 @@ namespace netDxf
         /// <returns>The multiplication of u times a.</returns>
         public static Vector3 Multiply(double a, Vector3 u)
         {
-            return new Vector3(u.X*a, u.Y*a, u.Z*a);
+            return new Vector3(u.X * a, u.Y * a, u.Z * a);
         }
 
         /// <summary>
@@ -579,8 +583,8 @@ namespace netDxf
         /// <returns>The division of u times a.</returns>
         public static Vector3 operator /(Vector3 u, double a)
         {
-            double invScalar = 1/a;
-            return new Vector3(u.X*invScalar, u.Y*invScalar, u.Z*invScalar);
+            double invScalar = 1 / a;
+            return new Vector3(u.X * invScalar, u.Y * invScalar, u.Z * invScalar);
         }
 
         /// <summary>
@@ -591,8 +595,8 @@ namespace netDxf
         /// <returns>The division of u times a.</returns>
         public static Vector3 Divide(Vector3 u, double a)
         {
-            double invScalar = 1/a;
-            return new Vector3(u.X*invScalar, u.Y*invScalar, u.Z*invScalar);
+            double invScalar = 1 / a;
+            return new Vector3(u.X * invScalar, u.Y * invScalar, u.Z * invScalar);
         }
 
         /// <summary>
@@ -638,7 +642,7 @@ namespace netDxf
             }
             else
             {
-                double modInv = 1/mod;
+                double modInv = 1 / mod;
                 this.x *= modInv;
                 this.y *= modInv;
                 this.z *= modInv;

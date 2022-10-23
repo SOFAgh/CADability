@@ -1,23 +1,26 @@
-#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -80,7 +83,10 @@ namespace netDxf.Entities
                 double sum1 = a1 + b1 + c1 + d1 + e1 + f1;
                 double sum2 = a2 + b2 + c2 + d2 + e2 + f2;
 
-                if (MathHelper.IsZero(sum2)) return double.NaN;
+                if (MathHelper.IsZero(sum2))
+                {
+                    return double.NaN;
+                }
 
                 return -sum1 / sum2;
             }
@@ -96,7 +102,11 @@ namespace netDxf.Entities
                 double[] gammaDelta = CoefficientsProductLines(lineGamma, lineDelta);
 
                 double lambda = Lambda(alphaBeta, gammaDelta, point5);
-                if (double.IsNaN(lambda)) return null; // conic coefficients cannot be found, duplicate points
+                if (double.IsNaN(lambda))
+                { 
+                    // conic coefficients cannot be found, duplicate points
+                    return null;
+                }
 
                 double[] coefficients = new double[6];
                 coefficients[0] = alphaBeta[0] + lambda * gammaDelta[0];
@@ -110,14 +120,17 @@ namespace netDxf.Entities
             }
 
             public static bool EllipseProperties(Vector2 point1, Vector2 point2, Vector2 point3, Vector2 point4, Vector2 point5, out Vector2 center, out double semiMajorAxis, out double semiMinorAxis, out double rotation)
-            {
+            {         
                 center = Vector2.NaN;
                 semiMajorAxis = double.NaN;
                 semiMinorAxis = double.NaN;
                 rotation = double.NaN;
 
                 double[] coefficients = ConicCoefficients(point1, point2, point3, point4, point5);
-                if (coefficients == null) return false;
+                if (coefficients == null)
+                {
+                    return false;
+                }
 
                 double a = coefficients[0];
                 double b = coefficients[1];
@@ -127,8 +140,12 @@ namespace netDxf.Entities
                 double f = coefficients[5];
 
                 double q = b * b - 4 * a * c;
-
-                if (q >= 0) return false; // not an ellipse
+                           
+                if (q >= 0)
+                {
+                    // not an ellipse
+                    return false;
+                }
 
                 center.X = (2 * c * d - b * e) / q;
                 center.Y = (2 * a * e - b * d) / q;
@@ -180,8 +197,6 @@ namespace netDxf.Entities
         private double rotation;
         private double startAngle;
         private double endAngle;
-        private double startParameter;
-        private double endParameter;
         private double thickness;
 
         #endregion
@@ -248,9 +263,8 @@ namespace netDxf.Entities
         #region public properties
 
         /// <summary>
-        /// Gets or sets the ellipse <see cref="Vector3">center</see>.
+        /// Gets or sets the ellipse <see cref="Vector3">center</see> in world coordinates.
         /// </summary>
-        /// <remarks>The center Z coordinate represents the elevation of the arc along the normal.</remarks>
         public Vector3 Center
         {
             get { return this.center; }
@@ -264,14 +278,14 @@ namespace netDxf.Entities
         public double MajorAxis
         {
             get { return this.majorAxis; }
-            set
-            {
-                if (value <= 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The major axis value must be greater than zero.");
-                }
-                this.majorAxis = value;
-            }
+            //set
+            //{
+            //    if (value <= 0)
+            //    {
+            //        throw new ArgumentOutOfRangeException(nameof(value), value, "The major axis value must be greater than zero.");
+            //    }
+            //    this.majorAxis = value;
+            //}
         }
 
         /// <summary>
@@ -281,14 +295,14 @@ namespace netDxf.Entities
         public double MinorAxis
         {
             get { return this.minorAxis; }
-            set
-            {
-                if (value <= 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The minor axis value must be greater than zero.");
-                }
-                this.minorAxis = value;
-            }
+            //set
+            //{
+            //    if (value <= 0)
+            //    {
+            //        throw new ArgumentOutOfRangeException(nameof(value), value, "The minor axis value must be greater than zero.");
+            //    }
+            //    this.minorAxis = value;
+            //}
         }
 
         /// <summary>
@@ -307,14 +321,7 @@ namespace netDxf.Entities
         public double StartAngle
         {
             get { return this.startAngle; }
-            set
-            {
-                this.startAngle = MathHelper.NormalizeAngle(value);
-                Vector2 startPoint = PolarCoordinateRelativeToCenter(StartAngle);
-                double a = 1 / (0.5 * MajorAxis);
-                double b = 1 / (0.5 * MinorAxis);
-                startParameter = Math.Atan2(startPoint.Y * b, startPoint.X * a);
-            }
+            set { this.startAngle = MathHelper.NormalizeAngle(value); }
         }
 
         /// <summary>
@@ -324,52 +331,7 @@ namespace netDxf.Entities
         public double EndAngle
         {
             get { return this.endAngle; }
-            set
-            {
-                this.endAngle = MathHelper.NormalizeAngle(value);
-                Vector2 endPoint = PolarCoordinateRelativeToCenter(EndAngle);
-                double a = 1 / (0.5 * MajorAxis);
-                double b = 1 / (0.5 * MinorAxis);
-                endParameter = Math.Atan2(endPoint.Y * b, endPoint.X * a);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ellipse start parameter in radian.
-        /// </summary>
-        public double StartParameter
-        {
-            get { return this.startParameter; }
-            set
-            {
-                this.startParameter = value;
-
-                double a = MajorAxis * 0.5;
-                double b = MinorAxis * 0.5;
-
-                Vector2 startPoint = new Vector2(a * Math.Cos(startParameter), b * Math.Sin(startParameter));
-
-                startAngle = Vector2.Angle(startPoint) * MathHelper.RadToDeg;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ellipse end parameter in radian.
-        /// </summary>
-        public double EndParameter
-        {
-            get { return this.endParameter; }
-            set
-            {
-                this.endParameter = value;
-
-                double a = MajorAxis * 0.5;
-                double b = MinorAxis * 0.5;
-
-                Vector2 endPoint = new Vector2(a * Math.Cos(endParameter), b * Math.Sin(endParameter));
-
-                endAngle = Vector2.Angle(endPoint) * MathHelper.RadToDeg;
-            }
+            set { this.endAngle = MathHelper.NormalizeAngle(value); }
         }
 
         /// <summary>
@@ -393,6 +355,32 @@ namespace netDxf.Entities
         #endregion
 
         #region public methods
+
+        /// <summary>
+        /// Sets the ellipse major and minor axis.
+        /// </summary>
+        /// <param name="major">Ellipse major axis.</param>
+        /// <param name="minor">Ellipse minor axis.</param>
+        public void SetAxis(double major, double minor)
+        {
+            if (major <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(major), major, "The major axis value must be greater than zero.");
+            }
+
+            if (minor <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(minor), minor, "The minor axis value must be greater than zero.");
+            }
+
+            if ( minor > major)
+            {
+                throw new ArgumentException("The ellipse major axis must be greater than the minor axis.");
+            }
+
+            this.majorAxis = major;
+            this.minorAxis = minor;
+        }
 
         /// <summary>
         /// Calculate the local point on the ellipse for a given angle relative to the center.
@@ -421,6 +409,11 @@ namespace netDxf.Entities
         /// <returns>A list vertexes that represents the ellipse expressed in object coordinate system.</returns>
         public List<Vector2> PolygonalVertexes(int precision)
         {
+            if (precision < 2)
+            {
+                throw new ArgumentOutOfRangeException(nameof(precision), precision, "The arc precision must be equal or greater than two.");
+            }
+
             List<Vector2> points = new List<Vector2>();
             double beta = this.rotation * MathHelper.DegToRad;
             double sinBeta = Math.Sin(beta);
@@ -450,7 +443,7 @@ namespace netDxf.Entities
                 }
                 steps = precision - 1;
             }
-
+           
             double delta = (end - start) / steps;
 
             for (int i = 0; i < precision; i++)
@@ -469,21 +462,21 @@ namespace netDxf.Entities
         }
 
         /// <summary>
-        /// Converts the ellipse in a Polyline.
+        /// Converts the ellipse in a Polyline2D.
         /// </summary>
         /// <param name="precision">Number of vertexes generated.</param>
-        /// <returns>A new instance of <see cref="LwPolyline">LightWeightPolyline</see> that represents the ellipse.</returns>
-        public LwPolyline ToPolyline(int precision)
+        /// <returns>A new instance of <see cref="Polyline2D">Polyline2D</see> that represents the ellipse.</returns>
+        public Polyline2D ToPolyline2D(int precision)
         {
             List<Vector2> vertexes = this.PolygonalVertexes(precision);
             Vector3 ocsCenter = MathHelper.Transform(this.center, this.Normal, CoordinateSystem.World, CoordinateSystem.Object);
-            LwPolyline poly = new LwPolyline
+            Polyline2D poly = new Polyline2D
             {
-                Layer = (Layer)this.Layer.Clone(),
-                Linetype = (Linetype)this.Linetype.Clone(),
-                Color = (AciColor)this.Color.Clone(),
+                Layer = (Layer) this.Layer.Clone(),
+                Linetype = (Linetype) this.Linetype.Clone(),
+                Color = (AciColor) this.Color.Clone(),
                 Lineweight = this.Lineweight,
-                Transparency = (Transparency)this.Transparency.Clone(),
+                Transparency = (Transparency) this.Transparency.Clone(),
                 LinetypeScale = this.LinetypeScale,
                 Normal = this.Normal,
                 Elevation = ocsCenter.Z,
@@ -493,7 +486,7 @@ namespace netDxf.Entities
 
             foreach (Vector2 v in vertexes)
             {
-                poly.Vertexes.Add(new LwPolylineVertex(v.X + ocsCenter.X, v.Y + ocsCenter.Y));
+                poly.Vertexes.Add(new Polyline2DVertex(v.X + ocsCenter.X, v.Y + ocsCenter.Y));
             }
 
             return poly;
@@ -522,13 +515,13 @@ namespace netDxf.Entities
             Vector2 p2 = new Vector2(semiMajorAxis, semiMinorAxis);
             Vector2 p3 = new Vector2(-semiMajorAxis, -semiMinorAxis);
             Vector2 p4 = new Vector2(semiMajorAxis, -semiMinorAxis);
-            List<Vector2> ocsPoints = MathHelper.Transform(new[] { p1, p2, p3, p4 }, this.Rotation * MathHelper.DegToRad, CoordinateSystem.Object, CoordinateSystem.World);
+            List<Vector2> ocsPoints = MathHelper.Transform(new[] {p1, p2, p3, p4}, this.Rotation * MathHelper.DegToRad, CoordinateSystem.Object, CoordinateSystem.World);
 
             Vector3 p1Prime = new Vector3(ocsPoints[0].X, ocsPoints[0].Y, 0.0);
             Vector3 p2Prime = new Vector3(ocsPoints[1].X, ocsPoints[1].Y, 0.0);
             Vector3 p3Prime = new Vector3(ocsPoints[2].X, ocsPoints[2].Y, 0.0);
             Vector3 p4Prime = new Vector3(ocsPoints[3].X, ocsPoints[3].Y, 0.0);
-            List<Vector3> wcsPoints = MathHelper.Transform(new[] { p1Prime, p2Prime, p3Prime, p4Prime }, this.Normal, CoordinateSystem.Object, CoordinateSystem.World);
+            List<Vector3> wcsPoints = MathHelper.Transform(new[] {p1Prime, p2Prime, p3Prime, p4Prime}, this.Normal, CoordinateSystem.Object, CoordinateSystem.World);
             for (int i = 0; i < wcsPoints.Count; i++)
             {
                 wcsPoints[i] += this.Center;
@@ -544,7 +537,7 @@ namespace netDxf.Entities
             }
 
             List<Vector3> rectPoints = MathHelper.Transform(wcsPoints, newNormal, CoordinateSystem.World, CoordinateSystem.Object);
-
+            
             // corners of the transformed rectangle that circumscribe the new ellipse        
             Vector2 pointA = new Vector2(rectPoints[0].X, rectPoints[0].Y);
             Vector2 pointB = new Vector2(rectPoints[1].X, rectPoints[1].Y);
@@ -571,12 +564,12 @@ namespace netDxf.Entities
 
             // find the fifth point in the ellipse
             Vector2 pointZ = MathHelper.FindIntersection(pointM, pointX - pointM, pointN, pointY - pointN);
-            if (Vector2.IsNaN(pointZ))
+            if(Vector2.IsNaN(pointZ))
             {
                 Debug.Assert(false, "The transformation cannot be applied.");
                 return;
             }
-
+            
             Vector3 oldNormal = this.Normal;
             double oldRotation = this.Rotation * MathHelper.DegToRad;
 
@@ -588,8 +581,7 @@ namespace netDxf.Entities
                 axis2 = MathHelper.IsZero(axis2) ? MathHelper.Epsilon : axis2;
 
                 this.Center = transformation * this.Center + translation;
-                this.MajorAxis = axis1;
-                this.MinorAxis = axis2;
+                this.SetAxis(axis2, axis1);
                 this.Rotation = newRotation * MathHelper.RadToDeg;
                 this.Normal = newNormal;
             }
@@ -599,7 +591,10 @@ namespace netDxf.Entities
                 return;
             }
 
-            if (this.IsFullEllipse) return;
+            if (this.IsFullEllipse)
+            {
+                return;
+            }
 
             //if not full ellipse calculate start and end angles
             Vector2 start = this.PolarCoordinateRelativeToCenter(this.StartAngle);
@@ -642,18 +637,18 @@ namespace netDxf.Entities
             Ellipse entity = new Ellipse
             {
                 //EntityObject properties
-                Layer = (Layer)this.Layer.Clone(),
-                Linetype = (Linetype)this.Linetype.Clone(),
-                Color = (AciColor)this.Color.Clone(),
+                Layer = (Layer) this.Layer.Clone(),
+                Linetype = (Linetype) this.Linetype.Clone(),
+                Color = (AciColor) this.Color.Clone(),
                 Lineweight = this.Lineweight,
-                Transparency = (Transparency)this.Transparency.Clone(),
+                Transparency = (Transparency) this.Transparency.Clone(),
                 LinetypeScale = this.LinetypeScale,
                 Normal = this.Normal,
                 IsVisible = this.IsVisible,
                 //Ellipse properties
                 Center = this.center,
-                MajorAxis = this.majorAxis,
-                MinorAxis = this.minorAxis,
+                majorAxis = this.majorAxis,
+                minorAxis = this.minorAxis,
                 Rotation = this.rotation,
                 StartAngle = this.startAngle,
                 EndAngle = this.endAngle,
@@ -662,7 +657,7 @@ namespace netDxf.Entities
 
             foreach (XData data in this.XData.Values)
             {
-                entity.XData.Add((XData)data.Clone());
+                entity.XData.Add((XData) data.Clone());
             }
 
             return entity;
