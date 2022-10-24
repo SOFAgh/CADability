@@ -766,7 +766,7 @@ namespace CADability.DXF
             {
                 IGeoObject res = block.Clone();
                 ModOp tranform = ModOp.Translate(GeoVector(insert.Position)) *
-                    ModOp.Translate(block.RefPoint.ToVector()) *
+                    //ModOp.Translate(block.RefPoint.ToVector()) *
                     ModOp.Rotate(CADability.GeoVector.ZAxis, SweepAngle.Deg(insert.Rotation)) *
                     ModOp.Scale(insert.Scale.X, insert.Scale.Y, insert.Scale.Z) *
                     ModOp.Translate(CADability.GeoPoint.Origin - block.RefPoint);
