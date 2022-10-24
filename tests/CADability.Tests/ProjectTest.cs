@@ -1,5 +1,7 @@
 ﻿using CADability.Forms;
 using System.IO.Compression;
+﻿using CADability.Attribute;
+using CADability.Shapes;
 
 namespace CADability.Tests
 {
@@ -11,12 +13,13 @@ namespace CADability.Tests
 
         [TestMethod]
         [DeploymentItem(@"Files/Dxf/square_100x100.dxf", nameof(import_dxf_square_succeds))]
-        [DeploymentItem(@"Files/Dxf/square_100x100.bmp", nameof(import_dxf_square_succeds))]
+        [DeploymentItem(@"Files/Dxf/square_100x100.png", nameof(import_dxf_square_succeds))]
         public void import_dxf_square_succeds()
         {
             var file = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_100x100.dxf");
             Assert.IsTrue(File.Exists(file));
-            var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_100x100.bmp");
+            var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "square_100x100.png");
+            Assert.IsTrue(File.Exists(bmpFile));
 
             var project = Project.ReadFromFile(file, "dxf");
             Assert.IsNotNull(project);
@@ -33,7 +36,6 @@ namespace CADability.Tests
                 Assert.That.BitmapsAreEqual(expected, actual);
             }
         }
-
         [TestMethod]
         [DeploymentItem(@"Files/Step/issue101.stp", nameof(import_step_issue101_succeds))]
         [DeploymentItem(@"Files/Step/issue101.png", nameof(import_step_issue101_succeds))]
@@ -74,6 +76,5 @@ namespace CADability.Tests
                 Assert.That.BitmapsAreEqual(expected, actual);
             }
         }
-
     }
 }
