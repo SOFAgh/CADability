@@ -97,6 +97,9 @@ namespace netDxf.IO
         // the order of each table group in the tables section may vary
         private Dictionary<DimensionStyle, string[]> dimStyleToHandles;
 
+        // layer for post-processing
+        private List<Layer> layers;
+
         // complex linetypes for post-processing
         private List<Linetype> complexLinetypes;
         private Dictionary<LinetypeSegment, string> linetypeSegmentStyleHandles;
@@ -231,6 +234,7 @@ namespace netDxf.IO
             this.tableXData = new Dictionary<DxfObject, List<XData>>() ;
             this.tableEntryXData = new Dictionary<DxfObject, List<XData>>();
             this.dimStyleToHandles = new Dictionary<DimensionStyle, string[]>();
+            this.layers = new List<Layer>();
             this.complexLinetypes = new List<Linetype>();
             this.linetypeSegmentStyleHandles = new Dictionary<LinetypeSegment, string>();
             this.linetypeShapeSegmentToNumber = new Dictionary<LinetypeShapeSegment, short>();
@@ -853,6 +857,12 @@ namespace netDxf.IO
                 this.doc.Linetypes.Add(complexLinetype, false);
             }
 
+            // now that the linetype list is fully initialized we can add the layer to the document
+            foreach (Layer layer in this.layers)
+            {
+                this.doc.Layers.Add(layer, false);
+            }
+
             // post process extended data information for table collections
             foreach (KeyValuePair<DxfObject, List<XData>> pair in this.tableXData)
             {
@@ -1256,7 +1266,8 @@ namespace netDxf.IO
                         if (layer != null)
                         {
                             layer.Handle = handle;
-                            this.doc.Layers.Add(layer, false);
+                            this.layers.Add(layer);
+                            // this.doc.Layers.Add(layer, false);
                         }
                         break;
                     case DxfObjectCode.LinetypeTable:
@@ -11504,6 +11515,17 @@ namespace netDxf.IO
             {
                 return linetype;
             }
+            else
+            {
+                foreach (Linetype complexLinetype in this.complexLinetypes)
+                {
+                    if (string.Equals(name, complexLinetype.Name, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        return complexLinetype;
+                    }
+                }
+            }
+
 
             // if an entity references a table object not defined in the tables section a new one will be created
             return this.doc.Linetypes.Add(new Linetype(name));
