@@ -166,6 +166,15 @@ namespace CADability
         {
             return Math.Sqrt(sqr(x - To.x) + sqr(y - To.y) + sqr(z - To.z));
         }
+        public static double Distance(GeoPoint[] points)
+        {
+            double res = 0.0;
+            for (int i = 1; i < points.Length; i++)
+            {
+                res += points[i - 1] | points[i];
+            }
+            return res;
+        }
         internal double TaxicabDistance(GeoPoint To)
         {	// Betragsnorm, heißt echt auf Englisch Taxicab oder Manhattan
             return Math.Abs(x - To.x) + Math.Abs(y - To.y) + Math.Abs(z - To.z);
