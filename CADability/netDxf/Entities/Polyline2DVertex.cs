@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -25,9 +28,9 @@ using System;
 namespace netDxf.Entities
 {
     /// <summary>
-    /// Represents a <see cref="LwPolyline">LwPolyline</see> vertex.
+    /// Represents a <see cref="Polyline2D">Polyline2D</see> vertex.
     /// </summary>
-    public class LwPolylineVertex :
+    public class Polyline2DVertex :
         ICloneable
     {
         #region private fields
@@ -42,54 +45,66 @@ namespace netDxf.Entities
         #region constructors
 
         /// <summary>
-        /// Initializes a new instance of the <c>LwPolylineVertex</c> class.
+        /// Initializes a new instance of the <c>Polyline2DVertex</c> class.
         /// </summary>
-        public LwPolylineVertex()
+        public Polyline2DVertex()
             : this(Vector2.Zero)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <c>LwPolylineVertex</c> class.
+        /// Initializes a new instance of the <c>Polyline2DVertex</c> class.
         /// </summary>
         /// <param name="x">X coordinate.</param>
         /// <param name="y">Y coordinate.</param>
-        public LwPolylineVertex(double x, double y)
+        public Polyline2DVertex(double x, double y)
             : this(new Vector2(x, y), 0.0)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <c>LwPolylineVertex</c> class.
+        /// Initializes a new instance of the <c>Polyline2DVertex</c> class.
         /// </summary>
         /// <param name="x">X coordinate.</param>
         /// <param name="y">Y coordinate.</param>
         /// <param name="bulge">Vertex bulge  (default: 0.0).</param>
-        public LwPolylineVertex(double x, double y, double bulge)
+        public Polyline2DVertex(double x, double y, double bulge)
             : this(new Vector2(x, y), bulge)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <c>LwPolylineVertex</c> class.
+        /// Initializes a new instance of the <c>Polyline2DVertex</c> class.
         /// </summary>
         /// <param name="position">Lightweight polyline <see cref="Vector2">vertex</see> coordinates.</param>
-        public LwPolylineVertex(Vector2 position)
+        public Polyline2DVertex(Vector2 position)
             : this(position, 0.0)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <c>LwPolylineVertex</c> class.
+        /// Initializes a new instance of the <c>Polyline2DVertex</c> class.
         /// </summary>
         /// <param name="position">Lightweight polyline <see cref="Vector2">vertex</see> coordinates.</param>
         /// <param name="bulge">Vertex bulge  (default: 0.0).</param>
-        public LwPolylineVertex(Vector2 position, double bulge)
+        public Polyline2DVertex(Vector2 position, double bulge)
         {
             this.position = position;
             this.bulge = bulge;
             this.startWidth = 0.0;
             this.endWidth = 0.0;
+        }
+
+        /// <summary>
+        /// Copy constructor.
+        /// </summary>
+        /// <param name="vertex">A Polyline2D vertex.</param>
+        public Polyline2DVertex(Polyline2DVertex vertex)
+        {
+            this.position = vertex.Position;
+            this.bulge = vertex.Bulge;
+            this.startWidth = vertex.startWidth;
+            this.endWidth = vertex.EndWidth;
         }
 
         #endregion
@@ -115,7 +130,9 @@ namespace netDxf.Entities
             set
             {
                 if (value < 0)
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The LwPolylineVertex width must be equals or greater than zero.");
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "The vertex start width must be equals or greater than zero.");
+                }
                 this.startWidth = value;
             }
         }
@@ -130,7 +147,7 @@ namespace netDxf.Entities
             set
             {
                 if (value < 0)
-                    throw new ArgumentOutOfRangeException(nameof(value), value, "The LwPolylineVertex width must be equals or greater than zero.");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "The vertex end width must be equals or greater than zero.");
                 this.endWidth = value;
             }
         }
@@ -159,22 +176,16 @@ namespace netDxf.Entities
         /// <returns>The string representation.</returns>
         public override string ToString()
         {
-            return string.Format("{0}: ({1})", "LwPolylineVertex", this.position);
+            return string.Format("{0}: ({1})", "Polyline2DVertex", this.position);
         }
 
         /// <summary>
-        /// Creates a new LwPolylineVertex that is a copy of the current instance.
+        /// Creates a new Polyline2DVertex that is a copy of the current instance.
         /// </summary>
-        /// <returns>A new LwPolylineVertex that is a copy of this instance.</returns>
+        /// <returns>A new Polyline2DVertex that is a copy of this instance.</returns>
         public object Clone()
         {
-            return new LwPolylineVertex
-            {
-                Position = this.position,
-                Bulge = this.bulge,
-                StartWidth = this.startWidth,
-                EndWidth = this.endWidth
-            };
+            return new Polyline2DVertex(this);
         }
 
         #endregion

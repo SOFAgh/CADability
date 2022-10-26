@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 namespace netDxf
@@ -55,7 +58,7 @@ namespace netDxf
         public const string Circle = "AcDbCircle";
         public const string Ellipse = "AcDbEllipse";
         public const string Spline = "AcDbSpline";
-        public const string Face3d = "AcDbFace";
+        public const string Face3D = "AcDbFace";
         public const string Helix = "AcDbHelix";
         public const string Insert = "AcDbBlockReference";
         public const string Line = "AcDbLine";
@@ -64,15 +67,17 @@ namespace netDxf
         public const string MLine = "AcDbMline";
         public const string Point = "AcDbPoint";
         public const string Vertex = "AcDbVertex";
-        public const string Polyline = "AcDb2dPolyline";
         public const string Leader = "AcDbLeader";
-        public const string LwPolyline = "AcDbPolyline";
-        public const string PolylineVertex = "AcDb2dVertex ";
-        public const string Polyline3d = "AcDb3dPolyline";
-        public const string Polyline3dVertex = "AcDb3dPolylineVertex";
+        public const string Polyline = "AcDbPolyline";
+        public const string Polyline2D = "AcDb2dPolyline";
+        public const string Polyline2DVertex = "AcDb2dVertex";
+        public const string Polyline3D = "AcDb3dPolyline";
+        public const string Polyline3DVertex = "AcDb3dPolylineVertex";
         public const string PolyfaceMesh = "AcDbPolyFaceMesh";
         public const string PolyfaceMeshVertex = "AcDbPolyFaceMeshVertex";
         public const string PolyfaceMeshFace = "AcDbFaceRecord";
+        public const string PolygonMesh = "AcDbPolygonMesh";
+        public const string PolygonMeshVertex = "AcDbPolygonMeshVertex";
         public const string Shape = "AcDbShape";
         public const string Solid = "AcDbTrace";
         public const string Trace = "AcDbTrace";

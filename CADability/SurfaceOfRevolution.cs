@@ -48,6 +48,10 @@ namespace CADability.GeoObject
             this.axisLocation = axisLocation;
             this.axisDirection = axisDirection;
             curveToRotate = basisCurve;
+            this.curveStartParameter = curveToRotate.PositionToParameter(0.0);
+            this.curveEndParameter = curveToRotate.PositionToParameter(1.0);
+            this.curveParameterOffset = 0.0;
+
             usedArea = BoundingRect.EmptyBoundingRect;
         }
         /// <summary>
@@ -188,14 +192,16 @@ namespace CADability.GeoObject
                         // GeoPoint2D dbg = base.PositionOf(p);
                         // this is very often the case: the curve is in a plane which also contains the rotation axis
                         GeoPoint onAxis = Geometry.DropPL(p, axisLocation, axisDirection);
-                        Plane perp = new Plane(p, axisDirection); // a plane perpendicular to the axis
+                        GeoVector dirx = p - onAxis;
+                        GeoVector diry = dirx ^ axisDirection;
+                        Plane perp = new Plane(onAxis, axisDirection); // a plane perpendicular to the axis
                         double[] ip = curveToRotate.GetPlaneIntersection(perp); // there should be exactly one intersection point
                         if (ip.Length == 1)
                         {
-                            GeoPoint cnt = perp.Intersect(axisLocation, axisDirection);
-                            GeoPoint op = curveToRotate.PointAt(ip[0]);
-                            SweepAngle sa1 = new SweepAngle(op - cnt, p - cnt);
-                            return new GeoPoint2D(sa1.Radian, ip[0]);
+                            GeoPoint2D op = perp.Project(curveToRotate.PointAt(ip[0]));
+                            GeoPoint2D org = perp.Project(p);
+                            SweepAngle sa1 = new SweepAngle(op.ToVector(), org.ToVector());
+                            return new GeoPoint2D(-sa1.Radian, curveToRotate.PositionToParameter(ip[0]));
                         }
                     }
                 }

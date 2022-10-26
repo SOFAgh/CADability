@@ -2522,8 +2522,21 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         }
                                     }
                                 }
-                                shell.CloseOpenEdges(edgesToRepair);
-                                if (shell.OpenEdgesExceptPoles.Length > 0) shell.CloseOpenEdges(); // not sure why we sometimes need two calls
+                                try
+                                {
+                                    shell.CloseOpenEdges(edgesToRepair);
+                                    if (shell.OpenEdgesExceptPoles.Length > 0)
+                                    {
+                                        bool reduced = false;
+                                        do
+                                        {
+                                            int oe = shell.OpenEdgesExceptPoles.Length;
+                                            shell.CloseOpenEdges(); // not sure why we sometimes need multiple calls
+                                            reduced = shell.OpenEdgesExceptPoles.Length < oe;
+                                        } while (reduced);
+                                    }
+                                }
+                                catch { }
                             }
 
                             if (shell.OpenEdgesExceptPoles.Length == 0)
@@ -2656,7 +2669,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (677 == item.definingIndex)
+                            if (20287 == item.definingIndex) // 12344, 9868, 9886
                             {
                             }
 #endif
@@ -2685,8 +2698,12 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         defIndex = item.definingIndex;
                                     }
 #if DEBUG
-                                    // Face dbgfc = (item.val as Face[])[0];
-                                    // dbgfc.AssureTriangles(0.12);
+                                    //if (11555 == item.definingIndex)
+                                    //{
+                                    //    Face dbgfc = (item.val as Face[])[0];
+                                    //    GeoPoint2D dbg2d = dbgfc.Surface.PositionOf(dbgfc.Surface.PointAt(new GeoPoint2D(1.5, 0.6)));
+                                    //    dbgfc.AssureTriangles(0.12);
+                                    //}
 #endif
 
                                 }
@@ -4843,12 +4860,17 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 double[] si = fu.GetSelfIntersections();
                 int bestPair = -1;
                 double minDist = double.MaxValue;
+                double minPar = double.MaxValue;
+                double minTan = double.MaxValue;
                 for (int i = 0; i < si.Length; i += 2)
-                {
+                {   // when there are multiple self intersection pairs, then it looks like the best pair is where the intersection is tangential
                     double d = fu.PointAt(si[i]) | fu.PointAt(si[i + 1]);
-                    if (d < minDist)
+                    bool sd = Precision.SameDirection(fu.DirectionAt(si[i]), fu.DirectionAt(si[i + 1]), false);
+                    double angle = Math.Abs(new SweepAngle(fu.DirectionAt(si[i]), fu.DirectionAt(si[i + 1])));
+                    double dp = si[i + 1] - si[i];
+                    if (angle < minTan)
                     {
-                        minDist = d;
+                        minTan = angle;
                         bestPair = i;
                     }
                 }

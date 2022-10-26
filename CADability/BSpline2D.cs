@@ -1918,7 +1918,10 @@ namespace CADability.Curve2D
                 return DirectionAt(0.5);
             }
         }
-
+        public override double[] GetSelfIntersections()
+        {
+            return base.GetSelfIntersections();
+        }
         private void AddApproximateArc(double spar, double epar, double precision, List<ICurve2D> parts)
         {
             PointDirAt(spar, out GeoPoint2D sp, out GeoVector2D sd);

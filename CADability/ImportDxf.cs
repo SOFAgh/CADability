@@ -131,18 +131,18 @@ namespace CADability.DXF
                 case netDxf.Entities.Circle dxfCircle: res = CreateCircle(dxfCircle); break;
                 case netDxf.Entities.Ellipse dxfEllipse: res = CreateEllipse(dxfEllipse); break;
                 case netDxf.Entities.Spline dxfSpline: res = CreateSpline(dxfSpline); break;
-                case netDxf.Entities.Face3d dxfFace: res = CreateFace(dxfFace); break;
+                case netDxf.Entities.Face3D dxfFace: res = CreateFace(dxfFace); break;
                 case netDxf.Entities.PolyfaceMesh dxfPolyfaceMesh: res = CreatePolyfaceMesh(dxfPolyfaceMesh); break;
                 case netDxf.Entities.Hatch dxfHatch: res = CreateHatch(dxfHatch); break;
                 case netDxf.Entities.Solid dxfSolid: res = CreateSolid(dxfSolid); break;
                 case netDxf.Entities.Insert dxfInsert: res = CreateInsert(dxfInsert); break;
-                case netDxf.Entities.LwPolyline dxfLwPolyline: res = CreateLwPolyline(dxfLwPolyline); break;
+                case netDxf.Entities.Polyline2D dxfPolyline2D: res = CreatePolyline2D(dxfPolyline2D); break;
                 case netDxf.Entities.MLine dxfMLine: res = CreateMLine(dxfMLine); break;
                 case netDxf.Entities.Text dxfText: res = CreateText(dxfText); break;
                 case netDxf.Entities.Dimension dxfDimension: res = CreateDimension(dxfDimension); break;
                 case netDxf.Entities.MText dxfMText: res = CreateMText(dxfMText); break;
                 case netDxf.Entities.Leader dxfLeader: res = CreateLeader(dxfLeader); break;
-                case netDxf.Entities.Polyline dxfPolyline: res = CreatePolyline(dxfPolyline); break;
+                case netDxf.Entities.Polyline3D dxfPolyline3D: res = CreatePolyline3D(dxfPolyline3D); break;
                 case netDxf.Entities.Point dxfPoint: res = CreatePoint(dxfPoint); break;
                 case netDxf.Entities.Mesh dxfMesh: res = CreateMesh(dxfMesh); break;
                 default:
@@ -421,8 +421,13 @@ namespace CADability.DXF
             GeoVector2D majorAxis = 0.5 * ellipse.MajorAxis * (rot * GeoVector2D.XAxis);
             GeoVector2D minorAxis = 0.5 * ellipse.MinorAxis * (rot * GeoVector2D.YAxis);
             e.SetEllipseCenterAxis(GeoPoint(ellipse.Center), plane.ToGlobal(majorAxis), plane.ToGlobal(minorAxis));
-            double sp = ellipse.StartParameter;
-            double ep = ellipse.EndParameter;
+
+            Vector2 startPoint = ellipse.PolarCoordinateRelativeToCenter(ellipse.StartAngle);
+            double sp = CalcStartEndParameter(startPoint, ellipse.MajorAxis, ellipse.MinorAxis);
+
+            Vector2 endPoint = ellipse.PolarCoordinateRelativeToCenter(ellipse.EndAngle);
+            double ep = CalcStartEndParameter(endPoint, ellipse.MajorAxis, ellipse.MinorAxis);
+
             e.StartParameter = sp;
             e.SweepParameter = ep - sp;
             if (e.SweepParameter == 0.0) e.SweepParameter = Math.PI * 2.0;
@@ -430,10 +435,19 @@ namespace CADability.DXF
             // it looks like clockwise 2d ellipses are defined with normal vector (0, 0, -1)
             return e;
         }
+
+        private double CalcStartEndParameter(Vector2 startEndPoint, double majorAxis, double minorAxis)
+        {
+            double a = 1 / (0.5 * majorAxis);
+            double b = 1 / (0.5 * minorAxis);
+            double parameter = Math.Atan2(startEndPoint.Y * b, startEndPoint.X * a);
+            return parameter;
+        }
+
         private IGeoObject CreateSpline(netDxf.Entities.Spline spline)
         {
             int degree = spline.Degree;
-            if (spline.ControlPoints.Count == 0 && spline.FitPoints.Count > 0)
+            if (spline.ControlPoints.Length == 0 && spline.FitPoints.Count > 0)
             {
                 BSpline bsp = BSpline.Construct();
                 GeoPoint[] fp = new GeoPoint[spline.FitPoints.Count];
@@ -446,14 +460,14 @@ namespace CADability.DXF
             }
             else
             {
-                GeoPoint[] poles = new GeoPoint[spline.ControlPoints.Count];
-                double[] weights = new double[spline.ControlPoints.Count];
+                GeoPoint[] poles = new GeoPoint[spline.ControlPoints.Length];
+                double[] weights = new double[spline.ControlPoints.Length];
                 for (int i = 0; i < poles.Length; i++)
                 {
-                    poles[i] = GeoPoint(spline.ControlPoints[i].Position);
-                    weights[i] = spline.ControlPoints[i].Weight;
+                    poles[i] = GeoPoint(spline.ControlPoints[i]);
+                    weights[i] = spline.Weights[i];
                 }
-                double[] kn = new double[spline.Knots.Count];
+                double[] kn = new double[spline.Knots.Length];
                 for (int i = 0; i < kn.Length; ++i)
                 {
                     kn[i] = spline.Knots[i];
@@ -466,16 +480,49 @@ namespace CADability.DXF
                     return l;
                 }
                 BSpline bsp = BSpline.Construct();
-                if (bsp.SetData(degree, poles, weights, kn, null, spline.IsPeriodic))
+                //TODO: Can Periodic spline be not closed?
+                if (bsp.SetData(degree, poles, weights, kn, null, spline.IsClosedPeriodic))
                 {
-                    if (spline.IsPeriodic) bsp.IsClosed = true; // to remove strange behavior in hünfeld.dxf
+                    // BSplines with inner knots of multiplicity degree+1 make problems, because the spline have no derivative at these points
+                    // so we split these splines
+                    List<int> splitKnots = new List<int>();
+                    for (int i = degree+1; i < kn.Length - degree-1; i++)
+                    {
+                        if (kn[i] == kn[i - 1])
+                        {
+                            bool sameKnot = true;
+                            for (int j = 0; j < degree; j++)
+                            {
+                                if (kn[i - 1] != kn[i + j]) sameKnot = false;
+                            }
+                            if (sameKnot) splitKnots.Add(i - 1);
+                        }
+                    }
+                    if (splitKnots.Count>0)
+                    {
+                        List<ICurve> parts = new List<ICurve>();
+                        BSpline part = bsp.TrimParam(kn[0], kn[splitKnots[0]]);
+                        if (CADability.GeoPoint.Distance(part.Poles) > Precision.eps && (part as ICurve).Length > Precision.eps) parts.Add(part);
+                        for (int i = 1; i < splitKnots.Count; i++)
+                        {
+                            part = bsp.TrimParam(kn[splitKnots[i-1]], kn[splitKnots[i]]);
+                            if (CADability.GeoPoint.Distance(part.Poles) > Precision.eps && (part as ICurve).Length>Precision.eps) parts.Add(part);
+                        }
+                        part = bsp.TrimParam(kn[splitKnots[splitKnots.Count - 1]], kn[kn.Length - 1]);
+                        
+                        if (CADability.GeoPoint.Distance(part.Poles)>Precision.eps && (part as ICurve).Length > Precision.eps) parts.Add(part);
+                        GeoObject.Path path = GeoObject.Path.Construct();
+                        path.Set(parts.ToArray());
+                        return path;
+                    }
+                    // if (spline.IsPeriodic) bsp.IsClosed = true; // to remove strange behavior in hünfeld.dxf
                     return bsp;
                 }
                 // strange spline in "bspline-closed-periodic.dxf"
             }
             return null;
         }
-        private IGeoObject CreateFace(netDxf.Entities.Face3d face)
+        private IGeoObject CreateFace(netDxf.Entities.Face3D face)
         {
             List<GeoPoint> points = new List<GeoPoint>();
             GeoPoint p = GeoPoint(face.FirstVertex);
@@ -535,21 +582,22 @@ namespace CADability.DXF
         private IGeoObject CreatePolyfaceMesh(netDxf.Entities.PolyfaceMesh polyfacemesh)
         {
             polyfacemesh.Explode();
-            GeoPoint[] vertices = new GeoPoint[polyfacemesh.Vertexes.Count];
+
+            GeoPoint[] vertices = new GeoPoint[polyfacemesh.Vertexes.Length];
             for (int i = 0; i < vertices.Length; i++)
             {
-                vertices[i] = GeoPoint(polyfacemesh.Vertexes[i].Position); // there is more information, I would need a good example
+                vertices[i] = GeoPoint(polyfacemesh.Vertexes[i]); // there is more information, I would need a good example
             }
 
             List<Face> faces = new List<Face>();
             for (int i = 0; i < polyfacemesh.Faces.Count; i++)
             {
-                List<short> indices = polyfacemesh.Faces[i].VertexIndexes;
-                for (int j = 0; j < indices.Count; j++)
+                short[] indices = polyfacemesh.Faces[i].VertexIndexes;
+                for (int j = 0; j < indices.Length; j++)
                 {
                     indices[j] = (short)(Math.Abs(indices[j]) - 1); // why? what does it mean?
                 }
-                if (indices.Count <= 3 || indices[3] == indices[2])
+                if (indices.Length <= 3 || indices[3] == indices[2])
                 {
                     if (indices[0] != indices[1] && indices[1] != indices[2])
                     {
@@ -686,7 +734,7 @@ namespace CADability.DXF
                     if (list.Count > 1)
                     {
                         GeoObject.Block block = GeoObject.Block.Construct();
-                        block.Set(new GeoObjectList(list as  ICollection<IGeoObject>));
+                        block.Set(new GeoObjectList(list as ICollection<IGeoObject>));
                         return block;
                     }
                     else return res;
@@ -733,7 +781,7 @@ namespace CADability.DXF
             GeoPoint2D[] vertex = new GeoPoint2D[points.Count + 1];
             for (int i = 0; i < points.Count; ++i) vertex[i] = pln.Project(points[i]);
             vertex[points.Count] = vertex[0];
-            Polyline2D poly2d = new Polyline2D(vertex);
+            Curve2D.Polyline2D poly2d = new Curve2D.Polyline2D(vertex);
             Border bdr = new Border(poly2d);
             CompoundShape cs = new CompoundShape(new SimpleShape(bdr));
             GeoObject.Hatch hatch = GeoObject.Hatch.Construct();
@@ -750,7 +798,7 @@ namespace CADability.DXF
             {
                 IGeoObject res = block.Clone();
                 ModOp tranform = ModOp.Translate(GeoVector(insert.Position)) *
-                    ModOp.Translate(block.RefPoint.ToVector()) *
+                    //ModOp.Translate(block.RefPoint.ToVector()) *
                     ModOp.Rotate(CADability.GeoVector.ZAxis, SweepAngle.Deg(insert.Rotation)) *
                     ModOp.Scale(insert.Scale.X, insert.Scale.Y, insert.Scale.Z) *
                     ModOp.Translate(CADability.GeoPoint.Origin - block.RefPoint);
@@ -759,9 +807,9 @@ namespace CADability.DXF
             }
             return null;
         }
-        private IGeoObject CreateLwPolyline(netDxf.Entities.LwPolyline lwPolyline)
+        private IGeoObject CreatePolyline2D(netDxf.Entities.Polyline2D polyline2D)
         {
-            List<EntityObject> exploded = lwPolyline.Explode();
+            List<EntityObject> exploded = polyline2D.Explode();
             List<IGeoObject> path = new List<IGeoObject>();
             for (int i = 0; i < exploded.Count; i++)
             {
@@ -1008,11 +1056,11 @@ namespace CADability.DXF
             blk.Add(pln);
             return blk;
         }
-        private IGeoObject CreatePolyline(netDxf.Entities.Polyline polyline)
+        private IGeoObject CreatePolyline3D(netDxf.Entities.Polyline3D polyline3D)
         {
             // polyline.Explode();
             bool hasWidth = false, hasBulges = false;
-            for (int i = 0; i < polyline.Vertexes.Count; i++)
+            for (int i = 0; i < polyline3D.Vertexes.Count; i++)
             {
                 //hasBulges |= polyline.Vertexes[i].Bulge != 0.0;
                 //hasWidth |= (polyline.Vertexes[i].StartWidth != 0.0) || (polyline.Vertexes[i].EndWidth != 0.0);
@@ -1030,11 +1078,11 @@ namespace CADability.DXF
                 else
                 {
                     GeoObject.Polyline res = GeoObject.Polyline.Construct();
-                    for (int i = 0; i < polyline.Vertexes.Count; ++i)
+                    for (int i = 0; i < polyline3D.Vertexes.Count; ++i)
                     {
-                        res.AddPoint(GeoPoint(polyline.Vertexes[i].Position));
+                        res.AddPoint(GeoPoint(polyline3D.Vertexes[i]));
                     }
-                    res.IsClosed = polyline.IsClosed;
+                    res.IsClosed = polyline3D.IsClosed;
                     if (res.GetExtent(0.0).Size < 1e-6) return null; // only identical points
                     return res;
                 }
