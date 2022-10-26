@@ -768,7 +768,8 @@ namespace CADability
             if (e.Handled) return;
             Action a = ActiveAction;
             if (a == null) return;
-            switch (e.KeyData) // was KeyCode, but didn't work
+            // System.Diagnostics.Trace.WriteLine(e.KeyData.ToString() + "---" + e.KeyCode.ToString());
+            switch (e.KeyData & (Keys)0x0FF) // was KeyCode, but didn't work
             {
                 case Keys.Escape:
                     e.Handled = a.OnEscape(e.KeyData);

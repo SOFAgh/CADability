@@ -47,6 +47,32 @@ namespace CADability.GeoObject
                 return direction;
             }
         }
+        public void Simplify()
+        {
+            if (basisCurve is BSpline bsp)
+            {
+                if (bsp.HasWeights)
+                {
+                    bool almostNoWeights = true;
+                    for (int i = 0; i < bsp.Weights.Length; i++)
+                    {
+                        if (Math.Abs(1.0 - bsp.Weights[i]) > 1e-3)
+                        {
+                            almostNoWeights = false;
+                            break;
+                        }
+                    }
+                    // there are some very special cases, where the weights are 0.99999999 instead of 1 and make calculation unnecessary difficult
+                    if (almostNoWeights) bsp.SetData(bsp.degree, bsp.Poles, null, bsp.Knots, bsp.Multiplicities, bsp.IsClosed);
+                }
+            }
+            if (basisCurve.GetPlanarState() != PlanarState.Planar)
+            {   // this changes the 2d system, the caller must be aware of this fact
+                Plane pl = new Plane(basisCurve.StartPoint, direction);
+                ICurve2D projected = basisCurve.GetProjectedCurve(pl);
+                basisCurve = projected.MakeGeoObject(pl) as ICurve;
+            }
+        }
         public override ISurface GetOffsetSurface(double offset)
         {
             if (basisCurve.GetPlanarState() != PlanarState.NonPlanar)

@@ -3356,6 +3356,11 @@ namespace CADability.GeoObject
                 {
                     if ((this as ICurve).DistanceTo(c2.KnotPoints[i]) > precision) return false;
                 }
+                if (KnotPoints.Length<=2 && c2.KnotPoints.Length<=2)
+                {   // maybe same start and endpoint
+                    if ((c2 as ICurve).DistanceTo((this as ICurve).PointAt(0.5)) > precision) return false;
+                    if ((this as ICurve).DistanceTo((c2 as ICurve).PointAt(0.5)) > precision) return false;
+                }
                 return true;
             }
             return this.TetraederHull.SameGeometry(other, precision);

@@ -1946,11 +1946,12 @@ namespace CADability.Curve2D
                 }
             }
             bool found = false;
+            res = double.MinValue;
             if (ind >= 0)
             {
                 found = FindPerpendicularFoot(p, interparam[ind], interparam[ind + 1], interpol[ind], interpol[ind + 1], interdir[ind].ToRight(), interdir[ind + 1].ToRight(), out res);
             }
-            else
+            if (!found)
             {
                 found = FindPerpendicularFoot(p, 0.0, 1.0, StartPoint, EndPoint, StartDirection.ToRight(), EndDirection.ToRight(), out res);
             }
@@ -3201,7 +3202,29 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual double[] GetSelfIntersections()
         {
-            return new double[0];
+            //private GeoPoint2D[] interpol; // gewisse Stützpunkte für jeden Knoten und ggf Zwischenpunkte (Wendepunkte, zu große Dreiecke)
+            //private GeoVector2D[] interdir; // Richtungen an den Stützpunkten
+            //private double[] interparam; // Parameterwerte an den Stützpunkten
+            //private GeoPoint2D[] tringulation; // Dreiecks-Zwischenpunkte (einer weniger als interpol)
+            List<double> res = new List<double>();
+            if (interpol == null) MakeTriangulation();
+            for (int i = 0; i < interpol.Length - 2; ++i)
+            {
+                for (int j = i + 2; j < interpol.Length - 1; ++j)
+                {
+                    GeoPoint2DWithParameter[] gpwp = CheckTriangleIntersect(this, interpol[i], interpol[i + 1], interparam[i], interparam[i + 1], interdir[i], interdir[i + 1],
+                        this, interpol[j], interpol[j + 1], interparam[j], interparam[j + 1], interdir[j], interdir[j + 1]);
+                    for (int k = 0; k < gpwp.Length; ++k)
+                    {
+                        if (IsValidParameter(gpwp[k].par1) && IsValidParameter(gpwp[k].par2))
+                        {
+                            res.Add(gpwp[k].par1);
+                            res.Add(gpwp[k].par2);
+                        }
+                    }
+                }
+            }
+            return res.ToArray();
         }
 
         /// <summary>

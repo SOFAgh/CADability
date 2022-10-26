@@ -5457,13 +5457,17 @@ namespace CADability.GeoObject
                                 // these faces are explicitly kept separate
                                 // firstToSecond may move by a whole period. This is not respected here. but with the non periodic surfaces we want to get rid of periodic surfaces anyhow.
                                 Border outline = edge.PrimaryFace.Area.Outline; // three lines to check performance
-                                ModOp2D inverse = firstToSecond.GetInverse();
-                                Border firstoutline = outline.GetModified(inverse);
-                                // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
-                                BoundingRect ext = firstoutline.Extent;
-                                ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
-                                if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
-                                if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
+                                try
+                                {
+                                    ModOp2D inverse = firstToSecond.GetInverse();
+                                    Border firstoutline = outline.GetModified(inverse);
+                                    // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
+                                    BoundingRect ext = firstoutline.Extent;
+                                    ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
+                                    if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
+                                    if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
+                                }
+                                catch { continue; }
                             }
                             toRemove = edge.SecondaryFace.CombineWith(edge.PrimaryFace, firstToSecond);
                             // isolate the face, which will no longer be used:

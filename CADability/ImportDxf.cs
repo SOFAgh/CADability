@@ -483,7 +483,39 @@ namespace CADability.DXF
                 //TODO: Can Periodic spline be not closed?
                 if (bsp.SetData(degree, poles, weights, kn, null, spline.IsClosedPeriodic))
                 {
-                    if (spline.IsClosed) bsp.IsClosed = true; // to remove strange behavior in hünfeld.dxf
+                    // BSplines with inner knots of multiplicity degree+1 make problems, because the spline have no derivative at these points
+                    // so we split these splines
+                    List<int> splitKnots = new List<int>();
+                    for (int i = degree+1; i < kn.Length - degree-1; i++)
+                    {
+                        if (kn[i] == kn[i - 1])
+                        {
+                            bool sameKnot = true;
+                            for (int j = 0; j < degree; j++)
+                            {
+                                if (kn[i - 1] != kn[i + j]) sameKnot = false;
+                            }
+                            if (sameKnot) splitKnots.Add(i - 1);
+                        }
+                    }
+                    if (splitKnots.Count>0)
+                    {
+                        List<ICurve> parts = new List<ICurve>();
+                        BSpline part = bsp.TrimParam(kn[0], kn[splitKnots[0]]);
+                        if (CADability.GeoPoint.Distance(part.Poles) > Precision.eps && (part as ICurve).Length > Precision.eps) parts.Add(part);
+                        for (int i = 1; i < splitKnots.Count; i++)
+                        {
+                            part = bsp.TrimParam(kn[splitKnots[i-1]], kn[splitKnots[i]]);
+                            if (CADability.GeoPoint.Distance(part.Poles) > Precision.eps && (part as ICurve).Length>Precision.eps) parts.Add(part);
+                        }
+                        part = bsp.TrimParam(kn[splitKnots[splitKnots.Count - 1]], kn[kn.Length - 1]);
+                        
+                        if (CADability.GeoPoint.Distance(part.Poles)>Precision.eps && (part as ICurve).Length > Precision.eps) parts.Add(part);
+                        GeoObject.Path path = GeoObject.Path.Construct();
+                        path.Set(parts.ToArray());
+                        return path;
+                    }
+                    // if (spline.IsPeriodic) bsp.IsClosed = true; // to remove strange behavior in hünfeld.dxf
                     return bsp;
                 }
                 // strange spline in "bspline-closed-periodic.dxf"
