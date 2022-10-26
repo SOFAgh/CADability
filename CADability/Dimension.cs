@@ -1879,8 +1879,8 @@ namespace CADability.GeoObject
             GeoObjectList list = new GeoObjectList();
             try
             {
-                Recalc(new Projection(-Plane.Normal, plane.DirectionX), list);
-                // Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
+                // Recalc(new Projection(-Plane.Normal, plane.DirectionX), list);
+                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionY : GeoVector.ZAxis), list);
             }
             catch (Exception e)
             {
@@ -2216,8 +2216,8 @@ namespace CADability.GeoObject
             GeoObjectList list = new GeoObjectList();
             try
             {
-                Recalc(new Projection(-Plane.Normal, plane.DirectionY), list);
-                // Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
+                // Recalc(new Projection(-Plane.Normal, plane.DirectionY), list);
+                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionY : GeoVector.ZAxis), list);
             }
             catch (Exception e)
             {
@@ -2324,7 +2324,7 @@ namespace CADability.GeoObject
             GeoObjectList list = new GeoObjectList();
             try
             {
-                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
+                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionY : GeoVector.ZAxis), list);
             }
             catch (Exception e)
             {
@@ -2359,7 +2359,7 @@ namespace CADability.GeoObject
             GeoObjectList list = new GeoObjectList();
             try
             {
-                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
+                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionY : GeoVector.ZAxis), list);
             }
             catch (Exception e)
             {
@@ -2452,7 +2452,7 @@ namespace CADability.GeoObject
             GeoObjectList list = new GeoObjectList();
             try
             {
-                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionX : GeoVector.ZAxis), list);
+                Recalc(new Projection(-Plane.Normal, Precision.SameDirection(plane.Normal, GeoVector.ZAxis, false) ? plane.DirectionY : GeoVector.ZAxis), list);
             }
             catch (Exception e)
             {
