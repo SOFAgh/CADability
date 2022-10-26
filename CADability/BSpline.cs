@@ -84,7 +84,8 @@ namespace CADability.GeoObject
         private TetraederHull tetraederHull;
         private GeoPoint[] approximation; // Interpolation mit der Genauigkeit der Auflösung
         private double approxPrecision; // Genauigkeit zu approximation
-        private object lockApproximationRecalc;
+        private readonly object lockApproximationRecalc = new object();
+        private readonly object planeLock = new object();
         private WeakReference extrema;
         private GeoPoint[] GetCashedApproximation(double precision)
         {
@@ -499,8 +500,7 @@ namespace CADability.GeoObject
         #endregion
         protected BSpline()
             : base()
-        {
-            lockApproximationRecalc = new object();
+        {            
             if (Constructed != null) Constructed(this);
             extent = BoundingCube.EmptyBoundingCube;
         }
@@ -1983,8 +1983,7 @@ namespace CADability.GeoObject
                         break;
                 }
             }
-            extent = BoundingCube.EmptyBoundingCube;
-            lockApproximationRecalc = new object();
+            extent = BoundingCube.EmptyBoundingCube;            
             if (Constructed != null) Constructed(this);
         }
         /// <summary>
@@ -2930,9 +2929,10 @@ namespace CADability.GeoObject
                 }
             }
         }
+                
         Plane ICurve.GetPlane()
         {
-            lock (this)
+            lock (planeLock)
             {
                 if (plane.HasValue) return plane.Value;
                 double MaxDist;
