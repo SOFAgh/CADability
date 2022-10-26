@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -48,16 +51,16 @@ namespace netDxf
         /// <param name="rotation">Rotation in degrees of the ellipse.</param>
         public BoundingRectangle(Vector2 center, double majorAxis, double minorAxis, double rotation)
         {
-            double rot = rotation*MathHelper.DegToRad;
-            double a = majorAxis*0.5*Math.Cos(rot);
-            double b = minorAxis*0.5*Math.Sin(rot);
-            double c = majorAxis*0.5*Math.Sin(rot);
-            double d = minorAxis*0.5*Math.Cos(rot);
+            double rot = rotation * MathHelper.DegToRad;
+            double a = majorAxis * 0.5 * Math.Cos(rot);
+            double b = minorAxis * 0.5 * Math.Sin(rot);
+            double c = majorAxis * 0.5 * Math.Sin(rot);
+            double d = minorAxis * 0.5 * Math.Cos(rot);
 
-            double width = Math.Sqrt(a*a + b*b)*2;
-            double height = Math.Sqrt(c*c + d*d)*2;
-            this.min = new Vector2(center.X - width*0.5, center.Y - height*0.5);
-            this.max = new Vector2(center.X + width*0.5, center.Y + height*0.5);
+            double width = Math.Sqrt(a * a + b * b) * 2;
+            double height = Math.Sqrt(c * c + d * d) * 2;
+            this.min = new Vector2(center.X - width * 0.5, center.Y - height * 0.5);
+            this.max = new Vector2(center.X + width * 0.5, center.Y + height * 0.5);
         }
 
         /// <summary>
@@ -79,8 +82,8 @@ namespace netDxf
         /// <param name="height">Height of the bounding rectangle.</param>
         public BoundingRectangle(Vector2 center, double width, double height)
         {
-            this.min = new Vector2(center.X - width*0.5, center.Y - height*0.5);
-            this.max = new Vector2(center.X + width*0.5, center.Y + height*0.5);
+            this.min = new Vector2(center.X - width * 0.5, center.Y - height * 0.5);
+            this.max = new Vector2(center.X + width * 0.5, center.Y + height * 0.5);
         }
 
         /// <summary>
@@ -173,7 +176,7 @@ namespace netDxf
         /// </summary>
         public Vector2 Center
         {
-            get { return (this.min + this.max)*0.5; }
+            get { return (this.min + this.max) * 0.5; }
         }
 
         /// <summary>
@@ -181,7 +184,7 @@ namespace netDxf
         /// </summary>
         public double Radius
         {
-            get { return Vector2.Distance(this.min, this.max)*0.5; }
+            get { return Vector2.Distance(this.min, this.max) * 0.5; }
         }
 
         /// <summary>
@@ -264,7 +267,7 @@ namespace netDxf
         }
 
         /// <summary>
-        /// Obtains the union of a bounding rectangles list .
+        /// Obtains the union of a bounding rectangles list.
         /// </summary>
         /// <param name="rectangles">A list of bounding rectangles.</param>
         /// <returns>The resulting bounding rectangle.</returns>

@@ -113,7 +113,7 @@ namespace CADability.DXF
 
         }
 
-        private EntityObject ExportText(GeoObject.Text text)
+        private netDxf.Entities.Text ExportText(GeoObject.Text text)
         {
             System.Drawing.FontStyle fs = System.Drawing.FontStyle.Regular;
             if (text.Bold) fs |= System.Drawing.FontStyle.Bold;
@@ -125,7 +125,7 @@ namespace CADability.DXF
             return res;
         }
 
-        private EntityObject ExportBlock(GeoObject.Block blk)
+        private netDxf.Entities.Insert ExportBlock(GeoObject.Block blk)
         {
             List<EntityObject> entities = new List<EntityObject>();
             for (int i = 0; i < blk.Children.Count; i++)
@@ -139,7 +139,7 @@ namespace CADability.DXF
             doc.Blocks.Add(block);
             return new netDxf.Entities.Insert(block);
         }
-        private EntityObject ExportPath(Path path)
+        private netDxf.Entities.Insert ExportPath(Path path)
         {
             List<EntityObject> entities = new List<EntityObject>();
             for (int i = 0; i < path.Curves.Length; i++)
@@ -152,38 +152,44 @@ namespace CADability.DXF
             return new netDxf.Entities.Insert(block);
         }
 
-        private EntityObject ExportBSpline(BSpline bspline)
+        private netDxf.Entities.Spline ExportBSpline(BSpline bspline)
         {
-            List<SplineVertex> vertices = new List<SplineVertex>();
+            List<Vector3> poles = new List<Vector3>(bspline.Poles.Length);
+
             for (int i = 0; i < bspline.Poles.Length; i++)
-            {
-                if (bspline.HasWeights) vertices.Add(new SplineVertex(Vector3(bspline.Poles[i]), bspline.Weights[i]));
-                else vertices.Add(new SplineVertex(Vector3(bspline.Poles[i])));
-            }
+                poles.Add(Vector3(bspline.Poles[i]));
+
             List<double> knots = new List<double>();
             for (int i = 0; i < bspline.Knots.Length; i++)
             {
                 for (int j = 0; j < bspline.Multiplicities[i]; j++) knots.Add(bspline.Knots[i]);
             }
-            return new netDxf.Entities.Spline(vertices, knots, (short)bspline.Degree);
+
+            //TODO: Check if bspline.IsClosed means the same as Spline.IsClosedPeriodic
+            //TODO: Check if it's okay to pass an empty array as weights
+            if (bspline.HasWeights)
+                return new netDxf.Entities.Spline(poles, bspline.Weights, knots, (short)bspline.Degree, bspline.IsClosed);
+            else
+                return new netDxf.Entities.Spline(poles, Array.Empty<double>(), knots, (short)bspline.Degree, bspline.IsClosed);
         }
 
-        private EntityObject ExportPolyline(GeoObject.Polyline polyline)
+        private netDxf.Entities.Polyline3D ExportPolyline(GeoObject.Polyline polyline)
         {
+            //TODO: Check if a new method for Polyline2D (old LwPolyline) is necessary
             List<Vector3> vertices = new List<Vector3>();
             for (int i = 0; i < polyline.Vertices.Length; i++)
             {
                 vertices.Add(Vector3(polyline.Vertices[i]));
             }
             if (polyline.IsClosed) vertices.Add(Vector3(polyline.Vertices[0]));
-            return new netDxf.Entities.Polyline(vertices);
+            return new netDxf.Entities.Polyline3D(vertices);
         }
 
-        private EntityObject ExportPoint(GeoObject.Point point)
+        private netDxf.Entities.Point ExportPoint(GeoObject.Point point)
         {
             return new netDxf.Entities.Point(Vector3(point.Location));
         }
-        private EntityObject ExportLine(GeoObject.Line line)
+        private netDxf.Entities.Line ExportLine(GeoObject.Line line)
         {
             return new netDxf.Entities.Line(Vector3(line.StartPoint), Vector3(line.EndPoint));
         }
@@ -213,14 +219,20 @@ namespace CADability.DXF
                     if (elli.SweepParameter < 0)
                     {   // there are no clockwise oriented ellipse arcs in dxf
                         expelli.Rotation = -rot.Degree;
-                        expelli.StartParameter = elli.StartParameter + elli.SweepParameter + Math.PI;
-                        expelli.EndParameter = elli.StartParameter + Math.PI;
+
+                        double startParameter = elli.StartParameter + elli.SweepParameter + Math.PI;
+                        expelli.StartAngle = CalcStartEndAngle(startParameter, expelli.MajorAxis, expelli.MinorAxis);
+
+                        double endParameter = elli.StartParameter + Math.PI;
+                        expelli.EndAngle = CalcStartEndAngle(endParameter, expelli.MajorAxis, expelli.MinorAxis);
                     }
                     else
                     {
                         expelli.Rotation = rot.Degree;
-                        expelli.StartParameter = elli.StartParameter;
-                        expelli.EndParameter = elli.StartParameter + elli.SweepParameter;
+                        expelli.StartAngle = CalcStartEndAngle(elli.StartParameter, expelli.MajorAxis, expelli.MinorAxis);
+
+                        double endParameter = elli.StartParameter + elli.SweepParameter;
+                        expelli.EndAngle = CalcStartEndAngle(endParameter, expelli.MajorAxis, expelli.MinorAxis);
                     }
                 }
             }
@@ -245,6 +257,15 @@ namespace CADability.DXF
             }
             return entity;
         }
+
+        private double CalcStartEndAngle(double startEndParameter, double majorAxis, double minorAxis)
+        {
+            double a = majorAxis * 0.5d;
+            double b = minorAxis * 0.5d;
+            Vector2 startPoint = new Vector2(a * Math.Cos(startEndParameter), b * Math.Sin(startEndParameter));
+            return Vector2.Angle(startPoint) * netDxf.MathHelper.RadToDeg;
+        }
+
         private static void SetEllipseParameters(netDxf.Entities.Ellipse ellipse, double startparam, double endparam)
         {
             //CADability: also set the start and end parameter

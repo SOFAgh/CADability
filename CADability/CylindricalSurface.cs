@@ -2349,8 +2349,6 @@ namespace CADability.GeoObject
         }
         bool ISurfaceWithRadius.IsModifiable => true;
 
-        bool ICylinder.OutwardOriented => throw new NotImplementedException();
-
         int IExportStep.Export(ExportStep export, bool topLevel)
         {
             //CYLINDRICAL_SURFACE

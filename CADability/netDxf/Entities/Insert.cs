@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -77,7 +80,6 @@ namespace netDxf.Entities
 
         #region private fields
 
-        private readonly EndSequence endSequence;
         private Block block;
         private Vector3 position;
         private Vector3 scale;
@@ -110,7 +112,6 @@ namespace netDxf.Entities
             this.position = Vector3.Zero;
             this.scale = new Vector3(1.0);
             this.rotation = 0.0;
-            this.endSequence = new EndSequence(this);
         }
 
         /// <summary>
@@ -144,7 +145,6 @@ namespace netDxf.Entities
             this.position = position;
             this.scale = new Vector3(1.0);
             this.rotation = 0.0;
-            this.endSequence = new EndSequence(this);
 
             List<Attribute> atts = new List<Attribute>(block.AttributeDefinitions.Count);
             foreach (AttributeDefinition attdef in block.AttributeDefinitions.Values)
@@ -184,9 +184,6 @@ namespace netDxf.Entities
         /// <summary>
         /// Gets the insert <see cref="Block">block definition</see>.
         /// </summary>
-        /// <remarks>
-        /// When changing the block associated to 
-        /// </remarks>
         public Block Block
         {
             get { return this.block; }
@@ -255,15 +252,6 @@ namespace netDxf.Entities
 
         #endregion
 
-        #region internal properties
-
-        internal EndSequence EndSequence
-        {
-            get { return this.endSequence; }
-        }
-
-        #endregion
-
         #region public methods
 
         /// <summary>
@@ -314,7 +302,7 @@ namespace netDxf.Entities
         }
 
         /// <summary>
-        /// Calculates the insertion rotation matrix.
+        /// Gets the insert transformation matrix.
         /// </summary>
         /// <returns>The insert transformation matrix.</returns>
         /// <remarks>
@@ -433,7 +421,7 @@ namespace netDxf.Entities
                         case EntityType.Circle:
                         {
                             Circle circle = (Circle) entity;
-                            Ellipse ellipse = new Ellipse
+                            Ellipse ellipse = new Ellipse(circle.Center, 2 * circle.Radius, 2 * circle.Radius)
                             {
                                 //EntityObject properties
                                 Layer = (Layer) entity.Layer.Clone(),
@@ -445,9 +433,6 @@ namespace netDxf.Entities
                                 Normal = entity.Normal,
                                 IsVisible = entity.IsVisible,
                                 //Ellipse properties
-                                Center = circle.Center,
-                                MajorAxis = 2 * circle.Radius,
-                                MinorAxis = 2 * circle.Radius,
                                 Thickness = circle.Thickness
                             };
 
@@ -458,7 +443,7 @@ namespace netDxf.Entities
                         case EntityType.Arc:
                         {
                             Arc arc = (Arc) entity;
-                            Ellipse ellipse = new Ellipse
+                            Ellipse ellipse = new Ellipse(arc.Center, 2 * arc.Radius, 2 * arc.Radius)
                             {
                                 //EntityObject properties
                                 Layer = (Layer) entity.Layer.Clone(),
@@ -470,9 +455,6 @@ namespace netDxf.Entities
                                 Normal = entity.Normal,
                                 IsVisible = entity.IsVisible,
                                 //Ellipse properties
-                                Center = arc.Center,
-                                MajorAxis = 2 * arc.Radius,
-                                MinorAxis = 2 * arc.Radius,
                                 StartAngle = arc.StartAngle,
                                 EndAngle = arc.EndAngle,
                                 Thickness = arc.Thickness
@@ -482,15 +464,15 @@ namespace netDxf.Entities
                             entities.Add(ellipse);
                             break;
                         }
-                        case EntityType.LwPolyline:
+                        case EntityType.Polyline2D:
                         {
-                            List<EntityObject> newEntities = ((LwPolyline) entity).Explode();
+                            List<EntityObject> newEntities = ((Polyline2D) entity).Explode();
                             foreach (EntityObject newEntity in newEntities)
                             {
                                 if (newEntity.Type == EntityType.Arc)
                                 {
                                     Arc arc = (Arc) newEntity;
-                                    Ellipse ellipse = new Ellipse
+                                    Ellipse ellipse = new Ellipse(arc.Center, 2 * arc.Radius, 2 * arc.Radius)
                                     {
                                         //EntityObject properties
                                         Layer = (Layer) entity.Layer.Clone(),
@@ -502,9 +484,6 @@ namespace netDxf.Entities
                                         Normal = entity.Normal,
                                         IsVisible = entity.IsVisible,
                                         //Ellipse properties
-                                        Center = arc.Center,
-                                        MajorAxis = 2 * arc.Radius,
-                                        MinorAxis = 2 * arc.Radius,
                                         StartAngle = arc.StartAngle,
                                         EndAngle = arc.EndAngle,
                                         Thickness = arc.Thickness
@@ -529,7 +508,7 @@ namespace netDxf.Entities
                                 if (newEntity.Type == EntityType.Arc)
                                 {
                                     Arc arc = (Arc) newEntity;
-                                    Ellipse ellipse = new Ellipse
+                                    Ellipse ellipse = new Ellipse(arc.Center, 2 * arc.Radius, 2 * arc.Radius)
                                     {
                                         //EntityObject properties
                                         Layer = (Layer) entity.Layer.Clone(),
@@ -541,9 +520,6 @@ namespace netDxf.Entities
                                         Normal = entity.Normal,
                                         IsVisible = entity.IsVisible,
                                         //Ellipse properties
-                                        Center = arc.Center,
-                                        MajorAxis = 2 * arc.Radius,
-                                        MinorAxis = 2 * arc.Radius,
                                         StartAngle = arc.StartAngle,
                                         EndAngle = arc.EndAngle,
                                         Thickness = arc.Thickness
@@ -673,7 +649,6 @@ namespace netDxf.Entities
         /// </remarks>
         internal override long AssignHandle(long entityNumber)
         {
-            entityNumber = this.endSequence.AssignHandle(entityNumber);
             foreach (Attribute attrib in this.attributes)
             {
                 entityNumber = attrib.AssignHandle(entityNumber);

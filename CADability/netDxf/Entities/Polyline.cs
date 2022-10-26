@@ -1,395 +1,204 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+﻿#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
-using System;
 using System.Collections.Generic;
-using netDxf.Collections;
 using netDxf.Tables;
 
 namespace netDxf.Entities
 {
     /// <summary>
-    /// Represents a generic polyline <see cref="EntityObject">entity</see>.
+    /// Represents a DXF Polyline.
     /// </summary>
-    public class Polyline :
-        EntityObject
+    /// <remarks>
+    /// Under the POLYLINE data the DXF stores information about smoothed Polylines2D (non-smoothed Polylines2D are stored as LWPOLYLINE,
+    /// Polylines3D (smoothed and non-smoothed), and PolyfaceMeshes.<br />
+    /// For internal use only.
+    /// </remarks>
+    internal class Polyline :
+        DxfObject
     {
         #region private fields
 
-        private readonly EndSequence endSequence;
-        private readonly ObservableCollection<PolylineVertex> vertexes;
+        private string subclassMarker;
+        private Layer layer;
+        private double thickness;
+        private double elevation;
+        private Vector3 normal;
+        private AciColor color;
+        private EndSequence endSequence;
+        private List<Vertex> vertexes;
         private PolylineTypeFlags flags;
         private PolylineSmoothType smoothType;
 
+        // polygon mesh
+        private short m;
+        private short n;
+        private short densityM;
+        private short densityN;
+
         #endregion
 
-        #region constructors
+        #region constructor
 
         /// <summary>
-        /// Initializes a new instance of the <c>Polyline3d</c> class.
+        /// Initializes a new instance of the <c>Polyline</c> class.
         /// </summary>
         public Polyline()
-            : this(new List<PolylineVertex>(), false)
+            : base(DxfObjectCode.Polyline)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <c>Polyline3d</c> class.
-        /// </summary>
-        /// <param name="vertexes">3d polyline <see cref="Vector3">vertex</see> list.</param>
-        public Polyline(IEnumerable<Vector3> vertexes)
-            : this(vertexes, false)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <c>Polyline3d</c> class.
-        /// </summary>
-        /// <param name="vertexes">3d polyline <see cref="Vector3">vertex</see> list.</param>
-        /// <param name="isClosed">Sets if the polyline is closed, by default it will create an open polyline.</param>
-        public Polyline(IEnumerable<Vector3> vertexes, bool isClosed)
-            : base(EntityType.Polyline, DxfObjectCode.Polyline)
-        {
-            if (vertexes == null)
-            {
-                throw new ArgumentNullException(nameof(vertexes));
-            }
-
-            this.vertexes = new ObservableCollection<PolylineVertex>();
-            this.vertexes.BeforeAddItem += this.Vertexes_BeforeAddItem;
-            this.vertexes.AddItem += this.Vertexes_AddItem;
-            this.vertexes.BeforeRemoveItem += this.Vertexes_BeforeRemoveItem;
-            this.vertexes.RemoveItem += this.Vertexes_RemoveItem;
-
-            foreach (Vector3 vertex in vertexes)
-            {
-                this.vertexes.Add(new PolylineVertex(vertex));
-            }
-
-            this.flags = isClosed ? PolylineTypeFlags.ClosedPolylineOrClosedPolygonMeshInM | PolylineTypeFlags.Polyline3D : PolylineTypeFlags.Polyline3D;
-            this.smoothType = PolylineSmoothType.NoSmooth;
-            this.endSequence = new EndSequence(this);
-        }
-
-
-        /// <summary>
-        /// Initializes a new instance of the <c>Polyline3d</c> class.
-        /// </summary>
-        /// <param name="vertexes">3d polyline <see cref="PolylineVertex">vertex</see> list.</param>
-        public Polyline(IEnumerable<PolylineVertex> vertexes)
-            : this(vertexes, false)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <c>Polyline3d</c> class.
-        /// </summary>
-        /// <param name="vertexes">3d polyline <see cref="PolylineVertex">vertex</see> list.</param>
-        /// <param name="isClosed">Sets if the polyline is closed  (default: false).</param>
-        public Polyline(IEnumerable<PolylineVertex> vertexes, bool isClosed)
-            : base(EntityType.Polyline, DxfObjectCode.Polyline)
-        {
-            if (vertexes == null)
-            {
-                throw new ArgumentNullException(nameof(vertexes));
-            }
-
-            this.vertexes = new ObservableCollection<PolylineVertex>();
-            this.vertexes.BeforeAddItem += this.Vertexes_BeforeAddItem;
-            this.vertexes.AddItem += this.Vertexes_AddItem;
-            this.vertexes.BeforeRemoveItem += this.Vertexes_BeforeRemoveItem;
-            this.vertexes.RemoveItem += this.Vertexes_RemoveItem;
-
-            this.vertexes.AddRange(vertexes);
-
-            this.flags = isClosed ? PolylineTypeFlags.ClosedPolylineOrClosedPolygonMeshInM | PolylineTypeFlags.Polyline3D : PolylineTypeFlags.Polyline3D;
-            this.smoothType = PolylineSmoothType.NoSmooth;
-            this.endSequence = new EndSequence(this);
+            this.subclassMarker = netDxf.SubclassMarker.Polyline;
         }
 
         #endregion
 
-        #region public properties
+        #region properties
 
         /// <summary>
-        /// Gets the polyline <see cref="PolylineVertex">vertex</see> list.
+        /// Gets or sets the polyline subclass marker.
         /// </summary>
-        public ObservableCollection<PolylineVertex> Vertexes
+        public string SubclassMarker
+        {
+            get { return this.subclassMarker; }
+            set { this.subclassMarker = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the polyline layer.
+        /// </summary>
+        public Layer Layer
+        {
+            get { return this.layer; }
+            set { this.layer = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the polyline thickness.
+        /// </summary>
+        public double Thickness
+        {
+            get { return this.thickness; }
+            set { this.thickness = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the polyline elevation.
+        /// </summary>
+        public double Elevation
+        {
+            get { return this.elevation; }
+            set { this.elevation = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the polyline normal.
+        /// </summary>
+        public Vector3 Normal
+        {
+            get { return this.normal; }
+            set { this.normal = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the polyline color.
+        /// </summary>
+        public AciColor Color
+        {
+            get { return this.color; }
+            set { this.color = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the polyline EndSequence object.
+        /// </summary>
+        public EndSequence EndSequence
+        {
+            get { return this.endSequence; }
+            set { this.endSequence = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the polyline vertexes list.
+        /// </summary>
+        public List<Vertex> Vertexes
         {
             get { return this.vertexes; }
+            set { this.vertexes = value; }
         }
 
         /// <summary>
-        /// Gets or sets if the polyline is closed.
+        /// Gets or sets the polyline flags.
         /// </summary>
-        public bool IsClosed
-        {
-            get { return this.flags.HasFlag(PolylineTypeFlags.ClosedPolylineOrClosedPolygonMeshInM); }
-            set
-            {
-                if (value)
-                {
-                    this.flags |= PolylineTypeFlags.ClosedPolylineOrClosedPolygonMeshInM;
-                }
-                else
-                {
-                    this.flags &= ~PolylineTypeFlags.ClosedPolylineOrClosedPolygonMeshInM;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Enable or disable if the line type pattern is generated continuously around the vertexes of the polyline.
-        /// </summary>
-        public bool LinetypeGeneration
-        {
-            get { return this.flags.HasFlag(PolylineTypeFlags.ContinuousLinetypePattern); }
-            set
-            {
-                if (value)
-                {
-                    this.flags |= PolylineTypeFlags.ContinuousLinetypePattern;
-                }
-                else
-                {
-                    this.flags &= ~PolylineTypeFlags.ContinuousLinetypePattern;
-                }
-            }
-        }
-
-        #endregion
-
-        #region internal properties
-
-        /// <summary>
-        /// Gets or sets the curve smooth type.
-        /// </summary>
-        internal PolylineSmoothType SmoothType
-        {
-            get { return this.smoothType; }
-            set { this.smoothType = value; }
-        }
-
-        /// <summary>
-        /// Gets the polyline type.
-        /// </summary>
-        internal PolylineTypeFlags Flags
+        public PolylineTypeFlags Flags
         {
             get { return this.flags; }
             set { this.flags = value; }
         }
 
         /// <summary>
-        /// Gets the end vertex sequence.
+        /// Gets or sets the polyline smooth type.
         /// </summary>
-        internal EndSequence EndSequence
+        public PolylineSmoothType SmoothType
         {
-            get { return this.endSequence; }
-        }
-
-        #endregion
-
-        #region public methods
-
-        /// <summary>
-        /// Switch the polyline direction.
-        /// </summary>
-        public void Reverse()
-        {
-            if (this.vertexes.Count < 2)
-            {
-                return;
-            }
-
-            this.vertexes.Reverse();
+            get { return this.smoothType; }
+            set { this.smoothType = value; }
         }
 
         /// <summary>
-        /// Decompose the actual polyline in a list of <see cref="Line">lines</see>.
+        /// Polygon mesh M vertex count.
         /// </summary>
-        /// <returns>A list of <see cref="Line">lines</see> that made up the polyline.</returns>
-        public List<EntityObject> Explode()
+        public short M
         {
-            List<EntityObject> entities = new List<EntityObject>();
-            int index = 0;
-            foreach (PolylineVertex vertex in this.Vertexes)
-            {
-                Vector3 start;
-                Vector3 end;
-
-                if (index == this.Vertexes.Count - 1)
-                {
-                    if (!this.IsClosed)
-                    {
-                        break;
-                    }
-                    start = vertex.Position;
-                    end = this.vertexes[0].Position;
-                }
-                else
-                {
-                    start = vertex.Position;
-                    end = this.vertexes[index + 1].Position;
-                }
-
-                entities.Add(new Line
-                {
-                    Layer = (Layer) this.Layer.Clone(),
-                    Linetype = (Linetype) this.Linetype.Clone(),
-                    Color = (AciColor) this.Color.Clone(),
-                    Lineweight = this.Lineweight,
-                    Transparency = (Transparency) this.Transparency.Clone(),
-                    LinetypeScale = this.LinetypeScale,
-                    Normal = this.Normal,
-                    StartPoint = start,
-                    EndPoint = end,
-                });
-
-                index++;
-            }
-
-            return entities;
-        }
-
-        #endregion
-
-        #region overrides
-
-        /// <summary>
-        /// Moves, scales, and/or rotates the current entity given a 3x3 transformation matrix and a translation vector.
-        /// </summary>
-        /// <param name="transformation">Transformation matrix.</param>
-        /// <param name="translation">Translation vector.</param>
-        /// <remarks>Matrix3 adopts the convention of using column vectors to represent a transformation matrix.</remarks>
-        public override void TransformBy(Matrix3 transformation, Vector3 translation)
-        {
-            foreach (PolylineVertex point in this.Vertexes)
-            {
-                point.Position = transformation * point.Position + translation;
-            }
-
-            Vector3 newNormal = transformation * this.Normal;
-            if (Vector3.Equals(Vector3.Zero, newNormal))
-            {
-                newNormal = this.Normal;
-            }
-            this.Normal = newNormal;
+            get { return this.m; }
+            set { this.m = value; }
         }
 
         /// <summary>
-        /// Assigns a handle to the object based in a integer counter.
+        /// Polygon mesh N vertex count.
         /// </summary>
-        /// <param name="entityNumber">Number to assign.</param>
-        /// <returns>Next available entity number.</returns>
-        /// <remarks>
-        /// Some objects might consume more than one, is, for example, the case of polylines that will assign
-        /// automatically a handle to its vertexes. The entity number will be converted to an hexadecimal number.
-        /// </remarks>
-        internal override long AssignHandle(long entityNumber)
+        public short N
         {
-            foreach (PolylineVertex v in this.vertexes)
-            {
-                entityNumber = v.AssignHandle(entityNumber);
-            }
-            entityNumber = this.endSequence.AssignHandle(entityNumber);
-
-            return base.AssignHandle(entityNumber);
+            get { return this.n; }
+            set { this.n = value; }
         }
 
         /// <summary>
-        /// Creates a new Polyline that is a copy of the current instance.
+        /// Polygon mesh smooth surface M density.
         /// </summary>
-        /// <returns>A new Polyline that is a copy of this instance.</returns>
-        public override object Clone()
+        public short DensityM
         {
-            Polyline entity = new Polyline
-            {
-                //EntityObject properties
-                Layer = (Layer) this.Layer.Clone(),
-                Linetype = (Linetype) this.Linetype.Clone(),
-                Color = (AciColor) this.Color.Clone(),
-                Lineweight = this.Lineweight,
-                Transparency = (Transparency) this.Transparency.Clone(),
-                LinetypeScale = this.LinetypeScale,
-                Normal = this.Normal,
-                IsVisible = this.IsVisible,
-                //Polyline properties
-                Flags = this.flags
-            };
-
-            foreach (PolylineVertex vertex in this.vertexes)
-            {
-                entity.Vertexes.Add((PolylineVertex) vertex.Clone());
-            }
-
-            foreach (XData data in this.XData.Values)
-            {
-                entity.XData.Add((XData) data.Clone());
-            }
-
-            return entity;
+            get { return this.densityM; }
+            set { this.densityM = value; }
         }
 
-        #endregion
-
-        #region Entities collection events
-
-        private void Vertexes_BeforeAddItem(ObservableCollection<PolylineVertex> sender, ObservableCollectionEventArgs<PolylineVertex> e)
+        /// <summary>
+        /// Polygon mesh smooth surface N density.
+        /// </summary>
+        public short DensityN
         {
-            // null items and vertexes that belong to another polyline are not allowed.
-            if (e.Item == null)
-            {
-                e.Cancel = true;
-            }
-            else if (e.Item.Owner != null)
-            {
-                e.Cancel = true;
-            }
-            else
-            {
-                e.Cancel = false;
-            }
-        }
-
-        private void Vertexes_AddItem(ObservableCollection<PolylineVertex> sender, ObservableCollectionEventArgs<PolylineVertex> e)
-        {
-            // if the polyline already belongs to a document
-            if (this.Owner != null)
-            {
-                // get the document
-                DxfDocument doc = this.Owner.Record.Owner.Owner;
-                doc.NumHandles = e.Item.AssignHandle(doc.NumHandles);
-            }
-            e.Item.Owner = this;
-        }
-
-        private void Vertexes_BeforeRemoveItem(ObservableCollection<PolylineVertex> sender, ObservableCollectionEventArgs<PolylineVertex> e)
-        {
-        }
-
-        private void Vertexes_RemoveItem(ObservableCollection<PolylineVertex> sender, ObservableCollectionEventArgs<PolylineVertex> e)
-        {
-            e.Item.Handle = null;
-            e.Item.Owner = null;
+            get { return this.densityN; }
+            set { this.densityN = value; }
         }
 
         #endregion
