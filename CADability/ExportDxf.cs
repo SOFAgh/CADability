@@ -164,13 +164,11 @@ namespace CADability.DXF
             {
                 for (int j = 0; j < bspline.Multiplicities[i]; j++) knots.Add(bspline.Knots[i]);
             }
-
-            //TODO: Check if bspline.IsClosed means the same as Spline.IsClosedPeriodic
-            //TODO: Check if it's okay to pass an empty array as weights
+                        
             if (bspline.HasWeights)
                 return new netDxf.Entities.Spline(poles, bspline.Weights, knots, (short)bspline.Degree, bspline.IsClosed);
             else
-                return new netDxf.Entities.Spline(poles, Array.Empty<double>(), knots, (short)bspline.Degree, bspline.IsClosed);
+                return new netDxf.Entities.Spline(poles, null, knots, (short)bspline.Degree, bspline.IsClosed);
         }
 
         private netDxf.Entities.Polyline3D ExportPolyline(GeoObject.Polyline polyline)
