@@ -2234,7 +2234,12 @@ namespace CADability.Shapes
                     }
                 }
             }
-            if (res != double.MaxValue) return res;
+            if (res != double.MaxValue)
+            {
+                if (res < 0) res += segment.Length;
+                if (res >= segment.Length) res -= segment.Length;
+                return res;
+            }
             throw new BorderException("Border.GetParameter: point not on Border", BorderException.BorderExceptionType.PointNotOnBorder);
         }
         public GeoPoint2D PointAt(double par)
