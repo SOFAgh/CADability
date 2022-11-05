@@ -1,137 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-#if DEBUG
-using Microsoft.VisualStudio.DebuggerVisualizers;
-#endif
-using CADability.Shapes;
-using CADability.UserInterface;
+﻿using CADability.Attribute;
 using CADability.Curve2D;
 using CADability.GeoObject;
-using CADability.Attribute;
-using System.Reflection;
+using CADability.Shapes;
+using CADability.UserInterface;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
-using System.Collections;
-using System.Text;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
-using System.Drawing;
-using Point = CADability.GeoObject.Point;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("CADability.DebuggerVisualizers, PublicKey=0024000004800000940000000602000000240000525341310004000001000100b1ad8b0ed092aad57de8d0423919856eab910629e254ad40d6de3709a87cc161162d71827d65177e862b4822364c691d32f20beb81f0f7c17690662c2b397fe7bf556ac85e9dc66c7de56f435df1c5899a22b6fde65c423c1ec4fe3e4bb316838dbc7332ff1d31995a1657f754f942b36b82787d4c9c8e4325b4fb2871bdedbb")]
 
 namespace CADability
 {
-    internal interface IDebuggerVisualizer
-    {
-        GeoObjectList GetList();
-    }
-#if DEBUG
-    internal class Trace
-    {
-        static public void Clear()
-        {
-            if (File.Exists(@"C:\Temp\CADability.Trace.txt"))
-                File.Delete(@"C:\Temp\CADability.Trace.txt");
-        }
-        static public void WriteLine(string text)
-        {
-            lock (typeof(Trace))
-            {
-                using (StreamWriter w = File.AppendText(@"C:\Temp\CADability.Trace.txt"))
-                {
-                    w.WriteLine(text);
-                }
-            }
-        }
-    }
-
-    internal class CheckInstanceCounters
-    {
-        public static void Check()
-        {
-            Assembly ThisAssembly = Assembly.GetExecutingAssembly();
-            Type[] types = ThisAssembly.GetTypes();
-            System.Diagnostics.Trace.WriteLine("--- Instance Counters ---");
-            System.GC.Collect();
-            System.GC.WaitForPendingFinalizers();
-            System.GC.Collect();
-            System.GC.WaitForPendingFinalizers();
-            long mem = System.GC.GetTotalMemory(true);
-            System.Diagnostics.Trace.WriteLine("memory used: " + mem.ToString());
-            for (int i = 0; i < types.Length; ++i)
-            {
-                FieldInfo fi = types[i].GetField("InstanceCounter", BindingFlags.Static | BindingFlags.NonPublic);
-                if (fi != null)
-                {
-                    object val = fi.GetValue(null);
-                    try
-                    {
-                        int n = (int)val;
-                        System.Diagnostics.Trace.WriteLine(types[i].Name + ": " + n.ToString());
-                    }
-                    catch (InvalidCastException)
-                    {
-                    }
-                }
-            }
-            System.Diagnostics.Trace.WriteLine("--- End End   End End ---");
-        }
-    }
-
-    public interface IDebugForm
-    {
-        Model Model { get; }
-        void ShowDialog(IDialogVisualizerService windowService);
-    }
-
-    /// <summary>
-    /// Creates a DebugForm as defined in CADability.Forms. 
-    /// CADability.Forms.exe must be accessible at runtime to be able to debug
-    /// </summary>
-    static class CF
-    {
-        /// <summary>
-        /// Load the assembly of CADability.Forms and instantiate the class
-        /// </summary>
-        public static IDebugForm DebugForm
-        {
-            get
-            {
-                Assembly cf = Assembly.Load("CADability.Forms");
-                Type tp = cf.GetType("CADability.Forms.DebugForm");
-                if (tp != null)
-                {
-                    ConstructorInfo ci = tp.GetConstructor(new Type[0]);
-                    if (ci != null)
-                    {
-                        object df = ci.Invoke(new object[0]);
-                        return df as IDebugForm;
-                    }
-                }
-                return null;
-            }
-        }
-    }
-    public static class DebuggerExtensions
-    {
-        public static DebuggerContainer Show(this IEnumerable<object> obj)
-        {
-            return DebuggerContainer.Show(obj);
-        }
-    }
-
-    /*
-     * Die Visualisierungsobjekte in diesem file sind zum Anzeigen der jeweils behandelten Objekte beim Debuggen
-     * Die Klassen müssen mit dem Attribut
-     *     [System.Diagnostics.DebuggerVisualizer(typeof(XxxVisualizer))]
-     * versehen werden, damit der Debugger weiß, welcher Visualizer für den jeweiligen Typ verwendet werden muss.
-     * Es können auch mehrere Klassen für einen Typ sein.
-     */
-
     /// <summary>
     /// Ein Kontainer für den DebuggerVisualizer, der verschiedene Dinge (Punkte, Vektoren, GeoObjekte) im Zusammenhang
     /// darstellen kann.
     /// Wenn man spontan Arrays von etwas darstellbarem zeigen will, dann in CommandWindow gehen und ??DebuggerContainer.Show(array) eingeben
-    /// </summary>
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeneralDebuggerVisualizer))]
+    /// </summary>    
     [Serializable()]
     public class DebuggerContainer : IDebuggerVisualizer
     {
@@ -271,7 +159,7 @@ namespace CADability
         }
         public void Add(GeoPoint2D pnt, System.Drawing.Color color, int debugHint)
         {
-            Point point = Point.Construct();
+            GeoObject.Point point = GeoObject.Point.Construct();
             point.Location = new GeoPoint(pnt);
             point.Symbol = PointSymbol.Circle;
             ColorDef cd = new ColorDef(color.Name, color);
@@ -282,7 +170,7 @@ namespace CADability
         }
         public void Add(GeoPoint2D pnt, System.Drawing.Color color, string debugHint)
         {
-            Point point = Point.Construct();
+            GeoObject.Point point = GeoObject.Point.Construct();
             point.Location = new GeoPoint(pnt);
             point.Symbol = PointSymbol.Circle;
             ColorDef cd = new ColorDef(color.Name, color);
@@ -293,7 +181,7 @@ namespace CADability
         }
         public void Add(GeoPoint pnt, System.Drawing.Color color, int debugHint)
         {
-            Point point = Point.Construct();
+            GeoObject.Point point = GeoObject.Point.Construct();
             point.Location = pnt;
             point.Symbol = PointSymbol.Circle;
             ColorDef cd = new ColorDef(color.Name, color);
@@ -392,7 +280,7 @@ namespace CADability
         }
         public static DebuggerContainer Show(IEnumerable<object> obj)
         {
-            DebuggerContainer res = new CADability.DebuggerContainer();
+            DebuggerContainer res = new DebuggerContainer();
             ColorDef cd = new ColorDef("debug", System.Drawing.Color.Red);
             int i = 0;
             foreach (object obji in obj)
@@ -407,7 +295,8 @@ namespace CADability
                     GeoPoint2D c = ss.GetExtent().GetCenter();
                     GeoPoint pc = fc.Surface.PointAt(c);
                     GeoVector nc = fc.Surface.GetNormal(c);
-                    Line l = Line.TwoPoints(pc, pc + ll * nc.Normalized);
+                    Line l = Line.Construct();
+                    l.SetTwoPoints(pc, pc + ll * nc.Normalized);
                     l.ColorDef = cd;
                     res.Add(l);
                 }
@@ -422,14 +311,14 @@ namespace CADability
         }
         public static DebuggerContainer Show(GeoPoint2D[] points)
         {
-            DebuggerContainer res = new CADability.DebuggerContainer();
+            DebuggerContainer res = new DebuggerContainer();
             Polyline2D pl2d = new Polyline2D(points);
             res.Add(pl2d);
             return res;
         }
         public static DebuggerContainer Show(GeoPoint[] points)
         {
-            DebuggerContainer res = new CADability.DebuggerContainer();
+            DebuggerContainer res = new DebuggerContainer();
             Polyline pl = Polyline.Construct();
             pl.SetPoints(points, false);
             res.Add(pl);
@@ -437,7 +326,7 @@ namespace CADability
         }
         public static DebuggerContainer Show(GeoPoint[,] points)
         {
-            DebuggerContainer res = new CADability.DebuggerContainer();
+            DebuggerContainer res = new DebuggerContainer();
             for (int i = 0; i < points.GetLength(0); i++)
             {
                 GeoPoint[] pnts = new GeoPoint[points.GetLength(1)];
@@ -508,277 +397,8 @@ namespace CADability
             }
         }
     }
-
-    /* So benutzt man den DebuggerVisualizer aus dem Command Window:
-     * ? GeneralDebuggerVisualizer.TestShowVisualizer(res.DebugEdges3D);
-     */
-    public class GeneralDebuggerVisualizer : DialogDebuggerVisualizer
+    internal interface IDebuggerVisualizer
     {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-            object o = objectProvider.GetObject();
-            if (o is IDebuggerVisualizer)
-            {
-                IDebuggerVisualizer dv = (IDebuggerVisualizer)objectProvider.GetObject();
-                m.Add(dv.GetList());
-            }
-            else if (o is IGeoObject)
-            {
-                m.Add(o as IGeoObject);
-            }
-            form.ShowDialog(windowService);
-        }
-        public static void TestShowVisualizer(object objectToVisualize)
-        {
-            VisualizerDevelopmentHost visualizerHost = new VisualizerDevelopmentHost(objectToVisualize, typeof(GeneralDebuggerVisualizer));
-            visualizerHost.ShowVisualizer();
-        }
-        // ? GeneralDebuggerVisualizer.TestShowVisualizer(face.DebugEdges3D); // aus Command Window
+        GeoObjectList GetList();
     }
-    class VisualizerHelper
-    {
-        static private ColorDef pointColor = null;
-        static public ColorDef PointColor
-        {
-            get
-            {
-                if (pointColor == null)
-                {
-                    pointColor = new ColorDef("auto point", Color.Brown);
-                }
-                return pointColor;
-            }
-        }
-        static private ColorDef curveColor = null;
-        static public ColorDef CurveColor
-        {
-            get
-            {
-                if (curveColor == null)
-                {
-                    curveColor = new ColorDef("auto point", Color.DarkCyan);
-                }
-                return curveColor;
-            }
-        }
-        static private ColorDef faceColor = null;
-        static public ColorDef FaceColor
-        {
-            get
-            {
-                if (faceColor == null)
-                {
-                    faceColor = new ColorDef("auto point", Color.GreenYellow);
-                }
-                return faceColor;
-            }
-        }
-        static public IGeoObject AssertColor(IGeoObject go)
-        {
-            if (go is IColorDef cd && cd.ColorDef == null)
-            {
-                if (go is GeoObject.Point) cd.ColorDef = PointColor;
-                if (go is ICurve) cd.ColorDef = CurveColor;
-                if (go is Face) cd.ColorDef = FaceColor;
-                if (go is Shell) cd.ColorDef = FaceColor;
-                if (go is Solid) cd.ColorDef = FaceColor;
-            }
-            return go;
-        }
-        static public GeoObjectList AssertColor(GeoObjectList list)
-        {
-            foreach (IGeoObject go in list)
-            {
-                if (go is IColorDef cd && cd.ColorDef == null)
-                {
-                    if (go is GeoObject.Point) cd.ColorDef = PointColor;
-                    if (go is ICurve) cd.ColorDef = CurveColor;
-                    if (go is Face) cd.ColorDef = FaceColor;
-                    if (go is Shell) cd.ColorDef = FaceColor;
-                    if (go is Solid) cd.ColorDef = FaceColor;
-                }
-            }
-            return list;
-        }
-
-    }
-    internal class GeoObjectVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            IGeoObjectImpl go = (IGeoObjectImpl)objectProvider.GetObject();
-            m.Add(VisualizerHelper.AssertColor(go));
-
-            form.ShowDialog(windowService);
-        }
-
-        /// <summary>
-        /// Damit kann man den Visualizer zum Debuggen im Context von CADability aufrufen, sonst läuft er immer im
-        /// Context des Debuggers
-        /// </summary>
-        /// <param name="objectToVisualize">The object to display in the visualizer.</param>
-        public static void TestShowVisualizer(object objectToVisualize)
-        {
-            VisualizerDevelopmentHost visualizerHost = new VisualizerDevelopmentHost(objectToVisualize, typeof(GeoObjectVisualizer));
-            visualizerHost.ShowVisualizer();
-        }
-    }
-
-    internal class GeoObjectListVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            GeoObjectList list = (GeoObjectList)objectProvider.GetObject();
-            for (int i = 0; i < list.Count; ++i)
-            {
-                IntegerProperty ip = new IntegerProperty(i, "Debug.Hint");
-                list[i].UserData.Add("ListIndex", ip);
-                m.Add(VisualizerHelper.AssertColor(list[i]));
-            }
-            m.Add(list);
-
-            form.ShowDialog(windowService);
-        }
-        public static void TestShowVisualizer(object objectToVisualize)
-        {
-            VisualizerDevelopmentHost visualizerHost = new VisualizerDevelopmentHost(objectToVisualize, typeof(GeoObjectListVisualizer));
-            visualizerHost.ShowVisualizer();
-        }
-    }
-
-    internal class BorderVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            Border bdr = (Border)objectProvider.GetObject();
-            for (int i = 0; i < bdr.DebugList.Count; ++i)
-            {
-                IGeoObject toAdd = bdr.DebugList[i];
-                IntegerProperty ip = new IntegerProperty(i, "Debug.Hint");
-                toAdd.UserData.Add("Debug", ip);
-                VisualizerHelper.AssertColor(toAdd);
-                m.Add(toAdd);
-            }
-
-            form.ShowDialog(windowService);
-        }
-    }
-
-    internal class Curve2DVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            ICurve2D gc2d = (ICurve2D)objectProvider.GetObject();
-            m.Add(VisualizerHelper.AssertColor(gc2d.MakeGeoObject(Plane.XYPlane)));
-
-            form.ShowDialog(windowService);
-        }
-    }
-
-    internal class CurveVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            IGeoObject go = (IGeoObject)objectProvider.GetObject();
-            VisualizerHelper.AssertColor(go);
-            m.Add(go);
-
-            form.ShowDialog(windowService);
-        }
-    }
-
-    internal class GeoPoint2DVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            GeoPoint2D p = (GeoPoint2D)objectProvider.GetObject();
-            Point pnt = Point.Construct();
-            pnt.Location = new GeoPoint(p);
-            pnt.Symbol = PointSymbol.Cross;
-            VisualizerHelper.AssertColor(pnt);
-            m.Add(pnt);
-
-            form.ShowDialog(windowService);
-        }
-    }
-
-    internal class GeoPointVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            GeoPoint p = (GeoPoint)objectProvider.GetObject();
-            Point pnt = Point.Construct();
-            pnt.Location = p;
-            pnt.Symbol = PointSymbol.Cross;
-            VisualizerHelper.AssertColor(pnt);
-            m.Add(pnt);
-
-            form.ShowDialog(windowService);
-        }
-    }
-
-    internal class CompoundShapeVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            CompoundShape compoundShape = (CompoundShape)objectProvider.GetObject();
-            m.Add(VisualizerHelper.AssertColor(compoundShape.DebugList));
-
-            form.ShowDialog(windowService);
-        }
-    }
-
-    internal class SimpleShapeVisualizer : DialogDebuggerVisualizer
-    {
-        protected override void Show(IDialogVisualizerService windowService, IVisualizerObjectProvider objectProvider)
-        {
-            IDebugForm form = CF.DebugForm;
-            Model m = form.Model;
-
-            SimpleShape simpleShape = (SimpleShape)objectProvider.GetObject();
-            m.Add(VisualizerHelper.AssertColor(simpleShape.DebugList));
-
-            form.ShowDialog(windowService);
-        }
-
-        /// <summary>
-        /// Damit kann man den Visualizer zum Debuggen im Context von CADability aufrufen, sonst läuft er immer im
-        /// Context des Debuggers
-        /// </summary>
-        /// <param name="objectToVisualize">The object to display in the visualizer.</param>
-        public static void TestShowVisualizer(object objectToVisualize)
-        {
-            VisualizerDevelopmentHost visualizerHost = new VisualizerDevelopmentHost(objectToVisualize, typeof(SimpleShapeVisualizer));
-            visualizerHost.ShowVisualizer();
-        }
-    }
-
-#endif
 }

@@ -247,8 +247,8 @@ namespace CADability
                 return v1.edges.Intersect(v2.edges).FirstOrDefault();
             }
         }
-#if DEBUG
-        public IGeoObject DebugPoint
+
+        internal IGeoObject DebugPoint
         {
             get
             {
@@ -258,7 +258,7 @@ namespace CADability
                 return res;
             }
         }
-#endif
+
         internal void MergeWith(Vertex ev)
         {
             if (ev == this) return;
