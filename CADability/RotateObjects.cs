@@ -202,6 +202,12 @@ namespace CADability.Actions
                     axisVector = GeoVector.ZAxis;
                     SetRefPoint(BasePoint); // zum Updaten
                     return true;
+                case "MenuId.Construct.Abort":
+                    this.OnEscape();
+                    return true;
+                case "MenuId.Construct.Finish":
+                    this.OnEnter();
+                    return true;
             }
             return false;
         }
