@@ -4242,7 +4242,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                             endParameter = context.toRadian * endParameter;
                                         }
                                     }
-                                    basisCurve.Trim(basisCurve.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
+                                    if (startParameter != endParameter) basisCurve.Trim(basisCurve.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
                                     if (!sense) basisCurve.Reverse();
                                     item.val = basisCurve;
                                 }
