@@ -10,9 +10,6 @@ namespace CADability.GeoObject
     /// <summary>
     /// Simple list of GeoObjects (IGeoObject). Implemented as an ArrayList.
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeoObjectListVisualizer))]
-#endif
     [Serializable]
     public class GeoObjectList : IEnumerable, ISerializable, IDeserializationCallback, IEnumerable<IGeoObject>, IJsonSerialize
     {
