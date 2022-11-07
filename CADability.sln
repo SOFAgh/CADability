@@ -9,9 +9,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CADability.Forms", "CADabil
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CADability.App", "CADability.App\CADability.App.csproj", "{D0881091-FE64-44A5-BFE9-2502ADDA2161}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CADability.Tests", "tests\CADability.Tests\CADability.Tests.csproj", "{D850552B-002C-4622-BD0D-9673C3BA21F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CADability.Tests", "tests\CADability.Tests\CADability.Tests.csproj", "{D850552B-002C-4622-BD0D-9673C3BA21F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{C605F551-B2C6-4B2E-A294-12A7E2C2CEDD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CADability.DebuggerVisualizers", "CADability.DebuggerVisualizers\CADability.DebuggerVisualizers.csproj", "{F04EFFF0-D288-45C4-BCBF-B5EF9EE37B80}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +46,12 @@ Global
 		{D850552B-002C-4622-BD0D-9673C3BA21F1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D850552B-002C-4622-BD0D-9673C3BA21F1}.RelWithDoc|Any CPU.ActiveCfg = Release|Any CPU
 		{D850552B-002C-4622-BD0D-9673C3BA21F1}.RelWithDoc|Any CPU.Build.0 = Release|Any CPU
+		{F04EFFF0-D288-45C4-BCBF-B5EF9EE37B80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F04EFFF0-D288-45C4-BCBF-B5EF9EE37B80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F04EFFF0-D288-45C4-BCBF-B5EF9EE37B80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F04EFFF0-D288-45C4-BCBF-B5EF9EE37B80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F04EFFF0-D288-45C4-BCBF-B5EF9EE37B80}.RelWithDoc|Any CPU.ActiveCfg = Release|Any CPU
+		{F04EFFF0-D288-45C4-BCBF-B5EF9EE37B80}.RelWithDoc|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -8529,10 +8529,7 @@ namespace CADability.GeoObject
         {
             public DidntConverge() { }
         }
-#if DEBUG
-        public
-#endif
-        class ParEpi : IOctTreeInsertable, IQuadTreeInsertable, IDebuggerVisualizer
+        internal class ParEpi : IOctTreeInsertable, IQuadTreeInsertable, IDebuggerVisualizer
         {   // ParallelEpiped, zu deutsch auch Spat oder Parallelotop genannt
             // Gegeben durch Punkt und drei Vektoren, die ein Rechtssystem bilden sollen, bei Ebenen Stücken könnte normal auch 0 sein
             // diru ist die gemittelte u-Richtung, dirv die gemittelte v Richtung

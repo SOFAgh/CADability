@@ -24,7 +24,7 @@
           "hash": "yF4cM99miGSsrT64oV0kgkl56YkQylthgw5Gl1aJqzo="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -48,7 +48,7 @@
           "hash": "GGOovSab6ZFxRkwbTiKX/AxcXz9WU1qSZOSIhjRqq74="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -209,23 +209,11 @@
     },
     {
       "type": "ManagedReference",
-      "source_relative_path": "obj/api/CADability.Forms.TestJSonSerialisation.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/CADability.Forms.TestJSonSerialisation.html",
-          "hash": "xszFxltuJPzy6e0KTANdRe5ZINvcWNLx8yPnXiuQOBI="
-        }
-      },
-      "is_incremental": false,
-      "version": ""
-    },
-    {
-      "type": "ManagedReference",
       "source_relative_path": "obj/api/CADability.Forms.yml",
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.html",
-          "hash": "LPgETfrZKett17AS32IKBykY/GFBf3beHQTBRCDpk8c="
+          "hash": "7ck/G0V9wG5AzZNMGEOGrBiGHcIlDdssR8j+yAiovnE="
         }
       },
       "is_incremental": false,
@@ -237,7 +225,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "7ZiE5yLm0mq5SSDK46sqIiMl7/aiSMvxFZCdYBKFkHg="
+          "hash": "0MzWu+EZ0GeJGQRAd6CT8vc4LLbMFMrMKZoV3DSdCVw="
         }
       },
       "is_incremental": false,
@@ -259,25 +247,23 @@
   "incremental_info": [
     {
       "status": {
-        "can_incremental": false,
-        "details": "Cannot build incrementally because docfx version changed from 2.58.9.0 to 2.59.4.0.",
+        "can_incremental": true,
         "incrementalPhase": "build",
         "total_file_count": 0,
-        "skipped_file_count": 0,
-        "full_build_reason_code": "DocfxVersionChanged"
+        "skipped_file_count": 0
       },
       "processors": {
         "ConceptualDocumentProcessor": {
-          "can_incremental": false,
+          "can_incremental": true,
           "incrementalPhase": "build",
           "total_file_count": 3,
-          "skipped_file_count": 0
+          "skipped_file_count": 3
         },
         "ManagedReferenceDocumentProcessor": {
-          "can_incremental": false,
+          "can_incremental": true,
           "incrementalPhase": "build",
-          "total_file_count": 15,
-          "skipped_file_count": 0
+          "total_file_count": 14,
+          "skipped_file_count": 11
         },
         "TocDocumentProcessor": {
           "can_incremental": false,

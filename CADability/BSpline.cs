@@ -36,9 +36,6 @@ namespace CADability.GeoObject
     /// A BSpline is a smooth curve defined by a set of control points. It is implemented as a NURBS - non uniform rational b-spline.
     /// </summary>
     [Serializable]
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeoObjectVisualizer))]
-#endif
     public class BSpline : IGeoObjectImpl, IColorDef, ILineWidth, ILinePattern, ISerializable, ICurve, IExplicitPCurve3D, IExportStep
     {
         // im folgenden die wesentlichen Daten zur Darstellung:

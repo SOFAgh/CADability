@@ -28,11 +28,8 @@ namespace CADability.Shapes
     /// A Border is always invariant, i.e. you annot change it (like System.String).
     /// If a border is closed, then it is oriented counterclockwise. A border may be
     /// produced by the BorderBuilder object (or by its constructors).
-    /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(BorderVisualizer))]
-#endif
-    [Serializable()]
+    /// </summary>   
+    [Serializable()]    
     public class Border : ISerializable, IDeserializationCallback, IJsonSerialize
     {
         static private int idCounter = 0;

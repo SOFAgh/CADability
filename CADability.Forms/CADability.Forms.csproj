@@ -70,6 +70,12 @@
     <LangVersion>7.3</LangVersion>
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>CADabilityKey.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="MathNet.Numerics, Version=5.0.0.0, Culture=neutral, PublicKeyToken=cd8b63ad3d691a37, processorArchitecture=MSIL">
       <HintPath>..\packages\MathNet.Numerics.Signed.5.0.0\lib\net48\MathNet.Numerics.dll</HintPath>
@@ -108,8 +114,6 @@
     <Compile Include="CadCanvas.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="DebugForm.cs" />
-    <Compile Include="DebuggerPlayground.cs" />
     <Compile Include="MenuManager.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -151,6 +155,7 @@
     <None Include="api\index.md" />
     <None Include="articles\intro.md" />
     <None Include="articles\toc.md" />
+    <None Include="CADabilityKey.snk" />
     <None Include="docfx.json" />
     <None Include="index.md" />
     <None Include="packages.config" />

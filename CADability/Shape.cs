@@ -14,9 +14,6 @@ namespace CADability.Shapes
     /// A simply connected 2d shape. It consists of a <see cref="Border"/> outline and 0 or more holes.
     /// The holes don't overlap (disjunct) and reside totally inside the outline.
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(SimpleShapeVisualizer))]
-#endif
     [Serializable()]
     public class SimpleShape : ISerializable, IQuadTreeInsertable, IComparable<SimpleShape>, IJsonSerialize
     {
@@ -1041,7 +1038,7 @@ namespace CADability.Shapes
             }
             return res;
         }
-        internal GeoObjectList DebugList
+        public GeoObjectList DebugList
         {
             get
             {
@@ -1711,9 +1708,6 @@ namespace CADability.Shapes
     /// A 2d shape composed by multiple <see cref="SimpleShape"/> objects.
     /// All simple shapes are disjoint. 
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(CompoundShapeVisualizer))]
-#endif
     [Serializable()]
     public class CompoundShape : ISerializable, IJsonSerialize
     {
@@ -2890,7 +2884,7 @@ namespace CADability.Shapes
             }
             return res.ToArray();
         }
-        internal GeoObjectList DebugList
+        public GeoObjectList DebugList
         {
             get
             {
