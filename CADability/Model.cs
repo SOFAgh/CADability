@@ -427,10 +427,20 @@ namespace CADability
                     //{
                     //    AddOctreeObjects(geoObjects[i], octTree);
                     //}
-                    Parallel.For(0, geoObjects.Count, i =>
+                    try
                     {
-                        AddOctreeObjectsParallel(geoObjects[i], octTree);
-                    });
+                        Parallel.For(0, geoObjects.Count, i =>
+                        {
+                            AddOctreeObjectsParallel(geoObjects[i], octTree);
+                        });
+                    } catch (NullReferenceException)
+                    {   // mysterious exception, non reproducable
+                        octTree = new OctTree<IGeoObject>(Extent, displayListPrecision);
+                        for (int i = 0; i < geoObjects.Count; ++i)
+                        {
+                            AddOctreeObjects(geoObjects[i], octTree);
+                        }
+                    }
                     int time = Environment.TickCount - tcstart;
                 }
             }

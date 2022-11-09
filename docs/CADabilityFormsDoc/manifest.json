@@ -209,11 +209,23 @@
     },
     {
       "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.TestJSonSerialisation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.TestJSonSerialisation.html",
+          "hash": "xszFxltuJPzy6e0KTANdRe5ZINvcWNLx8yPnXiuQOBI="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
       "source_relative_path": "obj/api/CADability.Forms.yml",
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.html",
-          "hash": "7ck/G0V9wG5AzZNMGEOGrBiGHcIlDdssR8j+yAiovnE="
+          "hash": "LPgETfrZKett17AS32IKBykY/GFBf3beHQTBRCDpk8c="
         }
       },
       "is_incremental": false,
@@ -225,7 +237,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "0MzWu+EZ0GeJGQRAd6CT8vc4LLbMFMrMKZoV3DSdCVw="
+          "hash": "7ZiE5yLm0mq5SSDK46sqIiMl7/aiSMvxFZCdYBKFkHg="
         }
       },
       "is_incremental": false,
@@ -262,8 +274,8 @@
         "ManagedReferenceDocumentProcessor": {
           "can_incremental": true,
           "incrementalPhase": "build",
-          "total_file_count": 14,
-          "skipped_file_count": 11
+          "total_file_count": 15,
+          "skipped_file_count": 13
         },
         "TocDocumentProcessor": {
           "can_incremental": false,

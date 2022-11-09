@@ -880,7 +880,8 @@ namespace CADability.Curve2D
             if (first is Path2D)
             {
                 double mindist = double.MaxValue;
-                Path2D fp = first as Path2D;
+                Path2D fp = first.Clone() as Path2D;
+                fp.Flatten();
                 for (int i = 0; i < fp.SubCurves.Length; i++)
                 {
                     GeoPoint2D pp1, pp2;
@@ -911,7 +912,7 @@ namespace CADability.Curve2D
                 GeoPoint2D perpLine = ppp[0];
                 if (lin.IsParameterOnCurve(lin.PositionOf(perpLine)))
                 {
-                    p1 = perpLine;
+                    p2 = perpLine;
                     ppp = circ.PerpendicularFoot(perpLine); // immer genau zwei Lösungen
                     if (ppp.Length == 2)
                     {
@@ -921,7 +922,7 @@ namespace CADability.Curve2D
                         {
                             if (circ.IsParameterOnCurve(circ.PositionOf(ppp[0])))
                             {
-                                p2 = ppp[0];
+                                p1 = ppp[0];
                                 minDist = Geometry.Dist(p1, p2);
                             }
                         }
@@ -929,7 +930,7 @@ namespace CADability.Curve2D
                         {
                             if (circ.IsParameterOnCurve(circ.PositionOf(ppp[0])))
                             {
-                                p2 = ppp[0];
+                                p1 = ppp[0];
                                 minDist = Geometry.Dist(p1, p2);
                             }
                         }
