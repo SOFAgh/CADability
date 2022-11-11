@@ -30,9 +30,6 @@ namespace CADability.Curve2D
     /// <summary>
     /// 
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeneralDebuggerVisualizer))]
-#endif
     [Serializable()]
     public class BSpline2D : GeneralCurve2D, ISerializable, IDeserializationCallback, IDebuggerVisualizer, IExplicitPCurve2D
     {

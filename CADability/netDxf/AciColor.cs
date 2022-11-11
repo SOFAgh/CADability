@@ -318,7 +318,7 @@ namespace netDxf
         /// </summary>
         public static AciColor ByLayer
         {
-            get { return new AciColor {index = 256}; }
+            get { return new AciColor { index = 256 }; }
         }
 
         /// <summary>
@@ -326,7 +326,7 @@ namespace netDxf
         /// </summary>
         public static AciColor ByBlock
         {
-            get { return new AciColor {index = 0}; }
+            get { return new AciColor { index = 0 }; }
         }
 
         /// <summary>
@@ -464,9 +464,9 @@ namespace netDxf
                 throw new ArgumentOutOfRangeException(nameof(b), b, "Blue component input values range from 0 to 1.");
             }
 
-            this.r = (byte) Math.Round(r * 255);
-            this.g = (byte) Math.Round(g * 255);
-            this.b = (byte) Math.Round(b * 255);
+            this.r = (byte)Math.Round(r * 255);
+            this.g = (byte)Math.Round(g * 255);
+            this.b = (byte)Math.Round(b * 255);
             this.useTrueColor = true;
             this.index = RgbToAci(this.r, this.g, this.b);
         }
@@ -495,7 +495,7 @@ namespace netDxf
             if (index <= 0 || index >= 256)
                 throw new ArgumentOutOfRangeException(nameof(index), index, "Accepted color index values range from 1 to 255.");
 
-            byte[] rgb = IndexRgb[(byte) index];
+            byte[] rgb = IndexRgb[(byte)index];
             this.r = rgb[0];
             this.g = rgb[1];
             this.b = rgb[2];
@@ -578,7 +578,7 @@ namespace netDxf
                 }
 
                 this.index = value;
-                byte[] rgb = IndexRgb[(byte) this.index];
+                byte[] rgb = IndexRgb[(byte)this.index];
                 this.r = rgb[0];
                 this.g = rgb[1];
                 this.b = rgb[2];
@@ -661,16 +661,16 @@ namespace netDxf
             if (v > 0)
             {
                 double m = lightness + lightness - v;
-                double sv = (v - m)/v;
+                double sv = (v - m) / v;
                 hue *= 6.0;
-                int sextant = (int) hue;
+                int sextant = (int)hue;
                 double fract = hue - sextant;
                 double vsf = v * sv * fract;
                 double mid1 = m + vsf;
                 double mid2 = v - vsf;
                 switch (sextant)
                 {
-                    case 0 | 6:
+                    case 0:
                         red = v;
                         green = mid1;
                         blue = m;
@@ -699,6 +699,11 @@ namespace netDxf
                         red = v;
                         green = m;
                         blue = mid2;
+                        break;
+                    case 6:
+                        red = v;
+                        green = mid1;
+                        blue = m;
                         break;
                 }
             }

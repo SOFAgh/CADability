@@ -331,9 +331,6 @@ namespace CADability.Curve2D
     /// This class serves as an implementation helper for the ICurve2D interface.
     /// It cannot be instantiated and there are no methods for public use.
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(Curve2DVisualizer))]
-#endif
     public abstract class GeneralCurve2Dold : ICurve2D, I2DIntersectable
     {
         /* Weg von Opencascade!
@@ -1567,9 +1564,6 @@ namespace CADability.Curve2D
     //}
 
     [Serializable()]
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(Curve2DVisualizer))]
-#endif
     public abstract class GeneralCurve2D : ICurve2D, ISerializable
     {
         // This was called TriangulatedCurve2D in earlier versions

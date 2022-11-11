@@ -390,27 +390,35 @@ namespace CADability
             }
             else if (Src.Length == 2)
             {
-                /* m10==-m01, m00==m11: das ist Drehung und Skalierung ohne Verzerrung, gibt 4 Gleichungen:
-                 * 
-                 * m00*s0x + m01*s0y + m02 + 0  = p0x
-                 * m00*s0y +-m01*s0x +  0  +m12 = p0y
-                 * m00*s1x + m01*s1y + m02 + 0  = p1x
-                 * m00*s1y +-m01*s1x +  0  +m12 = p1y
-                 */
-                double[,] a = { { Src[0].x, Src[0].y,  1.0, 0.0 },
-                                { Src[0].y, -Src[0].x, 0.0, 1.0 },
-                                { Src[1].x, Src[1].y,  1.0, 0.0 },
-                                { Src[1].y, -Src[1].x, 0.0, 1.0 } };
-                double[] b = { Dst[0].x, Dst[0].y, Dst[1].x, Dst[1].y };
-
-                Vector x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
-                if (x.IsValid())
+                if (!DoScale)
                 {
-                    return new ModOp2D(x[0], x[1], x[2], -x[1], x[0], x[3]);
+                    SweepAngle r = new SweepAngle(Src[1] - Src[0], Dst[1] - Dst[0]);
+                    return ModOp2D.Translate(Dst[0] - Src[0]) * ModOp2D.Rotate(Src[0], r);
                 }
                 else
                 {
-                    throw new ModOpException(ModOpException.tExceptionType.InvalidParameter);
+                    /* m10==-m01, m00==m11: das ist Drehung und Skalierung ohne Verzerrung, gibt 4 Gleichungen:
+                     * 
+                     * m00*s0x + m01*s0y + m02 + 0  = p0x
+                     * m00*s0y +-m01*s0x +  0  +m12 = p0y
+                     * m00*s1x + m01*s1y + m02 + 0  = p1x
+                     * m00*s1y +-m01*s1x +  0  +m12 = p1y
+                     */
+                    double[,] a = { { Src[0].x, Src[0].y,  1.0, 0.0 },
+                                { Src[0].y, -Src[0].x, 0.0, 1.0 },
+                                { Src[1].x, Src[1].y,  1.0, 0.0 },
+                                { Src[1].y, -Src[1].x, 0.0, 1.0 } };
+                    double[] b = { Dst[0].x, Dst[0].y, Dst[1].x, Dst[1].y };
+
+                    Vector x = (Vector)DenseMatrix.OfArray(a).Solve(new DenseVector(b));
+                    if (x.IsValid())
+                    {
+                        return new ModOp2D(x[0], x[1], x[2], -x[1], x[0], x[3]);
+                    }
+                    else
+                    {
+                        throw new ModOpException(ModOpException.tExceptionType.InvalidParameter);
+                    }
                 }
             }
             else if (Src.Length == 3)
@@ -729,9 +737,9 @@ namespace CADability
         {
             Matrix<double> inv = hm.Inverse();
             if (inv != null) return new Matrix4(inv);
-            else return new Matrix4((double[,])null); 
+            else return new Matrix4((double[,])null);
         }
-        public static explicit operator double[,] (Matrix4 m)
+        public static explicit operator double[,](Matrix4 m)
         {
             return m.hm.ToArray();
         }
@@ -1360,7 +1368,7 @@ namespace CADability
             ////Matrix B = new Matrix(new double[] { Dst[0].x, Dst[0].y, Dst[0].z, Dst[1].x, Dst[1].y, Dst[1].z, Dst[2].x, Dst[2].y, Dst[2].z }, 9);
             ////Matrix X = A.SaveSolve(B);
             ModOp res = ModOp.Identity;
-            if (!double.IsNaN(X[0, 0]) && !double.IsInfinity(X[0,0]))
+            if (!double.IsNaN(X[0, 0]) && !double.IsInfinity(X[0, 0]))
             {
                 res.Matrix00 = X[0, 0];
                 res.Matrix01 = X[1, 0];

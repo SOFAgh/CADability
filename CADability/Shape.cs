@@ -14,9 +14,6 @@ namespace CADability.Shapes
     /// A simply connected 2d shape. It consists of a <see cref="Border"/> outline and 0 or more holes.
     /// The holes don't overlap (disjunct) and reside totally inside the outline.
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(SimpleShapeVisualizer))]
-#endif
     [Serializable()]
     public class SimpleShape : ISerializable, IQuadTreeInsertable, IComparable<SimpleShape>, IJsonSerialize
     {
@@ -1041,7 +1038,7 @@ namespace CADability.Shapes
             }
             return res;
         }
-        internal GeoObjectList DebugList
+        public GeoObjectList DebugList
         {
             get
             {
@@ -1229,9 +1226,13 @@ namespace CADability.Shapes
         public static Path2D ConnectPaths(Path2D outline, Path2D hole)
         {
             GeoPoint2D p1, p2;
-            Curves2D.SimpleMinimumDistance(outline, hole, out p1, out p2);
-            ICurve2D[] oparts = outline.Split(outline.PositionOf(p1));
-            ICurve2D[] hparts = hole.Split(hole.PositionOf(p2));
+            Path2D oflat = outline.Clone() as Path2D;
+            oflat.Flatten();
+            Path2D hflat = hole.Clone() as Path2D;
+            hflat.Flatten();
+            Curves2D.SimpleMinimumDistance(oflat, hflat, out p1, out p2);
+            ICurve2D[] oparts = oflat.Split(oflat.PositionOf(p1));
+            ICurve2D[] hparts = hflat.Split(hflat.PositionOf(p2));
             Path2D res = new Path2D(new ICurve2D[] { new Line2D(p2, p1) });
             if (oparts.Length == 2)
             {
@@ -1252,6 +1253,7 @@ namespace CADability.Shapes
             {
                 res.Append(hparts[0]);
             }
+            res.Flatten();
             return res;
         }
 
@@ -1711,9 +1713,6 @@ namespace CADability.Shapes
     /// A 2d shape composed by multiple <see cref="SimpleShape"/> objects.
     /// All simple shapes are disjoint. 
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(CompoundShapeVisualizer))]
-#endif
     [Serializable()]
     public class CompoundShape : ISerializable, IJsonSerialize
     {
@@ -2890,7 +2889,7 @@ namespace CADability.Shapes
             }
             return res.ToArray();
         }
-        internal GeoObjectList DebugList
+        public GeoObjectList DebugList
         {
             get
             {

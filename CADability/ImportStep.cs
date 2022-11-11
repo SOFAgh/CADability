@@ -2129,7 +2129,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (4428 == item.definingIndex || 2459 == item.definingIndex)
+            if (271 == item.definingIndex || 2459 == item.definingIndex)
             {
 
             }
@@ -4242,7 +4242,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                             endParameter = context.toRadian * endParameter;
                                         }
                                     }
-                                    basisCurve.Trim(basisCurve.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
+                                    if (startParameter != endParameter) basisCurve.Trim(basisCurve.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
                                     if (!sense) basisCurve.Reverse();
                                     item.val = basisCurve;
                                 }
@@ -4616,6 +4616,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             if (context == null)
             {
                 context = new context();
+                context.toRadian = 1.0;
                 context.factor = 1.0;
             }
 
