@@ -1896,6 +1896,7 @@ namespace CADability.GeoObject
         {
             GeoPoint p0 = ps.ToXYPlane * id.t1;
             GeoPoint p1 = ps.ToXYPlane * id.t2;
+            if (p0.z == p1.z) return;
             bool needToCheck = (Math.Sign(p0.z) != Math.Sign(p1.z)) || (Math.Abs(p0.z) < Precision.eps) || (Math.Abs(p1.z) < Precision.eps);
             bool tangential = false;
             double u = (id.umin + id.umax) / 2.0;
