@@ -1332,8 +1332,9 @@ namespace CADability.GeoObject
                         {
                             double len = loops[i][j].curve.Length;
                             ICurve2D crv2d;
-                            if (len < Precision.eps * 100)
-                            {
+                            //if (len < Precision.eps * 100) // changed to surfacePrecision
+                            if (len < surfacePrecision * 100)
+                                {
                                 GeoPoint2D sp = surface.PositionOf(loops[i][j].curve.StartPoint);
                                 GeoPoint2D ep = surface.PositionOf(loops[i][j].curve.EndPoint);
                                 if (!lastEndPoint.IsValid)
