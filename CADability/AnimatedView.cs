@@ -946,8 +946,8 @@ namespace CADability
             }
             if (Frame != null)
             {
-                Frame.ActiveView = this;
-                // FrameInternal.ActionStack.OnMouseDown(e, this);
+				Frame.ActiveView = this;
+				Frame.ActionStack.OnMouseDown(e, this);
                 // keine Aktion hier, nur markieren und schieben
                 objectsOnLButtonDown = ObjectsUnderCursor(e);
                 if (objectsOnLButtonDown.Count > 0) (this as IView).SetCursor("Hand");
