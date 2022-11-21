@@ -150,29 +150,25 @@ namespace CADability
         /// Creates a new plane. The parameter data is under-determined for the plane, so the x-axis and y-axis
         /// will be determined arbitrarily 
         /// </summary>
-        /// <param name="Location">location of the plane</param>
-        /// <param name="Normal">normal vector of the plane</param>
-		public Plane(GeoPoint Location, GeoVector Normal)
-        {   // ist ja nicht eindeutig bezüglich x und y Richtung.
-            // hier wird CndOCas verwendet, damit es in gleicher weise wie dort generiert wird.
-            if (Normal.IsNullVector()) throw new PlaneException(PlaneException.tExceptionType.ConstructorFailed);
+        /// <param name="location">location of the plane</param>
+        /// <param name="normal">normal vector of the plane</param>
+		public Plane(GeoPoint location, GeoVector normal)
+        {   // this is arbitrary
+            if (normal.IsNullVector()) throw new PlaneException(PlaneException.tExceptionType.ConstructorFailed);
             try
             {
-                if (Normal.x == 0 && Normal.y == 0 && Normal.z > 0)
-                {   // kommt wohl oft vor: 
-                    coordSys = new CoordSys(Location, GeoVector.XAxis, GeoVector.YAxis);
+                if (normal.x == 0 && normal.y == 0)
+                {   // two very common cases
+                    if (normal.z > 0) coordSys = new CoordSys(location, GeoVector.XAxis, GeoVector.YAxis);
+                    else coordSys = new CoordSys(location, GeoVector.YAxis, GeoVector.XAxis);
                 }
                 else
-                //oCasBuddy = new CndOCas.Plane();
-                //oCasBuddy.InitFromPntDir(Location.gpPnt(),Normal.gpDir());
-                //coordSys = new CoordSys(new GeoPoint(oCasBuddy.Location),new GeoVector(oCasBuddy.DirectionX),new GeoVector(oCasBuddy.DirectionY));
-                // OpenCascade ist zu unsicher (gibt manchmal exceptions), deshalb jetzt selbstgestrickt
                 {
                     GeoVector dx;
-                    if (Math.Abs(Normal.x) > Math.Abs(Normal.y))
+                    if (Math.Abs(normal.x) > Math.Abs(normal.y))
                     {
-                        if (Math.Abs(Normal.y) < Math.Abs(Normal.z))
-                        {   // y ist die kleinste Komponente, also X-Achse
+                        if (Math.Abs(normal.y) < Math.Abs(normal.z))
+                        {   // y is the smalles component, so use the y axis
                             dx = GeoVector.YAxis;
                         }
                         else
@@ -182,8 +178,8 @@ namespace CADability
                     }
                     else
                     {
-                        if (Math.Abs(Normal.x) < Math.Abs(Normal.z))
-                        {   // x ist die kleinste Komponente, also X-Achse
+                        if (Math.Abs(normal.x) < Math.Abs(normal.z))
+                        {   // x is the smalles component, so use the x axis
                             dx = GeoVector.XAxis;
                         }
                         else
@@ -191,8 +187,11 @@ namespace CADability
                             dx = GeoVector.ZAxis;
                         }
                     }
-                    GeoVector v = Normal ^ dx;
-                    coordSys = new CoordSys(Location, v, v ^ Normal);
+                    GeoVector v = dx ^normal;
+                    coordSys = new CoordSys(location, v ^ normal, v);
+#if DEBUG
+                    if (!Precision.SameNotOppositeDirection(coordSys.Normal, normal)) { }
+#endif
                 }
             }
             catch (CoordSysException)

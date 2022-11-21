@@ -147,6 +147,10 @@ namespace CADability.GeoObject
                         res.Add(pntv);
                     }
                 }
+                GeoPoint2D c2d = new GeoPoint2D((umax + umin) / 2, (vmax + vmin) / 2);
+                GeoPoint c3d = PointAt(c2d);
+                Line centerNormal = Line.TwoPoints(c3d, c3d + res.GetExtent().Size * 0.1 * GetNormal(c2d));
+                res.Add(centerNormal);
                 return res;
             }
 
@@ -201,13 +205,18 @@ namespace CADability.GeoObject
                             GeoPoint2D op = perp.Project(curveToRotate.PointAt(ip[0]));
                             GeoPoint2D org = perp.Project(p);
                             SweepAngle sa1 = new SweepAngle(op.ToVector(), org.ToVector());
-                            return new GeoPoint2D(-sa1.Radian, curveToRotate.PositionToParameter(ip[0]));
+                            // 
+                            if ((PointAt(new GeoPoint2D(-sa1.Radian, curveToRotate.PositionToParameter(ip[0]))) | p) <
+                                (PointAt(new GeoPoint2D(sa1.Radian, curveToRotate.PositionToParameter(ip[0]))) | p))
+                                return new GeoPoint2D(-sa1.Radian, curveToRotate.PositionToParameter(ip[0]));
+                            else
+                                return new GeoPoint2D(sa1.Radian, curveToRotate.PositionToParameter(ip[0]));
                         }
                     }
                 }
                 Plane pln = new Plane(p, axisDirection);
                 double[] ipar = curveToRotate.GetPlaneIntersection(pln);
-                if (ipar.Length==0)
+                if (ipar.Length == 0)
                 {   // the plane must intersect the curve, if not, we take the start or endpoint
                     if (Math.Abs(pln.Distance(curveToRotate.StartPoint)) < Math.Abs(pln.Distance(curveToRotate.EndPoint)))
                     {
@@ -218,17 +227,23 @@ namespace CADability.GeoObject
                         ipar = new double[] { 1.0 };
                     }
                 }
-                if (ipar.Length >= 1)
+                GeoPoint2D res = GeoPoint2D.Invalid;
+                double mindist = double.MaxValue;
+                for (int i = 0; i < ipar.Length; i++)
                 {
                     GeoPoint onAxis = Geometry.DropPL(p, axisLocation, axisDirection);
                     Plane plnc = new Plane(onAxis, axisDirection);
-                    SweepAngle sa = new SweepAngle(plnc.Project(p).ToVector(), plnc.Project(curveToRotate.PointAt(ipar[0])).ToVector());
+                    SweepAngle sa = new SweepAngle(plnc.Project(p).ToVector(), plnc.Project(curveToRotate.PointAt(ipar[i])).ToVector());
                     // SweepAngle sa = new SweepAngle(p - onAxis, curveToRotate.PointAt(ipar[0]) - onAxis);
                     ModOp rotate = ModOp.Rotate(axisLocation, axisDirection, sa);
                     // double y = curveToRotate.PositionToParameter(curveToRotate.PositionOf(rotate * p));
                     double y = curveToRotate.PositionToParameter(ipar[0]);
-                    return new GeoPoint2D(sa, y);
+                    double d = PointAt(new GeoPoint2D(sa, y)) | p;
+                    if (d < mindist) { res = new GeoPoint2D(sa, y); mindist = d; }
+                    d = PointAt(new GeoPoint2D(-sa, y)) | p;
+                    if (d < mindist) { res = new GeoPoint2D(-sa, y); mindist = d; }
                 }
+                if (mindist < double.MaxValue) return res;
                 return base.PositionOf(p); // we could do better here!
             }
             GeoPoint unit = fromSurface * p;
@@ -258,7 +273,7 @@ namespace CADability.GeoObject
                 GeoPoint p = PointAt(uv);
                 Plane pln = new Plane(Location, Axis);
                 GeoPoint2D pr = pln.Project(p);
-                GeoVector2D dir2d = (GeoPoint2D.Origin - pr).ToLeft();
+                GeoVector2D dir2d = (pr - GeoPoint2D.Origin).ToLeft();
                 return pln.ToGlobal(dir2d);
             }
             else
@@ -1302,18 +1317,15 @@ namespace CADability.GeoObject
         /// </summary>
         /// <returns></returns>
         public override ModOp2D ReverseOrientation()
-        {   // umkehrung der Y-Richtung
+        {   // reverse the v-direction of the uv space
             boxedSurfaceEx = null;
-            //double tmp = curveStartParameter;
-            //curveStartParameter = curveEndParameter;
-            //curveEndParameter = tmp;
-            if (curveToRotate != null) curveToRotate.Reverse();
-            else basisCurve2D.Reverse(); // damit Helper das richtige erzeugt
-            // die Frage ist natürlich: was macht reverse mit dem v-Parameter
-            // bei BSpline bleiben sie erhalten
-            // die basisCurve2D wird immer mit 0..1 angesprochen, insofern muss der v-Bereich umgeklappt werden
-            // curveParameterOffset scheint nur von Bedeutung, wenn das Objekt gerade erzeugt wird, sonst wohl immer 0.0
-            return new ModOp2D(1.0, 0.0, 0.0, 0.0, -1.0, curveStartParameter + curveEndParameter);
+
+            axisDirection = -axisDirection; // reversing the axis direction reverses the u direction
+            return new ModOp2D(-1.0, 0.0, 0.0, 0.0, 1.0, 0);
+
+            //if (curveToRotate != null) curveToRotate.Reverse();
+            //if (basisCurve2D!=null) basisCurve2D.Reverse(); // not sure, whether basisCurve2D still in use
+            //return new ModOp2D(1.0, 0.0, 0.0, 0.0, -1.0, curveStartParameter + curveEndParameter);
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.FixedU (double, double, double)"/>
@@ -1514,7 +1526,7 @@ namespace CADability.GeoObject
                             GeoVector yaxis = r * (axisDirection ^ xaxis).Normalized;
                             SphericalSurface ss = new SphericalSurface(elli.Center, xaxis, yaxis, r * axisDirection.Normalized);
                             GeoVector n1 = this.GetNormal(this.PositionOf(elli.PointAt(0.47))); // not at a pole
-                            GeoVector n2 = ss.GetNormal(ss.PositionOf(elli.PointAt(0.47))); 
+                            GeoVector n2 = ss.GetNormal(ss.PositionOf(elli.PointAt(0.47)));
                             if (n1 * n2 < 0) ss.ReverseOrientation();
                             return ss;
                         }
@@ -1530,9 +1542,10 @@ namespace CADability.GeoObject
                             if (n1 * n2 < 0) ts.ReverseOrientation();
                             return ts;
                         }
-                    } else if (testWith is Line line)
+                    }
+                    else if (testWith is Line line)
                     {
-                        if (Precision.SameDirection(line.EndDirection,axisDirection,false))
+                        if (Precision.SameDirection(line.EndDirection, axisDirection, false))
                         {   // a cylinder
                             GeoPoint loc = Geometry.DropPL(line.StartPoint, axisLocation, axisDirection);
                             GeoVector dirx = line.StartPoint - loc;

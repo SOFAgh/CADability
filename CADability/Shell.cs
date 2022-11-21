@@ -5443,7 +5443,7 @@ namespace CADability.GeoObject
                             edge.PrimaryFace != edge.SecondaryFace && firstToSecond.IsIsogonal && firstToSecond.Determinant > 0) // firstToSecond.IsIsogonal: non periodic surfaces or spheres with different axis are not implemented yet
                         {
 #if DEBUG
-                            if (edge.GetHashCode() == 20260) { }
+                            if (edge.GetHashCode() == 1227) { }
                             foreach (Edge dbgedg in edge.PrimaryFace.AllEdgesIterated())
                             {
                                 if (edge.Curve3D is InterpolatedDualSurfaceCurve)
@@ -5469,6 +5469,8 @@ namespace CADability.GeoObject
                                 }
                                 catch { continue; }
                             }
+                            if (edge.PrimaryFace.Surface is SurfaceOfRevolution) continue; // this must be fixed (e.g. in "1_Assembly_Light.stp")
+
                             toRemove = edge.SecondaryFace.CombineWith(edge.PrimaryFace, firstToSecond);
                             // isolate the face, which will no longer be used:
                             Face faceToRemove = edge.PrimaryFace;

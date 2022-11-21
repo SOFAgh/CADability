@@ -228,7 +228,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 7)
+            if (hashCode == 1087)
             {
 
             }
@@ -1991,6 +1991,9 @@ namespace CADability.GeoObject
                             }
                         }
                     }
+#if DEBUG
+                    if (!fc.CheckConsistency()) { }
+#endif
                     fc.ReduceVertices(); // in rare cases the vertices are defined multiple times in STEP. We need to have unique vertices
                     fc.MakeArea();
                     return new Face[] { fc };
@@ -5519,7 +5522,7 @@ namespace CADability.GeoObject
         internal void ModifySurfaceOnly(ModOp m)
         {
 #if DEBUG
-            if (hashCode == 1371)
+            if (hashCode == 406)
             { }
 #endif
             BoundingRect ext = (surface as ISurfaceImpl).usedArea;
@@ -5531,7 +5534,7 @@ namespace CADability.GeoObject
         {
             // usually called from Shell, which modifies the edges separately
 #if DEBUG
-            if (hashCode == 1371)
+            if (hashCode == 406)
             { }
             int tc0 = System.Environment.TickCount;
 #endif
@@ -5569,7 +5572,7 @@ namespace CADability.GeoObject
         public override void Modify(ModOp m)
         {
 #if DEBUG
-            if (hashCode == 1371)
+            if (hashCode == 406)
             { }
 #endif
             using (new Changing(this, "ModifyInverse", m))
@@ -5961,7 +5964,7 @@ namespace CADability.GeoObject
 
             ICurve2D[] usedCurves = new ICurve2D[outline.Length];
 #if DEBUG
-            if (hashCode == 1811)
+            if (hashCode == 1087)
             { }
             if (UserData.ContainsData("StepImport.ItemNumber"))
             {
