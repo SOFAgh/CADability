@@ -225,7 +225,7 @@ namespace CADability
                 VisibleLayers = new ArrayList();
                 modelView = null;
             }
-#region ISerializable Members
+            #region ISerializable Members
             public ModelViewDescription(SerializationInfo info, StreamingContext context)
             {
                 Name = (string)info.GetValue("Name", typeof(string));
@@ -272,7 +272,7 @@ namespace CADability
                 if (VisibleLayers != null) info.AddValue("VisibleLayers", VisibleLayers, typeof(ArrayList));
                 info.AddValue("OnlyThinLines", OnlyThinLines, typeof(bool));
             }
-#endregion
+            #endregion
         }
         //private ArrayList modelViews; // Liste von ModelViewDescription
         private int activeModelIndex;
@@ -701,13 +701,13 @@ namespace CADability
         //public ModelView FindModelView(string name)
         //{
 
-//    foreach (ModelViewDescription mvd in modelViews)
-//    {
-//        ModelView mv = mvd.GetModelView(null);
-//        if (name==mv.Name) return mv;
-//    }
-//    return null;
-//}
+        //    foreach (ModelViewDescription mvd in modelViews)
+        //    {
+        //        ModelView mv = mvd.GetModelView(null);
+        //        if (name==mv.Name) return mv;
+        //    }
+        //    return null;
+        //}
 #if !WEBASSEMBLY
         internal bool FindLayoutName(string name)
         {
@@ -1765,8 +1765,24 @@ namespace CADability
             {
                 if (folderOrg != null)
                 {
-                    Directory.Delete(folderOrg, true);
-                    Directory.Delete(folderConverted, true);
+                    try
+                    {
+                        if (Directory.Exists(folderOrg))
+                            Directory.Delete(folderOrg, true);
+                        if (Directory.Exists(folderConverted))
+                            Directory.Delete(folderConverted, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        if(ex is DirectoryNotFoundException || ex is IOException || ex is UnauthorizedAccessException)
+                        {
+                            //Best effort, if the folders could not be deleted there is nothing we can do.
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
                 }
             }
         }
@@ -1837,7 +1853,7 @@ namespace CADability
         {
             return ReadFromFile(FileName, Format, true);
         }
-#region IShowPropertyImpl Overrides
+        #region IShowPropertyImpl Overrides
         private IShowProperty[] ShowProperties; // die Anzeige wird hier lokal gehalten, um die TabIndizes setzen zu können
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
@@ -1916,7 +1932,7 @@ namespace CADability
                 return ShowProperties;
             }
         }
-#endregion
+        #endregion
         public delegate void RefreshDelegate(object sender, EventArgs args);
         public event RefreshDelegate RefreshEvent;
         public delegate void ViewChangedDelegate(Project sender, IView viewWhichChanged);
@@ -1952,7 +1968,7 @@ namespace CADability
             (go as IColorDef).ColorDef = cd;
             m.Add(go);
         }
-#region IAttributeListContainer
+        #region IAttributeListContainer
         IAttributeList IAttributeListContainer.GetList(string keyName)
         {
             return attributeLists[keyName] as IAttributeList;
@@ -2130,7 +2146,7 @@ namespace CADability
                 }
         }
 
-#endregion
+        #endregion
         private bool deferRefresh;
         public bool DeferRefresh
         {
@@ -2219,7 +2235,7 @@ namespace CADability
 
         }
 #endif
-#region ISerializable Members
+        #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -2450,8 +2466,8 @@ namespace CADability
             IShowProperty[] dbg = namedValues.SubEntries;
 #endif
         }
-#endregion
-#region ICommandHandler Members
+        #endregion
+        #region ICommandHandler Members
 #if !WEBASSEMBLY
         private void OnNewLayout()
         {
@@ -2604,8 +2620,8 @@ namespace CADability
             return false;
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
-#endregion
-#region IEnumerable
+        #endregion
+        #region IEnumerable
         public void Add(object toAdd)
         {
         }
@@ -2613,8 +2629,8 @@ namespace CADability
         {
             return models.GetEnumerator();
         }
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
 
         void IDeserializationCallback.OnDeserialization(object sender)
         {
@@ -2730,6 +2746,6 @@ namespace CADability
 #endif
         }
 
-#endregion
+        #endregion
     }
 }
