@@ -12,7 +12,7 @@ namespace CADability.GeoObject
         public SurfaceOfRevolutionException(string msg) : base(msg) { }
     }
     [Serializable()]
-    public class SurfaceOfRevolution : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IExportStep, IJsonSerialize, IJsonSerializeDone
+    public class SurfaceOfRevolution : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IExportStep, IJsonSerialize, IJsonSerializeDone, IDeserializationCallback
     {
         // the following properties should be removed:
         private double curveStartParameter, curveEndParameter;
@@ -1725,6 +1725,18 @@ namespace CADability.GeoObject
             data.AddProperty("CurveToRotate", curveToRotate);
             data.AddProperty("AxisDirection", axisDirection);
             data.AddProperty("AxisLocation", axisLocation);
+        }
+
+        void IDeserializationCallback.OnDeserialization(object sender)
+        {
+            if (curveToRotate == null)
+            {
+                IGeoObject go = basisCurve2D.MakeGeoObject(Plane.XYPlane);
+                go.Modify(toSurface);
+                curveToRotate = go as ICurve;
+                axisLocation = toSurface * GeoPoint.Origin;
+                axisDirection = toSurface * GeoVector.YAxis;
+            }
         }
 
         public void SetObjectData(IJsonReadData data)

@@ -717,7 +717,7 @@ namespace CADability.DXF
                 }
                 else
                 {
-                    List<GeoObject.Hatch> list = new List<GeoObject.Hatch>();
+                    GeoObjectList list = new GeoObjectList();
                     for (int i = 0; i < hatch.Pattern.LineDefinitions.Count; i++)
                     {
                         if (i > 0) res = res.Clone() as GeoObject.Hatch;
@@ -734,7 +734,7 @@ namespace CADability.DXF
                     if (list.Count > 1)
                     {
                         GeoObject.Block block = GeoObject.Block.Construct();
-                        block.Set(new GeoObjectList(list as ICollection<IGeoObject>));
+                        block.Set(new GeoObjectList(list));
                         return block;
                     }
                     else return res;

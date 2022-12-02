@@ -24,7 +24,7 @@ namespace CADability.GeoObject
         private GeneralCurve generalCurve;
         private IPropertyEntry[] subEntries;
         private IPropertyEntry[] attributeProperties; // Anzeigen für die Attribute (Ebene, Farbe u.s.w)
-        public ShowPropertyGeneralCurve(GeneralCurve GeneralCurve, IFrame frame): base(frame)
+        public ShowPropertyGeneralCurve(GeneralCurve GeneralCurve, IFrame frame) : base(frame)
         {
             this.generalCurve = GeneralCurve;
             attributeProperties = generalCurve.GetAttributeProperties(Frame);
@@ -2311,16 +2311,17 @@ namespace CADability.GeoObject
                     else return 1.0;
                 }
                 CurveTetraeder[] all = OctTree.GetObjectsFromBox(new BoundingCube(p, OctTree.precision)); // we need ...Box, BoundingCube and not ...Point because of linear curves
-                while (all.Length == 0)
+                if (all.Length == 0)
                 {   // Punkt aufblasen bis Tetraeder gefunden werden
-                    BoundingCube bc = new BoundingCube(p, theCurve.StartPoint, theCurve.EndPoint);
+                    BoundingCube bc = new BoundingCube(TetraederBase);
+                    bc.MinMax(p);
                     double d = bc.Size * 1e-6;
                     do
                     {
                         all = OctTree.GetObjectsFromBox(new BoundingCube(p, d));
                         d *= 2;
                     }
-                    while (all.Length == 0);
+                    while (all.Length == 0 && d < bc.Size * 2);
                 }
                 double mindist = double.MaxValue;
                 double umindist = -1.0;
@@ -2337,6 +2338,10 @@ namespace CADability.GeoObject
                             umindist = u;
                         }
                     }
+                }
+                else
+                {
+                    return double.MaxValue;
                 }
                 return umindist;
             }
@@ -2643,7 +2648,7 @@ namespace CADability.GeoObject
                 // jetzt könnte man noch die Richtungen überprüfen, aber es gibt kein gutes Kriterium für die erlaubte Abweichung
             }
             // there was this case: the curves only consist of a single tetraeder and start- and endpoints are identical. then we should check points in the middle of each tetraeder.
-            for (int i = 0; i < tetraederBase.Length-1; ++i)
+            for (int i = 0; i < tetraederBase.Length - 1; ++i)
             {
                 GeoPoint mp = theCurve.PointAt((tetraederParams[i] + tetraederParams[i + 1]) / 2.0);
                 if (other.DistanceTo(mp) > precision) return false;

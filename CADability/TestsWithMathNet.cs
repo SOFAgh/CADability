@@ -706,7 +706,7 @@ namespace CADability
                     d = di;
                 }
             }
-            NonlinearMinimizationResult mres = lm.FindMinimum(iom, new DenseVector(new double[] { pnts[0].x, pnts[0].y, pnts[0].z,d.x,d.y,d.z }));
+            NonlinearMinimizationResult mres = lm.FindMinimum(iom, new DenseVector(new double[] { pnts[0].x, pnts[0].y, pnts[0].z, d.x, d.y, d.z }));
             if (mres.ReasonForExit == ExitCondition.Converged || mres.ReasonForExit == ExitCondition.RelativeGradient)
             {
                 location = new GeoPoint(mres.MinimizingPoint[0], mres.MinimizingPoint[1], mres.MinimizingPoint[2]);
@@ -720,6 +720,120 @@ namespace CADability
             direction = GeoVector.NullVector;
             return double.MaxValue;
 
+        }
+        public static double ConeFit(IArray<GeoPoint> points, GeoPoint apex, GeoVector axis, double theta, double precision, out ConicalSurface cs)
+        {
+            // according to wikipedia (a cone with apex=(0,0,0), d: axis and theta: opening angle
+            //F(u) = (u * d)^2 - (d*d)*(u*u)*cos(theta)
+            // with apex=c:
+            // F(p) = ((p-c)*d)^2 - (d*d)*((p-c)*(p-c))*(cos(theta))^2
+            //ax: px - cx;
+            //ay: py - cy;
+            //az: pz - cz;
+            // dx: cos(b)*cos(a);
+            // dy: cos(b)*sin(a);
+            // dz: sin(b);
+            //f: (ax * dx + ay * dy + az * dz) ^ 2 - (dx * dx + dy * dy + dz * dz) * (ax * ax + ay * ay + az * az) * (cos(t)) ^ 2;
+            //dfdcx: diff(f, cx, 1);
+            //dfdcy: diff(f, cy, 1);
+            //dfdcz: diff(f, cz, 1);
+            //dfdnx: diff(f, a, 1);
+            //dfdny: diff(f, b, 1);
+            //dfdt: diff(f, t, 1);
+            //stringout("C:/Temp/coneapprox.txt", values);
+            // yields:
+            //f: (dz * (pz - cz) + dy * (py - cy) + dx * (px - cx)) ^ 2 - (dz ^ 2 + dy ^ 2 + dx ^ 2) * ((pz - cz) ^ 2 + (py - cy) ^ 2 + (px - cx) ^ 2) * cos(t) ^ 2;
+            //dfdcx: 2 * (dz ^ 2 + dy ^ 2 + dx ^ 2) * (px - cx) * cos(t) ^ 2 - 2 * dx * (dz * (pz - cz) + dy * (py - cy) + dx * (px - cx));
+            //dfdcy: 2 * (dz ^ 2 + dy ^ 2 + dx ^ 2) * (py - cy) * cos(t) ^ 2 - 2 * dy * (dz * (pz - cz) + dy * (py - cy) + dx * (px - cx));
+            //dfdcz: 2 * (dz ^ 2 + dy ^ 2 + dx ^ 2) * (pz - cz) * cos(t) ^ 2 - 2 * dz * (dz * (pz - cz) + dy * (py - cy) + dx * (px - cx));
+            //dfdnx: 2 * (px - cx) * (dz * (pz - cz) + dy * (py - cy) + dx * (px - cx)) - 2 * dx * ((pz - cz) ^ 2 + (py - cy) ^ 2 + (px - cx) ^ 2) * cos(t) ^ 2;
+            //dfdny: 2 * (py - cy) * (dz * (pz - cz) + dy * (py - cy) + dx * (px - cx)) - 2 * dy * ((pz - cz) ^ 2 + (py - cy) ^ 2 + (px - cx) ^ 2) * cos(t) ^ 2;
+            //dfdnz: 2 * (pz - cz) * (dz * (pz - cz) + dy * (py - cy) + dx * (px - cx)) - 2 * dz * ((pz - cz) ^ 2 + (py - cy) ^ 2 + (px - cx) ^ 2) * cos(t) ^ 2;
+            //dfdt: 2 * (dz ^ 2 + dy ^ 2 + dx ^ 2) * ((pz - cz) ^ 2 + (py - cy) ^ 2 + (px - cx) ^ 2) * cos(t) * sin(t);
+            //ax: px - cx;
+            //ay: py - cy;
+            //az: pz - cz;
+
+            // now in polar coordinates to avoid the axis direction becoming zero
+            //ax:px-cx;
+            //ay:py-cy;
+            //az:pz-cz;
+            //dx:cos(a)*cos(b);
+            //dy:sin(a)*cos(b);
+            //dz:sin(b);
+            //f:(sin(b)*(pz-cz)+sin(a)*cos(b)*(py-cy)+cos(a)*cos(b)*(px-cx))^2-(sin(b)^2+sin(a)^2*cos(b)^2+cos(a)^2*cos(b)^2)*((pz-cz)^2+(py-cy)^2+(px-cx)^2)*cos(t)^2;
+            //dfdcx:2*(sin(b)^2+sin(a)^2*cos(b)^2+cos(a)^2*cos(b)^2)*(px-cx)*cos(t)^2-2*cos(a)*cos(b)*(sin(b)*(pz-cz)+sin(a)*cos(b)*(py-cy)+cos(a)*cos(b)*(px-cx));
+            //dfdcy:2*(sin(b)^2+sin(a)^2*cos(b)^2+cos(a)^2*cos(b)^2)*(py-cy)*cos(t)^2-2*sin(a)*cos(b)*(sin(b)*(pz-cz)+sin(a)*cos(b)*(py-cy)+cos(a)*cos(b)*(px-cx));
+            //dfdcz:2*(sin(b)^2+sin(a)^2*cos(b)^2+cos(a)^2*cos(b)^2)*(pz-cz)*cos(t)^2-2*sin(b)*(sin(b)*(pz-cz)+sin(a)*cos(b)*(py-cy)+cos(a)*cos(b)*(px-cx));
+            //dfda:2*(cos(a)*cos(b)*(py-cy)-sin(a)*cos(b)*(px-cx))*(sin(b)*(pz-cz)+sin(a)*cos(b)*(py-cy)+cos(a)*cos(b)*(px-cx));
+            //dfdb:2*(cos(b)*(pz-cz)-sin(a)*sin(b)*(py-cy)-cos(a)*sin(b)*(px-cx))*(sin(b)*(pz-cz)+sin(a)*cos(b)*(py-cy)+cos(a)*cos(b)*(px-cx))-((-2*sin(a)^2*cos(b)*sin(b))-2*cos(a)^2*cos(b)*sin(b)+2*cos(b)*sin(b))*((pz-cz)^2+(py-cy)^2+(px-cx)^2)*cos(t)^2;
+            //dfdt:2*(sin(b)^2+sin(a)^2*cos(b)^2+cos(a)^2*cos(b)^2)*((pz-cz)^2+(py-cy)^2+(px-cx)^2)*cos(t)*sin(t);
+
+            // parameters: { cx,cy,cz,a,b,t } wher xc,cy,cz is the apex, a,b polarcoordinates for the axis direction, t half of opening angle
+            Vector<double> observedX = new DenseVector(points.Length); // there is no need to set values
+            Vector<double> observedY = new DenseVector(points.Length); // this is the data we want to achieve, namely 0.0
+            LevenbergMarquardtMinimizer lm = new LevenbergMarquardtMinimizer(gradientTolerance: 1e-15, maximumIterations: 20);
+            IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                {
+                    DenseVector values = new DenseVector(points.Length);
+                    GeoPoint c = new GeoPoint(vd[0], vd[1], vd[2]);
+                    double sina = Math.Sin(vd[3]);
+                    double cosa = Math.Cos(vd[3]);
+                    double sinb = Math.Sin(vd[4]);
+                    double cosb = Math.Cos(vd[4]);
+                    double t = vd[5];
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        GeoPoint pi = points[i];
+                        values[i] = sqr(sinb * (pi.z - c.z) + sina * cosb * (pi.y - c.y) + cosa * cosb * (pi.x - c.x)) -
+                            (sqr(sinb) + sqr(sina* cosb) + sqr(cosa * cosb)) * (sqr(pi.z - c.z) + sqr(pi.y - c.y) + sqr(pi.x - c.x)) * sqr(Math.Cos(t));
+                    }
+                    return values;
+                }),
+                new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                {
+                    DenseMatrix derivs = DenseMatrix.Create(points.Length, 6, 0); // Jacobi Matrix 
+                    double cx = vd[0];
+                    double cy = vd[1];
+                    double cz = vd[2];
+                    double sina = Math.Sin(vd[3]);
+                    double cosa = Math.Cos(vd[3]);
+                    double sinb = Math.Sin(vd[4]);
+                    double cosb = Math.Cos(vd[4]);
+                    double t = vd[5];
+                    double cost2 = sqr(Math.Cos(t));
+                    double t1 = sinb * sinb + sqr(sina * cosb) + sqr(cosa * cosb);
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        double px = points[i].x;
+                        double py = points[i].y;
+                        double pz = points[i].z;
+
+                        derivs[i, 0] = 2 *(t1)*(px-cx)*cost2-2*cosa*cosb*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx));
+                        derivs[i, 1] = 2 *(t1)*(py-cy)*cost2-2*sina*cosb*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx));
+                        derivs[i, 2] = 2 * (t1)*(pz-cz)*cost2-2*sinb*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx));
+                        derivs[i, 3] = 2 * (cosa*cosb*(py-cy)-sina*cosb*(px-cx))*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx));
+                        derivs[i, 4] = 2 * (cosb*(pz-cz)-sina*sinb*(py-cy)-cosa*sinb*(px-cx))*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx))-((-2*sqr(sina)*cosb*sinb)-2*sqr(cosa)*cosb*sinb+2*cosb*sinb)*(sqr(pz-cz)+sqr(py-cy)+sqr(px-cx))*cost2;
+                        derivs[i, 5] = 2 * (t1)*(sqr(pz-cz)+sqr(py-cy)+sqr(px-cx))*Math.Cos(t)*Math.Sin(t);
+                    }
+                    return derivs;
+                }), observedX, observedY);
+            double a = Math.Atan2(axis.y, axis.x);
+            double b = Math.Atan2(axis.z, Math.Sqrt(axis.x * axis.x + axis.y * axis.y));
+            NonlinearMinimizationResult mres = lm.FindMinimum(iom, new DenseVector(new double[] { apex.x, apex.y, apex.z, a, b, theta }));
+            if (mres.ReasonForExit == ExitCondition.Converged || mres.ReasonForExit == ExitCondition.RelativeGradient)
+            {
+                GeoVector dir = new GeoVector(Math.Cos(mres.MinimizingPoint[4])*Math.Cos(mres.MinimizingPoint[3]), Math.Cos(mres.MinimizingPoint[4]) * Math.Sin(mres.MinimizingPoint[3]), Math.Sin(mres.MinimizingPoint[4]));
+                dir.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+                cs = new ConicalSurface(new GeoPoint(mres.MinimizingPoint[0], mres.MinimizingPoint[1], mres.MinimizingPoint[2]), dirx, diry, dir, mres.MinimizingPoint[5]);
+                return sqr(mres.StandardErrors[0]) + sqr(mres.StandardErrors[1]) + sqr(mres.StandardErrors[2]) + sqr(mres.StandardErrors[3]) + sqr(mres.StandardErrors[4]) + sqr(mres.StandardErrors[5]);
+            }
+            else
+            {
+                cs = null;
+                return double.MaxValue;
+            }
         }
 
         /*
