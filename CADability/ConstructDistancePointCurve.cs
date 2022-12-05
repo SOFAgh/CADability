@@ -244,7 +244,8 @@ namespace CADability.Actions
         {
             base.OnRemoveAction();
             Frame.Project.Undo.ClearContext();
-            lengthProperty.Select();
+			if (lengthProperty != null)
+				lengthProperty.Select();
         }
 
         /// <summary>
