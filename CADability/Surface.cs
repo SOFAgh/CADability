@@ -2341,6 +2341,10 @@ namespace CADability.GeoObject
                         res.Add(pntv);
                     }
                 }
+                GeoPoint2D c2d = new GeoPoint2D((umax + umin) / 2, (vmax + vmin) / 2);
+                GeoPoint c3d = PointAt(c2d);
+                Line centerNormal = Line.TwoPoints(c3d, c3d + res.GetExtent().Size * 0.1*GetNormal(c2d));
+                res.Add(centerNormal);
                 return res;
             }
         }

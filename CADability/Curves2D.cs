@@ -1645,17 +1645,17 @@ namespace CADability.Curve2D
         /// <summary>
         /// Find circles tangent to three other circles
         /// </summary>
-        /// <param name="ptCentre1">Centre of first circle</param>
-        /// <param name="nRadius1">Radius of first circle</param>
-        /// <param name="ptCentre2">Centre of second circle</param>
-        /// <param name="nRadius2">Radius of second circle</param>
-        /// <param name="ptCentre3">Centre of third circle</param>
-        /// <param name="nRadius3">Radius of third circle</param>
-        /// <param name="Centres">Array to receive list of centre points</param>
-        /// <param name="Radii">Array to receive list of radii</param>
+        /// <param name="center1">Centre of first circle</param>
+        /// <param name="radius1">Radius of first circle</param>
+        /// <param name="center2">Centre of second circle</param>
+        /// <param name="radius2">Radius of second circle</param>
+        /// <param name="center3">Centre of third circle</param>
+        /// <param name="radius3">Radius of third circle</param>
+        /// <param name="centers">Array to receive list of centre points</param>
+        /// <param name="radii">Array to receive list of radii</param>
         /// <returns>Number of solutions</returns>
-        private static void Circle3C(GeoPoint2D ptCentre1, double nRadius1, GeoPoint2D ptCentre2, double nRadius2,
-                                GeoPoint2D ptCentre3, double nRadius3, out GeoPoint2D[] Centres, out double[] Radii)
+        private static void Circle3C(GeoPoint2D center1, double radius1, GeoPoint2D center2, double radius2,
+                                GeoPoint2D center3, double radius3, out GeoPoint2D[] centers, out double[] radii)
         //*************************************************************************************
         // Find tangents to three circles
         {
@@ -1664,46 +1664,43 @@ namespace CADability.Curve2D
             List<double> RadiiList = new List<double>();
 
             // If all circles concentric, there are no solutions
-            if ((ptCentre1 == ptCentre2) && (ptCentre2 == ptCentre3))
+            if (Precision.IsEqual(center1, center2) || Precision.IsEqual(center1, center3) || Precision.IsEqual(center2, center3))
             {
-                Centres = new GeoPoint2D[0];
-                Radii = new double[0];
+                centers = new GeoPoint2D[0];
+                radii = new double[0];
                 return;
             }
 
             // Ensure first 2 circles are not concentric
-            if (ptCentre1 == ptCentre2)
-            {
-                GeoPoint2D ptTemp = ptCentre2;
-                ptCentre2 = ptCentre3;
-                ptCentre3 = ptTemp;
-                double nTemp = nRadius2;
-                nRadius2 = nRadius3;
-                nRadius3 = nTemp;
-            }
+            GeoPoint2D ptTemp = center2;
+            center2 = center3;
+            center3 = ptTemp;
+            double nTemp = radius2;
+            radius2 = radius3;
+            radius3 = nTemp;
 
             // Translate so first circle is on origin
-            GeoPoint2D ptCentre2N = new GeoPoint2D();
-            ptCentre2N.x = ptCentre2.x - ptCentre1.x;
-            ptCentre2N.y = ptCentre2.y - ptCentre1.y;
-            GeoPoint2D ptCentre3N = new GeoPoint2D();
-            ptCentre3N.x = ptCentre3.x - ptCentre1.x;
-            ptCentre3N.y = ptCentre3.y - ptCentre1.y;
+            GeoPoint2D center2n = new GeoPoint2D();
+            center2n.x = center2.x - center1.x;
+            center2n.y = center2.y - center1.y;
+            GeoPoint2D center3n = new GeoPoint2D();
+            center3n.x = center3.x - center1.x;
+            center3n.y = center3.y - center1.y;
 
             // Find angle to rotate second circle to x-axis
-            double ang = Math.Atan2(-ptCentre2N.y, ptCentre2N.x);
+            double ang = Math.Atan2(-center2n.y, center2n.x);
             double angCos = Math.Cos(ang);
             double angSin = Math.Sin(ang);
 
             // Rotate second and third circles
-            double x2 = ptCentre2N.x * angCos - ptCentre2N.y * angSin;
-            double x3 = ptCentre3N.x * angCos - ptCentre3N.y * angSin;
-            double y3 = ptCentre3N.x * angSin + ptCentre3N.y * angCos;
+            double x2 = center2n.x * angCos - center2n.y * angSin;
+            double x3 = center3n.x * angCos - center3n.y * angSin;
+            double y3 = center3n.x * angSin + center3n.y * angCos;
 
             // Derive solutions
-            GeoPoint2D[] fCentres;
+            GeoPoint2D[] fCenters;
             double[] fRadii;
-            NormCircle3C(nRadius1, x2, nRadius2, x3, y3, nRadius3, out fCentres, out fRadii);
+            NormCircle3C(radius1, x2, radius2, x3, y3, radius3, out fCenters, out fRadii);
 
             // Transform solutions back to original coordinate system
             double xc, yc;
@@ -1712,20 +1709,20 @@ namespace CADability.Curve2D
             double angNSin = Math.Sin(-ang);
             for (int iSolution = 0; iSolution < fRadii.Length; ++iSolution)
             {
-                xc = fCentres[iSolution].x;
-                yc = fCentres[iSolution].y;
-                ptCentre.x = (xc * angNCos - yc * angNSin) + ptCentre1.x;
-                ptCentre.y = (xc * angNSin + yc * angNCos) + ptCentre1.y;
+                xc = fCenters[iSolution].x;
+                yc = fCenters[iSolution].y;
+                ptCentre.x = (xc * angNCos - yc * angNSin) + center1.x;
+                ptCentre.y = (xc * angNSin + yc * angNCos) + center1.y;
                 CentersList.Add(ptCentre);
                 RadiiList.Add(fRadii[iSolution]);
             }
 
-            Centres = CentersList.ToArray();
-            Radii = RadiiList.ToArray();
+            centers = CentersList.ToArray();
+            radii = RadiiList.ToArray();
         }
 
-        private static void NormCircle3C(double nRadius1, double x2, double nRadius2, double x3, double y3,
-                                            double nRadius3, out GeoPoint2D[] fCentres, out double[] fRadii)
+        private static void NormCircle3C(double radius1, double x2, double radius2, double x3, double y3,
+                                            double radius3, out GeoPoint2D[] centers, out double[] radii)
         //********************************************************************************
         // Find circles tangent to 3 circles. The first circle is centered at the origin, the
         // second at (x2, 0) and the third at (x3, y3)
@@ -1741,16 +1738,16 @@ namespace CADability.Curve2D
             // Negate the radii to get all combinations
             for (int iCase = 0; iCase < 8; ++iCase)
             {
-                r1 = ((iCase & 1) == 0) ? nRadius1 : -nRadius1;
-                r2 = ((iCase & 2) == 0) ? nRadius2 : -nRadius2;
-                r3 = ((iCase & 4) == 0) ? nRadius3 : -nRadius3;
+                r1 = ((iCase & 1) == 0) ? radius1 : -radius1;
+                r2 = ((iCase & 2) == 0) ? radius2 : -radius2;
+                r3 = ((iCase & 4) == 0) ? radius3 : -radius3;
 
                 // Special case where radii of first 2 circles are equal
                 if (r1 == r2)
                 {
-                    CoRadialSol(r1, x2, r2, x3, y3, r3, out fCentres, out fRadii);
-                    CentersList.AddRange(fCentres);
-                    RadiiList.AddRange(fRadii);
+                    CoRadialSol(r1, x2, r2, x3, y3, r3, out centers, out radii);
+                    CentersList.AddRange(centers);
+                    RadiiList.AddRange(radii);
                     continue;
                 }
 
@@ -1792,8 +1789,8 @@ namespace CADability.Curve2D
                     }
                 }
             }
-            fCentres = CentersList.ToArray();
-            fRadii = RadiiList.ToArray();
+            centers = CentersList.ToArray();
+            radii = RadiiList.ToArray();
         }
 
         private static void CoRadialSol(double r1, double x2, double r2, double x3, double y3,

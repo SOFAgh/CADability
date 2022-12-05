@@ -1640,6 +1640,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             System.Diagnostics.Trace.WriteLine("Finished step read" + Environment.TickCount.ToString());
 #endif
 #if DEBUG
+            if (!res.CheckConsistency()) { }
             BoundingCube ext = res.GetExtent();
             double md = 0.0;
             Face found = null;
@@ -2118,6 +2119,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
             return res;
         }
+#if DEBUG
+        static Face dbgfc = null;
+#endif
 
         private object CreateEntity(Item item)
         {
@@ -2595,7 +2599,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (35899 == item.definingIndex || 13754 == item.definingIndex)
+                            if (2932 == item.definingIndex || 13754 == item.definingIndex)
                             {
                             }
 #endif
@@ -2669,7 +2673,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (20287 == item.definingIndex) // 12344, 9868, 9886
+                            if (1605 == item.definingIndex || 4888 == item.definingIndex)
                             {
                             }
 #endif
@@ -2698,12 +2702,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         defIndex = item.definingIndex;
                                     }
 #if DEBUG
-                                    //if (11555 == item.definingIndex)
-                                    //{
-                                    //    Face dbgfc = (item.val as Face[])[0];
-                                    //    GeoPoint2D dbg2d = dbgfc.Surface.PositionOf(dbgfc.Surface.PointAt(new GeoPoint2D(1.5, 0.6)));
-                                    //    dbgfc.AssureTriangles(0.12);
-                                    //}
+                                    if (4890 == item.definingIndex)
+                                    {
+                                        dbgfc = (item.val as Face[])[0];
+                                        //GeoPoint2D dbg2d = dbgfc.Surface.PositionOf(dbgfc.Surface.PointAt(new GeoPoint2D(1.5, 0.6)));
+                                        //dbgfc.AssureTriangles(0.02);
+                                    }
+                                    if (dbgfc != null) 
+                                    {
+                                        if (!dbgfc.CheckConsistency()) { }
+                                    }
 #endif
 
                                 }
@@ -4249,10 +4257,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 else if (startPoint.IsValid && endPoint.IsValid)
                                 {
                                     // trimmed curve defined by start- and endpoint
+                                    if (!sense) basisCurve.Reverse();
                                     double startPos = basisCurve.PositionOf(startPoint);
                                     double endPos = basisCurve.PositionOf(endPoint);
                                     basisCurve.Trim(startPos, endPos);
-                                    if (!sense) basisCurve.Reverse();
                                     item.val = basisCurve;
                                 }
                             }
