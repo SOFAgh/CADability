@@ -3228,7 +3228,8 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual bool ReinterpretParameter(ref double p)
         {
-            throw new Exception("The method or operation is not implemented.");
+            return false;
+            //throw new Exception("The method or operation is not implemented.");
         }
 
         /// <summary>

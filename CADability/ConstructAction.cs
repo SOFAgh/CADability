@@ -6192,7 +6192,7 @@ namespace CADability.Actions
             // if (go.Style != null && go.Style.Check(go)) return go.Style; // der Stil stimmt
             // die Abfrage war schlecht: der Stil stimmte, die konkrete Ausführung an dem Objekt war aber anders
             Dictionary<Type, string> res = new Dictionary<Type, string>();
-            res[typeof(Layer)] = go.Layer.Name;
+            if (go.Layer!=null) res[typeof(Layer)] = go.Layer.Name;
             IColorDef icolorDef = go as IColorDef;
             if (icolorDef != null)
             {
@@ -7180,8 +7180,11 @@ namespace CADability.Actions
         {
             //System.Diagnostics.Trace.WriteLine("CancelBackgroundTask");
             Thread tmp = backgroundTask; // backgroundTask wird null bei Abort
-            tmp.Abort();
-            tmp.Join();
+            if (tmp != null)
+            {
+                tmp.Abort();
+                tmp.Join();
+            }
             //System.Diagnostics.Trace.WriteLine("CancelBackgroundTask-Done");
         }
         protected void WaitForBackgroundTask()

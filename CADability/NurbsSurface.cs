@@ -1298,7 +1298,7 @@ namespace CADability.GeoObject
                             }
                             GeoPoint center = Geometry.DropPL(loncnt[0], latcnt[0], axis);
                             axis.Length = center | loncnt[0];
-                            double minerror = GaussNewtonMinimizer.TorusFit(samples.Linear(), center, axis, lonrad[0], precision, out ToroidalSurface ts);
+                            double minerror = BoxedSurfaceExtension.TorusFit(samples.Linear(), center, axis, lonrad[0], precision, out ToroidalSurface ts);
                             if (minerror < precision)
                             {
                                 if (ts.MinorRadius > ts.XAxis.Length * 10)
@@ -1350,7 +1350,7 @@ namespace CADability.GeoObject
                                     double x = a * radii[0] / (radii[0] - radii[4]);
                                     GeoPoint a1 = centers[0] + x * axis.Normalized;
                                     double openingAngle = Math.Atan2(Math.Abs(radii[0] - radii[4]), centers[0] | centers[4]);
-                                    double minerror = GaussNewtonMinimizer.ConeFit(samples.Linear(), a1, axis, openingAngle, precision, out ConicalSurface cs);
+                                    double minerror = BoxedSurfaceExtension.ConeFit(samples.Linear(), a1, axis, openingAngle, precision, out ConicalSurface cs);
                                     if (minerror < precision) found = cs;
                                     if (Math.Abs(radii[0] - radii[4]) < 10 * precision)
                                     {   // could still be a cylinder
