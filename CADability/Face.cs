@@ -1334,7 +1334,7 @@ namespace CADability.GeoObject
                             ICurve2D crv2d;
                             //if (len < Precision.eps * 100) // changed to surfacePrecision
                             if (len < surfacePrecision * 100)
-                                {
+                            {
                                 GeoPoint2D sp = surface.PositionOf(loops[i][j].curve.StartPoint);
                                 GeoPoint2D ep = surface.PositionOf(loops[i][j].curve.EndPoint);
                                 if (!lastEndPoint.IsValid)
@@ -6905,7 +6905,7 @@ namespace CADability.GeoObject
             BoundingRect res = BoundingRect.EmptyBoundingRect;
             if (extentPrecision == ExtentPrecision.Raw)
             {   // when we have closed edges, e.g. a non periodic cylinder defined by two circles, then testing vertices only is not a good idea
-                if (trianglePrecision <= projection.Precision * 10)
+                if (trianglePrecision <= projection.Precision * 10 && trianglePrecision > 0.0)
                 {   // if we already have a reasonable triangulation, use it, because it is probably faster
                     lock (lockTriangulationData)
                     {

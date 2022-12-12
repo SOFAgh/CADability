@@ -787,7 +787,7 @@ namespace CADability
                     {
                         GeoPoint pi = points[i];
                         values[i] = sqr(sinb * (pi.z - c.z) + sina * cosb * (pi.y - c.y) + cosa * cosb * (pi.x - c.x)) -
-                            (sqr(sinb) + sqr(sina* cosb) + sqr(cosa * cosb)) * (sqr(pi.z - c.z) + sqr(pi.y - c.y) + sqr(pi.x - c.x)) * sqr(Math.Cos(t));
+                            (sqr(sinb) + sqr(sina * cosb) + sqr(cosa * cosb)) * (sqr(pi.z - c.z) + sqr(pi.y - c.y) + sqr(pi.x - c.x)) * sqr(Math.Cos(t));
                     }
                     return values;
                 }),
@@ -810,12 +810,12 @@ namespace CADability
                         double py = points[i].y;
                         double pz = points[i].z;
 
-                        derivs[i, 0] = 2 *(t1)*(px-cx)*cost2-2*cosa*cosb*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx));
-                        derivs[i, 1] = 2 *(t1)*(py-cy)*cost2-2*sina*cosb*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx));
-                        derivs[i, 2] = 2 * (t1)*(pz-cz)*cost2-2*sinb*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx));
-                        derivs[i, 3] = 2 * (cosa*cosb*(py-cy)-sina*cosb*(px-cx))*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx));
-                        derivs[i, 4] = 2 * (cosb*(pz-cz)-sina*sinb*(py-cy)-cosa*sinb*(px-cx))*(sinb*(pz-cz)+sina*cosb*(py-cy)+cosa*cosb*(px-cx))-((-2*sqr(sina)*cosb*sinb)-2*sqr(cosa)*cosb*sinb+2*cosb*sinb)*(sqr(pz-cz)+sqr(py-cy)+sqr(px-cx))*cost2;
-                        derivs[i, 5] = 2 * (t1)*(sqr(pz-cz)+sqr(py-cy)+sqr(px-cx))*Math.Cos(t)*Math.Sin(t);
+                        derivs[i, 0] = 2 * (t1) * (px - cx) * cost2 - 2 * cosa * cosb * (sinb * (pz - cz) + sina * cosb * (py - cy) + cosa * cosb * (px - cx));
+                        derivs[i, 1] = 2 * (t1) * (py - cy) * cost2 - 2 * sina * cosb * (sinb * (pz - cz) + sina * cosb * (py - cy) + cosa * cosb * (px - cx));
+                        derivs[i, 2] = 2 * (t1) * (pz - cz) * cost2 - 2 * sinb * (sinb * (pz - cz) + sina * cosb * (py - cy) + cosa * cosb * (px - cx));
+                        derivs[i, 3] = 2 * (cosa * cosb * (py - cy) - sina * cosb * (px - cx)) * (sinb * (pz - cz) + sina * cosb * (py - cy) + cosa * cosb * (px - cx));
+                        derivs[i, 4] = 2 * (cosb * (pz - cz) - sina * sinb * (py - cy) - cosa * sinb * (px - cx)) * (sinb * (pz - cz) + sina * cosb * (py - cy) + cosa * cosb * (px - cx)) - ((-2 * sqr(sina) * cosb * sinb) - 2 * sqr(cosa) * cosb * sinb + 2 * cosb * sinb) * (sqr(pz - cz) + sqr(py - cy) + sqr(px - cx)) * cost2;
+                        derivs[i, 5] = 2 * (t1) * (sqr(pz - cz) + sqr(py - cy) + sqr(px - cx)) * Math.Cos(t) * Math.Sin(t);
                     }
                     return derivs;
                 }), observedX, observedY);
@@ -824,10 +824,217 @@ namespace CADability
             NonlinearMinimizationResult mres = lm.FindMinimum(iom, new DenseVector(new double[] { apex.x, apex.y, apex.z, a, b, theta }));
             if (mres.ReasonForExit == ExitCondition.Converged || mres.ReasonForExit == ExitCondition.RelativeGradient)
             {
-                GeoVector dir = new GeoVector(Math.Cos(mres.MinimizingPoint[4])*Math.Cos(mres.MinimizingPoint[3]), Math.Cos(mres.MinimizingPoint[4]) * Math.Sin(mres.MinimizingPoint[3]), Math.Sin(mres.MinimizingPoint[4]));
+                GeoVector dir = new GeoVector(Math.Cos(mres.MinimizingPoint[4]) * Math.Cos(mres.MinimizingPoint[3]), Math.Cos(mres.MinimizingPoint[4]) * Math.Sin(mres.MinimizingPoint[3]), Math.Sin(mres.MinimizingPoint[4]));
                 dir.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
                 cs = new ConicalSurface(new GeoPoint(mres.MinimizingPoint[0], mres.MinimizingPoint[1], mres.MinimizingPoint[2]), dirx, diry, dir, mres.MinimizingPoint[5]);
                 return sqr(mres.StandardErrors[0]) + sqr(mres.StandardErrors[1]) + sqr(mres.StandardErrors[2]) + sqr(mres.StandardErrors[3]) + sqr(mres.StandardErrors[4]) + sqr(mres.StandardErrors[5]);
+            }
+            else
+            {
+                cs = null;
+                return double.MaxValue;
+            }
+        }
+
+        public static double TorusFit(IArray<GeoPoint> points, GeoPoint center, GeoVector axis, double minrad, double precision, out ToroidalSurface ts)
+        {
+            // see https://www.geometrictools.com/Documentation/DistanceToCircle3.pdf
+            // using this Maxima input:
+            //R2: nx* nx +ny * ny + nz * nz; /* n is both the normal (axis direction) of the torus and the major radius (lenth of n) */
+            //dx: px - cx;
+            //dy: py - cy;
+            //dz: pz - cz;
+            //ndx: ny* dz-nz * dy;
+            //ndy: nx* dz-nz * dx;
+            //ndz: nx* dy-ny * dx;
+            //a: (nx * dx + ny * dy + nz * dz) ^ 2 / R2; /* sub expression */
+            //f: r* r -(a + (sqrt(dx * dx + dy * dy + dz * dz - a) - sqrt(R2)) ^ 2); /* r*r - "distance point to main torus circle", r is the minor radius, positive inside, negative outside of the torus */
+            //dfdcx: diff(f, cx, 1); /* derivations needed for Jacobi Matrix */
+            //dfdcy: diff(f, cy, 1);
+            //dfdcz: diff(f, cz, 1);
+            //dfdnx: diff(f, nx, 1);
+            //dfdny: diff(f, ny, 1);
+            //dfdnz: diff(f, nz, 1);
+            //dfdr: diff(f, r, 1);
+            //stringout("C:/Temp/torusapprox.txt", values);
+
+            // parameters: { cx,cy,cz,nx,ny,nz,r} wher xc,cy,cz is the center of the torus, nx,ny,nz the normal, length of (nx,ny,nz) the major radius, r the minor radius
+            Vector<double> observedX = new DenseVector(points.Length); // there is no need to set values
+            Vector<double> observedY = new DenseVector(points.Length); // this is the data we want to achieve, namely 0.0
+            LevenbergMarquardtMinimizer lm = new LevenbergMarquardtMinimizer(gradientTolerance: 1e-15, maximumIterations: 20);
+            IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                {
+                    DenseVector values = new DenseVector(points.Length);
+                    double cx = vd[0];
+                    double cy = vd[1];
+                    double cz = vd[2];
+                    double nx = vd[3];
+                    double ny = vd[4];
+                    double nz = vd[5];
+                    double r = vd[6];
+                    double R2 = nx * nx + ny * ny + nz * nz;
+                    double R = Math.Sqrt(R2);
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        GeoVector d = points[i] - new GeoPoint(cx, cy, cz);
+                        values[i] = r * r - (sqr(nx * d.x + ny * d.y + nz * d.z) / R2 + sqr(Math.Sqrt(d.x * d.x + d.y * d.y + d.z * d.z - sqr(nx * d.x + ny * d.y + nz * d.z) / R2) - R));
+                    }
+                    return values;
+                }),
+                new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                {
+                    DenseMatrix derivs = DenseMatrix.Create(points.Length, 7, 0); // Jacobi Matrix 
+                    double cx = vd[0];
+                    double cy = vd[1];
+                    double cz = vd[2];
+                    double nx = vd[3];
+                    double ny = vd[4];
+                    double nz = vd[5];
+                    double r = vd[6];
+                    double nn = nz * nz + ny * ny + nx * nx;
+                    double rn = Math.Sqrt(nn);
+
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        double px = points[i].x;
+                        double py = points[i].y;
+                        double pz = points[i].z;
+                        double dx = px - cx;
+                        double dy = py - cy;
+                        double dz = pz - cz;
+                        // manually extracted common subexpressions
+                        double nd = nz * dz + ny * dy + nx * dx;
+                        double dd = dz * dz + dy * dy + dx * dx;
+                        double b = Math.Sqrt((-sqr(nd)) / nn + dd);
+                        double a = b - Math.Sqrt(nn);
+                        double ndnn = nd / nn;
+                        double sndnn = sqr(nd) / sqr(nn);
+                        derivs[i, 0] = 2.0 * nx * ndnn - (2.0 * nx * ndnn - 2.0 * dx) * a / b;
+                        derivs[i, 1] = 2.0 * ny * ndnn - (2.0 * ny * ndnn - 2.0 * dy) * a / b;
+                        derivs[i, 2] = 2.0 * nz * ndnn - (2.0 * nz * ndnn - 2.0 * dz) * a / b;
+                        derivs[i, 3] = (-2.0) * ((nx * sndnn - dx * ndnn) / b - nx / rn) * a + 2.0 * nx * sndnn - 2.0 * dx * ndnn;
+                        derivs[i, 4] = (-2.0) * ((ny * sndnn - dy * ndnn) / b - ny / rn) * a + 2.0 * ny * sndnn - 2.0 * dy * ndnn;
+                        derivs[i, 5] = (-2.0) * ((nz * sndnn - dz * ndnn) / b - nz / rn) * a + 2.0 * nz * sndnn - 2.0 * dz * ndnn;
+                        derivs[i, 6] = 2 * r;
+                    }
+                    return derivs;
+                }), observedX, observedY);
+            NonlinearMinimizationResult mres = lm.FindMinimum(iom, new DenseVector(new double[] { center.x, center.y, center.z, axis.x, axis.y, axis.z, minrad }));
+            if (mres.ReasonForExit == ExitCondition.Converged || mres.ReasonForExit == ExitCondition.RelativeGradient)
+            {
+                GeoPoint loc = new GeoPoint(mres.MinimizingPoint[0], mres.MinimizingPoint[1], mres.MinimizingPoint[2]);
+                GeoVector normal = new GeoVector(mres.MinimizingPoint[3], mres.MinimizingPoint[4], mres.MinimizingPoint[5]);
+                double majrad = normal.Length;
+                Plane pln = new Plane(loc, normal);
+                ts = new ToroidalSurface(pln.Location, pln.DirectionX, pln.DirectionY, pln.Normal, majrad, Math.Abs(mres.MinimizingPoint[6]));
+                double err = 0.0;
+                for (int i = 0; i < mres.StandardErrors.Count; i++) err += sqr(mres.StandardErrors[i]);
+                return err;
+            }
+            else
+            {
+                ts = null;
+                return double.MaxValue;
+            }
+        }
+        public static double CylinderFit(IArray<GeoPoint> points, GeoPoint center, GeoVector axis, double radius, double precision, out CylindricalSurface cs)
+        {
+            // a,b are the polar angles of the axis, cx, cy, cz is a (arbitrary) location, r is radius, p is the point to test
+            //dx:cos(a)*cos(b);
+            //dy:sin(a)*cos(b);
+            //dz:sin(b);
+            //ax:px-cx;
+            //ay:py-cy;
+            //az:pz-cz;
+            //f: r^2+(ax*dx)^2+(ay*dy)^2+(az*dz)^2-ax^2-ay^2-az^2;
+            //dfdcx: diff(f, cx, 1);
+            //dfdcy: diff(f, cy, 1);
+            //dfdcz: diff(f, cz, 1);
+            //dfda: diff(f, a, 1);
+            //dfdb: diff(f, b, 1);
+            //dfdr: diff(f, r, 1);
+            //stringout("C:/Temp/cylapprox.txt", values);
+            /*
+                f:r^2+sin(b)^2*(pz-cz)^2-(pz-cz)^2+sin(a)^2*cos(b)^2*(py-cy)^2-(py-cy)^2+cos(a)^2*cos(b)^2*(px-cx)^2-(px-cx)^2;
+                dfdcx:2*(px-cx)-2*cos(a)^2*cos(b)^2*(px-cx);
+                dfdcy:2*(py-cy)-2*sin(a)^2*cos(b)^2*(py-cy);
+                dfdcz:2*(pz-cz)-2*sin(b)^2*(pz-cz);
+                dfda:2*cos(a)*sin(a)*cos(b)^2*(py-cy)^2-2*cos(a)*sin(a)*cos(b)^2*(px-cx)^2;
+                dfdb:2*cos(b)*sin(b)*(pz-cz)^2-2*sin(a)^2*cos(b)*sin(b)*(py-cy)^2-2*cos(a)^2*cos(b)*sin(b)*(px-cx)^2;
+                dfdr:2*r;
+            */
+
+            // parameters: 0: cx, 1: cy, 2: dx, 3: dy, 4: dz, 5: r (c: location, d: direction, r: radius)
+            Vector<double> observedX = new DenseVector(points.Length); // there is no need to set values
+            Vector<double> observedY = new DenseVector(points.Length); // this is the data we want to achieve, namely 0.0
+            LevenbergMarquardtMinimizer lm = new LevenbergMarquardtMinimizer(gradientTolerance: 1e-15, maximumIterations: 20);
+            IObjectiveModel iom = ObjectiveFunction.NonlinearModel(
+                new Func<Vector<double>, Vector<double>, Vector<double>>(delegate (Vector<double> vd, Vector<double> ox) // function
+                {
+                    DenseVector values = new DenseVector(points.Length);
+                    double cx = vd[0];
+                    double cy = vd[1];
+                    double cz = vd[2];
+                    double sina = Math.Sin(vd[3]);
+                    double cosa = Math.Cos(vd[3]);
+                    double sinb = Math.Sin(vd[4]);
+                    double cosb = Math.Cos(vd[4]);
+                    double r = vd[5];
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        double px = points[i].x;
+                        double py = points[i].y;
+                        double pz = points[i].z;
+                        values[i] = r * r + sinb * sinb * sqr(pz - cz) - sqr(pz - cz) + sina * sina * cosb * cosb * sqr(py - cy) - sqr(py - cy) + cosa + cosa * cosb * cosb * sqr(px - cx) - sqr(px - cx);
+                    }
+                    return values;
+                }),
+                new Func<Vector<double>, Vector<double>, Matrix<double>>(delegate (Vector<double> vd, Vector<double> ox) // derivatives
+                {
+                    DenseMatrix derivs = DenseMatrix.Create(points.Length, 6, 0); // Jacobi Matrix 
+                    double cx = vd[0];
+                    double cy = vd[1];
+                    double cz = vd[2];
+                    double sina = Math.Sin(vd[3]);
+                    double cosa = Math.Cos(vd[3]);
+                    double sinb = Math.Sin(vd[4]);
+                    double cosb = Math.Cos(vd[4]);
+                    double r = vd[5];
+
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        double px = points[i].x;
+                        double py = points[i].y;
+                        double pz = points[i].z;
+
+                        derivs[i, 0] = 2 * (px - cx) - 2 * cosa * cosa * cosb * cosb * (px - cx);
+                        derivs[i, 1] = 2 * (py - cy) - 2 * sina * sina * cosb * cosb * (py - cy);
+                        derivs[i, 2] = 2 * (pz - cz) - 2 * sinb * sinb * (pz - cz);
+                        derivs[i, 3] = 2 * cosa * sina * cosb * cosb * sqr(py - cy) - 2 * cosa * sina * cosb * cosb * sqr(px - cx);
+                        derivs[i, 4] = 2 * cosb * sinb * sqr(pz - cz) - 2 * sina * sina * cosb * sinb * sqr(py - cy) - 2 * cosa * cosa * cosb * sinb * sqr(px - cx);
+                        derivs[i, 5] = 2 * r;
+                    }
+                    return derivs;
+                }), observedX, observedY);
+            double a = Math.Atan2(axis.y, axis.x);
+            double b = Math.Atan2(axis.z, Math.Sqrt(axis.x * axis.x + axis.y * axis.y));
+            NonlinearMinimizationResult mres = lm.FindMinimum(iom, new DenseVector(new double[] { center.x, center.y, center.z, a, b, radius }));
+            if (mres.ReasonForExit == ExitCondition.Converged || mres.ReasonForExit == ExitCondition.RelativeGradient)
+            {
+                GeoVector dir = new GeoVector(Math.Cos(mres.MinimizingPoint[4]) * Math.Cos(mres.MinimizingPoint[3]), Math.Cos(mres.MinimizingPoint[4]) * Math.Sin(mres.MinimizingPoint[3]), Math.Sin(mres.MinimizingPoint[4]));
+                dir.ArbitraryNormals(out GeoVector dirx, out GeoVector diry);
+                cs = new CylindricalSurface(center, radius * dirx, radius * diry, axis);
+                double err = 0.0;
+                for (int i = 0; i < mres.StandardErrors.Count; i++) err += sqr(mres.StandardErrors[i]);
+#if DEBUG
+                double dd = 0.0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    dd += cs.GetDistance(points[i]);
+                }
+#endif
+                return err;
             }
             else
             {

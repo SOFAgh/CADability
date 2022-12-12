@@ -9177,8 +9177,12 @@ namespace CADability.GeoObject
                 {
                     GeoPoint2D uv = new GeoPoint2D((cube.uvPatch.Left + cube.uvPatch.Right) / 2, cube.uvPatch.Bottom + i * 1.0 / 19);
                     GeoPoint p0 = surface.PointAt(uv);
-                    GeoPoint p1 = p0 + 10 * surface.UDirection(uv).Normalized;
-                    dcextra.Add(Line.TwoPoints(p0, p1), i);
+                    try
+                    {
+                        GeoPoint p1 = p0 + 10 * surface.UDirection(uv).Normalized;
+                        dcextra.Add(Line.TwoPoints(p0, p1), i);
+                    }
+                    catch { }
                 }
 #endif
                 isFolded = uvPatch.Size < (uvbounds.Size * 0.05) || uvPatch.Width < (uvbounds.Width * 0.05) || uvPatch.Height < (uvbounds.Height * 0.05);
