@@ -1757,10 +1757,13 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         GeoObjectList list = children.lval[i].parameter["_referred"].parameter["_geo"].val as GeoObjectList;
                         Block blk = Block.Construct();
                         blk.Name = children.lval[i].parameter["_referred"].parameter["name"].sval;
+                        HashSet<Tuple<IGeoObject, ModOp>> alreadyAdded = new HashSet<Tuple<IGeoObject, ModOp>>();
                         if (list.Count > 1 && makeBlocks)
                         {
                             for (int j = 0; j < list.Count; j++)
                             {
+                                if (alreadyAdded.Contains(new Tuple<IGeoObject, ModOp>(list[j], m))) continue;
+                                alreadyAdded.Add(new Tuple<IGeoObject, ModOp>(list[j], m));
                                 IGeoObject sub = list[j].Clone();
                                 sub.Modify(m);
                                 //res.Add(sub);
