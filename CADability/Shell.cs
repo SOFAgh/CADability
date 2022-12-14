@@ -5487,7 +5487,17 @@ namespace CADability.GeoObject
                                     // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
                                     BoundingRect ext = firstoutline.Extent;
                                     ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
-                                    if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
+                                    if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75)
+                                    {   // special case for cylinder: maybe firstToSecond should be +2.0*Math.Pi or -2.0*Math.Pi 
+                                        if (firstToSecond[0, 2] < Math.PI) firstToSecond[0, 2] += 2.0 * Math.PI;
+                                        else if (firstToSecond[0, 2] > Math.PI) firstToSecond[0, 2] -= 2.0 * Math.PI;
+                                        inverse = firstToSecond.GetInverse();
+                                        firstoutline = outline.GetModified(inverse);
+                                        // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
+                                        ext = firstoutline.Extent;
+                                        ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
+                                        if (ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
+                                    }
                                     if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
                                 }
                                 catch { continue; }
