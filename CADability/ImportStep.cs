@@ -1757,16 +1757,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         GeoObjectList list = children.lval[i].parameter["_referred"].parameter["_geo"].val as GeoObjectList;
                         Block blk = Block.Construct();
                         blk.Name = children.lval[i].parameter["_referred"].parameter["name"].sval;
-                        HashSet<Tuple<IGeoObject, ModOp>> alreadyAdded = new HashSet<Tuple<IGeoObject, ModOp>>();
+                        HashSet<(IGeoObject, ModOp)> alreadyAdded = new HashSet<(IGeoObject, ModOp)>();
                         if (list.Count > 1 && makeBlocks)
                         {
                             for (int j = 0; j < list.Count; j++)
                             {
-                                if (alreadyAdded.Contains(new Tuple<IGeoObject, ModOp>(list[j], m))) continue;
-                                alreadyAdded.Add(new Tuple<IGeoObject, ModOp>(list[j], m));
+                                if (alreadyAdded.Contains((list[j], m))) continue; // avoid adding the same object at the same position multiple times
+                                alreadyAdded.Add((list[j], m));
                                 IGeoObject sub = list[j].Clone();
                                 sub.Modify(m);
-                                //res.Add(sub);
+                                if (Settings.GlobalSettings.GetBoolValue("StepImport.AddLocation", true)) sub.UserData.Add("STEP.Location", m);
                                 blk.Add(sub);
                             }
                             if (blk.NumChildren > 0) res.Add(blk);
@@ -1775,8 +1775,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             for (int j = 0; j < list.Count; j++)
                             {
+                                if (alreadyAdded.Contains((list[j], m))) continue; // avoid adding the same object at the same position multiple times
+                                alreadyAdded.Add((list[j], m));
                                 IGeoObject sub = list[j].Clone();
                                 sub.Modify(m);
+                                if (Settings.GlobalSettings.GetBoolValue("StepImport.AddLocation", true)) sub.UserData.Add("STEP.Location", m);
                                 res.Add(sub);
                             }
                         }

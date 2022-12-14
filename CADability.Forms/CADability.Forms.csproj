@@ -137,6 +137,8 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ToolBars.cs" />
+    <Compile Include="Unfold.cs" />
+    <Compile Include="UnfoldOptions.cs" />
     <EmbeddedResource Include="CadControl.resx">
       <DependentUpon>CadControl.cs</DependentUpon>
     </EmbeddedResource>
