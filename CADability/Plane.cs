@@ -1,7 +1,7 @@
 ﻿using CADability.GeoObject;
 using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.LinearAlgebra.Double;
 using MathNet.Numerics.LinearAlgebra.Factorization;
+using MathNet.Numerics.LinearAlgebra.Double;
 using System;
 using System.Collections;
 using System.Runtime.Serialization;
@@ -214,15 +214,84 @@ namespace CADability
         /// <param name="Points">points to build the plane from</param>
         /// <param name="MaxDistance">maximum distance of the points from the plane</param>
         /// <returns>the plane</returns>
-        //public static Plane FromPoints(GeoPoint [] Points, out double MaxDistance)
-        //{
-        //    CndOCas.Plane opln = new CndOCas.Plane();
-        //    gp.Pnt[] tPoints = new gp.Pnt[Points.Length];
-        //    for (int i = 0; i < Points.Length; ++i) tPoints[i] = Points[i].gpPnt();
-        //    MaxDistance = opln.InitFromPoints(tPoints);
-        //    return new Plane(opln);
-        //}
-        public static Plane FromPoints(GeoPoint[] Points, out double MaxDistance, out bool isLinear)
+        public static Plane FromPoints(GeoPoint[] points, out double maxDistance, out bool isLinear)
+        {
+            maxDistance = double.MaxValue;
+            isLinear = false;
+            if (points.Length < 3)
+            {
+                isLinear = true;
+                return Plane.XYPlane; // there is no "invalid plane"
+            }
+
+            Matrix A = new DenseMatrix(points.Length, 3);
+            Vector B = new DenseVector(points.Length);
+            for (int i = 0; i < points.Length; i++)
+            {
+                A[i, 0] = points[i].x; // move the points to (x,y,z)>(1,1,1)
+                A[i, 1] = points[i].y;
+                A[i, 2] = points[i].z;
+                B[i] = -1;
+            }
+            GeoVector translation = GeoVector.NullVector;
+            Matrix AAT = (Matrix)(A.Transpose().Multiply(A));
+            if (AAT.Rank() < 3)
+            {   // this might be the case when the optimal plane geos through the origin
+                // then we need to move the point cloud
+                // a goo direction seems to be the axis direction where the extent is smallest
+                BoundingCube ext = new BoundingCube(points.ToArray());
+                int ind;
+                if (ext.XDiff < ext.YDiff && ext.XDiff < ext.ZDiff) ind = 0;
+                else if (ext.YDiff < ext.XDiff && ext.YDiff < ext.ZDiff) ind = 1;
+                else ind = 2;
+                double sz = ext.Size;
+                translation[ind] += sz;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    A[i, ind] += sz;
+                }
+                AAT = (Matrix)(A.Transpose().Multiply(A));
+                if (AAT.Rank() < 3)
+                {
+                    isLinear = true;
+                    return Plane.XYPlane;
+                }
+            }
+            Vector res = (Vector)AAT.Solve(A.Transpose().Multiply(B));
+            if (res.IsValid())
+            {
+                //double err = 0.0;
+                //if (translation.IsNullVector())
+                //{
+                //    for (int i = 0; i < points.Length; i++)
+                //    {
+                //        err += sqr(res[0] * points[i].x + res[1] * points[i].y + res[2] * points[i].z + 1);
+                //    }
+                //}
+                //else
+                //{
+                //    for (int i = 0; i < points.Length; i++)
+                //    {
+                //        err += sqr(res[0] * (points[i].x + translation.x) + res[1] * (points[i].y + translation.y) + res[2] * (points[i].z + translation.z) + 1);
+                //    }
+                //}
+                //maxDistance = Math.Sqrt(err);
+                double l = -1.0 / (res[0] * res[0] + res[1] * res[1] + res[2] * res[2]);
+                GeoPoint axisLocation = new GeoPoint(l * res[0], l * res[1], l * res[2]);
+                Plane plane = new Plane(axisLocation - translation, (new GeoVector(res[0], res[1], res[2])).Normalized);
+                maxDistance = 0.0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    double d = Math.Abs(plane.Distance(points[i]));
+                    if (d > maxDistance) maxDistance = d;
+                }
+                return plane;
+            }
+            isLinear = true;
+            return Plane.XYPlane;
+        }
+        private static double sqr(double d) { return d * d; }
+        public static Plane FromPointsOld(GeoPoint[] Points, out double MaxDistance, out bool isLinear)
         {
             // nach http://www.ilikebigbits.com/blog/2015/3/2/plane-from-points
             // nicht unbedingt das optimale Ergebnis :"this method will minimize the squares of the residuals as perpendicular to the main axis, 
@@ -350,7 +419,12 @@ namespace CADability
             }
             return res;
         }
-        internal static Plane FromPointsSVD(GeoPoint[] Points, out double MaxDistance, out bool isLinear)
+#if DEBUG
+        public
+#else
+        internal 
+#endif
+        static Plane FromPointsSVD(GeoPoint[] Points, out double MaxDistance, out bool isLinear)
         {
             isLinear = false;
             MaxDistance = double.MaxValue;
@@ -834,7 +908,7 @@ namespace CADability
         {
             coordSys.Modify(m);
         }
-        #region ISerializable Members
+#region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -860,7 +934,7 @@ namespace CADability
         public void SetObjectData(IJsonReadData data)
         {
         }
-        #endregion
+#endregion
 
 
         public void Align(GeoPoint2D c)

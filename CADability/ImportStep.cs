@@ -2706,6 +2706,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     {
                                         elapsedMs = stopWatch.ElapsedMilliseconds;
                                         defIndex = item.definingIndex;
+                                        System.Diagnostics.Trace.WriteLine("Face: " + item.definingIndex.ToString() + ", time: " + elapsedMs.ToString());
                                     }
 #if DEBUG
                                     if (4890 == item.definingIndex)

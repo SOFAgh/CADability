@@ -9,6 +9,7 @@ using MathNet.Numerics.LinearAlgebra.Double;
 using CADability.Curve2D;
 using MathNet.Numerics.Optimization.TrustRegion;
 using MathNet.Numerics;
+using Microsoft.Win32.SafeHandles;
 
 namespace CADability
 {
@@ -1120,6 +1121,71 @@ namespace CADability
             }
             return res;
         }
+
+        public static double TestPlaneFit(IArray<GeoPoint> points, out Plane plane)
+        {
+            plane = Plane.XYPlane; // in case of failure
+            if (points.Length < 3)
+            {
+                return double.MaxValue;
+            }
+
+            Matrix A = new DenseMatrix(points.Length, 3);
+            Vector B = new DenseVector(points.Length);
+            for (int i = 0; i < points.Length; i++)
+            {
+                A[i, 0] = points[i].x; // move the points to (x,y,z)>(1,1,1)
+                A[i, 1] = points[i].y;
+                A[i, 2] = points[i].z;
+                B[i] = -1;
+            }
+            GeoVector translation = GeoVector.NullVector;
+            Matrix AAT = (Matrix)(A.Transpose().Multiply(A));
+            if (AAT.Rank() < 3)
+            {   // this might be the case when the optimal plane geos through the origin
+                // then we need to move the point cloud
+                // a goo direction seems to be the axis direction where the extent is smallest
+                BoundingCube ext = new BoundingCube(points.ToArray());
+                int ind;
+                if (ext.XDiff < ext.YDiff && ext.XDiff < ext.ZDiff) ind = 0;
+                else if (ext.YDiff < ext.XDiff && ext.YDiff < ext.ZDiff) ind = 1;
+                else ind = 2;
+                double sz = ext.Size;
+                translation[ind] += sz;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    A[i, ind] += sz;
+                }
+                AAT = (Matrix)(A.Transpose().Multiply(A));
+                if (AAT.Rank() < 3) return double.MaxValue;
+            }
+            Vector res = (Vector)AAT.Solve(A.Transpose().Multiply(B));
+            if (res.IsValid())
+            {
+                double err = 0.0;
+                if (translation.IsNullVector())
+                {
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        err += sqr(res[0] * points[i].x + res[1] * points[i].y + res[2] * points[i].z + 1);
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        err += sqr(res[0] * (points[i].x + translation.x) + res[1] * (points[i].y + translation.y) + res[2] * (points[i].z + translation.z) + 1);
+                    }
+                }
+                double l = -1.0 / (res[0] * res[0] + res[1] * res[1] + res[2] * res[2]);
+
+                GeoPoint axisLocation = new GeoPoint(l * res[0], l * res[1], l * res[2]);
+                plane = new Plane(axisLocation - translation, (new GeoVector(res[0], res[1], res[2])).Normalized);
+                return err;
+            }
+            plane = new Plane();
+            return double.MaxValue;
+        }
         public static double QuadricFit(IArray<GeoPoint> points)
         {
             GeoPoint cnt = new GeoPoint(points.ToArray()); // center of all points
@@ -1180,8 +1246,8 @@ namespace CADability
                 // (2*c*dz+2*b*dy+2*a*dx+2*d) == 0
                 // (2*g+2*dz*f+2*dy*e+2*b*dx) == 0
                 // (2*i+2*dz*h+2*dy*f+2*c*dx) == 0
-                Matrix toOrigin = new DenseMatrix(3,3,new double
-                    [] { 2 * res[0], 2 * res[1], 2 * res[2], 2 * res[1], 2*res[4], 2 * res[5], 2 * res[2], 2 * res[5], 2 * res[7] });
+                Matrix toOrigin = new DenseMatrix(3, 3, new double
+                    [] { 2 * res[0], 2 * res[1], 2 * res[2], 2 * res[1], 2 * res[4], 2 * res[5], 2 * res[2], 2 * res[5], 2 * res[7] });
                 Vector toOriginB = new DenseVector(new double[] { -2 * res[3], -2 * res[6], -2 * res[8] });
                 Vector translate = (Vector)toOrigin.Solve(toOriginB);
                 Matrix Sinv = (Matrix)S.Inverse();
@@ -1189,7 +1255,11 @@ namespace CADability
                 {
                     dbgp[i] = Sinv * (points[i] - new GeoVector(translate[0], translate[1], translate[2]));
                 }
-            
+                ModOp mtoOrigin = new ModOp(Sinv.ToArray(), new GeoVector(0, 0, 0)) * ModOp.Translate(-new GeoVector(translate[0], translate[1], translate[2]));
+                for (int i = 0; i < points.Length; i++)
+                {
+                    dbgp[i] = mtoOrigin * points[i];
+                }
             }
             return double.MaxValue;
         }
