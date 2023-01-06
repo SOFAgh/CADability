@@ -79,7 +79,7 @@ namespace CADability.Tests
 
         [TestMethod]
         public void export_dxf_issue_129_succeds()
-        {,
+        {
             // in master@82ffb34 exporting a text object to txt does not set the location,
             // so all texts are all not in the correct location / orientation
 
