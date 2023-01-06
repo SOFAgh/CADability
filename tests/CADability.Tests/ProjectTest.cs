@@ -76,5 +76,35 @@ namespace CADability.Tests
                 Assert.That.BitmapsAreEqual(expected, actual);
             }
         }
+
+        [TestMethod]
+        public void export_dxf_issue_129_succeds()
+        {,
+            // in master@82ffb34 exporting a text object to txt does not set the location,
+            // so all texts are all not in the correct location / orientation
+
+            // create a simple project and add a text object
+            var project = Project.CreateSimpleProject();
+            var model = project.GetActiveModel();
+            var expected = GeoObject.Text.Construct();
+            expected.Font = "Arial";
+            expected.TextString = "Test";
+            expected.Location = new GeoPoint(50, 50);
+            model.Add(expected);
+
+            // export the project and load it again
+            var fileName = this.TestContext.TestName + ".dxf";
+            project.Export(fileName, "dxf");
+            project = Project.ReadFromFile(fileName, "dxf");
+            model = project.GetActiveModel();
+            var actual = model.AllObjects.Cast<GeoObject.Text>().Single();
+
+            // verify some values
+            Assert.AreEqual(expected.Location, actual.Location);
+            Assert.AreEqual(expected.TextString, actual.TextString);
+            Assert.AreEqual(expected.Font, actual.Font);
+
+        }
+
     }
 }
