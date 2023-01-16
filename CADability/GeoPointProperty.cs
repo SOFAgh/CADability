@@ -84,7 +84,6 @@ namespace CADability.UserInterface
     public class GeoPointProperty : EditableProperty<GeoPoint>, IUserData, ICommandHandler, IHotSpot
     {
         private NumberFormatInfo numberFormatInfo;
-        private int componentsDigits;
         private GeneralGeoPointAction generalGeoPointAction;
         private bool autoModifyWithMouse;
 
@@ -124,7 +123,6 @@ namespace CADability.UserInterface
             if (decsym == 1) numberFormatInfo.NumberDecimalSeparator = ".";
             else if (decsym == 2) numberFormatInfo.NumberDecimalSeparator = ",";
             numberFormatInfo.NumberDecimalDigits = frame.GetIntSetting("Formatting.Coordinate.Digits", 3);
-            componentsDigits = frame.GetIntSetting("Formatting.Coordinate.ComponentsDigits", 3);
         }
 
         public bool DisplayZComponent { get; set; } = true;
@@ -302,15 +300,15 @@ namespace CADability.UserInterface
                     subItems = new IPropertyEntry[3];
                     subItems[0] = new DoubleProperty(this, "X", "GeoPoint.XValue", Frame)
                     {
-                        DecimalDigits = Frame.GetIntSetting("Formatting.Coordinate.Digits", 3),
+                        DecimalDigits = Frame.GetIntSetting("Formatting.Coordinate.ComponentsDigits", 3),
                     };
                     subItems[1] = new DoubleProperty(this, "Y", "GeoPoint.YValue", Frame)
                     {
-                        DecimalDigits = Frame.GetIntSetting("Formatting.Coordinate.Digits", 3),
+                        DecimalDigits = Frame.GetIntSetting("Formatting.Coordinate.ComponentsDigits", 3),
                     };
                     subItems[2] = new DoubleProperty(this, "Z", "GeoPoint.ZValue", Frame)
                     {
-                        DecimalDigits = Frame.GetIntSetting("Formatting.Coordinate.Digits", 3),
+                        DecimalDigits = Frame.GetIntSetting("Formatting.Coordinate.ComponentsDigits", 3),
                     };
                 }
                 return subItems;
