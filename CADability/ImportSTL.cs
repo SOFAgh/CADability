@@ -120,13 +120,13 @@ namespace CADability
             while (!allFaces.IsEmpty())
             {
                 Shell part = Shell.CollectConnected(allFaces);
-//#if DEBUG
-//                // TODO: some mechanism to tell whether and how to reverse engineer the stl file
-//                double precision;
-//                if (numnum == 0) precision = part.GetExtent(0.0).Size * 1e-5;
-//                else precision = Math.Pow(10, -numdec / (double)(numnum)); // numdec/numnum is average number of decimal places
-//                part.ReconstructSurfaces(precision);
-//#endif
+#if DEBUG
+                // TODO: some mechanism to tell whether and how to reverse engineer the stl file
+                double precision;
+                if (numnum == 0) precision = part.GetExtent(0.0).Size * 1e-5;
+                else precision = Math.Pow(10, -numdec / (double)(numnum)); // numdec/numnum is average number of decimal places
+                part.ReconstructSurfaces(precision);
+#endif
                 res.Add(part);
             }
             return res.ToArray();
