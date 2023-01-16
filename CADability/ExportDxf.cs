@@ -24,6 +24,25 @@ namespace CADability.DXF
             createdLayers = new Dictionary<Attribute.Layer, netDxf.Tables.Layer>();
             createdLinePatterns = new Dictionary<LinePattern, Linetype>();
         }
+        public byte[] WriteToByteArray(Project toExport)
+        {
+            var memoryStream = new System.IO.MemoryStream();
+            Model modelSpace = null;
+            if (toExport.GetModelCount() == 1) modelSpace = toExport.GetModel(0);
+            else
+            {
+                modelSpace = toExport.FindModel("*Model_Space");
+            }
+            if (modelSpace == null) modelSpace = toExport.GetActiveModel();
+            for (int i = 0; i < modelSpace.Count; i++)
+            {
+                EntityObject entity = GeoObjectToEntity(modelSpace[i]);
+                if (entity != null) doc.Entities.Add(entity);
+            }
+            doc.Save(memoryStream);
+            return memoryStream.ToArray();
+        }
+
         public void WriteToFile(Project toExport, string filename)
         {
             Model modelSpace = null;
