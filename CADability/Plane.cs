@@ -132,16 +132,16 @@ namespace CADability
         /// Creates a new plane with the given parameters. Throws a <see cref="PlaneException"/>, if 
         /// the three points are colinear
         /// </summary>
-        /// <param name="Location">location of the plane</param>
+        /// <param name="location">location of the plane</param>
         /// <param name="p1">specifies the direction of the x-axis</param>
         /// <param name="p2">specifies the direction of the y-axis, wich will be perpendicular to the x-axis</param>
-		public Plane(GeoPoint Location, GeoPoint p1, GeoPoint p2)
+		public Plane(GeoPoint location, GeoPoint p1, GeoPoint p2)
         {
             try
             {
-                coordSys = new CoordSys(Location, p1 - Location, p2 - Location);
+                coordSys = new CoordSys(location, p1 - location, p2 - location);
             }
-            catch (CoordSysException e)
+            catch (CoordSysException)
             {
                 throw new PlaneException(PlaneException.tExceptionType.ConstructorFailed);
             }

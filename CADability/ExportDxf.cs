@@ -26,6 +26,25 @@ namespace CADability.DXF
             createdLayers = new Dictionary<Attribute.Layer, netDxf.Tables.Layer>();
             createdLinePatterns = new Dictionary<LinePattern, Linetype>();
         }
+        public byte[] WriteToByteArray(Project toExport)
+        {
+            var memoryStream = new System.IO.MemoryStream();
+            Model modelSpace = null;
+            if (toExport.GetModelCount() == 1) modelSpace = toExport.GetModel(0);
+            else
+            {
+                modelSpace = toExport.FindModel("*Model_Space");
+            }
+            if (modelSpace == null) modelSpace = toExport.GetActiveModel();
+            for (int i = 0; i < modelSpace.Count; i++)
+            {
+                EntityObject entity = GeoObjectToEntity(modelSpace[i]);
+                if (entity != null) doc.Entities.Add(entity);
+            }
+            doc.Save(memoryStream);
+            return memoryStream.ToArray();
+        }
+
         public void WriteToFile(Project toExport, string filename)
         {
             Model modelSpace = null;
@@ -112,11 +131,40 @@ namespace CADability.DXF
                     foreach (var item in xData.Data)
                     {
                         XDataCode code = item.Key;
-                        XDataRecord record = new XDataRecord(code, item.Value);
-                        data.XDataRecord.Add(record);
-                    }
+                        object newValue = null;
+                        //Make the export more robust to wrong XDataCode entries.
+                        //Try to fit the data into an existing datatype. Otherwise ignore entry.
+                        switch (code)
+                        {
+                            case XDataCode.Int16:
+                                if (item.Value is short int16val_1)
+                                    newValue = int16val_1;
+                                else if (item.Value is int int32val_1 && int32val_1 >= Int16.MinValue && int32val_1 <= Int16.MaxValue)
+                                    newValue = Convert.ToInt16(int32val_1);
+                                else if (item.Value is long int64val_1 && int64val_1 >= Int16.MinValue && int64val_1 <= Int16.MaxValue)
+                                    newValue = Convert.ToInt16(int64val_1);
+                                break;
+                            case XDataCode.Int32:
+                                if (item.Value is short int16val_2)
+                                    newValue = Convert.ToInt32(int16val_2);
+                                else if (item.Value is int int32val_2)
+                                    newValue = int32val_2;
+                                else if (item.Value is long int64val_2 && int64val_2 >= Int32.MinValue && int64val_2 <= Int32.MaxValue)
+                                    newValue = Convert.ToInt32(int64val_2);
+                                break;
+                            default:
+                                newValue = item.Value;
+                                break;
+                        }
 
-                    entity.XData.Add(data);
+                        if (newValue != null)
+                        {
+                            XDataRecord record = new XDataRecord(code, newValue);
+                            data.XDataRecord.Add(record);
+                        }
+                    }
+                    if (data.XDataRecord.Count > 0)
+                        entity.XData.Add(data);
                 }
                 else
                 {
@@ -125,25 +173,29 @@ namespace CADability.DXF
 
                     XDataRecord record = null;
 
-                    //TODO: Add more types
-                    if (de.Value is string strValue)
+                    switch (de.Value)
                     {
-                        record = new XDataRecord(XDataCode.String, strValue);
-                    }
-                    else if (de.Value is short shrValue)
-                    {
-                        record = new XDataRecord(XDataCode.Int16, shrValue);
-                    }
-                    else if (de.Value is int intValue)
-                    {
-                        record = new XDataRecord(XDataCode.Int32, intValue);
+                        case string strValue:
+                            record = new XDataRecord(XDataCode.String, strValue);
+                            break;
+                        case short shrValue:
+                            record = new XDataRecord(XDataCode.Int16, shrValue);
+                            break;
+                        case int intValue:
+                            record = new XDataRecord(XDataCode.Int32, intValue);
+                            break;
+                        case double dblValue:
+                            record = new XDataRecord(XDataCode.Real, dblValue);
+                            break;
+                        case byte[] bytValue:
+                            record = new XDataRecord(XDataCode.BinaryData, bytValue);
+                            break;
                     }
 
                     if (record != null)
                         data.XDataRecord.Add(record);
                 }
             }
-
         }
 
         private EntityObject[] ExportShell(GeoObject.Shell shell)

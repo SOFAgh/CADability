@@ -231,15 +231,26 @@ namespace CADability.Curve2D
             }
             return res;
         }
-        /// <summary>
-        /// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Parallel (double, bool, double, double)"/>
-        /// </summary>
-        /// <param name="Dist"></param>
-        /// <param name="approxSpline"></param>
-        /// <param name="precision"></param>
-        /// <param name="roundAngle"></param>
-        /// <returns></returns>
-        public override ICurve2D Parallel(double Dist, bool approxSpline, double precision, double roundAngle)
+		public override GeoPoint2D[] TangentPointsToAngle(Angle ang, GeoPoint2D CloseTo)
+		{
+			GeoPoint2D[] res = Geometry.IntersectLC(center + radius * new GeoVector2D(ang).ToLeft(), center + radius * new GeoVector2D(ang).ToRight(), center, radius);
+			if (res.Length == 2 && (Geometry.Dist(res[0], CloseTo) > Geometry.Dist(res[1], CloseTo)))
+			{
+				GeoPoint2D tmp = res[0];
+				res[0] = res[1];
+				res[1] = tmp;
+			}
+			return res;
+		}
+		/// <summary>
+		/// Overrides <see cref="CADability.Curve2D.GeneralCurve2D.Parallel (double, bool, double, double)"/>
+		/// </summary>
+		/// <param name="Dist"></param>
+		/// <param name="approxSpline"></param>
+		/// <param name="precision"></param>
+		/// <param name="roundAngle"></param>
+		/// <returns></returns>
+		public override ICurve2D Parallel(double Dist, bool approxSpline, double precision, double roundAngle)
         {
             // berücksichtigt die Richtung
             Circle2D res = new Circle2D(center, radius + Dist);
