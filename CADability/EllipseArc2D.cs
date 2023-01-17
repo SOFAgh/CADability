@@ -782,10 +782,11 @@ namespace CADability.Curve2D
                     bool pos1ok = a1.IsParameterOnCurve(pos1);
                     bool pos2ok = a1.IsParameterOnCurve(pos2);
                     if (pos1ok && pos2ok)
-                    {   // beide Punkte sind drauf
-                        return a1.Clone();
+                    {   // a1 contains both parameters, so it contains the whole arc
+                        // but if pos1 == 1 and pos2 == 0 then it is the complimentary arc
+                        if (pos1<pos2) return a1.Clone();
                     }
-                    else if (pos1ok)
+                    if (pos1ok)
                     {
                         return Create(a1.center, a1.majorAxis, a1.minorAxis, a1.startPoint, a2.endPoint, a1.sweepPar > 0.0);
                     }

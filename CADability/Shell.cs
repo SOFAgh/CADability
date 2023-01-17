@@ -5467,7 +5467,7 @@ namespace CADability.GeoObject
                         {
 #if DEBUG
                             if (edge.GetHashCode() == 1227) { }
-                            foreach (Edge dbgedg in edge.PrimaryFace.AllEdgesIterated())
+                            foreach (Edge dbgedg in edge.PrimaryFace.Edges)
                             {
                                 if (edge.Curve3D is InterpolatedDualSurfaceCurve)
                                 {
@@ -5484,13 +5484,12 @@ namespace CADability.GeoObject
                                 {
                                     ModOp2D inverse = firstToSecond.GetInverse();
                                     Border firstoutline = outline.GetModified(inverse);
-                                    // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
                                     BoundingRect ext = firstoutline.Extent;
                                     ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
                                     if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75)
                                     {   // special case for cylinder: maybe firstToSecond should be +2.0*Math.Pi or -2.0*Math.Pi 
-                                        if (firstToSecond[0, 2] < Math.PI) firstToSecond[0, 2] += 2.0 * Math.PI;
-                                        else if (firstToSecond[0, 2] > Math.PI) firstToSecond[0, 2] -= 2.0 * Math.PI;
+                                        if (firstoutline.Extent.Left > edge.SecondaryFace.Area.Outline.Extent.Left) firstToSecond[0, 2] += 2.0 * Math.PI;
+                                        else firstToSecond[0, 2] -= 2.0 * Math.PI;
                                         inverse = firstToSecond.GetInverse();
                                         firstoutline = outline.GetModified(inverse);
                                         // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct

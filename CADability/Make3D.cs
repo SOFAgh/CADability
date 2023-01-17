@@ -2568,6 +2568,15 @@ namespace CADability.GeoObject
                 if (project != null) project.SetDefaults(face);
                 return face;
             }
+            else if (faceShellPathCurve is Face face)
+            {
+                Shell shell = MakeBrutePrism(face, extension);
+                if (shell != null)
+                {
+                    if (project != null) project.SetDefaults(shell);
+                    return shell;
+                }
+            }
             return null;
         }
 

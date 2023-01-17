@@ -2139,7 +2139,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (271 == item.definingIndex || 2459 == item.definingIndex)
+            if (1287 == item.definingIndex)
             {
 
             }
@@ -2679,7 +2679,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (13376 == item.definingIndex || 4888 == item.definingIndex)
+                            if (159== item.definingIndex || 204== item.definingIndex|| 141 == item.definingIndex || 193 == item.definingIndex)
                             {
                             }
 #endif

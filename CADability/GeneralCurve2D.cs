@@ -2094,6 +2094,10 @@ namespace CADability.Curve2D
         /// <returns></returns>
         public virtual ICurve2D Parallel(double Dist, bool approxSpline, double precision, double roundAngle)
         {
+            if (approxSpline)
+            {
+                return Approximate(true,precision).Parallel(Dist,false,precision,roundAngle);
+            }
             throw new Exception("The method or operation is not implemented.");
         }
         private static GeoPoint2DWithParameter[] CheckTriangleIntersect(ICurve2D curve1, GeoPoint2D sp1, GeoPoint2D ep1, double spar1, double epar1, GeoVector2D sd1, GeoVector2D ed1,

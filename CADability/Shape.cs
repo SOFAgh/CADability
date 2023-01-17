@@ -764,8 +764,17 @@ namespace CADability.Shapes
         /// <param name="cs2">Second shape</param>
         /// <returns>The position</returns>
         public static Position GetPosition(CompoundShape cs1, CompoundShape cs2)
-        {
-            return Position.disjunct;
+        {   // this is not correct, but we don't need it to be correct
+            Position res = Position.disjunct;
+            for (int i = 0; i < cs1.SimpleShapes.Length; i++)
+            {
+                for (int j = 0; j < cs2.SimpleShapes.Length; j++)
+                {
+                    Position pos = GetPosition(cs1.SimpleShapes[i], cs2.SimpleShapes[j]);
+                    if (pos > res) res = pos;
+                }
+            }
+            return res;
         }
         /// <summary>
         /// Checks the relative position of two shapes to each other. The order of the parameters is important for the result.
@@ -1714,7 +1723,7 @@ namespace CADability.Shapes
     /// All simple shapes are disjoint. 
     /// </summary>
     [Serializable()]
-    public class CompoundShape : ISerializable, IJsonSerialize
+    public class CompoundShape : ISerializable, IJsonSerialize, IQuadTreeInsertable
     {
         [Serializable()]
         internal class SignatureOld : ISerializable
@@ -2388,6 +2397,17 @@ namespace CADability.Shapes
             }
             return res;
         }
+        public static bool Interferes(CompoundShape cs1, CompoundShape cs2)
+        {   
+            for (int i = 0; i < cs1.SimpleShapes.Length; i++)
+            {
+                for (int j = 0; j < cs2.SimpleShapes.Length; j++)
+                {
+                    if (SimpleShape.GetPosition(cs1.SimpleShapes[i], cs2.SimpleShapes[j]) != SimpleShape.Position.disjunct) return true;
+                }
+            }
+            return false;
+        }
         static public CompoundShape operator +(CompoundShape s1, CompoundShape s2)
         {
             return PlusOperator(s1, s2, Precision.eps);
@@ -3020,7 +3040,11 @@ namespace CADability.Shapes
         {
             return HitTest(ref Rect);
         }
-        #endregion
+        object IQuadTreeInsertable.ReferencedObject
+        {
+            get { return null; }
+        }
+#endregion
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
