@@ -4,6 +4,7 @@ using CADability.GeoObject;
 using CADability.UserInterface;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Threading;
@@ -427,10 +428,21 @@ namespace CADability
                     //{
                     //    AddOctreeObjects(geoObjects[i], octTree);
                     //}
-                    Parallel.For(0, geoObjects.Count, i =>
+                    try
                     {
-                        AddOctreeObjectsParallel(geoObjects[i], octTree);
-                    });
+                        Parallel.For(0, geoObjects.Count, i =>
+                        {
+                            AddOctreeObjectsParallel(geoObjects[i], octTree);
+                        });
+                    }
+                    catch (NullReferenceException)
+                    {   // mysterious exception when opening a simple dxf file from the recent files menu
+                        octTree = new OctTree<IGeoObject>(Extent, displayListPrecision);
+                        for (int i = 0; i < geoObjects.Count; ++i)
+                        {
+                            AddOctreeObjects(geoObjects[i], octTree);
+                        }
+                    }
                     int time = Environment.TickCount - tcstart;
                 }
             }
@@ -480,7 +492,7 @@ namespace CADability
             }
         }
         private void AddOctreeObjectsParallel(IGeoObject go, OctTree<IGeoObject> octTree)
-        {   // hier werden die EInzelteile eingehängt, damit das Picken von Face oder Edge
+        {   // hier werden die Einzelteile eingehängt, damit das Picken von Face oder Edge
             // schnell geht. Oft hat man ja nur ein einziges solid mit vielen Faces
             if (octTree == null) return;
             IGeoObject[] subEntities = go.OwnedItems;

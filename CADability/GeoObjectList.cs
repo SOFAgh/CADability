@@ -390,7 +390,7 @@ namespace CADability.GeoObject
         public UserData UserData { get { return userData; } }
         public IGeoObject this[int Index]
         {
-            get { return (IGeoObject)list[Index]; }
+            get { return list[Index]; }
             set { list[Index] = value; }
         }
         public static implicit operator IGeoObject[](GeoObjectList l)
@@ -463,6 +463,17 @@ namespace CADability.GeoObject
             list.AddRange(set.ToArray());
         }
 
+        internal bool CheckConsistency()
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] is Solid sld) if (!sld.Shells[0].CheckConsistency()) return false;
+                    else if (list[i] is Shell shl) if (!shl.CheckConsistency()) return false;
+                        else if (list[i] is Face fc) if (!fc.CheckConsistency()) return false;
+                            else if (list[i] is Block blk) if (!blk.Children.CheckConsistency()) return false;
+            }
+            return true;
+        }
         internal void MoveToFront(IGeoObject iGeoObject)
         {
             list.Remove(iGeoObject);

@@ -2101,6 +2101,18 @@ namespace CADability
                 p = new GeoPoint(p1, p2);
                 if (didntConvert)
                 {   // möglicherweise tangentiale Berührung der beiden Flächen, versuchen mit pointAt, position of zu konvergieren
+                    if (approxPolynom != null && basePoints.Length > 2)
+                    {
+                        GeoPoint pp = approxPolynom.PointAt(position);
+                        uv1 = surface1.PositionOf(pp);
+                        AdjustPeriodic(ref uv1, true, ind);
+                        uv2 = surface2.PositionOf(pp);
+                        AdjustPeriodic(ref uv2, false, ind);
+                        p1 = surface1.PointAt(uv1);
+                        p2 = surface2.PointAt(uv2);
+                        p = new GeoPoint(p1, p2);
+                    }
+
                     d = p1 | p2;
                     double basedist = basePoints[ind + 1].p3d | basePoints[ind].p3d;
                     while (d > Precision.eps)

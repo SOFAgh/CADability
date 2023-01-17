@@ -86,6 +86,10 @@ Target = typeof(CADability.Curve2D.BSpline2D), Description = "CADability IDebugg
 
 [assembly: System.Diagnostics.DebuggerVisualizer(typeof(CADability.DebuggerVisualizers.GeneralDebuggerVisualizer), typeof(VisualizerObjectSource),
 Target = typeof(CADability.GeoObject.BoxedSurfaceEx.ParEpi), Description = "CADability IDebuggerVisualizer Visualizer")]
+
+[assembly: System.Diagnostics.DebuggerVisualizer(typeof(CADability.DebuggerVisualizers.GeneralDebuggerVisualizer), typeof(VisualizerObjectSource),
+Target = typeof(CADability.DebuggerContainer), Description = "CADability DebuggerContainer Visualizer")]
+
 #endregion
 
 namespace CADability.DebuggerVisualizers

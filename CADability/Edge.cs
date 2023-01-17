@@ -821,7 +821,7 @@ namespace CADability
             edgeKind = EdgeKind.unknown;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 40496 || hashCode == 40494)
+            if (hashCode == 1214)
             {
             }
 #endif

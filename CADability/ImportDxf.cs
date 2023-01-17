@@ -1112,66 +1112,45 @@ namespace CADability.DXF
                 {
                     if (indices[0] != indices[1] && indices[1] != indices[2])
                     {
-                        Plane pln;
                         try
                         {
-                            pln = new Plane(vertices[indices[0]], vertices[indices[1]], vertices[indices[2]]);
+                            Plane pln = new Plane(vertices[indices[0]], vertices[indices[1]], vertices[indices[2]]);
+                            PlaneSurface surf = new PlaneSurface(pln);
+                            Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[1]]), pln.Project(vertices[indices[2]]) });
+                            SimpleShape ss = new SimpleShape(bdr);
+                            Face fc = Face.MakeFace(surf, ss);
+                            faces.Add(fc);
                         }
-                        catch (PlaneException ex)
-                        {
-                            //See: https://github.com/SOFAgh/CADability/issues/128
-                            Debug.WriteLine(ex.ToString());
-                            continue;
-                        }
-
-                        PlaneSurface surf = new PlaneSurface(pln);
-                        Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[1]]), pln.Project(vertices[indices[2]]) });
-                        SimpleShape ss = new SimpleShape(bdr);
-                        Face fc = Face.MakeFace(surf, ss);
-                        faces.Add(fc);
+                        catch { };
                     }
                 }
                 else
                 {
                     if (indices[0] != indices[1] && indices[1] != indices[2])
                     {
-                        Plane pln;
                         try
                         {
-                            pln = new Plane(vertices[indices[0]], vertices[indices[1]], vertices[indices[2]]);
+                            Plane pln = new Plane(vertices[indices[0]], vertices[indices[1]], vertices[indices[2]]);
+                            PlaneSurface surf = new PlaneSurface(pln);
+                            Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[1]]), pln.Project(vertices[indices[2]]) });
+                            SimpleShape ss = new SimpleShape(bdr);
+                            Face fc = Face.MakeFace(surf, ss);
+                            faces.Add(fc);
                         }
-                        catch (PlaneException ex)
-                        {
-                            //See: https://github.com/SOFAgh/CADability/issues/128
-                            Debug.WriteLine(ex.ToString());
-                            continue;
-                        }
-
-                        PlaneSurface surf = new PlaneSurface(pln);
-                        Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[1]]), pln.Project(vertices[indices[2]]) });
-                        SimpleShape ss = new SimpleShape(bdr);
-                        Face fc = Face.MakeFace(surf, ss);
-                        faces.Add(fc);
+                        catch { };
                     }
                     if (indices[2] != indices[3] && indices[3] != indices[0])
                     {
-                        Plane pln;
                         try
                         {
-                            pln = new Plane(vertices[indices[2]], vertices[indices[3]], vertices[indices[0]]);
+                            Plane pln = new Plane(vertices[indices[2]], vertices[indices[3]], vertices[indices[0]]);
+                            PlaneSurface surf = new PlaneSurface(pln);
+                            Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[3]]), pln.Project(vertices[indices[0]]) });
+                            SimpleShape ss = new SimpleShape(bdr);
+                            Face fc = Face.MakeFace(surf, ss);
+                            faces.Add(fc);
                         }
-                        catch (PlaneException ex)
-                        {
-                            //See: https://github.com/SOFAgh/CADability/issues/128
-                            Debug.WriteLine(ex.ToString());
-                            continue;
-                        }
-
-                        PlaneSurface surf = new PlaneSurface(pln);
-                        Border bdr = new Border(new GeoPoint2D[] { new GeoPoint2D(0.0, 0.0), pln.Project(vertices[indices[3]]), pln.Project(vertices[indices[0]]) });
-                        SimpleShape ss = new SimpleShape(bdr);
-                        Face fc = Face.MakeFace(surf, ss);
-                        faces.Add(fc);
+                        catch { };
                     }
                 }
             }

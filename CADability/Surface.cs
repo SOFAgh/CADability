@@ -2341,6 +2341,10 @@ namespace CADability.GeoObject
                         res.Add(pntv);
                     }
                 }
+                GeoPoint2D c2d = new GeoPoint2D((umax + umin) / 2, (vmax + vmin) / 2);
+                GeoPoint c3d = PointAt(c2d);
+                Line centerNormal = Line.TwoPoints(c3d, c3d + res.GetExtent().Size * 0.1*GetNormal(c2d));
+                res.Add(centerNormal);
                 return res;
             }
         }
@@ -9173,8 +9177,12 @@ namespace CADability.GeoObject
                 {
                     GeoPoint2D uv = new GeoPoint2D((cube.uvPatch.Left + cube.uvPatch.Right) / 2, cube.uvPatch.Bottom + i * 1.0 / 19);
                     GeoPoint p0 = surface.PointAt(uv);
-                    GeoPoint p1 = p0 + 10 * surface.UDirection(uv).Normalized;
-                    dcextra.Add(Line.TwoPoints(p0, p1), i);
+                    try
+                    {
+                        GeoPoint p1 = p0 + 10 * surface.UDirection(uv).Normalized;
+                        dcextra.Add(Line.TwoPoints(p0, p1), i);
+                    }
+                    catch { }
                 }
 #endif
                 isFolded = uvPatch.Size < (uvbounds.Size * 0.05) || uvPatch.Width < (uvbounds.Width * 0.05) || uvPatch.Height < (uvbounds.Height * 0.05);

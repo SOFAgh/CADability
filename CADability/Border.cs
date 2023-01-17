@@ -65,7 +65,7 @@ namespace CADability.Shapes
         }
         internal void flatten()
         {
-            ArrayList al = new ArrayList();
+            List<ICurve2D> subCurves = new List<ICurve2D>();
             bool flattened = false;
             for (int i = 0; i < segment.Length; ++i)
             {
@@ -74,8 +74,11 @@ namespace CADability.Shapes
                     Path2D p2d = segment[i] as Path2D;
                     for (int j = 0; j < p2d.SubCurves.Length; ++j)
                     {
-                        al.Add(p2d.SubCurves[j]);
-                        if (j == 0) p2d.SubCurves[j].UserData.CloneFrom(p2d.UserData); // es geht um "3d" von CurveGraph
+                        if (p2d.SubCurves[j].Length > 0)
+                        {
+                            subCurves.Add(p2d.SubCurves[j]);
+                            if (j == 0) p2d.SubCurves[j].UserData.CloneFrom(p2d.UserData); // es geht um "3d" von CurveGraph
+                        }
                     }
                     flattened = true;
                 }
@@ -85,21 +88,23 @@ namespace CADability.Shapes
                     ICurve2D[] sub = p2d.GetSubCurves();
                     for (int j = 0; j < sub.Length; ++j)
                     {
-                        al.Add(sub[j]);
-                        if (j == 0) sub[j].UserData.CloneFrom(p2d.UserData); // es geht um "3d" von CurveGraph
+                        if (sub[j].Length > 0)
+                        {
+                            subCurves.Add(sub[j]);
+                            if (j == 0) sub[j].UserData.CloneFrom(p2d.UserData); // es geht um "3d" von CurveGraph
+                        }
                     }
                     flattened = true;
                 }
                 else
                 {
-                    al.Add(segment[i]);
+                    subCurves.Add(segment[i]);
                 }
             }
             if (flattened)
             {
-                Segments = (ICurve2D[])al.ToArray(typeof(ICurve2D));
-                // hier davon ausgehend, dass nur einstufig verschachtelt war, ansonsten müsste es 
-                // hier rekursiv gehen
+                Segments = subCurves.ToArray();
+                flatten(); // might still contain paths or polylines
             }
         }
         protected Border()
@@ -4225,48 +4230,48 @@ namespace CADability.Shapes
                 }
             }
             bool found = false;
-            do
-            {   // now remove all inner loops
-                found = false;
-                for (int seg1 = 0; seg1 < segments.Count; seg1++)
-                {
-                    for (int seg2 = 0; seg2 < segments.Count; seg2++)
-                    {
-                        if (seg2 == (seg1 + 1) % segments.Count) continue;
-                        if (Precision.IsEqual(segments[seg1].EndPoint, segments[seg2].StartPoint))
-                        {
-                            List<ICurve2D> part1 = new List<ICurve2D>();
-                            List<ICurve2D> part2 = new List<ICurve2D>();
-                            if (seg1 > seg2)
-                            {
-                                for (int i = 0; i < segments.Count; i++)
-                                {
-                                    if (i <= seg1 && i >= seg2) part1.Add(segments[i]);
-                                    else part2.Add(segments[i]);
-                                }
-                            }
-                            else
-                            {
-                                for (int i = 0; i < segments.Count; i++)
-                                {
-                                    if (i <= seg1 || i >= seg2) part1.Add(segments[i]);
-                                    else part2.Add(segments[i]);
-                                }
-                            }
-                            double a1 = SignedArea(part1);
-                            double a2 = SignedArea(part2);
-                            if (a1 > 0 && a2 > 0) // we have an outer loop and an inner loop, remove the inner loop
-                            {
-                                segments.Clear();
-                                if (a1 > a2) segments.AddRange(part1);
-                                else segments.AddRange(part2);
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            } while (found);
+            //do
+            //{   // now remove all inner loops
+            //    found = false;
+            //    for (int seg1 = 0; seg1 < segments.Count; seg1++)
+            //    {
+            //        for (int seg2 = 0; seg2 < segments.Count; seg2++)
+            //        {
+            //            if (seg2 == (seg1 + 1) % segments.Count) continue;
+            //            if (Precision.IsEqual(segments[seg1].EndPoint, segments[seg2].StartPoint))
+            //            {
+            //                List<ICurve2D> part1 = new List<ICurve2D>();
+            //                List<ICurve2D> part2 = new List<ICurve2D>();
+            //                if (seg1 > seg2)
+            //                {
+            //                    for (int i = 0; i < segments.Count; i++)
+            //                    {
+            //                        if (i <= seg1 && i >= seg2) part1.Add(segments[i]);
+            //                        else part2.Add(segments[i]);
+            //                    }
+            //                }
+            //                else
+            //                {
+            //                    for (int i = 0; i < segments.Count; i++)
+            //                    {
+            //                        if (i <= seg1 || i >= seg2) part1.Add(segments[i]);
+            //                        else part2.Add(segments[i]);
+            //                    }
+            //                }
+            //                double a1 = SignedArea(part1);
+            //                double a2 = SignedArea(part2);
+            //                if (a1 > 0 && a2 > 0) // we have an outer loop and an inner loop, remove the inner loop
+            //                {
+            //                    segments.Clear();
+            //                    if (a1 > a2) segments.AddRange(part1);
+            //                    else segments.AddRange(part2);
+            //                    found = true;
+            //                    break;
+            //                }
+            //            }
+            //        }
+            //    }
+            //} while (found);
             // 1. remove segments, which are an inner bulge
             for (int i = 0; i < segments.Count; i++)
             {
@@ -4456,7 +4461,7 @@ namespace CADability.Shapes
                 }
             } while (found);
             do
-            {   // now remove all line pairs which have include concave angle
+            {   // now remove all line pairs which have concave angles
                 found = false;
                 for (int seg1 = 0; seg1 < segments.Count; seg1++)
                 {
@@ -4473,7 +4478,50 @@ namespace CADability.Shapes
                     }
                 }
             } while (found);
-
+            
+            do
+            {   // now remove all inner loops
+                found = false;
+                for (int seg1 = 0; seg1 < segments.Count; seg1++)
+                {
+                    for (int seg2 = 0; seg2 < segments.Count; seg2++)
+                    {
+                        if (seg2 == (seg1 + 1) % segments.Count) continue;
+                        if (Precision.IsEqual(segments[seg1].EndPoint, segments[seg2].StartPoint))
+                        {
+                            List<ICurve2D> part1 = new List<ICurve2D>();
+                            List<ICurve2D> part2 = new List<ICurve2D>();
+                            if (seg1 > seg2)
+                            {
+                                for (int i = 0; i < segments.Count; i++)
+                                {
+                                    if (i <= seg1 && i >= seg2) part1.Add(segments[i]);
+                                    else part2.Add(segments[i]);
+                                }
+                            }
+                            else
+                            {
+                                for (int i = 0; i < segments.Count; i++)
+                                {
+                                    if (i <= seg1 || i >= seg2) part1.Add(segments[i]);
+                                    else part2.Add(segments[i]);
+                                }
+                            }
+                            double a1 = SignedArea(part1);
+                            double a2 = SignedArea(part2);
+                            if (a1 > 0 && a2 > 0) // we have an outer loop and an inner loop, remove the inner loop
+                            {
+                                segments.Clear();
+                                if (a1 > a2) segments.AddRange(part1);
+                                else segments.AddRange(part2);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } while (found);
+            
             return new Border(segments.ToArray());
         }
         /// <summary>
