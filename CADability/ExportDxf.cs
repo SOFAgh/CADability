@@ -173,7 +173,7 @@ namespace CADability.DXF
             System.Drawing.Font font = new System.Drawing.Font(text.Font, 1000.0f, fs);
             netDxf.Entities.Text res = new netDxf.Entities.Text(text.TextString, Vector2.Zero, text.TextSize * 1000 / font.Height, new TextStyle(text.Font + ".ttf"));
             ModOp toText = ModOp.Fit(GeoPoint.Origin, new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis }, text.Location, new GeoVector[] { text.LineDirection.Normalized, text.GlyphDirection.Normalized, text.LineDirection.Normalized ^ text.GlyphDirection.Normalized });
-            // res.TransformBy(Matrix4(toText)); // easier than setting normal and rotation
+            res.TransformBy(Matrix4(toText)); // easier than setting normal and rotation
             return res;
         }
 
@@ -428,10 +428,10 @@ namespace CADability.DXF
         {
             return new Vector3(v.x, v.y, v.z);
         }
-        //private netDxf.Matrix4 Matrix4(ModOp toText)
-        //{
-        //    return new netDxf.Matrix4(toText[0, 0], toText[0, 1], toText[0, 2], toText[0, 3], toText[1, 0], toText[1, 1], toText[1, 2], toText[1, 3], toText[2, 0], toText[2, 1], toText[2, 2], toText[2, 3], 0, 0, 0, 1);
-        //}
+        private netDxf.Matrix4 Matrix4(ModOp toText)
+        {
+            return new netDxf.Matrix4(toText[0, 0], toText[0, 1], toText[0, 2], toText[0, 3], toText[1, 0], toText[1, 1], toText[1, 2], toText[1, 3], toText[2, 0], toText[2, 1], toText[2, 2], toText[2, 3], 0, 0, 0, 1);
+        }
         private string GetNextAnonymousBlockName()
         {
             return "AnonymousBlock" + (++anonymousBlockCounter).ToString();
