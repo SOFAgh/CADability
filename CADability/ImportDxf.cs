@@ -18,6 +18,7 @@ using Point = System.Drawing.Point;
 using netDxf.Tables;
 using System.Text;
 using System.IO;
+using System.Diagnostics;
 
 namespace CADability.DXF
 {

@@ -539,8 +539,10 @@ namespace netDxf.Entities
                     case 5:
                         d3 = ParseDatumReferenceValue(value);
                         break;
-                    default:
-                        throw new FormatException("The tolerance string representation is not well formatted");
+                        //FIXME: The error was removed on the advise by haplokuon and will probably be fixed in one of the next versions
+                        //see here https://github.com/haplokuon/netDxf/issues/426
+                        //default:
+                        //    throw new FormatException("The tolerance string representation is not well formatted");
                 }
             }
 
