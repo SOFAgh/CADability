@@ -125,6 +125,18 @@
     },
     {
       "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.ImportSVG.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.ImportSVG.html",
+          "hash": "pdUH25ScGNyh2IleHbLYm+eyNit3lH9nf6wQsxS1hpM="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
       "source_relative_path": "obj/api/CADability.Forms.PaintToBitmap.yml",
       "output": {
         ".html": {
@@ -156,7 +168,7 @@
           "hash": "W2Q0iF8/BP3umyPDTkZwEHBp1SvtyLOsGmBn+RQXgf0="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -209,14 +221,26 @@
     },
     {
       "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.TestJSonSerialisation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.TestJSonSerialisation.html",
+          "hash": "xszFxltuJPzy6e0KTANdRe5ZINvcWNLx8yPnXiuQOBI="
+        }
+      },
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
       "source_relative_path": "obj/api/CADability.Forms.yml",
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.html",
-          "hash": "7ck/G0V9wG5AzZNMGEOGrBiGHcIlDdssR8j+yAiovnE="
+          "hash": "jwT2n0KPwggtAa6l8ITMj8fFm9JBgUyzV7F66vCOPCA="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -225,7 +249,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "0MzWu+EZ0GeJGQRAd6CT8vc4LLbMFMrMKZoV3DSdCVw="
+          "hash": "A9fpL1EpBLIzuQwbN8vKWi99Tj4tWvZF5A+n5t1GGyM="
         }
       },
       "is_incremental": false,
@@ -262,8 +286,8 @@
         "ManagedReferenceDocumentProcessor": {
           "can_incremental": true,
           "incrementalPhase": "build",
-          "total_file_count": 14,
-          "skipped_file_count": 13
+          "total_file_count": 16,
+          "skipped_file_count": 16
         },
         "TocDocumentProcessor": {
           "can_incremental": false,
