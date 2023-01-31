@@ -2679,7 +2679,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (159== item.definingIndex || 204== item.definingIndex|| 141 == item.definingIndex || 193 == item.definingIndex)
+                            if (14640 == item.definingIndex || 17778 == item.definingIndex)
                             {
                             }
 #endif
@@ -2715,7 +2715,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         //GeoPoint2D dbg2d = dbgfc.Surface.PositionOf(dbgfc.Surface.PointAt(new GeoPoint2D(1.5, 0.6)));
                                         //dbgfc.AssureTriangles(0.02);
                                     }
-                                    if (dbgfc != null) 
+                                    if (dbgfc != null)
                                     {
                                         if (!dbgfc.CheckConsistency()) { }
                                     }

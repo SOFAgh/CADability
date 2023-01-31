@@ -2573,8 +2573,17 @@ namespace CADability.GeoObject
                 Shell shell = MakeBrutePrism(face, extension);
                 if (shell != null)
                 {
-                    if (project != null) project.SetDefaults(shell);
-                    return shell;
+                    if (shell.OpenEdges.Length == 0)
+                    {
+                        Solid sld = Solid.MakeSolid(shell);
+                        if (project != null) project.SetDefaults(sld);
+                        return sld;
+                    }
+                    else
+                    {
+                        if (project != null) project.SetDefaults(shell);
+                        return shell;
+                    }
                 }
             }
             return null;

@@ -325,7 +325,7 @@ namespace CADability
             object IJsonReadData.GetProperty(string name, Type type)
             {
                 object val = this[name];
-                if (root.typeVersions.TryGetValue(type.FullName,out int tv) && tv==-1) return val; // maybe it was ISerialize in an old version and is now SerializeAsStruct: this would fail
+                if (root.typeVersions.TryGetValue(type.FullName, out int tv) && tv == -1) return val; // maybe it was ISerialize in an old version and is now SerializeAsStruct: this would fail
                 if (SerializeAsStruct(type))
                 {
                     ConstructorInfo cie = type.GetConstructor(BindingFlags.CreateInstance | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, new Type[] { typeof(IJsonReadStruct) }, null);
@@ -984,7 +984,10 @@ namespace CADability
                         createEntity[ti] = delegate (JsonDict data, List<object> entities, ulong index, HashSet<ulong> underConstruction)
                         {
                             SerializationInfo si = SerializationInfoFromJsonData(data, tp, entities, underConstruction);
-                            return ci.Invoke(new object[] { si, new StreamingContext() });
+                            try
+                            {
+                                return ci.Invoke(new object[] { si, new StreamingContext() });
+                            } catch { return null;  }
                         };
                     }
                 }

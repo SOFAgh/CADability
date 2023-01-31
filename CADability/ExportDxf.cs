@@ -38,7 +38,7 @@ namespace CADability.DXF
             if (modelSpace == null) modelSpace = toExport.GetActiveModel();
             for (int i = 0; i < modelSpace.Count; i++)
             {
-                EntityObject entity = GeoObjectToEntity(modelSpace[i]);
+                EntityObject[] entity = GeoObjectToEntity(modelSpace[i]);
                 if (entity != null) doc.Entities.Add(entity);
             }
             doc.Save(memoryStream);

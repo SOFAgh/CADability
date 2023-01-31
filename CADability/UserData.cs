@@ -507,7 +507,7 @@ namespace CADability
         {
             foreach (KeyValuePair<string,object> item in data)
             {
-                this.data[item.Key] = item.Value;
+                if (!item.Key.StartsWith("$") && item.Key!="§Index") this.data[item.Key] = item.Value;
             }   
         }
 
