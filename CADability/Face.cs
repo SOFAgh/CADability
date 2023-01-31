@@ -4302,7 +4302,7 @@ namespace CADability.GeoObject
                 }
             }
         }
-        internal IEnumerable<Edge> Edges
+        public IEnumerable<Edge> Edges
         {
             get
             {
@@ -5359,11 +5359,11 @@ namespace CADability.GeoObject
 
         }
 
-        internal void ReplaceSurface(ISurface surface, ModOp2D reparameterize)
+        public void ModifySurface(ISurface surface, ModOp2D reparameterize)
         {
             this.surface = surface.Clone();
             BoundingRect modifiedBounds = Domain.GetModified(reparameterize);
-            foreach (Edge edg in AllEdgesIterated())
+            foreach (Edge edg in Edges)
             {
                 //edg.PrimaryCurve2D = this.surface.GetProjectedCurve(edg.Curve3D, 0.0);
                 //bool done = false;
@@ -5381,7 +5381,7 @@ namespace CADability.GeoObject
                 edg.ModifyCurve2D(this, null, reparameterize);
                 SurfaceHelper.AdjustPeriodic(this.surface, modifiedBounds, edg.Curve2D(this));
             }
-            foreach (Edge edg in AllEdgesIterated())
+            foreach (Edge edg in Edges)
             {
                 edg.Orient(); // ModifyCurve2D unsets the "oriented"-Flag of the edge. Maybe the edge has already been oriented, so ReverseOrientation(this) doesn't help
                 if (edg.Curve3D is InterpolatedDualSurfaceCurve idsc)
@@ -10483,12 +10483,12 @@ namespace CADability.GeoObject
                     if (GetNextEdge(holes[i][j]) != holes[i][next]) return false;
                 }
             }
-            foreach (Edge edg in AllEdgesIterated())
+            foreach (Edge edg in Edges)
             {
                 if (edg.PrimaryFace != this && edg.SecondaryFace != this) return false;
             }
             // sind die 2d Kurven richtig orientiert?
-            foreach (Edge edg in AllEdgesIterated())
+            foreach (Edge edg in Edges)
             {
                 // die Richtung der 2d Kurve ist so, dass auf der rechten Seite das Innere liegt
                 ICurve2D c2d = edg.Curve2D(this);

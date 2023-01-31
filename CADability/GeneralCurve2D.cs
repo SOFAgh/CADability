@@ -2676,7 +2676,7 @@ namespace CADability.Curve2D
             pts2 = curve2.interpol;
             par2 = curve2.interparam;
             dirs2 = curve2.interdir;
-#if DEBUGCURVE
+#if DEBUG
             DebuggerContainer dc = new DebuggerContainer();
             // dc.Add(curve1);
             for (int i = 0; i < 100; ++i)

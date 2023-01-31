@@ -3901,6 +3901,14 @@ namespace CADability
                     
                 }
             }
+            foreach (Face fc in allFaces)
+            {
+                string[] allUserDataKeys = fc.UserData.AllItems;
+                for (int i = 0; i < allUserDataKeys.Length; i++)
+                {
+                    if (allUserDataKeys[i].StartsWith("BRep")) fc.UserData.RemoveUserData(allUserDataKeys[i]);
+                }
+            }
             while (allFaces.Count > 0)
             {
                 Set<Face> connected = extractConnectedFaces(allFaces, allFaces.GetAny());
@@ -5070,6 +5078,7 @@ namespace CADability
                     {
                         edg.RemoveFace(openEdge.PrimaryFace);
                         openEdge.PrimaryFace.ReplaceEdge(openEdge, edg);
+                        break;
                     }
                     else if (edg.SecondaryFace == null && openEdge.SecondaryFace == null && BRepOperation.SameEdge(edg, openEdge, Precision.eps))
                     {
@@ -5077,6 +5086,7 @@ namespace CADability
                         {   // only correct oriented connections
                             openEdge.MergeWith(edg);
                             edg.DisconnectFromFace(openEdge.SecondaryFace);
+                            break;
                         }
                     }
                 }
@@ -5139,7 +5149,7 @@ namespace CADability
                     foreach (Face fce in common.Keys)
                     {
                         Face clone = fce.CloneWithVertices();
-                        clone.ReplaceSurface(op.Key.face2.Surface, op.Value); // if op.Value.Determinant<0 then the 2d edges are reversed
+                        clone.ModifySurface(op.Key.face2.Surface, op.Value); // if op.Value.Determinant<0 then the 2d edges are reversed
                         ftc.Add(clone);
                         clone.UserData["BRepIntersection.IsOpposite"] = true; // clone is only used to subtract from other faces, here we need to mark that it is in the opposite faces
                         commonFaces.Add(clone); // 

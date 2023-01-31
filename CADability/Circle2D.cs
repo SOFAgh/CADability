@@ -146,8 +146,8 @@ namespace CADability.Curve2D
         }
         internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
         {
-            interpol = new GeoPoint2D[4];
-            interparam = new double[] { 0, 0.25, 0.5, 0.75 };
+            interpol = new GeoPoint2D[5];
+            interparam = new double[] { 0, 0.25, 0.5, 0.75, 1.0 };
             for (int i = 0; i < interparam.Length; i++)
             {
                 interpol[i] = PointAt(interparam[i]);

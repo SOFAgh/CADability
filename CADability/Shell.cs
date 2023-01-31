@@ -844,7 +844,7 @@ namespace CADability.GeoObject
             }
             return res.ToArray();
         }
-        private GeoPoint[] GetLineIntersection(GeoPoint location, GeoVector direction)
+        public GeoPoint[] GetLineIntersection(GeoPoint location, GeoVector direction)
         {
             List<GeoPoint> res = new List<GeoPoint>();
             foreach (Face fc in faces)
@@ -4898,11 +4898,13 @@ namespace CADability.GeoObject
                     {
                         edg.RemoveFace(openEdge.PrimaryFace);
                         openEdge.PrimaryFace.ReplaceEdge(openEdge, edg);
+                        break;
                     }
                     else if (edg.SecondaryFace == null && openEdge.SecondaryFace == null && BRepOperation.SameEdge(edg, openEdge, Precision.eps))
                     {
                         openEdge.MergeWith(edg);
                         edg.DisconnectFromFace(openEdge.SecondaryFace);
+                        break;
                     }
                 }
             }
@@ -5461,7 +5463,7 @@ namespace CADability.GeoObject
                     foreach (Edge edge in edges)
                     {
                         ModOp2D firstToSecond;
-                        if (edge.SecondaryFace != null &&
+                        if (edge.SecondaryFace != null && edge.PrimaryFace.Surface!=null && edge.SecondaryFace.Surface != null &&
                             edge.SecondaryFace.Surface.SameGeometry(edge.SecondaryFace.GetUVBounds(), edge.PrimaryFace.Surface, edge.PrimaryFace.GetUVBounds(), precision, out firstToSecond) &&
                             edge.PrimaryFace != edge.SecondaryFace && firstToSecond.IsIsogonal && firstToSecond.Determinant > 0) // firstToSecond.IsIsogonal: non periodic surfaces or spheres with different axis are not implemented yet
                         {
@@ -5775,6 +5777,7 @@ namespace CADability.GeoObject
         internal static Shell MakeShell(Face[] faces, bool tryToConnectOpenEdges = false)
         {
             Shell res = Shell.Construct();
+            res.colorDef = faces[0].ColorDef;
             res.SetFaces(faces);
             if (tryToConnectOpenEdges)
             {
