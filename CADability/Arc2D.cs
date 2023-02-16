@@ -884,6 +884,22 @@ namespace CADability.Curve2D
             }
             return res.ToArray();
         }
+        internal override void GetTriangulationPoints(out GeoPoint2D[] interpol, out double[] interparam)
+        {
+            int n = (int)Math.Floor(Math.Abs(sweep) / (Math.PI / 2.0)) + 1;
+            if (n == 1) n = 2;
+            interparam=new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                interparam[i] = i / (double)(n - 1);
+            }
+            interpol = new GeoPoint2D[n];
+            for (int i = 0; i < interparam.Length; i++)
+            {
+                interpol[i] = PointAt(interparam[i]);
+            }
+        }
+
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization

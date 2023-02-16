@@ -1757,13 +1757,16 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         GeoObjectList list = children.lval[i].parameter["_referred"].parameter["_geo"].val as GeoObjectList;
                         Block blk = Block.Construct();
                         blk.Name = children.lval[i].parameter["_referred"].parameter["name"].sval;
+                        HashSet<(IGeoObject, ModOp)> alreadyAdded = new HashSet<(IGeoObject, ModOp)>();
                         if (list.Count > 1 && makeBlocks)
                         {
                             for (int j = 0; j < list.Count; j++)
                             {
+                                if (alreadyAdded.Contains((list[j], m))) continue; // avoid adding the same object at the same position multiple times
+                                alreadyAdded.Add((list[j], m));
                                 IGeoObject sub = list[j].Clone();
                                 sub.Modify(m);
-                                //res.Add(sub);
+                                if (Settings.GlobalSettings.GetBoolValue("StepImport.AddLocation", true)) sub.UserData.Add("STEP.Location", m);
                                 blk.Add(sub);
                             }
                             if (blk.NumChildren > 0) res.Add(blk);
@@ -1772,8 +1775,11 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             for (int j = 0; j < list.Count; j++)
                             {
+                                if (alreadyAdded.Contains((list[j], m))) continue; // avoid adding the same object at the same position multiple times
+                                alreadyAdded.Add((list[j], m));
                                 IGeoObject sub = list[j].Clone();
                                 sub.Modify(m);
+                                if (Settings.GlobalSettings.GetBoolValue("StepImport.AddLocation", true)) sub.UserData.Add("STEP.Location", m);
                                 res.Add(sub);
                             }
                         }
@@ -2133,7 +2139,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (271 == item.definingIndex || 2459 == item.definingIndex)
+            if (1287 == item.definingIndex)
             {
 
             }
@@ -2673,7 +2679,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (13376 == item.definingIndex || 4888 == item.definingIndex)
+                            if (14640 == item.definingIndex || 17778 == item.definingIndex)
                             {
                             }
 #endif
@@ -2700,6 +2706,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     {
                                         elapsedMs = stopWatch.ElapsedMilliseconds;
                                         defIndex = item.definingIndex;
+                                        System.Diagnostics.Trace.WriteLine("Face: " + item.definingIndex.ToString() + ", time: " + elapsedMs.ToString());
                                     }
 #if DEBUG
                                     if (4890 == item.definingIndex)
@@ -2708,7 +2715,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         //GeoPoint2D dbg2d = dbgfc.Surface.PositionOf(dbgfc.Surface.PointAt(new GeoPoint2D(1.5, 0.6)));
                                         //dbgfc.AssureTriangles(0.02);
                                     }
-                                    if (dbgfc != null) 
+                                    if (dbgfc != null)
                                     {
                                         if (!dbgfc.CheckConsistency()) { }
                                     }

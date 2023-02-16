@@ -1,5 +1,6 @@
 ﻿using CADability.Attribute;
 using CADability.GeoObject;
+using MathNet.Numerics.Statistics.Mcmc;
 using netDxf;
 using netDxf.Blocks;
 using netDxf.Entities;
@@ -18,14 +19,16 @@ namespace CADability.DXF
         private Dictionary<CADability.Attribute.Layer, netDxf.Tables.Layer> createdLayers;
         Dictionary<CADability.Attribute.LinePattern, netDxf.Tables.Linetype> createdLinePatterns;
         int anonymousBlockCounter = 0;
+        double triangulationPrecision = 0.1;
         public Export(netDxf.Header.DxfVersion version)
         {
             doc = new DxfDocument(version);
             createdLayers = new Dictionary<Attribute.Layer, netDxf.Tables.Layer>();
             createdLinePatterns = new Dictionary<LinePattern, Linetype>();
         }
-        public void WriteToFile(Project toExport, string filename)
+        public byte[] WriteToByteArray(Project toExport)
         {
+            var memoryStream = new System.IO.MemoryStream();
             Model modelSpace = null;
             if (toExport.GetModelCount() == 1) modelSpace = toExport.GetModel(0);
             else
@@ -35,15 +38,42 @@ namespace CADability.DXF
             if (modelSpace == null) modelSpace = toExport.GetActiveModel();
             for (int i = 0; i < modelSpace.Count; i++)
             {
-                EntityObject entity = GeoObjectToEntity(modelSpace[i]);
+                EntityObject[] entity = GeoObjectToEntity(modelSpace[i]);
+                if (entity != null) doc.Entities.Add(entity);
+            }
+            doc.Save(memoryStream);
+            return memoryStream.ToArray();
+        }
+
+        public void WriteToFile(Project toExport, string filename)
+        {
+            Model modelSpace = null;
+            if (toExport.GetModelCount() == 1) modelSpace = toExport.GetModel(0);
+            else
+            {
+                modelSpace = toExport.FindModel("*Model_Space");
+            }
+            if (modelSpace == null) modelSpace = toExport.GetActiveModel();
+            GeoObjectList geoObjects = new GeoObjectList();
+            List<Face> faces = new List<Face>(); // all top level faces collected
+            for (int i = 0; i < modelSpace.Count; i++)
+            {
+                if (modelSpace[i] is Face face) faces.Add(face.Clone()as Face); // Clone() to keep ownership
+                else geoObjects.Add(modelSpace[i]);
+            }
+            if (faces.Count > 0) geoObjects.Add(Shell.FromFaces(faces.ToArray())); // this shell is only to combine same color faces to a single mesh
+            for (int i = 0; i < geoObjects.Count; i++)
+            {
+                EntityObject[] entity = GeoObjectToEntity(geoObjects[i]);
                 if (entity != null) doc.Entities.Add(entity);
             }
             doc.Save(filename);
         }
 
-        private EntityObject GeoObjectToEntity(IGeoObject geoObject)
+        private EntityObject[] GeoObjectToEntity(IGeoObject geoObject)
         {
             EntityObject entity = null;
+            EntityObject[] entities = null;
             switch (geoObject)
             {
                 case GeoObject.Point point: entity = ExportPoint(point); break;
@@ -54,14 +84,36 @@ namespace CADability.DXF
                 case GeoObject.Path path: entity = ExportPath(path); break;
                 case GeoObject.Text text: entity = ExportText(text); break;
                 case GeoObject.Block block: entity = ExportBlock(block); break;
+                case GeoObject.Face face: entity = ExportFace(face); break;
+                case GeoObject.Shell shell: entities = ExportShell(shell); break;
+                case GeoObject.Solid solid: entities = ExportShell(solid.Shells[0]); break;
             }
             if (entity != null)
             {
                 SetAttributes(entity, geoObject);
                 SetUserData(entity, geoObject);
+                return new EntityObject[] { entity };
             }
+            if (entities != null)
+            {
+                for (int i = 0; i < entities.Length; i++)
+                {
+                    if (geoObject.Layer!=null && !createdLayers.TryGetValue(geoObject.Layer, out netDxf.Tables.Layer layer))
+                    {
+                        layer = new netDxf.Tables.Layer(geoObject.Layer.Name);
+                        doc.Layers.Add(layer);
+                        createdLayers[geoObject.Layer] = layer;
+                    }
+                    else
+                    {
+                        layer = netDxf.Tables.Layer.Default;    
+                    }
+                    entities[i].Layer = layer;
 
-            return entity;
+                }
+                return entities;
+            }
+            return null;
         }
 
         private void SetUserData(netDxf.Entities.EntityObject entity, IGeoObject go)
@@ -146,6 +198,127 @@ namespace CADability.DXF
             }
         }
 
+        private EntityObject[] ExportShell(GeoObject.Shell shell)
+        {
+            if (Settings.GlobalSettings.GetBoolValue("DxfImport.SingleMeshPerFace", false))
+            {
+                List<EntityObject> res = new List<EntityObject>();
+                for (int i = 0; i < shell.Faces.Length; i++)
+                {
+                    EntityObject mesh = ExportFace(shell.Faces[i]);
+                    if (mesh != null) res.Add(mesh);
+                }
+                return res.ToArray();
+            }
+            else
+            {
+                List<EntityObject> res = new List<EntityObject>();
+                Dictionary<int, (List<Vector3>, List<short[]>)> mesh = new Dictionary<int, (List<Vector3>, List<short[]>)>();
+                for (int i = 0; i < shell.Faces.Length; i++)
+                {
+                    CollectMeshByColor(mesh, shell.Faces[i]);
+                }
+                foreach (KeyValuePair<int, (List<Vector3> vertices, List<short[]> indices)> item in mesh)
+                {
+                    PolyfaceMesh pfm = new PolyfaceMesh(item.Value.vertices, item.Value.indices);
+                    SetColor(pfm, item.Key);
+                    res.Add(pfm);
+                }
+                return res.ToArray();
+            }
+        }
+        private netDxf.Entities.EntityObject ExportFace(GeoObject.Face face)
+        {
+            if (Settings.GlobalSettings.GetBoolValue("DxfImport.UseMesh", false))
+            {
+                if (face.Surface is PlaneSurface ps)
+                {
+                    if (face.OutlineEdges.Length == 4 && face.OutlineEdges[0].Curve3D is GeoObject.Line && face.OutlineEdges[1].Curve3D is GeoObject.Line && face.OutlineEdges[2].Curve3D is GeoObject.Line && face.OutlineEdges[3].Curve3D is GeoObject.Line)
+                    {
+                        // 4 lines, export as a simple PolyfaceMesh with 4 vertices
+                        List<Vector3> vertices = new List<Vector3>();
+                        for (int i = 0; i < 4; i++)
+                        {
+                            vertices.Add(Vector3(face.OutlineEdges[i].StartVertex(face).Position));
+                        }
+                        netDxf.Entities.Mesh res = new Mesh(vertices, new int[][] { new int[] { 0, 1, 2, 3 } });
+                        SetAttributes(res, face);
+                        return res;
+                    }
+                }
+                {
+                    face.GetTriangulation(triangulationPrecision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
+                    int[][] indices = new int[triangleIndex.Length / 3][];
+                    for (int i = 0; i < triangleIndex.Length - 2; i += 3)
+                    {   // it is strange, but the indices must be +1
+                        indices[i / 3] = new int[] { triangleIndex[i], triangleIndex[i + 1], triangleIndex[i + 2] };
+                    }
+                    Vector3[] vertices = new Vector3[trianglePoint.Length];
+                    for (int i = 0; i < trianglePoint.Length; i++)
+                    {
+                        vertices[i] = Vector3(trianglePoint[i]);
+                    }
+                    Mesh res = new Mesh(vertices, indices);
+                    SetAttributes(res, face);
+                    return res;
+                }
+            }
+            else
+            {
+                if (face.Surface is PlaneSurface ps)
+                {
+                    if (face.OutlineEdges.Length == 4 && face.OutlineEdges[0].Curve3D is GeoObject.Line && face.OutlineEdges[1].Curve3D is GeoObject.Line && face.OutlineEdges[2].Curve3D is GeoObject.Line && face.OutlineEdges[3].Curve3D is GeoObject.Line)
+                    {
+                        // 4 lines, export as a simple PolyfaceMesh with 4 vertices
+                        List<Vector3> vertices = new List<Vector3>();
+                        for (int i = 0; i < 4; i++)
+                        {
+                            vertices.Add(Vector3(face.OutlineEdges[i].StartVertex(face).Position));
+                        }
+                        netDxf.Entities.PolyfaceMesh res = new PolyfaceMesh(vertices, new short[][] { new short[] { 1, 2, 3, 4 } });
+                        SetAttributes(res, face);
+                        return res;
+                    }
+                }
+                {
+                    face.GetTriangulation(triangulationPrecision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
+                    short[][] indices = new short[triangleIndex.Length / 3][];
+                    for (int i = 0; i < triangleIndex.Length - 2; i += 3)
+                    {   // it is strange, but the indices must be +1
+                        indices[i / 3] = new short[] { (short)(triangleIndex[i] + 1), (short)(triangleIndex[i + 1] + 1), (short)(triangleIndex[i + 2] + 1) };
+                    }
+                    Vector3[] vertices = new Vector3[trianglePoint.Length];
+                    for (int i = 0; i < trianglePoint.Length; i++)
+                    {
+                        vertices[i] = Vector3(trianglePoint[i]);
+                    }
+                    PolyfaceMesh res = new PolyfaceMesh(vertices, indices);
+                    SetAttributes(res, face);
+                    return res;
+                }
+            }
+        }
+        private void CollectMeshByColor(Dictionary<int, (List<Vector3>, List<short[]>)> mesh, Face face)
+        {
+            if (!mesh.TryGetValue(face.ColorDef.Color.ToArgb(), out (List<Vector3> vertices, List<short[]> indices) mc))
+            {
+                mesh[face.ColorDef.Color.ToArgb()] = mc = (new List<Vector3>(), new List<short[]>());
+            }
+            short offset = (short)(mc.vertices.Count + 1);
+            face.GetTriangulation(triangulationPrecision, out GeoPoint[] trianglePoint, out GeoPoint2D[] triangleUVPoint, out int[] triangleIndex, out BoundingCube triangleExtent);
+            short[][] indices = new short[triangleIndex.Length / 3][];
+            for (int i = 0; i < triangleIndex.Length - 2; i += 3)
+            {   // it is strange, but the indices must be +1
+                indices[i / 3] = new short[] { (short)(triangleIndex[i] + offset), (short)(triangleIndex[i + 1] + offset), (short)(triangleIndex[i + 2] + offset) };
+            }
+            mc.indices.AddRange(indices);
+            Vector3[] vertices = new Vector3[trianglePoint.Length];
+            for (int i = 0; i < trianglePoint.Length; i++)
+            {
+                vertices[i] = Vector3(trianglePoint[i]);
+            }
+            mc.vertices.AddRange(vertices);
+        }
         private netDxf.Entities.Text ExportText(GeoObject.Text text)
         {
             System.Drawing.FontStyle fs = System.Drawing.FontStyle.Regular;
@@ -154,7 +327,7 @@ namespace CADability.DXF
             System.Drawing.Font font = new System.Drawing.Font(text.Font, 1000.0f, fs);
             netDxf.Entities.Text res = new netDxf.Entities.Text(text.TextString, Vector2.Zero, text.TextSize * 1000 / font.Height, new TextStyle(text.Font + ".ttf"));
             ModOp toText = ModOp.Fit(GeoPoint.Origin, new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis }, text.Location, new GeoVector[] { text.LineDirection.Normalized, text.GlyphDirection.Normalized, text.LineDirection.Normalized ^ text.GlyphDirection.Normalized });
-            // res.TransformBy(Matrix4(toText)); // easier than setting normal and rotation
+            res.TransformBy(Matrix4(toText)); // easier than setting normal and rotation
             return res;
         }
 
@@ -163,8 +336,8 @@ namespace CADability.DXF
             List<EntityObject> entities = new List<EntityObject>();
             for (int i = 0; i < blk.Children.Count; i++)
             {
-                EntityObject entity = GeoObjectToEntity(blk.Child(i));
-                if (entity != null) entities.Add(entity);
+                EntityObject[] entity = GeoObjectToEntity(blk.Child(i));
+                if (entity != null) entities.AddRange(entity);
             }
             string name = blk.Name;
             if (name == null || doc.Blocks.Contains(name) || !TableObject.IsValidName(name)) name = GetNextAnonymousBlockName();
@@ -177,8 +350,8 @@ namespace CADability.DXF
             List<EntityObject> entities = new List<EntityObject>();
             for (int i = 0; i < path.Curves.Length; i++)
             {
-                EntityObject curve = GeoObjectToEntity(path.Curves[i] as IGeoObject);
-                if (curve != null) entities.Add(curve);
+                EntityObject[] curve = GeoObjectToEntity(path.Curves[i] as IGeoObject);
+                if (curve != null) entities.AddRange(curve);
             }
             netDxf.Blocks.Block block = new netDxf.Blocks.Block(GetNextAnonymousBlockName(), entities);
             doc.Blocks.Add(block);
@@ -328,6 +501,29 @@ namespace CADability.DXF
             }
         }
 
+        private void SetColor(EntityObject entity, int argb)
+        {
+            AciColor clr;
+            if (argb.Equals(Color.White.ToArgb()) || argb.Equals(Color.Black.ToArgb()))
+            {
+                clr = AciColor.Default;
+            }
+            else
+            {
+                clr = AciColor.FromTrueColor(argb);
+                if (clr.Index > 0 && clr.Index < 256)
+                {
+                    var indexColor = AciColor.FromCadIndex(clr.Index);
+                    if (indexColor.ToColor().ToArgb().Equals(argb))
+                    {
+                        // if the color matches the index color exactly
+                        // we don't need to use TruColor
+                        clr.UseTrueColor = false;
+                    }
+                }
+            }
+            entity.Color = clr;
+        }
         private void SetAttributes(EntityObject entity, IGeoObject go)
         {
             if (go is IColorDef cd && cd.ColorDef != null)
@@ -409,10 +605,10 @@ namespace CADability.DXF
         {
             return new Vector3(v.x, v.y, v.z);
         }
-        //private netDxf.Matrix4 Matrix4(ModOp toText)
-        //{
-        //    return new netDxf.Matrix4(toText[0, 0], toText[0, 1], toText[0, 2], toText[0, 3], toText[1, 0], toText[1, 1], toText[1, 2], toText[1, 3], toText[2, 0], toText[2, 1], toText[2, 2], toText[2, 3], 0, 0, 0, 1);
-        //}
+        private netDxf.Matrix4 Matrix4(ModOp toText)
+        {
+            return new netDxf.Matrix4(toText[0, 0], toText[0, 1], toText[0, 2], toText[0, 3], toText[1, 0], toText[1, 1], toText[1, 2], toText[1, 3], toText[2, 0], toText[2, 1], toText[2, 2], toText[2, 3], 0, 0, 0, 1);
+        }
         private string GetNextAnonymousBlockName()
         {
             return "AnonymousBlock" + (++anonymousBlockCounter).ToString();

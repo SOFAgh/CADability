@@ -2229,8 +2229,10 @@ namespace CADability
         #region IJsonSerialize Members
         public void GetObjectData(IJsonWriteData data)
         {
+            owner = primaryFace;
             if (curve3d != null)
             {
+                if (curve3d is IGeoObject go) go.Owner = this;
                 data.AddProperty("Curve3d", curve3d);
             }
             if (primaryFace != null) data.AddProperty("PrimaryFace", primaryFace);

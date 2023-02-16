@@ -270,7 +270,7 @@ namespace CADability
             {
                 if (edge.PrimaryFace != null) edge.ReplaceVertex(ev, this);
             }
-            lock (ev.uvposition) 
+            lock (ev.uvposition)
             {
                 foreach (KeyValuePair<Face, GeoPoint2D> kv in ev.uvposition)
                 {
@@ -394,7 +394,21 @@ namespace CADability
         public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Position", position);
-            data.AddProperty("Edges", edges.ToArray());
+            List<Edge> usableEdges = new List<Edge>();
+            foreach (Edge edge in edges)
+            {
+                if (edge.Owner is Face owner)
+                {
+                    if (edge.PrimaryFace == owner || edge.SecondaryFace == owner) usableEdges.Add(edge);
+                    else
+                    {
+                        edge.Owner = edge.PrimaryFace;
+                        usableEdges.Add(edge);
+                    }
+                }
+
+            }
+            data.AddProperty("Edges", usableEdges.ToArray());
         }
         public void SetObjectData(IJsonReadData data)
         {

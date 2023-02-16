@@ -558,6 +558,7 @@ namespace CADability
         {
             get
             {
+                if (gdiViews== null) { gdiViews= new List<GDI2DView>(); }
                 return gdiViews;
             }
         }
@@ -2365,15 +2366,21 @@ namespace CADability
             info.AddValue("UserData", UserData);
             info.AddValue("SymbolList", symbolList);
 #if !WEBASSEMBLY
+            if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+            {
             info.AddValue("Layouts", layouts.ToArray()); // Generics erwarten die exakte Version beim Deserialisieren, geht also nicht
             info.AddValue("GdiViews", gdiViews.ToArray());
+            }
 #endif
             info.AddValue("ProjectedModels", projectedModels.ToArray());
             info.AddValue("NamedValues", namedValues);
             info.AddValue("FilterList", filterList);
             info.AddValue("AnimatedViews", animatedViews.ToArray());
             info.AddValue("ActiveViewName", activeViewName);
-            //if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
+            if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+            {
+                if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
+        }
         }
         public void GetObjectData(IJsonWriteData data)
         {
@@ -2383,15 +2390,21 @@ namespace CADability
             data.AddProperty("UserData", UserData);
             data.AddProperty("SymbolList", symbolList);
 #if !WEBASSEMBLY
+            if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+            {
             data.AddProperty("Layouts", layouts);
             data.AddProperty("GdiViews", gdiViews);
+            }
 #endif
             data.AddProperty("ProjectedModels", projectedModels);
             data.AddProperty("NamedValues", namedValues);
             data.AddProperty("FilterList", filterList);
             data.AddProperty("AnimatedViews", animatedViews);
             data.AddProperty("ActiveViewName", activeViewName);
-            //if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings); //NET6 is no more serializzable.
+            if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+            {
+                if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings);
+        }
         }
 
         public void SetObjectData(IJsonReadData data)
@@ -2403,20 +2416,30 @@ namespace CADability
             UserData = data.GetPropertyOrDefault<UserData>("UserData");
             symbolList = data.GetPropertyOrDefault<GeoObjectList>("SymbolList");
 #if !WEBASSEMBLY
+            try
+            {
+                if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+                {
             layouts = data.GetPropertyOrDefault<List<Layout>>("Layouts");
             gdiViews = data.GetPropertyOrDefault<List<GDI2DView>>("GdiViews");
+                }
+            }
+            catch (PlatformNotSupportedException) { }
 #endif
             projectedModels = data.GetPropertyOrDefault<List<ProjectedModel>>("ProjectedModels");
             namedValues = data.GetPropertyOrDefault<NamedValuesProperty>("NamedValues");
             filterList = data.GetPropertyOrDefault<FilterList>("FilterList");
             animatedViews = data.GetPropertyOrDefault<List<AnimatedView>>("AnimatedViews");
             activeViewName = data.GetPropertyOrDefault<string>("ActiveViewName");
-            printDocument = new PrintDocument();
             try
             {
+                if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+                {
+                    printDocument = new PrintDocument();
                 printDocument.DefaultPageSettings = data.GetPropertyOrDefault<PageSettings>("DefaultPageSettings");
             }
-            catch { }
+            }
+            catch (PlatformNotSupportedException) { }
             data.RegisterForSerializationDoneCallback(this);
         }
         void IJsonSerializeDone.SerializationDone()
@@ -2457,6 +2480,7 @@ namespace CADability
                 m.NameChangedEvent += new Model.NameChangedDelegate(OnModelNameChanged);
             }
 #if !WEBASSEMBLY
+            if (layouts == null) layouts = new List<Layout>();
             foreach (Layout l in layouts)
             {
                 l.project = this;
