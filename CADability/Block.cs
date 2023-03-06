@@ -813,7 +813,7 @@ namespace CADability.GeoObject
             name = data.GetPropertyOrDefault<string>("Name");
             data.RegisterForSerializationDoneCallback(this);
         }
-        public void SerializationDone(JsonSerialize jsonSerialize)
+        public virtual void SerializationDone(JsonSerialize jsonSerialize)
         {
             if (jsonSerialize.IsWriting)
             {
