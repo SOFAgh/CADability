@@ -338,7 +338,7 @@ namespace CADability
             return affectedObjects;
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             GetDistanceVector(out GeoPoint startPoint, out GeoPoint endPoint);
             Value = endPoint | startPoint;

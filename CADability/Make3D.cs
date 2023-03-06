@@ -1068,8 +1068,11 @@ namespace CADability.GeoObject
                     ICurve2D c1 = new Line2D(c0.EndPoint, c2.StartPoint);
                     ICurve2D c3 = new Line2D(c2.EndPoint, c1.StartPoint);
                     Border bdr = Border.FromOrientedList(new ICurve2D[] { c0, c1, c2, c3 });
-                    Face res = Face.MakeFace(sl, new SimpleShape(bdr));
-                    return res;
+                    if (bdr != null)
+                    {
+                        Face res = Face.MakeFace(sl, new SimpleShape(bdr));
+                        return res;
+                    }
 
                 }
             }

@@ -2696,7 +2696,7 @@ namespace CADability.GeoObject
             parametricProperties = data.GetPropertyOrDefault<List<ParametricProperty>>("ParametricProperties");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             for (int i = 0; i < faces.Length; ++i)
             {

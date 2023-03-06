@@ -2442,7 +2442,7 @@ namespace CADability
             catch (PlatformNotSupportedException) { }
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             foreach (IAttributeList list in attributeLists.Values)
                 list.Owner = this;

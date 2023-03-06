@@ -796,6 +796,7 @@ namespace CADability.GeoObject
         /// <param name="data"></param>
         public override void GetObjectData(IJsonWriteData data)
         {
+            data.RegisterForSerializationDoneCallback(this);
             base.GetObjectData(data);
             data.AddProperty("ColorDef", colorDef);
             data.AddProperty("RefPoint", refPoint);
@@ -812,19 +813,29 @@ namespace CADability.GeoObject
             name = data.GetPropertyOrDefault<string>("Name");
             data.RegisterForSerializationDoneCallback(this);
         }
-        public void SerializationDone()
+        public void SerializationDone(JsonSerialize jsonSerialize)
         {
-            lock (this)
+            if (jsonSerialize.IsWriting)
             {
-                for (int i = 0; i < containedObjects.Count; ++i)
+
+            }
+            else
+            {
+                for (int i = 0; i < containedObjects.Count; i++)
                 {
-                    containedObjects[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
-                    containedObjects[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
-                    containedObjects[i].Owner = this;
+                    jsonSerialize.InvokeSerializationDoneCallback(containedObjects[i]);
+                }
+                lock (this)
+                {
+                    for (int i = 0; i < containedObjects.Count; ++i)
+                    {
+                        containedObjects[i].WillChangeEvent += new ChangeDelegate(OnWillChange);
+                        containedObjects[i].DidChangeEvent += new ChangeDelegate(OnDidChange);
+                        containedObjects[i].Owner = this;
+                    }
                 }
             }
         }
-
         private void colorDef_ColorDidChange(object sender, ChangeEventArgs eventArguments)
         {
             if (CDfromParent != null && colorDef != null)

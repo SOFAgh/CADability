@@ -2863,7 +2863,7 @@ namespace CADability
             forwardOriented = (bool)data.GetProperty("ForwardOriented");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             if (surface1 is ISurfaceImpl simpl1)
             {

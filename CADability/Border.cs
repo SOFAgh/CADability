@@ -30,7 +30,7 @@ namespace CADability.Shapes
     /// produced by the BorderBuilder object (or by its constructors).
     /// </summary>   
     [Serializable()]    
-    public class Border : ISerializable, IDeserializationCallback, IJsonSerialize
+    public class Border : ISerializable, IDeserializationCallback, IJsonSerialize, IJsonSerializeDone
     {
         static private int idCounter = 0;
         private int id;
@@ -1566,7 +1566,8 @@ namespace CADability.Shapes
         {
             get
             {
-                if (!isClosed && (StartPoint | EndPoint) < Extent.Size * 1e-3) forceClosed();
+                if (Extent.Size == 0) Recalc(out bool dumy);
+                if (!isClosed && (StartPoint | EndPoint) <= Extent.Size * 1e-3) forceClosed();
                 if (!isClosed) throw new BorderException("Border must be closed for Area calculation", BorderException.BorderExceptionType.AreaOpen);
                 if (area == 0.0) area = RecalcArea();
                 return area;
@@ -4577,6 +4578,16 @@ namespace CADability.Shapes
         public void SetObjectData(IJsonReadData data)
         {
             segment = data.GetProperty<ICurve2D[]>("Segments");
+            data.RegisterForSerializationDoneCallback(this);
+        }
+        void IJsonSerializeDone.SerializationDone(CADability.JsonSerialize jsonSerialize)
+        {
+            for (int i = 0; i < segment.Length; i++)
+            {
+                jsonSerialize.InvokeSerializationDoneCallback(segment[i]);
+            }
+            bool reversed;
+            Recalc(out reversed); // this also calculates the extent
         }
 
         //private static double MaxDistance(ICurve2D curve1, ICurve2D curve2)

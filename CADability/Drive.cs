@@ -526,7 +526,7 @@ namespace CADability
             movedObjects.OnRemoved += new ListWithEvents<IGeoObject>.RemovedDelegate(OnMovedObjectsRemoved);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             foreach (IGeoObject go in movedObjects)
             {
@@ -935,7 +935,7 @@ namespace CADability
             movedObjects.OnRemoved += new ListWithEvents<IGeoObject>.RemovedDelegate(OnMovedObjectsRemoved);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             foreach (IGeoObject go in movedObjects)
             {
@@ -1278,7 +1278,7 @@ namespace CADability
             movedObjects.OnRemoved += new ListWithEvents<IGeoObject>.RemovedDelegate(OnMovedObjectsRemoved);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             foreach (IGeoObject go in movedObjects)
             {

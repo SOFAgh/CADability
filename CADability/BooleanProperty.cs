@@ -237,7 +237,7 @@ namespace CADability.UserInterface
             this.Initialize(this, "BooleanValue", null, null);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             bool val = internalValue;
             this.Initialize(this, "BooleanValue", null, null);
