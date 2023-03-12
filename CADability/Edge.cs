@@ -2260,7 +2260,7 @@ namespace CADability
             v2 = data.GetPropertyOrDefault<Vertex>("Vertex2");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             if (curve3d != null) (curve3d as IGeoObject).Owner = this;
         }
