@@ -94,21 +94,21 @@ namespace CADability.Actions
                 case 0: // default
                 case 1: // höhe:
                     heightInput.Optional = false;
-                    planeInput.Optional = false;
-                    vectorInput.Optional = true;
-                    pipeInput.Optional = true;
+                    if (planeInput!=null) planeInput.Optional = false;
+                    if (vectorInput != null) vectorInput.Optional = true;
+                    if (pipeInput != null) pipeInput.Optional = true;
                     break;
                 case 2: // Vector:
                     heightInput.Optional = true;
-                    planeInput.Optional = true;
-                    vectorInput.Optional = false;
-                    pipeInput.Optional = true;
+                    if (planeInput != null) planeInput.Optional = true;
+                    if (vectorInput != null) vectorInput.Optional = false;
+                    if (pipeInput != null) pipeInput.Optional = true;
                     break;
                 case 3:
                     heightInput.Optional = true;
-                    planeInput.Optional = true;
-                    vectorInput.Optional = true;
-                    pipeInput.Optional = false;
+                    if (planeInput != null) planeInput.Optional = true;
+                    if (vectorInput != null) vectorInput.Optional = true;
+                    if (pipeInput != null) pipeInput.Optional = false;
                     break;
             }
             //heightInput.Optional = VectorOrHeight;
@@ -138,7 +138,7 @@ namespace CADability.Actions
                 if (iGeoObjectSel is ICurve)
                 {
 
-                    p = CADability.GeoObject.Path.CreateFromModel(iGeoObjectSel as ICurve, Frame.ActiveView.Model, Frame.ActiveView.Projection, true);
+                    p = Path.CreateFromModel(iGeoObjectSel as ICurve, Frame.ActiveView.Model, Frame.ActiveView.Projection, true);
                     if (p == null)
                     { // also nur Einzelelement
                         if (iGeoObjectSel is Path)

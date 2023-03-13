@@ -188,9 +188,9 @@ namespace CADability.Actions
             base.SetObjectData(data);
             data.RegisterForSerializationDoneCallback(this);
         }
-        public override void SerializationDone()
+        public override void SerializationDone(JsonSerialize jsonSerialize)
         {
-            base.SerializationDone();
+            base.SerializationDone(jsonSerialize);
             OnDeserialization();
         }
         #endregion
