@@ -150,11 +150,9 @@
     <Compile Include="CadCanvas.cs">
       <SubType>Component</SubType>
     </Compile>
-<<<<<<< HEAD
+    <Compile Include="ImportSVG.cs" />
     <Compile Include="DebugForm.cs" />
     <Compile Include="IUIServiceImpl.cs" />
-=======
->>>>>>> NextStep
     <Compile Include="MenuManager.cs">
       <SubType>Component</SubType>
     </Compile>

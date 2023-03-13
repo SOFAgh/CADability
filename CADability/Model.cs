@@ -1485,7 +1485,7 @@ namespace CADability
             userData = data.GetProperty<UserData>("UserData");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             for (int i = 0; i < geoObjects.Count; ++i)
             {

@@ -284,6 +284,7 @@ namespace CADability
 
         BoundingCube IOctTreeInsertable.GetExtent(double precision)
         {
+            
             return new BoundingCube(position);
         }
 

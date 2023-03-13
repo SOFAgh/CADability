@@ -1747,7 +1747,7 @@ namespace CADability.GeoObject
             data.RegisterForSerializationDoneCallback(this);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
         }
         #endregion

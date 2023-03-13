@@ -711,7 +711,7 @@ namespace CADability.GeoObject
             periodicBounds = data.GetProperty<BoundingRect>("PeriodicBounds");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             bool uperiodic;
             if (periodicSurface.IsUPeriodic && periodicSurface.IsVPeriodic)
