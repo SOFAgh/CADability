@@ -2120,7 +2120,9 @@ namespace CADability.Forms
         {
             FreeLists();
             ListNumber = Gl.glGenLists(1); // make a single list
-            if (name != null) this.name = name;
+			if(ListNumber == 1)
+				ListNumber = Gl.glGenLists(1); //PCam temporary fix. PCam GeoViewer it uses always gllist 1.
+			if (name != null) this.name = name;
             else this.name = "NoName_" + ListNumber.ToString();
             openLists[ListNumber] = this.name;
             // System.Diagnostics.Debug.WriteLine($"Add new List. Count:{openLists.Count}");
