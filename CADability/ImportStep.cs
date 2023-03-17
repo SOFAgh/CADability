@@ -1480,7 +1480,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     }
                     for (int i = 0; i < roots[Item.ItemType.constructiveGeometryRepresentationRelationship].Count; i++)
                     {   // we do this before we do the shapeRepresentationRelationship iteration, because here the colors are set and in the next loop the objects are cloned
-                        Item item = definitions[roots[Item.ItemType.shapeRepresentationRelationship][i]];
+                        Item item = definitions[roots[Item.ItemType.constructiveGeometryRepresentationRelationship][i]];
                         GeoObjectList go = CreateEntity(item) as GeoObjectList;
 #if DEBUG
                         //System.Diagnostics.Trace.WriteLine(SubTree(item.definingIndex, 5));
@@ -2409,6 +2409,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 {
                                     if (o is Shell && string.IsNullOrEmpty((o as Shell).Name)) (o as Shell).Name = name;
                                     if (o is Solid && string.IsNullOrEmpty((o as Solid).Name)) (o as Solid).Name = name;
+                                    if (o is IGeoObject go) namedGeoObjects[name] = go;
                                 }
                                 if (o is IGeoObject) val.Add(o as IGeoObject);
                                 if (o is GeoObjectList) val.AddRange(o as GeoObjectList);
