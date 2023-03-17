@@ -1573,6 +1573,7 @@ namespace CADability
                 {
                     res.fileName = FileName;
                     res.openedAsJson = true;
+					stream.Close();
                     return res;
                 }
             }
