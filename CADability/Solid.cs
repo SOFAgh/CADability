@@ -907,7 +907,7 @@ namespace CADability.GeoObject
             }
             if (Constructed != null) Constructed(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             for (int i = 0; i < shells.Length; ++i)
             {

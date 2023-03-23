@@ -801,7 +801,7 @@ namespace CADability.Attribute
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
 
-        public void SerializationDone()
+        public void SerializationDone(JsonSerialize jsonSerialize)
         {
             foreach (ColorDef cd in namedColors)
             {

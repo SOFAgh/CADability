@@ -8027,7 +8027,7 @@ namespace CADability.GeoObject
             data.RegisterForSerializationDoneCallback(this);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             if (outline != null)
             {   // in alten files gibt es solche faces
