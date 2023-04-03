@@ -65,6 +65,10 @@ namespace CADability.Actions
                     IFeedBack go = repaintObjects[i] as IFeedBack;
                     if (go != null)
                     {
+                        if(go is IGeoObject igo)
+                        {
+                            igo.PrePaintTo3D(paintTo3D);
+                        }
                         go.PaintTo3D(paintTo3D);
                     }
                 }
