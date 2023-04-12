@@ -318,23 +318,6 @@ namespace CADability.UserInterface
             this.frame = null;
         }
 
-        event PropertyEntryChangedStateDelegate IPropertyEntry.PropertyEntryChangedStateEvent
-        {
-            add
-            {
-                this.StateChangedEvent += delegate (IShowProperty sender, StateChangedArgs args)
-                {
-                    value(this, args);
-                };
-            }
-            remove
-            {
-                this.StateChangedEvent -= delegate (IShowProperty sender, StateChangedArgs args)
-                {
-                    value(this, args);
-                };
-            }
-        }
         #region IShowProperty Members
         /* So ist die Lösung um interface methoden nicht public machen zu müssen
          * ist aber viel Schreibartbeit

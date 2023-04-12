@@ -42,6 +42,7 @@ namespace CADability.DXF
         {
             using (Stream stream = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
+                MathHelper.Epsilon = 1e-8;
                 doc = DxfDocument.Load(stream);
             }
         }
