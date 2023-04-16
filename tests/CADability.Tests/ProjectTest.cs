@@ -115,7 +115,7 @@ namespace CADability.Tests
             Assert.IsTrue(File.Exists(file));
             var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "issue143.png");
             // uncomment after file exists
-            //Assert.IsTrue(File.Exists(bmpFile));
+            Assert.IsTrue(File.Exists(bmpFile));
 
             var project = Project.ReadFromFile(file, "dxf");
             Assert.IsNotNull(project);
