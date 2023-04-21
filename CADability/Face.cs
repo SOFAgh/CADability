@@ -251,7 +251,7 @@ namespace CADability.GeoObject
         /// <param name="loops">the loops of 3d edges, both outlines and holes, for this face</param>
         /// <param name="sameSense">orientation of the surface so that the normal points outward</param>
         /// <returns></returns>
-        internal static Face[] MakeFacesFromStepAdvancedFace(ISurface surface, List<List<StepEdgeDescriptor>> loops, bool sameSense, double precision)
+        public static Face[] MakeFacesFromStepAdvancedFace(ISurface surface, List<List<StepEdgeDescriptor>> loops, bool sameSense, double precision)
         {
             List<object> toLock = new List<object>();
             if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", false))

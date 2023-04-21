@@ -22,7 +22,7 @@ namespace CADability
         internal static int hashCodeCounter = 0;
         private int hashCode;
         private Edge[] deserializedEdges; // we need this, because we cannot serialize/deserialize Set<Edge>
-        internal Vertex(GeoPoint position)
+        public Vertex(GeoPoint position)
         {
             this.position = position;
             edges = new HashSet<Edge>();

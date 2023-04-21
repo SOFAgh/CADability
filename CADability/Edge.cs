@@ -70,7 +70,7 @@ namespace CADability
     /// Describes an edge as imported from a step file. The edge may be decomposed into multiple edges for CADability faces
     /// in case of periodic faces.
     /// </summary>
-    internal class StepEdgeDescriptor
+    public class StepEdgeDescriptor
     {
 #if DEBUG
         public int stepDefiningIndex;
