@@ -2721,7 +2721,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (2932 == item.definingIndex || 13754 == item.definingIndex)
+                            if (237 == item.definingIndex || 13754 == item.definingIndex)
                             {
                             }
 #endif
@@ -2795,7 +2795,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (14640 == item.definingIndex || 17778 == item.definingIndex)
+                            if (237 == item.definingIndex || 205 == item.definingIndex)
                             {
                             }
 #endif

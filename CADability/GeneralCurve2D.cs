@@ -1949,7 +1949,14 @@ namespace CADability.Curve2D
             {
                 found = FindPerpendicularFoot(p, 0.0, 1.0, StartPoint, EndPoint, StartDirection.ToRight(), EndDirection.ToRight(), out res);
             }
-            if (!found) return double.MinValue;
+            if (!found)
+            {
+                double ds = p | StartPoint;
+                double de = p | EndPoint;
+                if (ds < this.Length * 1e-4) return 0.0;
+                if (de < this.Length * 1e-4) return 1.0;
+                return double.MinValue;
+            }
             return res;
         }
         /// <summary>

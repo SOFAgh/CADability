@@ -214,7 +214,7 @@ namespace CADability
             get
             {
                 if (!Precision.IsPerpendicular(new GeoVector2D(Matrix00, Matrix10), new GeoVector2D(Matrix01, Matrix11), false)) return false;
-                //if (!Precision.IsPerpendicular(new GeoVector2D(Matrix00 + Matrix10, Matrix01 + Matrix11), new GeoVector2D(Matrix00 - Matrix10, -Matrix01 + Matrix11), false)) return false;
+                if (!Precision.IsPerpendicular(new GeoVector2D(Matrix00 + Matrix10, Matrix01 + Matrix11), new GeoVector2D(Matrix00 - Matrix10, -Matrix01 + Matrix11), false)) return false;
                 return true;
             }
         }

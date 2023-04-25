@@ -908,6 +908,22 @@ namespace CADability.GeoObject
                 }
                 return new IDualSurfaceCurve[0];
             }
+            else if (other is ICylinder cyl) 
+            { 
+                if (cyl.Axis.Distance(this.Location)<Precision.eps && Math.Abs(cyl.Radius-this.RadiusX)<Precision.eps) 
+                {   // this sphere is touching the cylinder:
+                    Plane pln = new Plane(Location, cyl.Axis.Direction); // the plane through center of this sphere, perpendicular to the cylinder axis
+                    IDualSurfaceCurve[] cylcrv = other.GetPlaneIntersection(new PlaneSurface(pln), otherBounds.Left, otherBounds.Right, otherBounds.Bottom, otherBounds.Top, 0.0);
+                    if (cylcrv!=null && cylcrv.Length==1) 
+                    { 
+                        if (cylcrv[0].Curve3D is Ellipse elli)
+                        {
+                            ICurve2D pc = this.GetProjectedCurve(elli, 0.0);
+                            return new IDualSurfaceCurve[] { new DualSurfaceCurve(elli, this, pc, other, cylcrv[0].Curve2D1) };
+                        }
+                    }
+                }
+            }
             return base.GetDualSurfaceCurves(thisBounds, other, otherBounds, seeds, extremePositions);
         }
         public override GeoPoint2D[] PerpendicularFoot(GeoPoint fromHere)

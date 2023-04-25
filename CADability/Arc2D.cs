@@ -784,8 +784,16 @@ namespace CADability.Curve2D
                     return new Arc2D(m * Center, Math.Abs(m.Determinant * Radius), m * StartPoint, m * EndPoint, cc);
                 }
                 Geometry.PrincipalAxis(m * Center, m * (Radius * GeoVector2D.XAxis), m * (Radius * GeoVector2D.YAxis), out majorAxis, out minorAxis, out left, out right, out bottom, out top, false);
+                double a1 = GeoVector2D.Area(m * (Radius * GeoVector2D.XAxis), m * (Radius * GeoVector2D.YAxis));
+                double a2 = GeoVector2D.Area(majorAxis, minorAxis);
                 // geändert wg. Fehler in IsIsogonal Fall, noch nicht getestet
-                return EllipseArc2D.Create(m * Center, majorAxis, minorAxis, m * StartPoint, m * EndPoint, cc);
+                EllipseArc2D res = EllipseArc2D.Create(m * Center, majorAxis, minorAxis, m * StartPoint, m * EndPoint, cc);
+                double rpos = res.PositionOf(m*this.PointAt(0.5));
+                if (rpos < 0 || rpos>1) 
+                {
+                    res = EllipseArc2D.Create(m * Center, majorAxis, minorAxis, m * StartPoint, m * EndPoint, !cc);
+                }
+                return res;
 
                 //if (m.Determinant < 0.0)
                 //{
@@ -888,7 +896,7 @@ namespace CADability.Curve2D
         {
             int n = (int)Math.Floor(Math.Abs(sweep) / (Math.PI / 2.0)) + 1;
             if (n == 1) n = 2;
-            interparam=new double[n];
+            interparam = new double[n];
             for (int i = 0; i < n; i++)
             {
                 interparam[i] = i / (double)(n - 1);

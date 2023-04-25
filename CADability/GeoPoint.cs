@@ -1053,6 +1053,10 @@ namespace CADability
             }
             return false;
         }
+        public double Distance(GeoPoint p)
+        {
+            return Geometry.DistPL(p, this);
+        }
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
