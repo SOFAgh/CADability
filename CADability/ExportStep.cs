@@ -200,13 +200,13 @@ END-ISO-10303-21;"; // %0: filename, %1: date, %2: version, %3: List of MANIFOLD
             int nl = (location as IExportStep).Export(this, false);
             int n = (normal.Normalized as IExportStep).Export(this, false);
             int nx = (xdir.Normalized as IExportStep).Export(this, false);
-            return WriteDefinition("AXIS2_PLACEMENT_3D('',#" + nl.ToString() + ",#" + n.ToString() + ",#" + nx.ToString() + ");");
+            return WriteDefinition("AXIS2_PLACEMENT_3D('',#" + nl.ToString() + ",#" + n.ToString() + ",#" + nx.ToString() + ")");
         }
         public int WriteAxis1Placement3d(GeoPoint location, GeoVector normal)
         {
             int nl = (location as IExportStep).Export(this, false);
             int n = (normal.Normalized as IExportStep).Export(this, false);
-            return WriteDefinition("AXIS1_PLACEMENT('',#" + nl.ToString() + ",#" + n.ToString() + ");");
+            return WriteDefinition("AXIS1_PLACEMENT('',#" + nl.ToString() + ",#" + n.ToString() + ")");
         }
 
         internal string ToString(int[] ints, bool makeReference)

@@ -699,6 +699,11 @@ namespace CADability.Actions
                 bool ok = true;
                 if (selObj[0] is Solid)
                 {
+                    foreach (Edge edge in (selObj[0] as Solid).Shells[0].Edges)
+                    {
+                        if (edge.Curve3D!=null && edge.Curve3D.GetExtent().Zmin<-0.1)
+                        { }
+                    }
                     ok = (selObj[0] as Solid).Shells[0].CheckConsistency();
                     //Shell sh = (selObj[0] as Solid).Shells[0].Clone() as Shell;
                     //sh.RecalcVertices();

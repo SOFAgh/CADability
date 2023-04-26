@@ -317,7 +317,6 @@ namespace CADability.UserInterface
         {
             this.frame = null;
         }
-
         #region IShowProperty Members
         /* So ist die Lösung um interface methoden nicht public machen zu müssen
          * ist aber viel Schreibartbeit
