@@ -106,5 +106,35 @@ namespace CADability.Tests
 
         }
 
+        [TestMethod]
+        [DeploymentItem(@"Files/Dxf/issue143.dxf", nameof(import_dxf_issue143_succeds))]
+        [DeploymentItem(@"Files/Dxf/issue143.png", nameof(import_dxf_issue143_succeds))]
+        public void import_dxf_issue143_succeds()
+        {
+            var file = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "issue143.dxf");
+            Assert.IsTrue(File.Exists(file));
+            var bmpFile = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "issue143.png");
+            // uncomment after file exists
+            Assert.IsTrue(File.Exists(bmpFile));
+
+            var project = Project.ReadFromFile(file, "dxf");
+            Assert.IsNotNull(project);
+            var model = project.GetActiveModel();
+            Assert.IsNotNull(model);
+            Assert.AreEqual(3, model.AllObjects.Count);
+
+            var ellipse1 = Assert.That.IsInstanceOfType<GeoObject.Ellipse>(model.AllObjects[1]);
+            Assert.IsTrue(ellipse1.HasValidData());
+            var ellipse2 = Assert.That.IsInstanceOfType<GeoObject.Ellipse>(model.AllObjects[2]);
+            Assert.IsTrue(ellipse2.HasValidData());
+
+            using (var expected = (Bitmap)Image.FromFile(bmpFile))
+            using (var actual = PaintToOpenGL.PaintToBitmap(model.AllObjects, GeoVector.NullVector, 200, 200))
+            {
+                // Uncomment once to generate bitmap for later comparison
+                //actual.Save(bmpFile);
+                Assert.That.BitmapsAreEqual(expected, actual);
+            }
+        }
     }
 }
