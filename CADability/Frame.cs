@@ -768,7 +768,8 @@ namespace CADability
             if (e.Handled) return;
             Action a = ActiveAction;
             if (a == null) return;
-            switch (e.KeyData) // was KeyCode, but didn't work
+            // System.Diagnostics.Trace.WriteLine(e.KeyData.ToString() + "---" + e.KeyCode.ToString());
+            switch (e.KeyData & (Keys)0x0FF) // was KeyCode, but didn't work
             {
                 case Keys.Escape:
                     e.Handled = a.OnEscape(e.KeyData);
@@ -2386,8 +2387,8 @@ namespace CADability
                             // System.Diagnostics.Trace.WriteLine("Starting ParallelTriangulation " + Environment.TickCount.ToString());
                             fromTop.SetPlacement(mv.DisplayRectangle, ext);
                             double precision = 1.0 / fromTop.WorldToDeviceFactor;
-                            // mv.Model.SerialTriangulation(precision); // for easier Debugging
-                            mv.Model.ParallelTriangulation(precision);
+                            mv.Model.SerialTriangulation(precision); // for easier Debugging
+                            // mv.Model.ParallelTriangulation(precision);
                             // System.Diagnostics.Trace.WriteLine("Starting OctTree " + Environment.TickCount.ToString());
                             mv.Model.InitOctTree();
                             // System.Diagnostics.Trace.WriteLine("OctTree done " + Environment.TickCount.ToString());

@@ -14,9 +14,6 @@ namespace CADability.Shapes
     /// A simply connected 2d shape. It consists of a <see cref="Border"/> outline and 0 or more holes.
     /// The holes don't overlap (disjunct) and reside totally inside the outline.
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(SimpleShapeVisualizer))]
-#endif
     [Serializable()]
     public class SimpleShape : ISerializable, IQuadTreeInsertable, IComparable<SimpleShape>, IJsonSerialize
     {
@@ -767,8 +764,17 @@ namespace CADability.Shapes
         /// <param name="cs2">Second shape</param>
         /// <returns>The position</returns>
         public static Position GetPosition(CompoundShape cs1, CompoundShape cs2)
-        {
-            return Position.disjunct;
+        {   // this is not correct, but we don't need it to be correct
+            Position res = Position.disjunct;
+            for (int i = 0; i < cs1.SimpleShapes.Length; i++)
+            {
+                for (int j = 0; j < cs2.SimpleShapes.Length; j++)
+                {
+                    Position pos = GetPosition(cs1.SimpleShapes[i], cs2.SimpleShapes[j]);
+                    if (pos > res) res = pos;
+                }
+            }
+            return res;
         }
         /// <summary>
         /// Checks the relative position of two shapes to each other. The order of the parameters is important for the result.
@@ -1041,7 +1047,7 @@ namespace CADability.Shapes
             }
             return res;
         }
-        internal GeoObjectList DebugList
+        public GeoObjectList DebugList
         {
             get
             {
@@ -1229,9 +1235,13 @@ namespace CADability.Shapes
         public static Path2D ConnectPaths(Path2D outline, Path2D hole)
         {
             GeoPoint2D p1, p2;
-            Curves2D.SimpleMinimumDistance(outline, hole, out p1, out p2);
-            ICurve2D[] oparts = outline.Split(outline.PositionOf(p1));
-            ICurve2D[] hparts = hole.Split(hole.PositionOf(p2));
+            Path2D oflat = outline.Clone() as Path2D;
+            oflat.Flatten();
+            Path2D hflat = hole.Clone() as Path2D;
+            hflat.Flatten();
+            Curves2D.SimpleMinimumDistance(oflat, hflat, out p1, out p2);
+            ICurve2D[] oparts = oflat.Split(oflat.PositionOf(p1));
+            ICurve2D[] hparts = hflat.Split(hflat.PositionOf(p2));
             Path2D res = new Path2D(new ICurve2D[] { new Line2D(p2, p1) });
             if (oparts.Length == 2)
             {
@@ -1252,6 +1262,7 @@ namespace CADability.Shapes
             {
                 res.Append(hparts[0]);
             }
+            res.Flatten();
             return res;
         }
 
@@ -1711,11 +1722,8 @@ namespace CADability.Shapes
     /// A 2d shape composed by multiple <see cref="SimpleShape"/> objects.
     /// All simple shapes are disjoint. 
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(CompoundShapeVisualizer))]
-#endif
     [Serializable()]
-    public class CompoundShape : ISerializable, IJsonSerialize
+    public class CompoundShape : ISerializable, IJsonSerialize, IQuadTreeInsertable
     {
         [Serializable()]
         internal class SignatureOld : ISerializable
@@ -2389,6 +2397,17 @@ namespace CADability.Shapes
             }
             return res;
         }
+        public static bool Interferes(CompoundShape cs1, CompoundShape cs2)
+        {   
+            for (int i = 0; i < cs1.SimpleShapes.Length; i++)
+            {
+                for (int j = 0; j < cs2.SimpleShapes.Length; j++)
+                {
+                    if (SimpleShape.GetPosition(cs1.SimpleShapes[i], cs2.SimpleShapes[j]) != SimpleShape.Position.disjunct) return true;
+                }
+            }
+            return false;
+        }
         static public CompoundShape operator +(CompoundShape s1, CompoundShape s2)
         {
             return PlusOperator(s1, s2, Precision.eps);
@@ -2890,7 +2909,7 @@ namespace CADability.Shapes
             }
             return res.ToArray();
         }
-        internal GeoObjectList DebugList
+        public GeoObjectList DebugList
         {
             get
             {
@@ -3021,7 +3040,11 @@ namespace CADability.Shapes
         {
             return HitTest(ref Rect);
         }
-        #endregion
+        object IQuadTreeInsertable.ReferencedObject
+        {
+            get { return null; }
+        }
+#endregion
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization

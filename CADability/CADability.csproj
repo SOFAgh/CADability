@@ -7,6 +7,7 @@
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>CADabilityKey.snk</AssemblyOriginatorKeyFile>
     <AssemblyName>CADabilityGh</AssemblyName>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -14,7 +15,17 @@
     <DefineConstants>TRACE;DEBUG;xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>TRACE;DEBUG;xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES</DefineConstants>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WebDebug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>TRACE;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES, WEBASSEMBLY</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WebDebug|x64'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>TRACE;xPARALLEL, xTESTNEWCONTEXTMENU, xUSENONPRIODICSURFACES, WEBASSEMBLY</DefineConstants>
   </PropertyGroup>
@@ -29,7 +40,21 @@
     <DocumentationFile></DocumentationFile>
   </PropertyGroup>
 
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>xTESTNEWCONTEXTMENU</DefineConstants>
+    <Optimize>false</Optimize>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DocumentationFile />
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Compile Remove="WebDrawing.cs" />
   </ItemGroup>
 
@@ -37,9 +62,17 @@
     <Compile Remove="WebDrawing.cs" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Compile Remove="WebDrawing.cs" />
+  </ItemGroup>
+
 <ItemGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
     <Compile Remove="WebDrawing.cs" />
   </ItemGroup>
+
+<ItemGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|x64'">
+  <Compile Remove="WebDrawing.cs" />
+</ItemGroup>
 
    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -49,6 +82,15 @@
     <DebugSymbols>true</DebugSymbols>
     <DocumentationFile />
   </PropertyGroup>
+
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDoc|x64'">
+     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+     <DefineConstants>xPARALLEL, xTESTNEWCONTEXTMENU</DefineConstants>
+     <Optimize>false</Optimize>
+     <DebugType>full</DebugType>
+     <DebugSymbols>true</DebugSymbols>
+     <DocumentationFile />
+   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="CADability.DXF\**" />

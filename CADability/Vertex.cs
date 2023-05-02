@@ -29,7 +29,7 @@ namespace CADability
             uvposition = new Dictionary<Face, GeoPoint2D>();
             hashCode = hashCodeCounter++;
 #if DEBUG
-            if (hashCode == 81 || hashCode == 81)
+            if (hashCode == 952)
             {
 
             }
@@ -247,8 +247,8 @@ namespace CADability
                 return v1.edges.Intersect(v2.edges).FirstOrDefault();
             }
         }
-#if DEBUG
-        public IGeoObject DebugPoint
+
+        internal IGeoObject DebugPoint
         {
             get
             {
@@ -258,7 +258,7 @@ namespace CADability
                 return res;
             }
         }
-#endif
+
         internal void MergeWith(Vertex ev)
         {
             if (ev == this) return;
@@ -270,7 +270,7 @@ namespace CADability
             {
                 if (edge.PrimaryFace != null) edge.ReplaceVertex(ev, this);
             }
-            lock (ev.uvposition) 
+            lock (ev.uvposition)
             {
                 foreach (KeyValuePair<Face, GeoPoint2D> kv in ev.uvposition)
                 {
@@ -284,6 +284,7 @@ namespace CADability
 
         BoundingCube IOctTreeInsertable.GetExtent(double precision)
         {
+            
             return new BoundingCube(position);
         }
 
@@ -394,7 +395,21 @@ namespace CADability
         public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("Position", position);
-            data.AddProperty("Edges", edges.ToArray());
+            List<Edge> usableEdges = new List<Edge>();
+            foreach (Edge edge in edges)
+            {
+                if (edge.Owner is Face owner)
+                {
+                    if (edge.PrimaryFace == owner || edge.SecondaryFace == owner) usableEdges.Add(edge);
+                    else
+                    {
+                        edge.Owner = edge.PrimaryFace;
+                        usableEdges.Add(edge);
+                    }
+                }
+
+            }
+            data.AddProperty("Edges", usableEdges.ToArray());
         }
         public void SetObjectData(IJsonReadData data)
         {

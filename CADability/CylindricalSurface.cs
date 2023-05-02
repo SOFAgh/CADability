@@ -2037,6 +2037,8 @@ namespace CADability.GeoObject
                     //double obx = (otherBounds.Left + otherBounds.Right) / 2.0;
                     //if (Math.Abs(obx - cnt2.x) > Math.Abs(obx - (cnt2.x + Math.PI * 2))) firstToSecond = ModOp2D.Translate(Math.PI * 2.0, 0) * firstToSecond;
                     //if (Math.Abs(obx - cnt2.x) > Math.Abs(obx - (cnt2.x - Math.PI * 2))) firstToSecond = ModOp2D.Translate(-Math.PI * 2.0, 0) * firstToSecond;
+                    if (firstToSecond[0, 2] > Math.PI) firstToSecond[0, 2] = firstToSecond[0, 2] - 2.0 * Math.PI;
+                    if (firstToSecond[0, 2] < -Math.PI) firstToSecond[0, 2] = firstToSecond[0, 2] + 2.0 * Math.PI;
                     return true;
                 }
                 return false;
@@ -2348,8 +2350,6 @@ namespace CADability.GeoObject
             }
         }
         bool ISurfaceWithRadius.IsModifiable => true;
-
-        bool ICylinder.OutwardOriented => throw new NotImplementedException();
 
         int IExportStep.Export(ExportStep export, bool topLevel)
         {

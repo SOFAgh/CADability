@@ -28,9 +28,6 @@ namespace CADability
     [Serializable]
     [DebuggerDisplayAttribute("(x,y,z)={DebugString}")]
     [JsonVersion(serializeAsStruct = true, version = 1)]
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeoPointVisualizer))]
-#endif
     public struct GeoPoint : ISerializable, IJsonSerialize, IExportStep
     {
         /// <summary>
@@ -163,6 +160,15 @@ namespace CADability
         public double Distance(GeoPoint To)
         {
             return Math.Sqrt(sqr(x - To.x) + sqr(y - To.y) + sqr(z - To.z));
+        }
+        public static double Distance(GeoPoint[] points)
+        {
+            double res = 0.0;
+            for (int i = 1; i < points.Length; i++)
+            {
+                res += points[i - 1] | points[i];
+            }
+            return res;
         }
         internal double TaxicabDistance(GeoPoint To)
         {	// Betragsnorm, heißt echt auf Englisch Taxicab oder Manhattan
@@ -888,17 +894,17 @@ namespace CADability
             switch (MainDirection)
             {
                 case GeoVector.Direction.XAxis:
-                    dirx = this ^ GeoVector.YAxis;
+                    dirx = (this ^ GeoVector.YAxis).Normalized;
                     break;
                 case GeoVector.Direction.YAxis:
-                    dirx = this ^ GeoVector.ZAxis;
+                    dirx = (this ^ GeoVector.ZAxis).Normalized;
                     break;
                 default:
                 case GeoVector.Direction.ZAxis:
-                    dirx = this ^ GeoVector.XAxis;
+                    dirx = (this ^ GeoVector.XAxis).Normalized;
                     break;
             }
-            diry = this ^ dirx;
+            diry = (this ^ dirx).Normalized;
         }
         internal enum Direction { XAxis, YAxis, ZAxis };
         internal Direction MainDirection
@@ -1047,6 +1053,10 @@ namespace CADability
             }
             return false;
         }
+        public double Distance(GeoPoint p)
+        {
+            return Geometry.DistPL(p, this);
+        }
         #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
@@ -1104,9 +1114,6 @@ namespace CADability
     [Serializable()]
     [DebuggerDisplayAttribute("(x,y)={DebugString}")]
     [JsonVersion(serializeAsStruct = true, version = 1)]
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeoPoint2DVisualizer))]
-#endif
     public struct GeoPoint2D : ISerializable, IJsonSerialize
     {
         /// <summary>

@@ -571,7 +571,7 @@ namespace CADability.GeoObject
             List<IPropertyEntry> res = new List<IPropertyEntry>();
             IView activeView = frame.ActiveView;
             Dictionary<string, HashSet<Face>> features = GetFeatures();
-            foreach (KeyValuePair<string,HashSet<Face>> feature in features)
+            foreach (KeyValuePair<string, HashSet<Face>> feature in features)
             {
                 List<IPropertyEntry> faceProperties = new List<IPropertyEntry>();
                 foreach (Face face in feature.Value)
@@ -645,7 +645,7 @@ namespace CADability.GeoObject
                     string nni = name.Substring(nn.Length);
                     if (int.TryParse(nni, out int index))
                     {
-                        maxNameindex = Math.Max(maxNameindex,index);
+                        maxNameindex = Math.Max(maxNameindex, index);
                     }
                 }
             }
@@ -844,7 +844,7 @@ namespace CADability.GeoObject
             }
             return res.ToArray();
         }
-        private GeoPoint[] GetLineIntersection(GeoPoint location, GeoVector direction)
+        public GeoPoint[] GetLineIntersection(GeoPoint location, GeoVector direction)
         {
             List<GeoPoint> res = new List<GeoPoint>();
             foreach (Face fc in faces)
@@ -2696,7 +2696,7 @@ namespace CADability.GeoObject
             parametricProperties = data.GetPropertyOrDefault<List<ParametricProperty>>("ParametricProperties");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             for (int i = 0; i < faces.Length; ++i)
             {
@@ -3099,19 +3099,41 @@ namespace CADability.GeoObject
                     surfaceOfEdges = ss;
                     bestPrecision = error;
                 }
-                error = GaussNewtonMinimizer.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.XAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csx);
+                if (lines.Count > 1)
+                {
+                    if (sortedEdges[lines[0]].Curve3D is Line l1 && sortedEdges[lines[1]].Curve3D is Line l2)
+                    {
+                        try
+                        {
+                            GeoPoint ip = Geometry.IntersectLL(l1.StartPoint, l1.StartDirection, l2.StartPoint, l2.StartDirection);
+                            cnt = ip;
+                        }
+                        catch { }
+                    }
+                }
+                if (arcs.Count > 0 && sortedEdges[arcs[0]].Curve3D is Ellipse elli)
+                {
+                    error = BoxedSurfaceExtension.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, elli.Normal, Math.PI / 2.1, Precision.eps, out ConicalSurface csn);
+                    // error = GaussNewtonMinimizer.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, elli.Normal, Math.PI / 2.1, Precision.eps, out ConicalSurface csn);
+                    if (error < Precision.eps && error < bestPrecision)
+                    {
+                        surfaceOfEdges = csn;
+                        bestPrecision = error;
+                    }
+                }
+                error = BoxedSurfaceExtension.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.XAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csx);
                 if (error < Precision.eps && error < bestPrecision)
                 {
                     surfaceOfEdges = csx;
                     bestPrecision = error;
                 }
-                error = GaussNewtonMinimizer.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.YAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csy);
+                error = BoxedSurfaceExtension.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.YAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csy);
                 if (error < Precision.eps && error < bestPrecision)
                 {
                     surfaceOfEdges = csy;
                     bestPrecision = error;
                 }
-                error = GaussNewtonMinimizer.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.ZAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csz);
+                error = BoxedSurfaceExtension.ConeFit(new ListToIArray<GeoPoint>(pointsForGaussNewton), cnt, GeoVector.ZAxis, Math.PI / 4.0, Precision.eps, out ConicalSurface csz);
                 if (error < Precision.eps && error < bestPrecision)
                 {
                     surfaceOfEdges = csz;
@@ -3119,45 +3141,46 @@ namespace CADability.GeoObject
                 }
             }
             // following crashes with 04_PN_1013_S_1205_2_I06_A06_AS_P806_E1_E10.stp
-            //if (surfaceOfEdges != null)
-            //{   // there is a single surface which contains all the edges
-            //    sortedEdges.Reverse();
-            //    Face newFace = Face.Construct();
-            //    newFace.Surface = surfaceOfEdges;
-            //    BoundingRect domain = BoundingRect.EmptyBoundingRect;
-            //    for (int i = 0; i < sortedEdges.Count; i++)
-            //    {
-            //        if (addToShell)
-            //        {
-            //            sortedEdges[i].SetSecondary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
-            //        }
-            //        else
-            //        {
-            //            Edge newEdge = new Edge(newFace, sortedEdges[i].Curve3D); // do we need a clone of Curve3D?
-            //            newEdge.SetPrimary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
-            //            sortedEdges[i] = newEdge;
-            //        }
-            //        if (!domain.IsEmpty()) SurfaceHelper.AdjustPeriodic(surfaceOfEdges, domain, sortedEdges[i].Curve2D(newFace));
-            //        domain.MinMax(sortedEdges[i].Curve2D(newFace).GetExtent());
-            //    }
-            //    ICurve2D[] testOrientation = new ICurve2D[sortedEdges.Count];
-            //    for (int i = 0; i < sortedEdges.Count; i++)
-            //    {
-            //        testOrientation[i] = sortedEdges[i].Curve2D(newFace);
-            //    }
-            //    if (!Border.CounterClockwise(testOrientation))
-            //    {
-            //        ModOp2D reverse = newFace.Surface.ReverseOrientation();
-            //        for (int i = 0; i < testOrientation.Length; i++)
-            //        {
-            //            ICurve2D reversed = testOrientation[i].GetModified(reverse);
-            //            if (sortedEdges[i].PrimaryFace == newFace) sortedEdges[i].PrimaryCurve2D = reversed;
-            //            else sortedEdges[i].SecondaryCurve2D = reversed;
-            //        }
-            //    }
-            //    newFace.Set(newFace.Surface, sortedEdges, new List<List<Edge>>());
-            //    return new HashSet<Face>(new Face[] { newFace });
-            //}
+            if (surfaceOfEdges != null)
+            {   // there is a single surface which contains all the edges
+                if (surfaceOfEdges is ConicalSurface cs) surfaceOfEdges = new ConicalSurfaceNP(cs.Location, cs.XAxis, cs.YAxis, cs.ZAxis, cs.OpeningAngle / 2.0);
+                sortedEdges.Reverse();
+                Face newFace = Face.Construct();
+                newFace.Surface = surfaceOfEdges;
+                BoundingRect domain = BoundingRect.EmptyBoundingRect;
+                for (int i = 0; i < sortedEdges.Count; i++)
+                {
+                    if (addToShell)
+                    {
+                        sortedEdges[i].SetSecondary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
+                    }
+                    else
+                    {
+                        Edge newEdge = new Edge(newFace, sortedEdges[i].Curve3D); // do we need a clone of Curve3D?
+                        newEdge.SetPrimary(newFace, !sortedEdges[i].Forward(sortedEdges[i].PrimaryFace));
+                        sortedEdges[i] = newEdge;
+                    }
+                    if (!domain.IsEmpty()) SurfaceHelper.AdjustPeriodic(surfaceOfEdges, domain, sortedEdges[i].Curve2D(newFace));
+                    domain.MinMax(sortedEdges[i].Curve2D(newFace).GetExtent());
+                }
+                ICurve2D[] testOrientation = new ICurve2D[sortedEdges.Count];
+                for (int i = 0; i < sortedEdges.Count; i++)
+                {
+                    testOrientation[i] = sortedEdges[i].Curve2D(newFace);
+                }
+                if (!Border.CounterClockwise(testOrientation))
+                {
+                    ModOp2D reverse = newFace.Surface.ReverseOrientation();
+                    for (int i = 0; i < testOrientation.Length; i++)
+                    {
+                        ICurve2D reversed = testOrientation[i].GetModified(reverse);
+                        if (sortedEdges[i].PrimaryFace == newFace) sortedEdges[i].PrimaryCurve2D = reversed;
+                        else sortedEdges[i].SecondaryCurve2D = reversed;
+                    }
+                }
+                newFace.Set(newFace.Surface, sortedEdges, new List<List<Edge>>());
+                return new HashSet<Face>(new Face[] { newFace });
+            }
             // now we have to check whether there are only two or three adjacent surfaces and we can extend them to fill the open edges loop
 
             // if nothing works: "ear clipping" and adding ruled surfaces
@@ -4875,11 +4898,13 @@ namespace CADability.GeoObject
                     {
                         edg.RemoveFace(openEdge.PrimaryFace);
                         openEdge.PrimaryFace.ReplaceEdge(openEdge, edg);
+                        break;
                     }
                     else if (edg.SecondaryFace == null && openEdge.SecondaryFace == null && BRepOperation.SameEdge(edg, openEdge, Precision.eps))
                     {
                         openEdge.MergeWith(edg);
                         edg.DisconnectFromFace(openEdge.SecondaryFace);
+                        break;
                     }
                 }
             }
@@ -5438,13 +5463,13 @@ namespace CADability.GeoObject
                     foreach (Edge edge in edges)
                     {
                         ModOp2D firstToSecond;
-                        if (edge.SecondaryFace != null &&
+                        if (edge.SecondaryFace != null && edge.PrimaryFace.Surface!=null && edge.SecondaryFace.Surface != null &&
                             edge.SecondaryFace.Surface.SameGeometry(edge.SecondaryFace.GetUVBounds(), edge.PrimaryFace.Surface, edge.PrimaryFace.GetUVBounds(), precision, out firstToSecond) &&
                             edge.PrimaryFace != edge.SecondaryFace && firstToSecond.IsIsogonal && firstToSecond.Determinant > 0) // firstToSecond.IsIsogonal: non periodic surfaces or spheres with different axis are not implemented yet
                         {
 #if DEBUG
-                            if (edge.GetHashCode() == 20260) { }
-                            foreach (Edge dbgedg in edge.PrimaryFace.AllEdgesIterated())
+                            if (edge.GetHashCode() == 1227) { }
+                            foreach (Edge dbgedg in edge.PrimaryFace.Edges)
                             {
                                 if (edge.Curve3D is InterpolatedDualSurfaceCurve)
                                 {
@@ -5457,14 +5482,29 @@ namespace CADability.GeoObject
                                 // these faces are explicitly kept separate
                                 // firstToSecond may move by a whole period. This is not respected here. but with the non periodic surfaces we want to get rid of periodic surfaces anyhow.
                                 Border outline = edge.PrimaryFace.Area.Outline; // three lines to check performance
-                                ModOp2D inverse = firstToSecond.GetInverse();
-                                Border firstoutline = outline.GetModified(inverse);
-                                // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
-                                BoundingRect ext = firstoutline.Extent;
-                                ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
-                                if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
-                                if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
+                                try
+                                {
+                                    ModOp2D inverse = firstToSecond.GetInverse();
+                                    Border firstoutline = outline.GetModified(inverse);
+                                    BoundingRect ext = firstoutline.Extent;
+                                    ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
+                                    if (edge.SecondaryFace.Surface.IsUPeriodic && ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75)
+                                    {   // special case for cylinder: maybe firstToSecond should be +2.0*Math.Pi or -2.0*Math.Pi 
+                                        if (firstoutline.Extent.Left > edge.SecondaryFace.Area.Outline.Extent.Left) firstToSecond[0, 2] += 2.0 * Math.PI;
+                                        else firstToSecond[0, 2] -= 2.0 * Math.PI;
+                                        inverse = firstToSecond.GetInverse();
+                                        firstoutline = outline.GetModified(inverse);
+                                        // Border firstoutline = edge.PrimaryFace.Area.Outline.GetModified(firstToSecond.GetInverse()); // GetInverse is correct
+                                        ext = firstoutline.Extent;
+                                        ext.MinMax(edge.SecondaryFace.Area.Outline.Extent);
+                                        if (ext.Width >= edge.SecondaryFace.Surface.UPeriod * 0.75) continue;
+                                    }
+                                    if (edge.SecondaryFace.Surface.IsVPeriodic && ext.Height >= edge.SecondaryFace.Surface.VPeriod * 0.75) continue;
+                                }
+                                catch { continue; }
                             }
+                            if (edge.PrimaryFace.Surface is SurfaceOfRevolution) continue; // this must be fixed (e.g. in "1_Assembly_Light.stp")
+
                             toRemove = edge.SecondaryFace.CombineWith(edge.PrimaryFace, firstToSecond);
                             // isolate the face, which will no longer be used:
                             Face faceToRemove = edge.PrimaryFace;
@@ -5737,6 +5777,7 @@ namespace CADability.GeoObject
         internal static Shell MakeShell(Face[] faces, bool tryToConnectOpenEdges = false)
         {
             Shell res = Shell.Construct();
+            res.colorDef = faces[0].ColorDef;
             res.SetFaces(faces);
             if (tryToConnectOpenEdges)
             {

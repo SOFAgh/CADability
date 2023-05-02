@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2023 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -103,18 +106,16 @@ namespace netDxf.Entities
             : base(DimensionType.Linear)
         {
             if (referenceLine == null)
+            {
                 throw new ArgumentNullException(nameof(referenceLine));
+            }
 
             List<Vector3> ocsPoints = MathHelper.Transform(
                 new List<Vector3> {referenceLine.StartPoint, referenceLine.EndPoint}, normal, CoordinateSystem.World, CoordinateSystem.Object);
             this.firstRefPoint = new Vector2(ocsPoints[0].X, ocsPoints[0].Y);
             this.secondRefPoint = new Vector2(ocsPoints[1].X, ocsPoints[1].Y);
-
-            if (offset < 0)
-                throw new ArgumentOutOfRangeException(nameof(offset), "The offset value must be equal or greater than zero.");
             this.offset = offset;
             this.rotation = MathHelper.NormalizeAngle(rotation);
-
             this.Style = style ?? throw new ArgumentNullException(nameof(style));
             this.Normal = normal;
             this.Elevation = ocsPoints[0].Z;
@@ -148,8 +149,6 @@ namespace netDxf.Entities
         {
             this.firstRefPoint = firstPoint;
             this.secondRefPoint = secondPoint;
-            if (offset < 0)
-                throw new ArgumentOutOfRangeException(nameof(offset), "The offset value must be equal or greater than zero.");
             this.offset = offset;
             this.rotation = MathHelper.NormalizeAngle(rotation);
             this.Style = style ?? throw new ArgumentNullException(nameof(style));
@@ -199,32 +198,23 @@ namespace netDxf.Entities
         /// Gets or sets the distance between the mid point of the reference line and the dimension line.
         /// </summary>
         /// <remarks>
-        /// The offset value must be equal or greater than zero.<br />
-        /// The side at which the dimension line is drawn depends of its rotation.
+        /// The positive side at which the dimension line is drawn depends of the direction of its reference line and the dimension rotation.
         /// </remarks>
         public double Offset
         {
             get { return this.offset; }
-            set
-            {
-                if (value < 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(value), "The offset value must be equal or greater than zero.");
-                }
-                this.offset = value;
-            }
+            set { this.offset = value; }
         }
 
         /// <summary>
         /// Gets the actual measurement.
         /// </summary>
-        /// <remarks>The dimension is always measured in the plane defined by the normal.</remarks>
         public override double Measurement
         {
             get
             {
                 double refRot = Vector2.Angle(this.firstRefPoint, this.secondRefPoint);
-                return Math.Abs(Vector2.Distance(this.firstRefPoint, this.secondRefPoint)*Math.Cos(this.rotation*MathHelper.DegToRad - refRot));
+                return Math.Abs(Vector2.Distance(this.firstRefPoint, this.secondRefPoint) * Math.Cos(this.rotation * MathHelper.DegToRad - refRot));
             }
         }
 
@@ -244,25 +234,16 @@ namespace netDxf.Entities
             Vector2 pointDir = point - this.firstRefPoint;
             Vector2 dimDir = Vector2.Normalize(Vector2.Rotate(Vector2.UnitX, dimRotation));
             
+            this.offset = MathHelper.PointLineDistance(midRef, point, dimDir);
             double cross = Vector2.CrossProduct(dimDir, pointDir);
             if (cross < 0)
             {
-                this.Rotation += 180;
-                dimDir *= -1; // rotate the dimension direction 180 degrees
-                dimRotation = this.rotation * MathHelper.DegToRad;
+                this.offset *= -1;
             }
-
-            this.offset = MathHelper.PointLineDistance(midRef, point, dimDir);
 
             Vector2 offsetDir = Vector2.Perpendicular(dimDir);
             Vector2 midDimLine = midRef + this.offset * offsetDir;
             this.defPoint = midDimLine + 0.5 * this.Measurement * dimDir;
-
-            cross = Vector2.CrossProduct(this.secondRefPoint - this.firstRefPoint, offsetDir);
-            if (cross < 0)
-            {
-                MathHelper.Swap(ref this.firstRefPoint, ref this.secondRefPoint);
-            }
 
             if (!this.TextPositionManuallySet)
             {
@@ -365,7 +346,7 @@ namespace netDxf.Entities
             double cross = Vector2.CrossProduct(this.secondRefPoint - this.firstRefPoint, vec);
             if (cross < 0)
             {
-                MathHelper.Swap(ref this.firstRefPoint, ref this.secondRefPoint);
+                this.offset *= -1;
             }
             this.defPoint = midDimLine - measure * 0.5 * Vector2.Perpendicular(vec);
 

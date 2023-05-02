@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
@@ -40,9 +41,22 @@ namespace CADability
         void GetObjectData(IJsonWriteData data);
         void SetObjectData(IJsonReadData data);
     }
+    /// <summary>
+    /// Implement this interface if your object needs a callback after the first pass of the serialisation/deserialisation.
+    /// To ensure this interface of your object is called, you must call <see cref="JsonSerialize.RegisterForSerializationDoneCallback(IJsonSerializeDone)"/>,
+    /// in the implementation of <see cref="IJsonSerialize.GetObjectData(IJsonWriteData)"/> or <see cref="IJsonSerialize.SetObjectData(IJsonWriteData)"/>.
+    /// When the object is beeing read, the properties might be empty objects in the first pass. When <see cref="SerializationDone(JsonSerialize)"/> is called
+    /// all properties had their first pass, i.e. <see cref="IJsonSerialize.SetObjectData(IJsonReadData)"/> has been called on those objects.
+    /// When the object is beeing written, this mechanism provides the opportunity to modify the object in <see cref="IJsonSerialize.GetObjectData(IJsonWriteData)"/> and
+    /// restore it in <see cref="SerializationDone(JsonSerialize)"/>
+    /// </summary>
     public interface IJsonSerializeDone
     {
-        void SerializationDone();
+        /// <summary>
+        /// Will be called, when all objects are written or read.
+        /// </summary>
+        /// <param name="jsonSerialize"></param>
+        void SerializationDone(JsonSerialize jsonSerialize);
     }
     public interface IJsonReadData
     {
@@ -69,6 +83,7 @@ namespace CADability
         void AddValue(object value);
         void AddValues(params object[] value);
         void AddHashTable(string v, Hashtable attributeLists);
+        void RegisterForSerializationDoneCallback(IJsonSerializeDone toCall);
     }
     public class JsonSerialize : IJsonWriteData
     {
@@ -325,7 +340,7 @@ namespace CADability
             object IJsonReadData.GetProperty(string name, Type type)
             {
                 object val = this[name];
-                if (root.typeVersions.TryGetValue(type.FullName,out int tv) && tv==-1) return val; // maybe it was ISerialize in an old version and is now SerializeAsStruct: this would fail
+                if (root.typeVersions.TryGetValue(type.FullName, out int tv) && tv == -1) return val; // maybe it was ISerialize in an old version and is now SerializeAsStruct: this would fail
                 if (SerializeAsStruct(type))
                 {
                     ConstructorInfo cie = type.GetConstructor(BindingFlags.CreateInstance | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, new Type[] { typeof(IJsonReadStruct) }, null);
@@ -473,7 +488,7 @@ namespace CADability
         Dictionary<object, int> objectToIndex;
         // for deserialization:
         delegate object EntityCreationDelegate(JsonDict data, List<object> entities, ulong index, HashSet<ulong> underConstruction); // maybe more parameters
-        List<IJsonSerializeDone> SerializationDoneCallback = new List<IJsonSerializeDone>();
+        HashSet<IJsonSerializeDone> SerializationDoneCallback = new HashSet<IJsonSerializeDone>();
         List<EntityCreationDelegate> createEntity;
         Dictionary<string, int> typeVersions;
         Dictionary<int, int> typeIndexToVersion;
@@ -681,16 +696,34 @@ namespace CADability
                         if (entities[i] != null && !(entities[i] is JsonDict) && !(entities[i] is JsonArray) && entities[i] is IDeserializationCallback && typeVersions.TryGetValue(entities[i].GetType().FullName, out int typeVersion))
                             if (typeVersion == -1) (entities[i] as IDeserializationCallback).OnDeserialization(this);
                     }
-                    foreach (IJsonSerializeDone item in SerializationDoneCallback)
+                    IJsonSerializeDone item = SerializationDoneCallback.FirstOrDefault();
+                    while (item != null)
                     {
-                        item.SerializationDone();
+                        SerializationDoneCallback.Remove(item);
+                        item.SerializationDone(this);
+                        item = SerializationDoneCallback.FirstOrDefault();
                     }
+                    //foreach (IJsonSerializeDone item in SerializationDoneCallback)
+                    //{
+                    //    item.SerializationDone();
+                    //}
                     return entities[0];
                 }
             }
             return null;
         }
-
+        public void InvokeSerializationDoneCallback(object item)
+        {
+            if (item is IJsonSerializeDone done && SerializationDoneCallback.Contains(done))
+            {
+                SerializationDoneCallback.Remove(done);
+                done.SerializationDone(this);
+            }
+        }
+        public bool IsWriting
+        {
+            get { return outStream!=null; }   
+        }
         private SerializationInfo SerializationInfoFromJsonData(JsonDict data, Type tp, List<object> entities, HashSet<ulong> underConstruction)
         {
             SerializationInfo si = new SerializationInfo(tp, new FormatterConverter());
@@ -984,7 +1017,11 @@ namespace CADability
                         createEntity[ti] = delegate (JsonDict data, List<object> entities, ulong index, HashSet<ulong> underConstruction)
                         {
                             SerializationInfo si = SerializationInfoFromJsonData(data, tp, entities, underConstruction);
-                            return ci.Invoke(new object[] { si, new StreamingContext() });
+                            try
+                            {
+                                return ci.Invoke(new object[] { si, new StreamingContext() });
+                            }
+                            catch { return null; }
                         };
                     }
                 }
@@ -1091,6 +1128,14 @@ namespace CADability
             //}
             outStream.Flush();
             if (closeStream) outStream.Close();
+            IJsonSerializeDone item = SerializationDoneCallback.FirstOrDefault();
+            while (item != null)
+            {
+                SerializationDoneCallback.Remove(item);
+                item.SerializationDone(this);
+                item = SerializationDoneCallback.FirstOrDefault();
+            }
+
             return true;
         }
         private void BeginObject()
@@ -1557,6 +1602,10 @@ namespace CADability
             }
             EndObject();
         }
+        void IJsonWriteData.RegisterForSerializationDoneCallback(CADability.IJsonSerializeDone toCall)
+        {
+            SerializationDoneCallback.Add(toCall);
+        }
         #endregion
     }
 
@@ -1628,6 +1677,7 @@ namespace CADability
             {
                 List<object> kv = entries[i] as List<object>;
                 object key = kv[0];
+                if (key == null) continue;
                 Type vt;
                 if (valTypes != null) vt = Type.GetType(valTypes[i]);
                 else vt = valType;

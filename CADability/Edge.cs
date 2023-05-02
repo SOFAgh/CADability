@@ -671,7 +671,7 @@ namespace CADability
                 PrimaryCurve2D = primaryFace.Surface.GetProjectedCurve(Curve3D, 0.0);
                 if (!forwardOnPrimaryFace) PrimaryCurve2D.Reverse();
             }
-            if (secondaryFace!=null && secondaryFace.Surface.UvChangesWithModification)
+            if (secondaryFace != null && secondaryFace.Surface.UvChangesWithModification)
             {
                 SecondaryCurve2D = secondaryFace.Surface.GetProjectedCurve(Curve3D, 0.0);
                 if (!forwardOnSecondaryFace) SecondaryCurve2D.Reverse();
@@ -821,7 +821,7 @@ namespace CADability
             edgeKind = EdgeKind.unknown;
             hashCode = hashCodeCounter++; // 
 #if DEBUG
-            if (hashCode == 40)
+            if (hashCode == 1214)
             {
             }
 #endif
@@ -2229,8 +2229,10 @@ namespace CADability
         #region IJsonSerialize Members
         public void GetObjectData(IJsonWriteData data)
         {
+            owner = primaryFace;
             if (curve3d != null)
             {
+                if (curve3d is IGeoObject go) go.Owner = this;
                 data.AddProperty("Curve3d", curve3d);
             }
             if (primaryFace != null) data.AddProperty("PrimaryFace", primaryFace);
@@ -2258,7 +2260,7 @@ namespace CADability
             v2 = data.GetPropertyOrDefault<Vertex>("Vertex2");
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             if (curve3d != null) (curve3d as IGeoObject).Owner = this;
         }
@@ -3626,7 +3628,7 @@ namespace CADability
                 Edge[] hole = onThisFace.HoleEdges(i);
                 for (int j = 0; j < hole.Length; j++)
                 {
-                    if (hole[j]==this) return true;
+                    if (hole[j] == this) return true;
                 }
             }
             return false;

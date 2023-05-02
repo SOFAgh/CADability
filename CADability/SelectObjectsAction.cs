@@ -188,9 +188,9 @@ namespace CADability.Actions
             base.SetObjectData(data);
             data.RegisterForSerializationDoneCallback(this);
         }
-        public override void SerializationDone()
+        public override void SerializationDone(JsonSerialize jsonSerialize)
         {
-            base.SerializationDone();
+            base.SerializationDone(jsonSerialize);
             OnDeserialization();
         }
         #endregion
@@ -699,6 +699,11 @@ namespace CADability.Actions
                 bool ok = true;
                 if (selObj[0] is Solid)
                 {
+                    foreach (Edge edge in (selObj[0] as Solid).Shells[0].Edges)
+                    {
+                        if (edge.Curve3D!=null && edge.Curve3D.GetExtent().Zmin<-0.1)
+                        { }
+                    }
                     ok = (selObj[0] as Solid).Shells[0].CheckConsistency();
                     //Shell sh = (selObj[0] as Solid).Shells[0].Clone() as Shell;
                     //sh.RecalcVertices();

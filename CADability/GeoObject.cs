@@ -532,10 +532,6 @@ namespace CADability.GeoObject
     /// This class helps to implement IGeoObject by implementing some IGeoObject methods
     /// in a default way and by offering some helper methods.
     /// </summary>
-
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeoObjectVisualizer))]
-#endif
     public abstract class IGeoObjectImpl : IGeoObject,
         ISerializable, IFeedBack, ICloneable
     {

@@ -648,7 +648,7 @@ namespace CADability
                 SurfaceHelper.AdjustPeriodic(surface, ext, ref startPoint2d);
                 p2d = surface.PositionOf(curve3D.PointAt(0.9));
                 SurfaceHelper.AdjustPeriodic(surface, periodicDomain, ref p2d);
-                ext = new BoundingRect(p2d);
+                ext.MinMax(p2d);
                 SurfaceHelper.AdjustPeriodic(surface, ext, ref endPoint2d);
                 distinctStartEndPoint = true;
             }
@@ -658,9 +658,15 @@ namespace CADability
                 // make a few points and assure that they don't jump over the periodic seam
                 // if the curve3d doesn't jump around wildly, this should work. Maybe use curve3D.GetSavePositions?
                 GeoPoint2D[] point2Ds = new GeoPoint2D[11];
+#if DEBUG
+                GeoPoint2D[] point2Dsdbg = new GeoPoint2D[11];
+#endif
                 for (int i = 0; i < 11; i++)
                 {
                     point2Ds[i] = surface.PositionOf(curve3D.PointAt(i / 10.0));
+#if DEBUG
+                    //(surface as ISurfaceImpl).BoxedSurfaceEx.PositionOf(curve3D.PointAt(i / 10.0), out point2Dsdbg[i]);
+#endif
                 }
                 for (int i = 0; i < 10; i++)
                 {
@@ -712,14 +718,14 @@ namespace CADability
             for (int i = 0; i < vs.Length; i++)
             {
                 GeoPoint pl = surface.PointAt(new GeoPoint2D(cnt2d.x, vs[i]));
-                if ((pl | sp) < prec)
+                if ((pl | sp) < prec*10)
                 {
                     GeoPoint2D tmp = surface.PositionOf(curve3D.PointAt(0.1));
                     startPoint2d = new GeoPoint2D(tmp.x, vs[i]);
                     startPointIsPole = true;
                     spu = false;
                 }
-                if ((pl | ep) < prec)
+                if ((pl | ep) < prec*10)
                 {
                     GeoPoint2D tmp = surface.PositionOf(curve3D.PointAt(0.9));
                     endPoint2d = new GeoPoint2D(tmp.x, vs[i]);

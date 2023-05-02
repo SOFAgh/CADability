@@ -2563,7 +2563,7 @@ namespace CADability.Actions
                         IPropertyEntry selected = (geoPointProperty.Parent as IPropertyPage).GetCurrentSelection();
                         for (int i = 0; i < subentries.Length; i++)
                         {
-                            if (subentries[i]==selected)
+                            if (subentries[i] == selected)
                             {
                                 if (i == subentries.Length - 1)
                                 {   // Enter auf die letzte Komponente
@@ -6194,7 +6194,7 @@ namespace CADability.Actions
             // if (go.Style != null && go.Style.Check(go)) return go.Style; // der Stil stimmt
             // die Abfrage war schlecht: der Stil stimmte, die konkrete Ausführung an dem Objekt war aber anders
             Dictionary<Type, string> res = new Dictionary<Type, string>();
-            res[typeof(Layer)] = go.Layer.Name;
+            if (go.Layer!=null) res[typeof(Layer)] = go.Layer.Name;
             IColorDef icolorDef = go as IColorDef;
             if (icolorDef != null)
             {
@@ -6649,6 +6649,13 @@ namespace CADability.Actions
             }
             else
             {
+                int ci = currentInputIndex;
+                
+                if (InputDefinitions[ci] != null && InputDefinitions[ci].GetShowProperty() != null && InputDefinitions[ci].GetShowProperty().Flags.HasFlag(PropertyEntryType.HasSubEntries))
+                {
+                    propertyTreeView.OpenSubEntries(InputDefinitions[ci].GetShowProperty(), !InputDefinitions[ci].GetShowProperty().IsOpen);
+                    return true;
+                }
                 return false;
             }
         }
@@ -6667,6 +6674,7 @@ namespace CADability.Actions
         public override bool OnTab(object sender)
         {
             int ci = currentInputIndex;
+            if (InputDefinitions[ci] != null && InputDefinitions[ci].GetShowProperty() != null && InputDefinitions[ci].GetShowProperty().IsOpen) return false;
             SetNextInputIndex(true, true);
             return ci != currentInputIndex; // true (handled), if the input field changed to the next input
         }
@@ -7174,8 +7182,11 @@ namespace CADability.Actions
         {
             //System.Diagnostics.Trace.WriteLine("CancelBackgroundTask");
             Thread tmp = backgroundTask; // backgroundTask wird null bei Abort
-            tmp.Abort();
-            tmp.Join();
+            if (tmp != null)
+            {
+                tmp.Abort();
+                tmp.Join();
+            }
             //System.Diagnostics.Trace.WriteLine("CancelBackgroundTask-Done");
         }
         protected void WaitForBackgroundTask()

@@ -45,7 +45,7 @@ namespace CADability.Actions
         {
             for (int i = 0; i < selectedObjects.Count; i++)
             {   // nur eins muss passen
-                if ((selectedObjects[i] is Face) || (selectedObjects[i] is Shell) || ((selectedObjects[i] is ICurve) && (selectedObjects[i] as ICurve).IsClosed)) return true;
+                if ((selectedObjects[i] is Face) || (selectedObjects[i] is Shell) || (selectedObjects[i] is Text) || ((selectedObjects[i] is ICurve) && (selectedObjects[i] as ICurve).IsClosed)) return true;
             }
             return false;
         }
@@ -73,6 +73,7 @@ namespace CADability.Actions
             if (selectedMode)
             {
                 GeoObjectList clonedList = selectedObjectsList.Clone();
+
                 GeoObjectList curves = new GeoObjectList();
                 for (int i = clonedList.Count - 1; i >= 0; --i)
                 {
@@ -80,6 +81,20 @@ namespace CADability.Actions
                     {
                         curves.Add(clonedList[i]);
                         clonedList.Remove(i);
+                    }
+                    else if (clonedList[i] is Text text)
+                    {
+                        clonedList.Remove(i);
+                        CompoundShape[] shapes = text.GetShapes();
+                        for (int j = 0; j < shapes.Length; j++)
+                        {
+                            for (int k = 0; k < shapes[j].SimpleShapes.Length; k++)
+                            {
+                                Face fc = Face.MakeFace(new PlaneSurface(Plane.XYPlane), shapes[j].SimpleShapes[k]);
+                                fc.Modify(text.GlyphToWorld);
+                                clonedList.Add(fc);
+                            }
+                        }
                     }
                 }
                 Plane pln;
@@ -93,12 +108,8 @@ namespace CADability.Actions
                         toAdd.CopyAttributes(curves[0]);
                         clonedList.Add(toAdd);
                     }
-                    this.selectedObjectsList = clonedList;
                 }
-                else
-                {
-                    this.selectedObjectsList = selectedObjectsList.Clone();
-                }
+                this.selectedObjectsList = clonedList;
                 ListDefault(this.selectedObjectsList.Count); // setzt alle Listen auf gleiche Länge, Inhalte "null"
             };
         }

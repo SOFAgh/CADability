@@ -1813,6 +1813,10 @@ namespace CADability.GeoObject
             }
             return res.ToArray();
         }
+        internal ModOp GlyphToWorld
+        {
+            get { return ModOp.Translate(location.x, location.y, location.z) * ModOp.Fit(new GeoVector[] { GeoVector.XAxis, GeoVector.YAxis, GeoVector.ZAxis }, new GeoVector[] { lineDirection, glyphDirection, lineDirection ^ glyphDirection }); }
+        }
         public virtual GeoObjectList GetCenterline()
         {   // koopiert aus Getoutline!
             GeoObjectList res = new GeoObjectList();

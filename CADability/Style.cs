@@ -1079,7 +1079,7 @@ namespace CADability.Attribute
             data.RegisterForSerializationDoneCallback(this);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             if (unsortedEntries != null)
             {   // entries als SortedList sollte so nicht mehr verwendet werden, besser

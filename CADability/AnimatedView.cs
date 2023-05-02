@@ -598,7 +598,7 @@ namespace CADability
         }
         void IView.SetCursor(string cursor)
         {
-
+            canvas.Cursor = cursor;
         }
         void IView.Invalidate(PaintBuffer.DrawingAspect aspect, Rectangle ToInvalidate)
         {
@@ -947,11 +947,14 @@ namespace CADability
             if (Frame != null)
             {
                 Frame.ActiveView = this;
-                // FrameInternal.ActionStack.OnMouseDown(e, this);
+                Frame.ActionStack.OnMouseDown(e, this);
                 // keine Aktion hier, nur markieren und schieben
                 objectsOnLButtonDown = ObjectsUnderCursor(e);
-                if (objectsOnLButtonDown.Count > 0) (this as IView).SetCursor("Hand");
-                else (this as IView).SetCursor("Arrow");
+                if (selectionEnabled)
+                {
+                    if (objectsOnLButtonDown.Count > 0) (this as IView).SetCursor("Hand");
+                    else (this as IView).SetCursor("Arrow");
+                }
                 downPoint = new Point(e.X, e.Y);
             }
         }
@@ -1105,11 +1108,14 @@ namespace CADability
             }
             if (!doScroll && !doDirection)
             {
-                // condorCtrl.Frame.ActiveView = this; // activeview soll sich nur bei Klick ändern
-                // FrameInternal.ActionStack.OnMouseMove(e, this);
+                canvas.Frame.ActiveView = this; // activeview soll sich nur bei Klick ändern
+                Frame.ActionStack.OnMouseMove(e, this);
                 GeoObjectList l = ObjectsUnderCursor(e);
-                if (l.Count > 0) (this as IView).SetCursor("Hand");
-                else (this as IView).SetCursor("Arrow");
+                if (selectionEnabled)
+                {
+                    if (l.Count > 0) (this as IView).SetCursor("Hand");
+                    else (this as IView).SetCursor("Arrow");
+                }
                 if (e.Button == MouseButtons.Left && (Math.Abs(e.X - downPoint.X) > dragWidth || Math.Abs(e.Y - downPoint.Y) > dragWidth) && objectsOnLButtonDown != null)
                 {
                     GeoObjectList dragList = new GeoObjectList(objectsOnLButtonDown.Count);
@@ -1146,12 +1152,15 @@ namespace CADability
                 Frame.ActiveView = this;
                 Frame.ActionStack.OnMouseUp(e, this);
                 GeoObjectList l = ObjectsUnderCursor(e);
-                if (l.Count > 0) (this as IView).SetCursor("Hand");
-                else (this as IView).SetCursor("Arrow");
-                if ((Frame.UIService.ModifierKeys & Keys.Control) != 0 && (e.Button == MouseButtons.Left)) selectedObjects.AddRange(l);
-                else if (e.Button == MouseButtons.Left) selectedObjects = l;
-                displayList = null;
-                canvas?.Invalidate();
+                if (selectionEnabled)
+                {
+                    if (l.Count > 0) (this as IView).SetCursor("Hand");
+                    else (this as IView).SetCursor("Arrow");
+                    if ((Frame.UIService.ModifierKeys & Keys.Control) != 0 && (e.Button == MouseButtons.Left)) selectedObjects.AddRange(l);
+                    else if (e.Button == MouseButtons.Left) selectedObjects = l;
+                    displayList = null;
+                    canvas?.Invalidate();
+                }
             }
             // folgenden Block habe ich hinten angestellt wg. ViewPointAction
             //if (projectedModelNeedsRecalc)
@@ -1178,7 +1187,7 @@ namespace CADability
             rct.Bottom = p2.y + (rct.Bottom - p2.y) * Factor;
             rct.Top = p2.y + (rct.Top - p2.y) * Factor;
             this.ZoomToRect(rct);
-            // FrameInternal.ActionStack.OnMouseWheel(e,this);
+            Frame.ActionStack.OnMouseWheel(e,this);
         }
         void IView.OnMouseDoubleClick(MouseEventArgs eIn)
         {

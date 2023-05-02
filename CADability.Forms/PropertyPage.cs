@@ -549,9 +549,9 @@ namespace CADability.Forms
             if (entries[index].Flags.HasFlag(PropertyEntryType.ContextMenu) && e.Location.X >= ClientRectangle.Width - buttonWidth) return (index, EMousePos.onContextMenu, new Rectangle(ClientRectangle.Width - buttonWidth, bottom, buttonWidth, lineHeight));
             if (entries[index].Flags.HasFlag(PropertyEntryType.DropDown) && e.Location.X >= ClientRectangle.Width - buttonWidth) return (index, EMousePos.onDropDownButton, new Rectangle(middle, bottom, ClientRectangle.Width - middle, lineHeight));
             if (entries[index].Flags.HasFlag(PropertyEntryType.CancelButton) && e.Location.X >= ClientRectangle.Width - lineHeight) return (index, EMousePos.onCancelButton, new Rectangle(ClientRectangle.Width - lineHeight, bottom, lineHeight, lineHeight));
-            if (entries[index].Flags.HasFlag(PropertyEntryType.OKButton) && e.Location.X >= ClientRectangle.Width - buttonWidth -ButtonImages.ButtonImageList.ImageSize.Width) return (index, EMousePos.onOkButton, new Rectangle(ClientRectangle.Width - buttonWidth - ButtonImages.ButtonImageList.ImageSize.Width, bottom, ButtonImages.ButtonImageList.ImageSize.Width, lineHeight));
-            if (entries[index].Flags.HasFlag(PropertyEntryType.Lockable) && e.Location.X >= ClientRectangle.Width - 2 * lineHeight) return (index, EMousePos.onLockButton, new Rectangle(ClientRectangle.Width - 2 * lineHeight, bottom, lineHeight, lineHeight));
-            if (entries[index].Value == null && e.Location.X >= treeLeft) return (index, EMousePos.onLabel, new Rectangle(treeLeft, bottom, ClientSize.Width - treeLeft, lineHeight));
+            if (entries[index].Flags.HasFlag(PropertyEntryType.OKButton) && e.Location.X >= ClientRectangle.Width - 2 * lineHeight) return (index, EMousePos.onOkButton, new Rectangle(ClientRectangle.Width - 2 * lineHeight, bottom, lineHeight, lineHeight)); //OK and Cancel buttons have width = lineHeight (18)
+			if (entries[index].Flags.HasFlag(PropertyEntryType.Lockable) && e.Location.X >= ClientRectangle.Width - ButtonImages.ButtonImageList.ImageSize.Width - buttonWidth) return (index, EMousePos.onLockButton, new Rectangle(ClientRectangle.Width - 2 * lineHeight, bottom, lineHeight, lineHeight)); //Lock button has width of the image and is before ContextMenu, context menu has width = buttonWidth
+			if (entries[index].Value == null && e.Location.X >= treeLeft) return (index, EMousePos.onLabel, new Rectangle(treeLeft, bottom, ClientSize.Width - treeLeft, lineHeight));
             if (entries[index].Value != null && e.Location.X >= middle) return (index, EMousePos.onValue, new Rectangle(middle, bottom, ClientRectangle.Width - middle, lineHeight));
             return (index, EMousePos.outside, Rectangle.Empty);
         }
@@ -769,12 +769,24 @@ namespace CADability.Forms
             }
         }
         public IFrame Frame { get; set; }
-        internal void OnEnter()
+        internal void OnEnter(bool ctrl)
         {
             if (selected >= 0)
             {   // activate the edit textbox or if not editable open or close the subentries
                 IPropertyEntry selectedEntry = entries[selected];
-                if (selectedEntry.Flags.HasFlag(PropertyEntryType.ValueEditable))
+                if (ctrl && selectedEntry.Flags.HasFlag(PropertyEntryType.HasSubEntries))
+                {
+                    int added = selectedEntry.OpenOrCloseSubEntries();
+                    if (added != 0)
+                    {
+                        RefreshEntries(FindEntry(selectedEntry), added);
+                    }
+                    else
+                    {
+                        RefreshEntries(-1, 0);
+                    }
+                }
+                else if (selectedEntry.Flags.HasFlag(PropertyEntryType.ValueEditable))
                 {
                     Rectangle area = ValueArea(selected);
                     ShowTextBox(selected, new Point(area.Right, area.Bottom), true);

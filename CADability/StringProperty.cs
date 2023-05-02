@@ -14,6 +14,7 @@ namespace CADability.UserInterface
 
         public StringProperty(string stringValue, string resourceId)
         {
+            base.SetValue(stringValue, false);
             base.resourceId = resourceId;
         }
 

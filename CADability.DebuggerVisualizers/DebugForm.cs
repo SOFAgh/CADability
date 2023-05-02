@@ -1,38 +1,10 @@
-﻿using CADability.Attribute;
-using CADability.GeoObject;
+﻿using CADability.Forms;
 using Microsoft.VisualStudio.DebuggerVisualizers;
 using System;
 using System.ComponentModel;
-using System.IO;
 
-//[assembly: System.Diagnostics.DebuggerVisualizer(
-//typeof(TestDebuggerVisualizer.DebuggerSide),
-//typeof(VisualizerObjectSource),
-//Target = typeof(System.String),
-//Description = "My First Visualizer")]
-
-namespace CADability.Forms
+namespace CADability.DebuggerVisualizers
 {
-#if DEBUG
-    internal class Trace
-    {
-        static public void Clear()
-        {
-            if (File.Exists(@"C:\Temp\CADability.Trace.txt"))
-                File.Delete(@"C:\Temp\CADability.Trace.txt");
-        }
-        static public void WriteLine(string text)
-        {
-            lock (typeof(Trace))
-            {
-                using (StreamWriter w = File.AppendText(@"C:\Temp\CADability.Trace.txt"))
-                {
-                    w.WriteLine(text);
-                }
-            }
-        }
-    }
-
     /// <summary>
     /// This Form is almost identical to the MainForm. It is being created via reflection from CADability kernel and used to display CADability objects in a ModelView.
     /// </summary>
@@ -52,7 +24,7 @@ namespace CADability.Forms
             base.OnShown(e);
             // zoom total and make all layers visible
             ((CadFrame as IFrame).ActiveView as ModelView).ZoomTotal(1.1);
-            Layer[] vl = ((CadFrame as IFrame).ActiveView as ModelView).ProjectedModel.GetVisibleLayers();
+            Attribute.Layer[] vl = ((CadFrame as IFrame).ActiveView as ModelView).ProjectedModel.GetVisibleLayers();
             for (int i = 0; i < vl.Length; ++i)
             {
                 ((CadFrame as IFrame).ActiveView as ModelView).ProjectedModel.RemoveVisibleLayer(vl[i]);
@@ -94,5 +66,10 @@ namespace CADability.Forms
             windowService.ShowDialog(this);
         }
     }
-#endif
+
+    public interface IDebugForm
+    {
+        Model Model { get; }
+        void ShowDialog(IDialogVisualizerService windowService);
+    }
 }

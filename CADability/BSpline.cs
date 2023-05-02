@@ -36,9 +36,6 @@ namespace CADability.GeoObject
     /// A BSpline is a smooth curve defined by a set of control points. It is implemented as a NURBS - non uniform rational b-spline.
     /// </summary>
     [Serializable]
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeoObjectVisualizer))]
-#endif
     public class BSpline : IGeoObjectImpl, IColorDef, ILineWidth, ILinePattern, ISerializable, ICurve, IExplicitPCurve3D, IExportStep
     {
         // im folgenden die wesentlichen Daten zur Darstellung:
@@ -84,7 +81,8 @@ namespace CADability.GeoObject
         private TetraederHull tetraederHull;
         private GeoPoint[] approximation; // Interpolation mit der Genauigkeit der Auflösung
         private double approxPrecision; // Genauigkeit zu approximation
-        private object lockApproximationRecalc;
+        private readonly object lockApproximationRecalc = new object();
+        private readonly object planeLock = new object();
         private WeakReference extrema;
         private GeoPoint[] GetCashedApproximation(double precision)
         {
@@ -499,8 +497,7 @@ namespace CADability.GeoObject
         #endregion
         protected BSpline()
             : base()
-        {
-            lockApproximationRecalc = new object();
+        {            
             if (Constructed != null) Constructed(this);
             extent = BoundingCube.EmptyBoundingCube;
         }
@@ -1983,8 +1980,7 @@ namespace CADability.GeoObject
                         break;
                 }
             }
-            extent = BoundingCube.EmptyBoundingCube;
-            lockApproximationRecalc = new object();
+            extent = BoundingCube.EmptyBoundingCube;            
             if (Constructed != null) Constructed(this);
         }
         /// <summary>
@@ -2930,9 +2926,10 @@ namespace CADability.GeoObject
                 }
             }
         }
+                
         Plane ICurve.GetPlane()
         {
-            lock (this)
+            lock (planeLock)
             {
                 if (plane.HasValue) return plane.Value;
                 double MaxDist;
@@ -3355,6 +3352,11 @@ namespace CADability.GeoObject
                 for (int i = 0; i < c2.KnotPoints.Length; i++)
                 {
                     if ((this as ICurve).DistanceTo(c2.KnotPoints[i]) > precision) return false;
+                }
+                if (KnotPoints.Length<=2 && c2.KnotPoints.Length<=2)
+                {   // maybe same start and endpoint
+                    if ((c2 as ICurve).DistanceTo((this as ICurve).PointAt(0.5)) > precision) return false;
+                    if ((this as ICurve).DistanceTo((c2 as ICurve).PointAt(0.5)) > precision) return false;
                 }
                 return true;
             }

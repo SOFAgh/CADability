@@ -1298,7 +1298,7 @@ namespace CADability
             myName = data.GetProperty<string>("Name");
             data.RegisterForSerializationDoneCallback(this);
         }
-        public virtual void SerializationDone()
+        public virtual void SerializationDone(JsonSerialize jsonSerialize)
         {
             OnDeserialization();
         }

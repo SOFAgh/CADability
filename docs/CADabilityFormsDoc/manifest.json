@@ -12,7 +12,7 @@
           "hash": "ZcRFJgNhvhM6kAH28Vkb5TxxGPe7FlftmernEpHWKBw="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -24,7 +24,7 @@
           "hash": "yF4cM99miGSsrT64oV0kgkl56YkQylthgw5Gl1aJqzo="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -48,7 +48,7 @@
           "hash": "GGOovSab6ZFxRkwbTiKX/AxcXz9WU1qSZOSIhjRqq74="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -60,7 +60,7 @@
           "hash": "2UsXH9KH29dQTWqLMcp6DLxyMLtr4g6yB++uZN/Y1ns="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -72,7 +72,7 @@
           "hash": "vJLp/cuzs/UuLqdr32ndEOe1OI16RY+FEur+FBWh+QM="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -84,7 +84,7 @@
           "hash": "tRaGGILVwSewQ6PO87dqUl9QvgTTCHpH8mKLfOoMcoA="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -96,7 +96,7 @@
           "hash": "rlwggD3jVjWKftSnoXiOgCnGH4qY965hR+m8FOrUCQc="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -108,7 +108,7 @@
           "hash": "i3e9fxy2toQgu7js2ZDekSGeGiTwf3sseLP9IrXO4bg="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -120,7 +120,19 @@
           "hash": "oYBN0NjZIx6/lWzIx/7RAwvZzv2G4uYBiPjUSgk9F+8="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/CADability.Forms.ImportSVG.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CADability.Forms.ImportSVG.html",
+          "hash": "pdUH25ScGNyh2IleHbLYm+eyNit3lH9nf6wQsxS1hpM="
+        }
+      },
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -132,7 +144,7 @@
           "hash": "R0Ogjr/Wvdoo7JAtpvRnr/Cnx/obUiKG1BWONPDB/hg="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -144,7 +156,7 @@
           "hash": "N62bB4CSAJGN3Dz6LjR/xq4sSYqSoZtdFogS3jz9HwQ="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -156,7 +168,7 @@
           "hash": "W2Q0iF8/BP3umyPDTkZwEHBp1SvtyLOsGmBn+RQXgf0="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -168,7 +180,7 @@
           "hash": "Z8XBC5ijjraY9PcpjYywr2bqgCg2XFwJwbF9q2a06Ag="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -180,7 +192,7 @@
           "hash": "1E6qeIWwMeNyJiJCQ8LwgekScl9cV9rDchIXrjlzpkY="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -192,7 +204,7 @@
           "hash": "DhChTAwuCN4LHxeAB3uveAav5RD/vp+ZR6wrrVYwWSw="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -204,7 +216,7 @@
           "hash": "vwuFJn5mdQaxGeBmsZeDOHAQCunoPNQ55ivXhsPFi3o="
         }
       },
-      "is_incremental": false,
+      "is_incremental": true,
       "version": ""
     },
     {
@@ -225,7 +237,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.html",
-          "hash": "LPgETfrZKett17AS32IKBykY/GFBf3beHQTBRCDpk8c="
+          "hash": "jwT2n0KPwggtAa6l8ITMj8fFm9JBgUyzV7F66vCOPCA="
         }
       },
       "is_incremental": false,
@@ -237,7 +249,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "7ZiE5yLm0mq5SSDK46sqIiMl7/aiSMvxFZCdYBKFkHg="
+          "hash": "A9fpL1EpBLIzuQwbN8vKWi99Tj4tWvZF5A+n5t1GGyM="
         }
       },
       "is_incremental": false,
@@ -259,25 +271,23 @@
   "incremental_info": [
     {
       "status": {
-        "can_incremental": false,
-        "details": "Cannot build incrementally because docfx version changed from 2.58.9.0 to 2.59.4.0.",
+        "can_incremental": true,
         "incrementalPhase": "build",
         "total_file_count": 0,
-        "skipped_file_count": 0,
-        "full_build_reason_code": "DocfxVersionChanged"
+        "skipped_file_count": 0
       },
       "processors": {
         "ConceptualDocumentProcessor": {
-          "can_incremental": false,
+          "can_incremental": true,
           "incrementalPhase": "build",
           "total_file_count": 3,
-          "skipped_file_count": 0
+          "skipped_file_count": 3
         },
         "ManagedReferenceDocumentProcessor": {
-          "can_incremental": false,
+          "can_incremental": true,
           "incrementalPhase": "build",
-          "total_file_count": 15,
-          "skipped_file_count": 0
+          "total_file_count": 16,
+          "skipped_file_count": 15
         },
         "TocDocumentProcessor": {
           "can_incremental": false,

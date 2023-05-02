@@ -231,7 +231,7 @@ namespace CADability
                 VisibleLayers = new ArrayList();
                 modelView = null;
             }
-#region ISerializable Members
+            #region ISerializable Members
             public ModelViewDescription(SerializationInfo info, StreamingContext context)
             {
                 Name = (string)info.GetValue("Name", typeof(string));
@@ -278,7 +278,7 @@ namespace CADability
                 if (VisibleLayers != null) info.AddValue("VisibleLayers", VisibleLayers, typeof(ArrayList));
                 info.AddValue("OnlyThinLines", OnlyThinLines, typeof(bool));
             }
-#endregion
+            #endregion
         }
         //private ArrayList modelViews; // Liste von ModelViewDescription
         private int activeModelIndex;
@@ -564,6 +564,7 @@ namespace CADability
         {
             get
             {
+                if (gdiViews== null) { gdiViews= new List<GDI2DView>(); }
                 return gdiViews;
             }
         }
@@ -707,13 +708,13 @@ namespace CADability
         //public ModelView FindModelView(string name)
         //{
 
-//    foreach (ModelViewDescription mvd in modelViews)
-//    {
-//        ModelView mv = mvd.GetModelView(null);
-//        if (name==mv.Name) return mv;
-//    }
-//    return null;
-//}
+        //    foreach (ModelViewDescription mvd in modelViews)
+        //    {
+        //        ModelView mv = mvd.GetModelView(null);
+        //        if (name==mv.Name) return mv;
+        //    }
+        //    return null;
+        //}
 #if !WEBASSEMBLY
         internal bool FindLayoutName(string name)
         {
@@ -1568,87 +1569,90 @@ namespace CADability
                 //FileName = dlg.FileName;
             }
             Project res = null;
-            FileStream stream = File.Open(FileName, FileMode.Open, System.IO.FileAccess.Read);
-            int firstByte = stream.ReadByte();
-            stream.Seek(0, SeekOrigin.Begin);
-            if (firstByte == 123)
+            using (FileStream stream = File.Open(FileName, FileMode.Open, System.IO.FileAccess.Read))
             {
-                res = ReadFromJson(stream);
-                if (res != null)
+                int firstByte = stream.ReadByte();
+                stream.Seek(0, SeekOrigin.Begin);
+                if (firstByte == 123)
                 {
-                    res.fileName = FileName;
-                    res.openedAsJson = true;
-                    return res;
+                    res = ReadFromJson(stream);
+                    if (res != null)
+                    {
+                        res.fileName = FileName;
+                        res.openedAsJson = true;
+                        stream.Close();
+                        return res;
+                    }
                 }
-            }
-            //Form.ActiveForm.Update();
-            //ReadProgress progress = new ReadProgress(stream);
-            //ProgressFeedBack pf = null;
-            //if (useProgress)
-            //{
-            //    pf = new ProgressFeedBack();
-            //    pf.Title = StringTable.GetFormattedString("ReadFile.Progress", FileName);
-            //    pf.StreamPosition(50, stream);
-            //    pf.Float(100);
-            //}
-            //ReadProgress.ShowProgressDelegate showProgressDelegate = new ReadProgress.ShowProgressDelegate(progress.ShowProgress);
-            // ReadProgress funktioniert noch nicht perfekt. 
-            try
-            {
-                //if (pf != null) pf.Start();
-                //showProgressDelegate.BeginInvoke(null,null);
-                res = ReadFromStream(stream);
-                if (res == null)
+                //Form.ActiveForm.Update();
+                //ReadProgress progress = new ReadProgress(stream);
+                //ProgressFeedBack pf = null;
+                //if (useProgress)
+                //{
+                //    pf = new ProgressFeedBack();
+                //    pf.Title = StringTable.GetFormattedString("ReadFile.Progress", FileName);
+                //    pf.StreamPosition(50, stream);
+                //    pf.Float(100);
+                //}
+                //ReadProgress.ShowProgressDelegate showProgressDelegate = new ReadProgress.ShowProgressDelegate(progress.ShowProgress);
+                // ReadProgress funktioniert noch nicht perfekt. 
+                try
+                {
+                    //if (pf != null) pf.Start();
+                    //showProgressDelegate.BeginInvoke(null,null);
+                    res = ReadFromStream(stream);
+                    if (res == null)
+                    {
+                        stream.Close();
+
+                        return null;
+                    }
+                    res.fileName = FileName;
+                }
+                catch (ProjectOldVersionException ex)
                 {
                     stream.Close();
-
-                    return null;
-                }
-                res.fileName = FileName;
-            }
-            catch (ProjectOldVersionException ex)
-            {
-                stream.Close();
-                stream.Dispose();
-                if (cdbFixFw2 == null)
-                {
-                    Assembly ThisAssembly = Assembly.GetExecutingAssembly();
-                    int lastSlash = ThisAssembly.Location.LastIndexOf('\\');
-                    if (lastSlash >= 0)
+                    stream.Dispose();
+                    if (cdbFixFw2 == null)
                     {
-                        string path = ThisAssembly.Location.Substring(0, lastSlash);
-                        lastSlash = path.LastIndexOf('\\');
-                        //if (lastSlash >= 0) // das geht noch ein level zurück, wir erwarten die Anwendung im selben Verzeichnis wie CADability 
-                        //{
-                        //    path = path.Substring(0, lastSlash);
-                        //}
-                        string[] files = Directory.GetFiles(path, "cdbFixFw2.exe", SearchOption.AllDirectories);
-                        if (files.Length > 0)
+                        Assembly ThisAssembly = Assembly.GetExecutingAssembly();
+                        int lastSlash = ThisAssembly.Location.LastIndexOf('\\');
+                        if (lastSlash >= 0)
                         {
-                            cdbFixFw2 = files[0];
+                            string path = ThisAssembly.Location.Substring(0, lastSlash);
+                            lastSlash = path.LastIndexOf('\\');
+                            //if (lastSlash >= 0) // das geht noch ein level zurück, wir erwarten die Anwendung im selben Verzeichnis wie CADability 
+                            //{
+                            //    path = path.Substring(0, lastSlash);
+                            //}
+                            string[] files = Directory.GetFiles(path, "cdbFixFw2.exe", SearchOption.AllDirectories);
+                            if (files.Length > 0)
+                            {
+                                cdbFixFw2 = files[0];
+                            }
+                        }
+                    }
+                    if (cdbFixFw2 != null)
+                    {
+                        Process process = Process.Start(cdbFixFw2, "\"" + FileName + "\"");
+                        if (process != null)
+                        {
+                            process.WaitForExit();
+                            if (process.ExitCode == 0) // d.h. OK
+                            {
+                                return ReadConvertedFile(FileName, useProgress);
+                            }
                         }
                     }
                 }
-                if (cdbFixFw2 != null)
+                finally
                 {
-                    Process process = Process.Start(cdbFixFw2, "\"" + FileName + "\"");
-                    if (process != null)
-                    {
-                        process.WaitForExit();
-                        if (process.ExitCode == 0) // d.h. OK
-                        {
-                            return ReadConvertedFile(FileName, useProgress);
-                        }
-                    }
+                    //if (pf != null) pf.Stop();
+                    //progress.Finished();
+                    stream.Close();
                 }
+                return res;
             }
-            finally
-            {
-                //if (pf != null) pf.Stop();
-                //progress.Finished();
-                stream.Close();
-            }
-            return res;
         }
         private static Project ReadFromJson(FileStream stream)
         {
@@ -1771,8 +1775,24 @@ namespace CADability
             {
                 if (folderOrg != null)
                 {
-                    Directory.Delete(folderOrg, true);
-                    Directory.Delete(folderConverted, true);
+                    try
+                    {
+                        if (Directory.Exists(folderOrg))
+                            Directory.Delete(folderOrg, true);
+                        if (Directory.Exists(folderConverted))
+                            Directory.Delete(folderConverted, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is DirectoryNotFoundException || ex is IOException || ex is UnauthorizedAccessException)
+                        {
+                            //Best effort, if the folders could not be deleted there is nothing we can do.
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
                 }
             }
         }
@@ -1844,7 +1864,7 @@ namespace CADability
         {
             return ReadFromFile(FileName, Format, true);
         }
-#region IShowPropertyImpl Overrides
+        #region IShowPropertyImpl Overrides
         private IShowProperty[] ShowProperties; // die Anzeige wird hier lokal gehalten, um die TabIndizes setzen zu können
         /// <summary>
         /// Overrides <see cref="IShowPropertyImpl.EntryType"/>, 
@@ -1923,7 +1943,7 @@ namespace CADability
                 return ShowProperties;
             }
         }
-#endregion
+        #endregion
         public delegate void RefreshDelegate(object sender, EventArgs args);
         public event RefreshDelegate RefreshEvent;
         public delegate void ViewChangedDelegate(Project sender, IView viewWhichChanged);
@@ -1959,7 +1979,7 @@ namespace CADability
             (go as IColorDef).ColorDef = cd;
             m.Add(go);
         }
-#region IAttributeListContainer
+        #region IAttributeListContainer
         IAttributeList IAttributeListContainer.GetList(string keyName)
         {
             return attributeLists[keyName] as IAttributeList;
@@ -2137,7 +2157,7 @@ namespace CADability
                 }
         }
 
-#endregion
+        #endregion
         private bool deferRefresh;
         public bool DeferRefresh
         {
@@ -2226,7 +2246,7 @@ namespace CADability
 
         }
 #endif
-#region ISerializable Members
+        #region ISerializable Members
         /// <summary>
         /// Constructor required by deserialization
         /// </summary>
@@ -2356,15 +2376,21 @@ namespace CADability
             info.AddValue("UserData", UserData);
             info.AddValue("SymbolList", symbolList);
 #if !WEBASSEMBLY
-            info.AddValue("Layouts", layouts.ToArray()); // Generics erwarten die exakte Version beim Deserialisieren, geht also nicht
-            info.AddValue("GdiViews", gdiViews.ToArray());
+            if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+            {
+                info.AddValue("Layouts", layouts.ToArray()); // Generics erwarten die exakte Version beim Deserialisieren, geht also nicht
+                info.AddValue("GdiViews", gdiViews.ToArray());
+            }
 #endif
             info.AddValue("ProjectedModels", projectedModels.ToArray());
             info.AddValue("NamedValues", namedValues);
             info.AddValue("FilterList", filterList);
             info.AddValue("AnimatedViews", animatedViews.ToArray());
             info.AddValue("ActiveViewName", activeViewName);
-            if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
+            if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+            {
+                if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
+            }
         }
         public void GetObjectData(IJsonWriteData data)
         {
@@ -2374,15 +2400,21 @@ namespace CADability
             data.AddProperty("UserData", UserData);
             data.AddProperty("SymbolList", symbolList);
 #if !WEBASSEMBLY
-            data.AddProperty("Layouts", layouts);
-            data.AddProperty("GdiViews", gdiViews);
+            if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+            {
+                data.AddProperty("Layouts", layouts);
+                data.AddProperty("GdiViews", gdiViews);
+            }
 #endif
             data.AddProperty("ProjectedModels", projectedModels);
             data.AddProperty("NamedValues", namedValues);
             data.AddProperty("FilterList", filterList);
             data.AddProperty("AnimatedViews", animatedViews);
             data.AddProperty("ActiveViewName", activeViewName);
-            if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings);
+            if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+            {
+                if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings);
+            }
         }
 
         public void SetObjectData(IJsonReadData data)
@@ -2394,23 +2426,33 @@ namespace CADability
             UserData = data.GetPropertyOrDefault<UserData>("UserData");
             symbolList = data.GetPropertyOrDefault<GeoObjectList>("SymbolList");
 #if !WEBASSEMBLY
-            layouts = data.GetPropertyOrDefault<List<Layout>>("Layouts");
-            gdiViews = data.GetPropertyOrDefault<List<GDI2DView>>("GdiViews");
+            try
+            {
+                if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+                {
+                    layouts = data.GetPropertyOrDefault<List<Layout>>("Layouts");
+                    gdiViews = data.GetPropertyOrDefault<List<GDI2DView>>("GdiViews");
+                }
+            }
+            catch (PlatformNotSupportedException) { }
 #endif
             projectedModels = data.GetPropertyOrDefault<List<ProjectedModel>>("ProjectedModels");
             namedValues = data.GetPropertyOrDefault<NamedValuesProperty>("NamedValues");
             filterList = data.GetPropertyOrDefault<FilterList>("FilterList");
             animatedViews = data.GetPropertyOrDefault<List<AnimatedView>>("AnimatedViews");
             activeViewName = data.GetPropertyOrDefault<string>("ActiveViewName");
-            printDocument = new PrintDocument();
             try
             {
-                printDocument.DefaultPageSettings = data.GetPropertyOrDefault<PageSettings>("DefaultPageSettings");
+                if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
+                {
+                    printDocument = new PrintDocument();
+                    printDocument.DefaultPageSettings = data.GetPropertyOrDefault<PageSettings>("DefaultPageSettings");
+                }
             }
-            catch { }
+            catch (PlatformNotSupportedException) { }
             data.RegisterForSerializationDoneCallback(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             foreach (IAttributeList list in attributeLists.Values)
                 list.Owner = this;
@@ -2448,6 +2490,7 @@ namespace CADability
                 m.NameChangedEvent += new Model.NameChangedDelegate(OnModelNameChanged);
             }
 #if !WEBASSEMBLY
+            if (layouts == null) layouts = new List<Layout>();
             foreach (Layout l in layouts)
             {
                 l.project = this;
@@ -2457,8 +2500,8 @@ namespace CADability
             IShowProperty[] dbg = namedValues.SubEntries;
 #endif
         }
-#endregion
-#region ICommandHandler Members
+        #endregion
+        #region ICommandHandler Members
 #if !WEBASSEMBLY
         private void OnNewLayout()
         {
@@ -2611,8 +2654,8 @@ namespace CADability
             return false;
         }
         void ICommandHandler.OnSelected(MenuWithHandler selectedMenuItem, bool selected) { }
-#endregion
-#region IEnumerable
+        #endregion
+        #region IEnumerable
         public void Add(object toAdd)
         {
         }
@@ -2620,8 +2663,8 @@ namespace CADability
         {
             return models.GetEnumerator();
         }
-#endregion
-#region IDeserializationCallback Members
+        #endregion
+        #region IDeserializationCallback Members
 
         void IDeserializationCallback.OnDeserialization(object sender)
         {
@@ -2737,6 +2780,6 @@ namespace CADability
 #endif
         }
 
-#endregion
+        #endregion
     }
 }

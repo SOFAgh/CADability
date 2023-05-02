@@ -85,6 +85,54 @@ END-ISO-10303-21;"; // %0: filename, %1: date, %2: version, %3: List of MANIFOLD
             StyledItems = new Dictionary<ColorDef, int>();
             Precision = 1e-6;
         }
+
+        public byte[] WriteToByteArray(Project pr)
+        {
+            var memoryStream = new MemoryStream();
+            stream = new StreamWriter(memoryStream);
+            stream.WriteLine(header.Replace("%0", pr.FileName).Replace("%1", DateTime.Now.ToString("O")));
+            currentItem = 25;
+            StringBuilder lst = new StringBuilder();
+            int mainAxis = WriteAxis2Placement3d(GeoPoint.Origin, GeoVector.ZAxis, GeoVector.XAxis);
+            List<int> representationItems = new List<int>();
+            foreach (IGeoObject go in pr.GetActiveModel())
+            {
+                if (go is IExportStep)
+                {
+                    int n = (go as IExportStep).Export(this, true);
+                    if (lst.Length == 0) lst.Append("#" + n.ToString());
+                    else lst.Append(",#" + n.ToString());
+
+                    int axis = WriteAxis2Placement3d(GeoPoint.Origin, GeoVector.ZAxis, GeoVector.XAxis);
+                    int repMap = WriteDefinition("REPRESENTATION_MAP(#" + mainAxis.ToString() + ",#" + n.ToString() + ")");
+                    int mappedItem = WriteDefinition("MAPPED_ITEM( '', #" + repMap.ToString() + ",#" + axis.ToString() + ")");
+                    representationItems.Add(mappedItem);
+
+                }
+            }
+            representationItems.Add(mainAxis);
+            string Name = pr.FileName;
+            Name = "";
+            int sr = WriteDefinition("SHAPE_REPRESENTATION('" + Name + "',(" + ToString(representationItems.ToArray(), true) + "),#4)");
+            int product = WriteDefinition("PRODUCT( '" + Name + "','" + Name + "','',(#2))");
+            int pdf = WriteDefinition("PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE( ' ', 'NONE', #" + product.ToString() + ", .NOT_KNOWN. )");
+            int pd = WriteDefinition("PRODUCT_DEFINITION( 'NONE', 'NONE', #" + pdf.ToString() + ", #3 )");
+            int pds = WriteDefinition("PRODUCT_DEFINITION_SHAPE( 'NONE', 'NONE', #" + pd.ToString() + " )");
+            WriteDefinition("SHAPE_DEFINITION_REPRESENTATION( #" + pds.ToString() + ", #" + sr.ToString() + ")");
+
+            StringBuilder ssi = new StringBuilder();
+            foreach (int item in StyledItems.Values)
+            {
+                if (ssi.Length == 0) ssi.Append("#");
+                else ssi.Append(",#");
+                ssi.Append(item.ToString());
+            }
+            stream.WriteLine(footer); //.Replace("%3", lst.ToString()).Replace("%5", ssi.ToString()));
+            stream.Close();
+
+            return memoryStream.ToArray();
+        }
+
         public void WriteToFile(string fileName, Project pr)
         {
 
@@ -152,13 +200,13 @@ END-ISO-10303-21;"; // %0: filename, %1: date, %2: version, %3: List of MANIFOLD
             int nl = (location as IExportStep).Export(this, false);
             int n = (normal.Normalized as IExportStep).Export(this, false);
             int nx = (xdir.Normalized as IExportStep).Export(this, false);
-            return WriteDefinition("AXIS2_PLACEMENT_3D('',#" + nl.ToString() + ",#" + n.ToString() + ",#" + nx.ToString() + ");");
+            return WriteDefinition("AXIS2_PLACEMENT_3D('',#" + nl.ToString() + ",#" + n.ToString() + ",#" + nx.ToString() + ")");
         }
         public int WriteAxis1Placement3d(GeoPoint location, GeoVector normal)
         {
             int nl = (location as IExportStep).Export(this, false);
             int n = (normal.Normalized as IExportStep).Export(this, false);
-            return WriteDefinition("AXIS1_PLACEMENT('',#" + nl.ToString() + ",#" + n.ToString() + ");");
+            return WriteDefinition("AXIS1_PLACEMENT('',#" + nl.ToString() + ",#" + n.ToString() + ")");
         }
 
         internal string ToString(int[] ints, bool makeReference)

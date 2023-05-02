@@ -290,6 +290,7 @@ namespace CADability.GeoObject
         {
             Solid res = Solid.Construct();
             res.SetShell(sh);
+            res.colorDef = sh.ColorDef;
             return res;
         }
         public void SetFaces(Shell sh, Face[] faces)
@@ -802,7 +803,15 @@ namespace CADability.GeoObject
             }
             return res;
         }
-
+        public GeoPoint[] GetLineIntersection(GeoPoint location, GeoVector direction)
+        {
+            List<GeoPoint> result = new List<GeoPoint>();
+            for (int i = 0; i < shells.Length; i++)
+            {
+                result.AddRange(shells[i].GetLineIntersection(location, direction));
+            }
+            return result.ToArray();
+        }
         internal bool ShowFeatureAxis
         {
             get
@@ -898,7 +907,7 @@ namespace CADability.GeoObject
             }
             if (Constructed != null) Constructed(this);
         }
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             for (int i = 0; i < shells.Length; ++i)
             {

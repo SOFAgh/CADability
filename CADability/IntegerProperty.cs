@@ -385,7 +385,7 @@ namespace CADability.UserInterface
             data.RegisterForSerializationDoneCallback(this);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             this.Initialize(this, "IntegerValue", null);
         }

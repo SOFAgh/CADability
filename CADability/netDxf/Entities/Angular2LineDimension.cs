@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2023 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -273,14 +276,13 @@ namespace netDxf.Entities
         /// <summary>
         /// Actual measurement.
         /// </summary>
-        /// <remarks>The dimension is always measured in the plane defined by the normal.</remarks>
         public override double Measurement
         {
             get
             {
                 Vector2 dirRef1 = this.endFirstLine - this.startFirstLine;
                 Vector2 dirRef2 = this.endSecondLine - this.startSecondLine;
-                return Vector2.AngleBetween(dirRef1, dirRef2)*MathHelper.RadToDeg;
+                return Vector2.AngleBetween(dirRef1, dirRef2) * MathHelper.RadToDeg;
             }
         }
 
@@ -321,8 +323,11 @@ namespace netDxf.Entities
                 double cross = Vector2.CrossProduct(this.EndFirstLine - this.StartFirstLine, this.EndSecondLine - this.StartSecondLine);
                 if (cross < 0)
                 {
-                    MathHelper.Swap(ref this.startFirstLine, ref this.startSecondLine);
-                    MathHelper.Swap(ref this.endFirstLine, ref this.endSecondLine);
+                    (this.startFirstLine, this.startSecondLine) = (this.startSecondLine, this.startFirstLine);
+                    (this.endFirstLine, this.endSecondLine) = (this.endSecondLine, this.endFirstLine);
+
+                    //MathHelper.Swap(ref this.startFirstLine, ref this.startSecondLine);
+                    //MathHelper.Swap(ref this.endFirstLine, ref this.endSecondLine);
                 }
 
                 Vector2 ref1Start = this.StartFirstLine;
@@ -366,7 +371,7 @@ namespace netDxf.Entities
 
             double measure = this.Measurement * MathHelper.DegToRad;
             double startAngle = Vector2.Angle(center, this.endFirstLine);
-            double midRot = startAngle + measure * 0.5;
+            double midRot = startAngle + 0.5 * measure;
             Vector2 midDim = Vector2.Polar(center, this.offset, midRot);
             this.arcDefinitionPoint = midDim;
 
@@ -483,11 +488,11 @@ namespace netDxf.Entities
 
             DimensionStyleOverride styleOverride;
 
-            double measure = this.Measurement * MathHelper.DegToRad ;
+            double measure = this.Measurement * MathHelper.DegToRad;
             Vector2 center = this.CenterPoint;
 
             double startAngle = Vector2.Angle(center, this.endFirstLine);
-            double midRot = startAngle + measure * 0.5;
+            double midRot = startAngle + 0.5 * measure;
             Vector2 midDim = Vector2.Polar(center, this.offset, midRot);
 
             this.defPoint = this.endSecondLine;
@@ -520,7 +525,7 @@ namespace netDxf.Entities
                 }
 
                 double gap = textGap * scale;
-                this.textRefPoint = midDim + gap * Vector2.Normalize(midDim-center);
+                this.textRefPoint = midDim + gap * Vector2.Normalize(midDim - center);
             }
         }
 

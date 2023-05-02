@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -105,11 +108,11 @@ namespace netDxf.Collections
         }
 
         /// <summary>
-        /// Gets the list of <see cref="Face3d">3d faces</see> in the active layout.
+        /// Gets the list of <see cref="Face3D">3d faces</see> in the active layout.
         /// </summary>
-        public IEnumerable<Face3d> Faces3d
+        public IEnumerable<Face3D> Faces3D
         {
-            get { return this.document.Layouts[this.activeLayout].AssociatedBlock.Entities.OfType<Face3d>(); }
+            get { return this.document.Layouts[this.activeLayout].AssociatedBlock.Entities.OfType<Face3D>(); }
         }
 
         /// <summary>
@@ -153,19 +156,19 @@ namespace netDxf.Collections
         }
 
         /// <summary>
-        /// Gets the list of <see cref="Polyline">polylines</see> in the active layout.
+        /// Gets the list of <see cref="Polyline2D">polylines</see> in the active layout.
         /// </summary>
-        public IEnumerable<Polyline> Polylines
+        public IEnumerable<Polyline2D> Polylines2D
         {
-            get { return this.document.Layouts[this.activeLayout].AssociatedBlock.Entities.OfType<Polyline>(); }
+            get { return this.document.Layouts[this.activeLayout].AssociatedBlock.Entities.OfType<Polyline2D>(); }
         }
 
         /// <summary>
-        /// Gets the list of <see cref="LwPolyline">light weight polylines</see> in the active layout.
+        /// Gets the list of <see cref="Polyline3D">polylines</see> in the active layout.
         /// </summary>
-        public IEnumerable<LwPolyline> LwPolylines
+        public IEnumerable<Polyline3D> Polylines3D
         {
-            get { return this.document.Layouts[this.activeLayout].AssociatedBlock.Entities.OfType<LwPolyline>(); }
+            get { return this.document.Layouts[this.activeLayout].AssociatedBlock.Entities.OfType<Polyline3D>(); }
         }
 
         /// <summary>
@@ -174,6 +177,14 @@ namespace netDxf.Collections
         public IEnumerable<PolyfaceMesh> PolyfaceMeshes
         {
             get { return this.document.Layouts[this.activeLayout].AssociatedBlock.Entities.OfType<PolyfaceMesh>(); }
+        }
+
+        /// <summary>
+        /// Gets the list of <see cref="PolygonMeshes">polygon meshes</see> in the active layout.
+        /// </summary>
+        public IEnumerable<PolygonMesh> PolygonMeshes
+        {
+            get { return this.document.Layouts[this.activeLayout].AssociatedBlock.Entities.OfType<PolygonMesh>(); }
         }
 
         /// <summary>
@@ -407,7 +418,7 @@ namespace netDxf.Collections
             {
                 return false;
             }
-            
+
             // if an entity belongs to a document always has a handle
             Debug.Assert(entity.Handle != null, "The entity has no handle.");
 

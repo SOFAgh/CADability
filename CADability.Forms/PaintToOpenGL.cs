@@ -959,6 +959,12 @@ namespace CADability.Forms
         }
         void IPaintTo3D.Polyline(GeoPoint[] points)
         {
+#if DEBUG
+            for (int i = 0; i < points.Length; ++i)
+            {
+                if (points[i].z < -10) { }
+            }
+#endif
             if (currentList != null) currentList.SetHasContents();
             Gl.glDisable(Gl.GL_LIGHTING);
             Gl.glBegin(Gl.GL_LINE_STRIP);

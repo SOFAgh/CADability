@@ -1226,6 +1226,31 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.CadFrame.UpdateMRUMenu
   nameWithType: CadFrame.UpdateMRUMenu
+- uid: CADability.Forms.ImportSVG
+  name: ImportSVG
+  href: api/CADability.Forms.ImportSVG.html
+  commentId: T:CADability.Forms.ImportSVG
+  fullName: CADability.Forms.ImportSVG
+  nameWithType: ImportSVG
+- uid: CADability.Forms.ImportSVG.#ctor(System.String,CADability.Project)
+  name: ImportSVG(String, Project)
+  href: api/CADability.Forms.ImportSVG.html#CADability_Forms_ImportSVG__ctor_System_String_CADability_Project_
+  commentId: M:CADability.Forms.ImportSVG.#ctor(System.String,CADability.Project)
+  fullName: CADability.Forms.ImportSVG.ImportSVG(System.String, CADability.Project)
+  nameWithType: ImportSVG.ImportSVG(String, Project)
+- uid: CADability.Forms.ImportSVG.#ctor*
+  name: ImportSVG
+  href: api/CADability.Forms.ImportSVG.html#CADability_Forms_ImportSVG__ctor_
+  commentId: Overload:CADability.Forms.ImportSVG.#ctor
+  isSpec: "True"
+  fullName: CADability.Forms.ImportSVG.ImportSVG
+  nameWithType: ImportSVG.ImportSVG
+- uid: CADability.Forms.ImportSVG.Imported
+  name: Imported
+  href: api/CADability.Forms.ImportSVG.html#CADability_Forms_ImportSVG_Imported
+  commentId: F:CADability.Forms.ImportSVG.Imported
+  fullName: CADability.Forms.ImportSVG.Imported
+  nameWithType: ImportSVG.Imported
 - uid: CADability.Forms.PaintToBitmap
   name: PaintToBitmap
   href: api/CADability.Forms.PaintToBitmap.html

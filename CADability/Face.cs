@@ -228,7 +228,7 @@ namespace CADability.GeoObject
             extent = BoundingCube.EmptyBoundingCube;
             if (Constructed != null) Constructed(this);
 #if DEBUG
-            if (hashCode == 15)
+            if (hashCode == 1087)
             {
 
             }
@@ -845,6 +845,18 @@ namespace CADability.GeoObject
                         move += diff;
                     }
                 }
+                if (surface is SurfaceOfLinearExtrusion sle) sle.Simplify();
+                if (surface is CylindricalSurface cyl)
+                {
+                    double lambda = 0.0;
+                    foreach (Vertex vtx in allVertices)
+                    {
+                        lambda += Geometry.LinePar(cyl.Location, cyl.Axis, vtx.Position);
+                    }
+                    lambda /= allVertices.Count;
+                    // some cylinders 2d system is too far away from their points
+                    if (Math.Abs(lambda) > 100) surface = new CylindricalSurface(cyl.Location + lambda * cyl.Axis, cyl.XAxis, cyl.YAxis, cyl.ZAxis);
+                }
                 if (Settings.GlobalSettings.GetBoolValue("StepImport.PreferNonPeriodic", false))
                 {
                     if (surface.IsUPeriodic || surface.IsVPeriodic || surface.GetUSingularities().Length > 0 || surface.GetVSingularities().Length > 0)
@@ -1320,7 +1332,8 @@ namespace CADability.GeoObject
                         {
                             double len = loops[i][j].curve.Length;
                             ICurve2D crv2d;
-                            if (len < Precision.eps * 100)
+                            //if (len < Precision.eps * 100) // changed to surfacePrecision
+                            if (len < surfacePrecision * 100)
                             {
                                 GeoPoint2D sp = surface.PositionOf(loops[i][j].curve.StartPoint);
                                 GeoPoint2D ep = surface.PositionOf(loops[i][j].curve.EndPoint);
@@ -1978,6 +1991,9 @@ namespace CADability.GeoObject
                             }
                         }
                     }
+#if DEBUG
+                    if (!fc.CheckConsistency()) { }
+#endif
                     fc.ReduceVertices(); // in rare cases the vertices are defined multiple times in STEP. We need to have unique vertices
                     fc.MakeArea();
                     return new Face[] { fc };
@@ -3448,7 +3464,7 @@ namespace CADability.GeoObject
             this.outline = outline;
             if (holes == null) this.holes = new Edge[0][];
             else this.holes = holes;
-            foreach (Edge e in AllEdgesIterated())
+            foreach (Edge e in Edges)
             {
                 e.Owner = this;
             }
@@ -3461,10 +3477,11 @@ namespace CADability.GeoObject
                 if (surface.IsVPeriodic) vperiod = surface.VPeriod;
                 MakeAreaFromSortedEdges(uperiod, vperiod);
             }
-            foreach (Edge edge in AllEdgesIterated())
+            foreach (Edge edge in Edges)
             {
                 if (edge.Curve3D is IGeoObject go) go.Style = EdgeStyle;
             }
+            if (surface is ISurfaceImpl si) si.usedArea = Domain;
         }
         internal static Face MakeFace(ISurface surface, Edge[] outline)
         {
@@ -3496,6 +3513,7 @@ namespace CADability.GeoObject
             {
                 if (edge.Curve3D is IGeoObject go) go.Style = EdgeStyle;
             }
+            if (res.surface is ISurfaceImpl si) si.usedArea = res.Domain;
 
             return res;
         }
@@ -3552,6 +3570,7 @@ namespace CADability.GeoObject
                 }
             }
             SimpleShape forceArea = res.Area; // das SimpleShape wird hier erstmalig berechnet
+            if (res.surface is ISurfaceImpl si) si.usedArea = res.Domain;
             return res;
         }
         internal void SetSurfaceAndEdges(ISurface surface, Edge[] outline)
@@ -3565,6 +3584,7 @@ namespace CADability.GeoObject
             this.outline = outline;
             this.holes = new Edge[0][]; // keine Löcher
             SimpleShape forceArea = Area; // das SimpleShape wird hier erstmalig berechnet
+            if (surface is ISurfaceImpl si) si.usedArea = Domain;
         }
 
         internal void CheckPeriodic()
@@ -4282,7 +4302,7 @@ namespace CADability.GeoObject
                 }
             }
         }
-        internal IEnumerable<Edge> Edges
+        public IEnumerable<Edge> Edges
         {
             get
             {
@@ -5339,11 +5359,11 @@ namespace CADability.GeoObject
 
         }
 
-        internal void ReplaceSurface(ISurface surface, ModOp2D reparameterize)
+        public void ModifySurface(ISurface surface, ModOp2D reparameterize)
         {
             this.surface = surface.Clone();
             BoundingRect modifiedBounds = Domain.GetModified(reparameterize);
-            foreach (Edge edg in AllEdgesIterated())
+            foreach (Edge edg in Edges)
             {
                 //edg.PrimaryCurve2D = this.surface.GetProjectedCurve(edg.Curve3D, 0.0);
                 //bool done = false;
@@ -5361,7 +5381,7 @@ namespace CADability.GeoObject
                 edg.ModifyCurve2D(this, null, reparameterize);
                 SurfaceHelper.AdjustPeriodic(this.surface, modifiedBounds, edg.Curve2D(this));
             }
-            foreach (Edge edg in AllEdgesIterated())
+            foreach (Edge edg in Edges)
             {
                 edg.Orient(); // ModifyCurve2D unsets the "oriented"-Flag of the edge. Maybe the edge has already been oriented, so ReverseOrientation(this) doesn't help
                 if (edg.Curve3D is InterpolatedDualSurfaceCurve idsc)
@@ -5502,7 +5522,7 @@ namespace CADability.GeoObject
         internal void ModifySurfaceOnly(ModOp m)
         {
 #if DEBUG
-            if (hashCode == 1371)
+            if (hashCode == 406)
             { }
 #endif
             BoundingRect ext = (surface as ISurfaceImpl).usedArea;
@@ -5514,7 +5534,7 @@ namespace CADability.GeoObject
         {
             // usually called from Shell, which modifies the edges separately
 #if DEBUG
-            if (hashCode == 1371)
+            if (hashCode == 406)
             { }
             int tc0 = System.Environment.TickCount;
 #endif
@@ -5552,7 +5572,7 @@ namespace CADability.GeoObject
         public override void Modify(ModOp m)
         {
 #if DEBUG
-            if (hashCode == 1371)
+            if (hashCode == 406)
             { }
 #endif
             using (new Changing(this, "ModifyInverse", m))
@@ -5944,7 +5964,7 @@ namespace CADability.GeoObject
 
             ICurve2D[] usedCurves = new ICurve2D[outline.Length];
 #if DEBUG
-            if (hashCode == 386)
+            if (hashCode == 1087)
             { }
             if (UserData.ContainsData("StepImport.ItemNumber"))
             {
@@ -6163,7 +6183,7 @@ namespace CADability.GeoObject
                     {
                         bc.MinMax(trianglePoint[i]);
                     }
-                    if (bc.Xmax > 10)
+                    if (bc.Xmax > 200)
                     { }
                     for (int i = 0; i < triangleIndex.Length; i += 3)
                     {
@@ -6200,6 +6220,8 @@ namespace CADability.GeoObject
                     DebuggerContainer dc1 = new DebuggerContainer();
                     for (int j = 0; j < polylines.Count; ++j)
                     {
+                        if (polylines[j].Length > 5000)
+                        { }
                         for (int i = 0; i < polylines[j].Length; ++i)
                         {
                             int next = i + 1;
@@ -6211,6 +6233,13 @@ namespace CADability.GeoObject
                             dc1.Add(l2d);
                         }
                     }
+                    //lock (lockTriangulationData)
+                    //{
+                    //    triangleUVPoint = new GeoPoint2D[0];
+                    //    trianglePoint = new GeoPoint[0];
+                    //    triangleIndex = new int[0];
+                    //}
+                    //return;
 #endif
                     List<GeoPoint2D> sumTriUv = new List<GeoPoint2D>();
                     List<GeoPoint> sumTriPoint = new List<GeoPoint>();
@@ -6876,7 +6905,7 @@ namespace CADability.GeoObject
             BoundingRect res = BoundingRect.EmptyBoundingRect;
             if (extentPrecision == ExtentPrecision.Raw)
             {   // when we have closed edges, e.g. a non periodic cylinder defined by two circles, then testing vertices only is not a good idea
-                if (trianglePrecision <= projection.Precision * 10)
+                if (trianglePrecision <= projection.Precision * 10 && trianglePrecision > 0.0)
                 {   // if we already have a reasonable triangulation, use it, because it is probably faster
                     lock (lockTriangulationData)
                     {
@@ -7998,7 +8027,7 @@ namespace CADability.GeoObject
             data.RegisterForSerializationDoneCallback(this);
         }
 
-        void IJsonSerializeDone.SerializationDone()
+        void IJsonSerializeDone.SerializationDone(JsonSerialize jsonSerialize)
         {
             if (outline != null)
             {   // in alten files gibt es solche faces
@@ -8013,6 +8042,11 @@ namespace CADability.GeoObject
                         holes[i][j].Owner = this;
                     }
                 }
+                try
+                {
+                    Surface.SetBounds(Area.GetExtent());
+                }
+                catch { }
             }
         }
         #endregion
@@ -9535,7 +9569,7 @@ namespace CADability.GeoObject
         internal void CombineConnectedSameSurfaceEdges()
         {
 #if DEBUG
-            if (2430 == hashCode)
+            if (2712 == hashCode)
             { }
 #endif
             for (int i = 0; i < outline.Length; i++)
@@ -9587,11 +9621,30 @@ namespace CADability.GeoObject
             ICurve combined = Curves.Combine(edg1.Curve3D, edg2.Curve3D, Precision.eps);
             if (combined == null)
             {
-                InterpolatedDualSurfaceCurve dsc = new InterpolatedDualSurfaceCurve(this.Surface, this.Domain, otherface.Surface, otherface.Domain,
-                    new GeoPoint[] { edg1.StartVertex(this).Position, edg1.EndVertex(this).Position, edg2.EndVertex(this).Position });
-                combined = dsc;
+                Vertex v1 = edg1.StartVertex(this);
+                Vertex v2 = edg1.EndVertex(this);
+                Vertex v3 = edg2.EndVertex(otherface);
+                GeoVector n1t = Surface.GetNormal(v1.GetPositionOnFace(this));
+                GeoVector n1o = otherface.Surface.GetNormal(v1.GetPositionOnFace(otherface));
+                double n1 = (n1t * n1o) / (n1t.Length * n1o.Length);
+                GeoVector n2t = Surface.GetNormal(v2.GetPositionOnFace(this));
+                GeoVector n2o = otherface.Surface.GetNormal(v2.GetPositionOnFace(otherface));
+                double n2 = (n2t * n2o) / (n2t.Length * n2o.Length);
+                GeoVector n3t = Surface.GetNormal(v3.GetPositionOnFace(this));
+                GeoVector n3o = otherface.Surface.GetNormal(v3.GetPositionOnFace(otherface));
+                double n3 = (n3t * n3o) / (n3t.Length * n3o.Length);
+                if (n1 < 0.9 && n2 < 0.9 && n3 < 0.9) // do not combine when close to tangential
+                {
+                    InterpolatedDualSurfaceCurve dsc = new InterpolatedDualSurfaceCurve(this.Surface, this.Domain, otherface.Surface, otherface.Domain,
+                        new GeoPoint[] { edg1.StartVertex(this).Position, edg1.Curve3D.PointAt(0.5), edg1.EndVertex(this).Position, edg2.Curve3D.PointAt(0.5), edg2.EndVertex(this).Position });
+                    combined = dsc;
+                }
+                else
+                { // the two surfaces are almost tangential. InterpolatedDualSurfaceCurve is not good here 
+
+                }
             }
-            if (combined == null && edg1.Curve3D is BSpline && edg2.Curve3D is BSpline) return false; // BSplines need to be implemented in Curves.Combine, but make problems in the else case
+            if (combined == null && (edg1.Curve3D is BSpline || edg2.Curve3D is BSpline)) return false; // BSplines need to be implemented in Curves.Combine, but make problems in the else case
             if (combined == null) return false; // there is a bug with a NURBS surface which has a sharp bend (in 1264_14_M_el.stp) when we try to connect a spline with a line
             if (combined != null)
             {
@@ -10430,12 +10483,12 @@ namespace CADability.GeoObject
                     if (GetNextEdge(holes[i][j]) != holes[i][next]) return false;
                 }
             }
-            foreach (Edge edg in AllEdgesIterated())
+            foreach (Edge edg in Edges)
             {
                 if (edg.PrimaryFace != this && edg.SecondaryFace != this) return false;
             }
             // sind die 2d Kurven richtig orientiert?
-            foreach (Edge edg in AllEdgesIterated())
+            foreach (Edge edg in Edges)
             {
                 // die Richtung der 2d Kurve ist so, dass auf der rechten Seite das Innere liegt
                 ICurve2D c2d = edg.Curve2D(this);

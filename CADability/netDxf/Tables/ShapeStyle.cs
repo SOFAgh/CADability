@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -213,7 +216,7 @@ namespace netDxf.Tables
                 for (int i = 0; i < num; i++)
                 {
                     names.Add(NullTerminatedString(reader, encoding));
-                    reader.ReadBytes(numBytes[i] - (names[i].Length + 1));
+                    reader.ReadBytes(numBytes[i] - (names[i].Length + 1)); // these bytes holds the shape geometry
                 }
             }
 
@@ -293,7 +296,7 @@ namespace netDxf.Tables
         /// <param name="name">Name of the shape.</param>
         /// <returns>The number of the shape, 0 in case the shape has not been found.</returns>
         /// <remarks>If the actual shape style belongs to a document, it will look for the SHX file also in the document support folders.</remarks>
-        internal short ShapeNumber(string name)
+        public short ShapeNumber(string name)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -322,7 +325,7 @@ namespace netDxf.Tables
             {
                 Encoding encoding = new ASCIIEncoding();
 
-                byte[] sentinel = reader.ReadBytes(24);
+                byte[] sentinel = reader.ReadBytes(24); // the use of the last three bytes is unknown, the first 21 hold the file signature
                 StringBuilder sb = new StringBuilder(21);
                 for (int i = 0; i < 21; i++)
                 {
@@ -354,6 +357,7 @@ namespace netDxf.Tables
                     {
                         return numbers[i];
                     }
+                    reader.ReadBytes(numBytes[i] - (n.Length + 1)); // these bytes holds the shape geometry
                 }
             }
 
@@ -366,7 +370,7 @@ namespace netDxf.Tables
         /// <param name="number">Number of the shape.</param>
         /// <returns>The name of the shape, empty in case the shape has not been found.</returns>
         /// <remarks>If the actual shape style belongs to a document, it will look for the SHX file also in the document support folders.</remarks>
-        internal string ShapeName(short number)
+        public string ShapeName(short number)
         {
             string f = this.shapeFile;
             if (this.Owner != null)
@@ -390,7 +394,7 @@ namespace netDxf.Tables
             {
                 Encoding encoding = new ASCIIEncoding();
 
-                byte[] sentinel = reader.ReadBytes(24);
+                byte[] sentinel = reader.ReadBytes(24); // the use of the last three bytes is unknown, the first 21 hold the file signature
                 StringBuilder sb = new StringBuilder(21);
                 for (int i = 0; i < 21; i++)
                 {
@@ -424,11 +428,12 @@ namespace netDxf.Tables
 
                 for (int i = 0; i < num; i++)
                 {
-                    string n = NullTerminatedString(reader, encoding);
+                    string name = NullTerminatedString(reader, encoding);
                     if (index == i)
                     {
-                        return n;
+                        return name;
                     }
+                    reader.ReadBytes(numBytes[i] - (name.Length + 1)); // these bytes holds the shape geometry
                 }
             }
 

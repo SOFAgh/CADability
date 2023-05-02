@@ -1,23 +1,26 @@
-﻿#region netDxf library licensed under the MIT License, Copyright © 2009-2021 Daniel Carvajal (haplokuon@gmail.com)
+#region netDxf library licensed under the MIT License
 // 
-//                        netDxf library
-// Copyright © 2021 Daniel Carvajal (haplokuon@gmail.com)
+//                       netDxf library
+// Copyright (c) 2019-2023 Daniel Carvajal (haplokuon@gmail.com)
 // 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-// and associated documentation files (the “Software”), to deal in the Software without restriction,
-// including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 // 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
 // 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
 #endregion
 
 using System;
@@ -109,11 +112,6 @@ namespace netDxf.Entities
                 CoordinateSystem.Object);
             this.firstRefPoint = new Vector2(ocsPoints[0].X, ocsPoints[0].Y);
             this.secondRefPoint = new Vector2(ocsPoints[1].X, ocsPoints[1].Y);
-
-            if (offset < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset), "The offset value must be equal or greater than zero.");
-            }
             this.offset = offset;
             this.Style = style ?? throw new ArgumentNullException(nameof(style));
             this.Normal = normal;
@@ -146,11 +144,6 @@ namespace netDxf.Entities
         {
             this.firstRefPoint = firstPoint;
             this.secondRefPoint = secondPoint;
-            if (offset < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset), "The offset value must be equal or greater than zero.");
-            }
-
             this.offset = offset;
             this.Style = style ?? throw new ArgumentNullException(nameof(style));
 
@@ -191,26 +184,17 @@ namespace netDxf.Entities
         /// Gets or sets the distance between the reference line and the dimension line.
         /// </summary>
         /// <remarks>
-        /// The offset value must be equal or greater than zero.<br />
-        /// The side at which the dimension line is drawn depends of the direction of its reference line.
+        /// The positive side at which the dimension line is drawn depends of the direction of its reference line.
         /// </remarks>
         public double Offset
         {
             get { return this.offset; }
-            set
-            {
-                if (value < 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(value), "The offset value must be equal or greater than zero.");
-                }
-                this.offset = value;
-            }
+            set { this.offset = value; }
         }
 
         /// <summary>
         /// Actual measurement.
         /// </summary>
-        /// <remarks>The dimension is always measured in the plane defined by the normal.</remarks>
         public override double Measurement
         {
             get { return Vector2.Distance(this.firstRefPoint, this.secondRefPoint); }
@@ -230,15 +214,10 @@ namespace netDxf.Entities
             Vector2 offsetDir = point - this.firstRefPoint;
 
             double cross = Vector2.CrossProduct(refDir, offsetDir);
-            if (cross < 0)
-            {
-                MathHelper.Swap(ref this.firstRefPoint, ref this.secondRefPoint);
-                refDir *= -1;
-            }
             refDir.Normalize();
 
             Vector2 vec = Vector2.Perpendicular(refDir);
-            this.offset = MathHelper.PointLineDistance(point, this.firstRefPoint, refDir);
+            this.offset = Math.Sign(cross) * MathHelper.PointLineDistance(point, this.firstRefPoint, refDir);
             this.defPoint = this.secondRefPoint + this.offset * vec;
 
             if (!this.TextPositionManuallySet)
@@ -323,7 +302,7 @@ namespace netDxf.Entities
             Vector2 ref2 = this.SecondReferencePoint;
             Vector2 dirRef = ref2 - ref1;
             Vector2 dirDesp = Vector2.Normalize(Vector2.Perpendicular(dirRef));
-            Vector2 vec = this.offset* dirDesp;
+            Vector2 vec = this.offset * dirDesp;
             Vector2 dimRef1 = ref1 + vec;
             Vector2 dimRef2 = ref2 + vec;
 
@@ -355,8 +334,8 @@ namespace netDxf.Entities
                     scale = (double) styleOverride.Value;
                 }
 
-                double gap = textGap*scale;
-                this.textRefPoint = Vector2.MidPoint(dimRef1, dimRef2) + gap*dirDesp;
+                double gap = textGap * scale;
+                this.textRefPoint = Vector2.MidPoint(dimRef1, dimRef2) + gap * dirDesp;
             }
         }
 

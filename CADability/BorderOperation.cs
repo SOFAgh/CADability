@@ -721,6 +721,7 @@ namespace CADability.Shapes
                             GeoPoint2D sp = ((ICurve2D)segments[0]).StartPoint;
                             GeoPoint2D ep = ((ICurve2D)segments[segments.Count - 1]).EndPoint;
                             //if (Precision.IsEqual(sp, ep))
+                            if (this.precision == 0) { this.precision = Precision.eps; }
                             if ((sp | ep) < this.precision)
                             {
                                 bdrs.Add(new Border((ICurve2D[])segments.ToArray(typeof(ICurve2D))));

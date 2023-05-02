@@ -30,9 +30,6 @@ namespace CADability.Curve2D
     /// <summary>
     /// 
     /// </summary>
-#if DEBUG
-    [System.Diagnostics.DebuggerVisualizer(typeof(GeneralDebuggerVisualizer))]
-#endif
     [Serializable()]
     public class BSpline2D : GeneralCurve2D, ISerializable, IDeserializationCallback, IDebuggerVisualizer, IExplicitPCurve2D
     {
@@ -1918,7 +1915,10 @@ namespace CADability.Curve2D
                 return DirectionAt(0.5);
             }
         }
-
+        public override double[] GetSelfIntersections()
+        {
+            return base.GetSelfIntersections();
+        }
         private void AddApproximateArc(double spar, double epar, double precision, List<ICurve2D> parts)
         {
             PointDirAt(spar, out GeoPoint2D sp, out GeoVector2D sd);
