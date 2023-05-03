@@ -3768,7 +3768,10 @@ namespace CADability.GeoObject
             // so we pretend not to be periodic and reset it afterwards
             bool wasUPeriodic = uPeriodic;
             bool wasVPeriodic = vPeriodic;
-            uPeriodic = vPeriodic = false;
+            if (uMults[0] > UDegree && vMults[0] > VDegree && uMults[uMults.Length - 1] > UDegree && vMults[vMults.Length - 1] > VDegree)
+            {
+                uPeriodic = vPeriodic = false;
+            }
             Init();
             uPeriodic = wasUPeriodic;
             vPeriodic = wasVPeriodic;
