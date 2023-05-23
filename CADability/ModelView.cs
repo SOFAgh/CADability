@@ -412,6 +412,7 @@ namespace CADability
         private Point lastPanPosition;
         static int dbg = 0; // nur debug!
         private int dbgcnt;
+        private bool painting = false; //True during OnPaint. To avoid reentrancy.
         public ModelView(Project project)
         {
             this.project = project;
@@ -758,69 +759,74 @@ namespace CADability
         void IView.OnPaint(PaintEventArgs e)
         {
             if (projectedModel == null || Projection == null) return; // should never haappen
-            IPaintTo3D paintTo3D = canvas.PaintTo3D;
-            if (paintTo3D != null)
+            if (!painting)
             {
-                paintTo3D.MakeCurrent();
-                paintTo3D.Clear(BackgroundColor);
-                PaintClearEvent?.Invoke(e.ClipRectangle, this, paintTo3D);
-                paintTo3D.UseZBuffer(true);
-                BoundingCube bc = Model.Extent;
-                bc.MinMax(Model.MinExtend);
-                // sicherstellen, dass die komplette Rasterebene auch mit angezeigt wird
-                BoundingRect ext = BoundingRect.EmptyBoundingRect;
-                ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmin, bc.Ymin, bc.Zmin)));
-                ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmin, bc.Ymin, bc.Zmax)));
-                ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmin, bc.Ymax, bc.Zmin)));
-                ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmin, bc.Ymax, bc.Zmax)));
-                ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmax, bc.Ymin, bc.Zmin)));
-                ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmax, bc.Ymin, bc.Zmax)));
-                ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmax, bc.Ymax, bc.Zmin)));
-                ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmax, bc.Ymax, bc.Zmax)));
-                ext.Inflate(ext.Width, ext.Height);
-                bc.MinMax(Projection.DrawingPlane.ToGlobal(new GeoPoint2D(ext.Left, ext.Bottom)));
-                bc.MinMax(Projection.DrawingPlane.ToGlobal(new GeoPoint2D(ext.Left, ext.Top)));
-                bc.MinMax(Projection.DrawingPlane.ToGlobal(new GeoPoint2D(ext.Right, ext.Bottom)));
-                bc.MinMax(Projection.DrawingPlane.ToGlobal(new GeoPoint2D(ext.Right, ext.Top)));
-
-                if (!additionalExtent.IsEmpty) bc.MinMax(additionalExtent);
-
-                paintTo3D.SetProjection(Projection, bc);
-
-                double precisionFactor = Settings.GlobalSettings.GetDoubleValue("HighestDisplayPrecision", 1e5);
-                // HighestDisplayPrecision ist nicht interaktiv einstellbar, nur mit Programmcode
-                // Wenn man weiter hineinzoomt, wird keine weitere Displayliste mehr berechnet
-                // Sollte man dokumentieren
-                if (displayPrecision > 0) paintTo3D.Precision = Math.Min(displayPrecision, Math.Max(1.0 / Projection.WorldToDeviceFactor, Model.Extent.MaxSide / precisionFactor));
-                else paintTo3D.Precision = Math.Max(1.0 / Projection.WorldToDeviceFactor, Model.Extent.MaxSide / precisionFactor);
-
-                try
+                painting = true;
+                IPaintTo3D paintTo3D = canvas.PaintTo3D;
+                if (paintTo3D != null)
                 {
-                    if (projectedModel.supressAutoRegeneration) (paintTo3D).DontRecalcTriangulation = true;
-                    projectedModel.Paint(paintTo3D);
-                    displayPrecision = paintTo3D.Precision; // keep this precision, even when zooming out
-                    PaintBackground(paintTo3D);
-                    paintTo3D.UseZBuffer(false);
-                    PaintBackgroundEvent?.Invoke(e.ClipRectangle, this, paintTo3D);
-                    paintTo3D.PaintFaces(PaintTo3D.PaintMode.All);
-                    if (dragBlock != null)
+                    paintTo3D.MakeCurrent();
+                    paintTo3D.Clear(BackgroundColor);
+                    PaintClearEvent?.Invoke(e.ClipRectangle, this, paintTo3D);
+                    paintTo3D.UseZBuffer(true);
+                    BoundingCube bc = Model.Extent;
+                    bc.MinMax(Model.MinExtend);
+                    // sicherstellen, dass die komplette Rasterebene auch mit angezeigt wird
+                    BoundingRect ext = BoundingRect.EmptyBoundingRect;
+                    ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmin, bc.Ymin, bc.Zmin)));
+                    ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmin, bc.Ymin, bc.Zmax)));
+                    ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmin, bc.Ymax, bc.Zmin)));
+                    ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmin, bc.Ymax, bc.Zmax)));
+                    ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmax, bc.Ymin, bc.Zmin)));
+                    ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmax, bc.Ymin, bc.Zmax)));
+                    ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmax, bc.Ymax, bc.Zmin)));
+                    ext.MinMax(Projection.DrawingPlane.Project(new GeoPoint(bc.Xmax, bc.Ymax, bc.Zmax)));
+                    ext.Inflate(ext.Width, ext.Height);
+                    bc.MinMax(Projection.DrawingPlane.ToGlobal(new GeoPoint2D(ext.Left, ext.Bottom)));
+                    bc.MinMax(Projection.DrawingPlane.ToGlobal(new GeoPoint2D(ext.Left, ext.Top)));
+                    bc.MinMax(Projection.DrawingPlane.ToGlobal(new GeoPoint2D(ext.Right, ext.Bottom)));
+                    bc.MinMax(Projection.DrawingPlane.ToGlobal(new GeoPoint2D(ext.Right, ext.Top)));
+
+                    if (!additionalExtent.IsEmpty) bc.MinMax(additionalExtent);
+
+                    paintTo3D.SetProjection(Projection, bc);
+
+                    double precisionFactor = Settings.GlobalSettings.GetDoubleValue("HighestDisplayPrecision", 1e5);
+                    // HighestDisplayPrecision ist nicht interaktiv einstellbar, nur mit Programmcode
+                    // Wenn man weiter hineinzoomt, wird keine weitere Displayliste mehr berechnet
+                    // Sollte man dokumentieren
+                    if (displayPrecision > 0) paintTo3D.Precision = Math.Min(displayPrecision, Math.Max(1.0 / Projection.WorldToDeviceFactor, Model.Extent.MaxSide / precisionFactor));
+                    else paintTo3D.Precision = Math.Max(1.0 / Projection.WorldToDeviceFactor, Model.Extent.MaxSide / precisionFactor);
+
+                    try
                     {
-                        dragBlock.PrePaintTo3D(paintTo3D);
-                        dragBlock.PaintTo3D(paintTo3D);
+                        if (projectedModel.supressAutoRegeneration) (paintTo3D).DontRecalcTriangulation = true;
+                        projectedModel.Paint(paintTo3D);
+                        displayPrecision = paintTo3D.Precision; // keep this precision, even when zooming out
+                        PaintBackground(paintTo3D);
+                        paintTo3D.UseZBuffer(false);
+                        PaintBackgroundEvent?.Invoke(e.ClipRectangle, this, paintTo3D);
+                        paintTo3D.PaintFaces(PaintTo3D.PaintMode.All);
+                        if (dragBlock != null)
+                        {
+                            dragBlock.PrePaintTo3D(paintTo3D);
+                            dragBlock.PaintTo3D(paintTo3D);
+                        }
+                        if (Settings.GlobalSettings.GetBoolValue("ActionActiveObject.UseZBuffer", true)) paintTo3D.UseZBuffer(true);
+                        if (PaintActiveEvent != null) PaintActiveEvent(e.ClipRectangle, this, paintTo3D);
+                        if (PaintSelectEvent != null) PaintSelectEvent(e.ClipRectangle, this, paintTo3D);
+                        paintTo3D.DontRecalcTriangulation = false;
                     }
-                    if (Settings.GlobalSettings.GetBoolValue("ActionActiveObject.UseZBuffer", true)) paintTo3D.UseZBuffer(true);
-                    if (PaintActiveEvent != null) PaintActiveEvent(e.ClipRectangle, this, paintTo3D);
-                    if (PaintSelectEvent != null) PaintSelectEvent(e.ClipRectangle, this, paintTo3D);
-                    paintTo3D.DontRecalcTriangulation = false;
+                    catch (PaintTo3DOutOfMemory)
+                    {
+                        // hier wirklich Collect aufrufen, damit die OpenGL Listen freigegeben werden
+                        System.GC.Collect();
+                        System.GC.WaitForPendingFinalizers(); // nicht entfernen! kein Debug
+                        paintTo3D.FreeUnusedLists();
+                    }
+                    paintTo3D.FinishPaint();
                 }
-                catch (PaintTo3DOutOfMemory)
-                {
-                    // hier wirklich Collect aufrufen, damit die OpenGL Listen freigegeben werden
-                    System.GC.Collect();
-                    System.GC.WaitForPendingFinalizers(); // nicht entfernen! kein Debug
-                    paintTo3D.FreeUnusedLists();
-                }
-                paintTo3D.FinishPaint();
+                painting = false;
             }
         }
         private void PaintBackground(IPaintTo3D PaintToBackground)
