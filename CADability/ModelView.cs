@@ -412,6 +412,7 @@ namespace CADability
         private Point lastPanPosition;
         static int dbg = 0; // nur debug!
         private int dbgcnt;
+        private bool painting = false; //True during OnPaint. To avoid reentrancy.
         public ModelView(Project project)
         {
             this.project = project;
@@ -756,6 +757,15 @@ namespace CADability
         #region IView Members
         public event ScrollPositionChanged ScrollPositionChangedEvent; // ist explizit schwierig
         void IView.OnPaint(PaintEventArgs e)
+        {
+            if (!painting)
+            {
+                painting = true;
+                Paint(e);
+                painting = false;
+            }
+        }
+        private void Paint(PaintEventArgs e)
         {
             if (projectedModel == null || Projection == null) return; // should never haappen
             IPaintTo3D paintTo3D = canvas.PaintTo3D;
