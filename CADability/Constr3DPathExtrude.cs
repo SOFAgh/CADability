@@ -190,7 +190,10 @@ namespace CADability.Actions
                     }
                     IGeoObject shape;
                     if (pipePath == null)
-                        shape = Make3D.MakePrism(p, vector, Frame.Project, true);
+                    {
+                        if (p.IsClosed) shape = Make3D.MakePrism(p, vector, Frame.Project, true);
+                        else shape = Make3D.Extrude(p, vector, Frame.Project);
+                    }
                     else shape = Make3D.MakePipe(p, pipePath, Frame.Project);
                     if (shape != null)
                     {
