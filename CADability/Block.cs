@@ -796,6 +796,7 @@ namespace CADability.GeoObject
         /// <param name="data"></param>
         public override void GetObjectData(IJsonWriteData data)
         {
+            data.RegisterForSerializationDoneCallback(this);
             base.GetObjectData(data);
             data.AddProperty("ColorDef", colorDef);
             data.AddProperty("RefPoint", refPoint);

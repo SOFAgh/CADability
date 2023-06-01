@@ -1694,6 +1694,18 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             if (prodlist.Count > 0) res = prodlist;
                         }
                     }
+                    if (res == null || res.Count == 0)
+                    {
+                        if (res == null) res = new GeoObjectList();
+                        for (int i = 0; i < roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation].Count; i++)
+                        {
+                            Item item = definitions[roots[Item.ItemType.mechanicalDesignGeometricPresentationRepresentation][i]];
+                            if (item.val is GeoObjectList l)
+                            {
+                                res.AddRange(l);
+                            }
+                        }
+                    }
                 }
                 catch (SyntaxError e)
                 {
@@ -1892,7 +1904,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     if (o is Shell shl) shl.Name = name; // && string.IsNullOrWhiteSpace(shl.Name)
                                 }
                             }
-                           if (!found && namedGeoObjects.TryGetValue(name, out IGeoObject go)) res.Add(go);
+                            if (!found && namedGeoObjects.TryGetValue(name, out IGeoObject go)) res.Add(go);
                         }
                     }
                     if (!hasRelationship && product.parameter.TryGetValue("_association", out Item assoc))
@@ -2568,12 +2580,29 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             object shell = CreateEntity(item.parameter["outer"]);
                             List<Item> voids = item.parameter["voids"].val as List<Item>;
                             if (shell is GeoObjectList || shell is IGeoObject) item.val = shell;
+                            else
+                            {
+                                for (int i = 0; i < voids.Count; i++)
+                                {
+                                    shell = CreateEntity(voids[i]);
+                                    if (shell is GeoObjectList || shell is IGeoObject)
+                                    {
+                                        item.val = shell;
+                                        break;
+                                    }
+                                }
+                            }
                         }
                         break;
                     case Item.ItemType.orientedClosedShell:
                     case Item.ItemType.closedShell: // name, faces
                         {
                             List<Item> lst = item.SubList(1);
+                            if (lst == null && item.parameter.ContainsKey("closed_shell_element"))
+                            {
+                                item.val = CreateEntity(item.parameter["closed_shell_element"]);
+                                break;
+                            }
                             List<Face> faces = new List<Face>();
                             if (Settings.GlobalSettings.GetBoolValue("StepImport.Parallel", true))
                             {
@@ -2721,7 +2750,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.curveBoundedSurface: // basis_surface   : Surface; boundaries: SET[1 : ?] OF Boundary_Curve; implicit_outer: BOOLEAN;
                         {
 #if DEBUG
-                            if (2932 == item.definingIndex || 13754 == item.definingIndex)
+                            if (237 == item.definingIndex || 13754 == item.definingIndex)
                             {
                             }
 #endif
@@ -2795,7 +2824,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     case Item.ItemType.advancedFace: // name, bounds, face_geometry, same_sense
                         {
 #if DEBUG
-                            if (14640 == item.definingIndex || 17778 == item.definingIndex)
+                            if (237 == item.definingIndex || 205 == item.definingIndex)
                             {
                             }
 #endif

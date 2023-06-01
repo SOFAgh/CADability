@@ -1563,88 +1563,90 @@ namespace CADability
                 //FileName = dlg.FileName;
             }
             Project res = null;
-            FileStream stream = File.Open(FileName, FileMode.Open, System.IO.FileAccess.Read);
-            int firstByte = stream.ReadByte();
-            stream.Seek(0, SeekOrigin.Begin);
-            if (firstByte == 123)
+            using (FileStream stream = File.Open(FileName, FileMode.Open, System.IO.FileAccess.Read))
             {
-                res = ReadFromJson(stream);
-                if (res != null)
+                int firstByte = stream.ReadByte();
+                stream.Seek(0, SeekOrigin.Begin);
+                if (firstByte == 123)
                 {
-                    res.fileName = FileName;
-                    res.openedAsJson = true;
-					stream.Close();
-                    return res;
+                    res = ReadFromJson(stream);
+                    if (res != null)
+                    {
+                        res.fileName = FileName;
+                        res.openedAsJson = true;
+                        stream.Close();
+                        return res;
+                    }
                 }
-            }
-            //Form.ActiveForm.Update();
-            //ReadProgress progress = new ReadProgress(stream);
-            //ProgressFeedBack pf = null;
-            //if (useProgress)
-            //{
-            //    pf = new ProgressFeedBack();
-            //    pf.Title = StringTable.GetFormattedString("ReadFile.Progress", FileName);
-            //    pf.StreamPosition(50, stream);
-            //    pf.Float(100);
-            //}
-            //ReadProgress.ShowProgressDelegate showProgressDelegate = new ReadProgress.ShowProgressDelegate(progress.ShowProgress);
-            // ReadProgress funktioniert noch nicht perfekt. 
-            try
-            {
-                //if (pf != null) pf.Start();
-                //showProgressDelegate.BeginInvoke(null,null);
-                res = ReadFromStream(stream);
-                if (res == null)
+                //Form.ActiveForm.Update();
+                //ReadProgress progress = new ReadProgress(stream);
+                //ProgressFeedBack pf = null;
+                //if (useProgress)
+                //{
+                //    pf = new ProgressFeedBack();
+                //    pf.Title = StringTable.GetFormattedString("ReadFile.Progress", FileName);
+                //    pf.StreamPosition(50, stream);
+                //    pf.Float(100);
+                //}
+                //ReadProgress.ShowProgressDelegate showProgressDelegate = new ReadProgress.ShowProgressDelegate(progress.ShowProgress);
+                // ReadProgress funktioniert noch nicht perfekt. 
+                try
+                {
+                    //if (pf != null) pf.Start();
+                    //showProgressDelegate.BeginInvoke(null,null);
+                    res = ReadFromStream(stream);
+                    if (res == null)
+                    {
+                        stream.Close();
+
+                        return null;
+                    }
+                    res.fileName = FileName;
+                }
+                catch (ProjectOldVersionException ex)
                 {
                     stream.Close();
-
-                    return null;
-                }
-                res.fileName = FileName;
-            }
-            catch (ProjectOldVersionException ex)
-            {
-                stream.Close();
-                stream.Dispose();
-                if (cdbFixFw2 == null)
-                {
-                    Assembly ThisAssembly = Assembly.GetExecutingAssembly();
-                    int lastSlash = ThisAssembly.Location.LastIndexOf('\\');
-                    if (lastSlash >= 0)
+                    stream.Dispose();
+                    if (cdbFixFw2 == null)
                     {
-                        string path = ThisAssembly.Location.Substring(0, lastSlash);
-                        lastSlash = path.LastIndexOf('\\');
-                        //if (lastSlash >= 0) // das geht noch ein level zurück, wir erwarten die Anwendung im selben Verzeichnis wie CADability 
-                        //{
-                        //    path = path.Substring(0, lastSlash);
-                        //}
-                        string[] files = Directory.GetFiles(path, "cdbFixFw2.exe", SearchOption.AllDirectories);
-                        if (files.Length > 0)
+                        Assembly ThisAssembly = Assembly.GetExecutingAssembly();
+                        int lastSlash = ThisAssembly.Location.LastIndexOf('\\');
+                        if (lastSlash >= 0)
                         {
-                            cdbFixFw2 = files[0];
+                            string path = ThisAssembly.Location.Substring(0, lastSlash);
+                            lastSlash = path.LastIndexOf('\\');
+                            //if (lastSlash >= 0) // das geht noch ein level zurück, wir erwarten die Anwendung im selben Verzeichnis wie CADability 
+                            //{
+                            //    path = path.Substring(0, lastSlash);
+                            //}
+                            string[] files = Directory.GetFiles(path, "cdbFixFw2.exe", SearchOption.AllDirectories);
+                            if (files.Length > 0)
+                            {
+                                cdbFixFw2 = files[0];
+                            }
+                        }
+                    }
+                    if (cdbFixFw2 != null)
+                    {
+                        Process process = Process.Start(cdbFixFw2, "\"" + FileName + "\"");
+                        if (process != null)
+                        {
+                            process.WaitForExit();
+                            if (process.ExitCode == 0) // d.h. OK
+                            {
+                                return ReadConvertedFile(FileName, useProgress);
+                            }
                         }
                     }
                 }
-                if (cdbFixFw2 != null)
+                finally
                 {
-                    Process process = Process.Start(cdbFixFw2, "\"" + FileName + "\"");
-                    if (process != null)
-                    {
-                        process.WaitForExit();
-                        if (process.ExitCode == 0) // d.h. OK
-                        {
-                            return ReadConvertedFile(FileName, useProgress);
-                        }
-                    }
+                    //if (pf != null) pf.Stop();
+                    //progress.Finished();
+                    stream.Close();
                 }
+                return res;
             }
-            finally
-            {
-                //if (pf != null) pf.Stop();
-                //progress.Finished();
-                stream.Close();
-            }
-            return res;
         }
         private static Project ReadFromJson(FileStream stream)
         {
