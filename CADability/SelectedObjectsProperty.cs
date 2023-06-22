@@ -3,7 +3,7 @@ using CADability.GeoObject;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
+using System.Linq;
 
 namespace CADability.UserInterface
 {
@@ -118,8 +118,83 @@ namespace CADability.UserInterface
                 attributeProperties.Add(sp);
             }
 
+            //If all objects are the same, you can change common attributes
+            Type firstObjectType = selectedObjects[0].GetType();
+            bool isAllSameType = selectedObjects.All(o => o.GetType() == firstObjectType);
+
+            if (isAllSameType)
+            {
+                IGeoObject geoObject = selectedObjects[0];
+                IPropertyEntry sp = geoObject.GetShowProperties(frame);
+                //Add all common properties to the attributeProperties
+                foreach (var prop in sp.SubItems)
+                {
+                    switch (prop)
+                    {
+                        //LengthProperty e.g. Radius, Diameter, arc length
+                        case LengthProperty lp:
+                            LengthProperty commonPropLength = new LengthProperty(frame, prop.ResourceId);
+                            commonPropLength.OnSetValue = delegate (double l) { CommonProp_SetLengthEvent(commonPropLength.ResourceId, l); };
+                            commonPropLength.OnGetValue = delegate () { return CommonProp_GetLengthEvent(commonPropLength.ResourceId); };
+                            attributeProperties.Add(commonPropLength);
+                            break;
+                            //TODO: Add more cases
+                    }
+                }
+            }
+
             InitMultiAttributeSelection();
         }
+
+        /// <summary>
+        /// Find the common length for all selectedObjects otherwise return 0
+        /// </summary>
+        /// <param name="resourceId">ResourceId</param>
+        /// <returns>Common Length</returns>
+        private double GetCommonLength(string resourceId)
+        {
+            double firstLength = GetLengthValueFromResourceValue(selectedObjects[0], resourceId);
+
+            foreach (var geo in selectedObjects)
+                if (firstLength != GetLengthValueFromResourceValue(geo, resourceId))
+                    return 0.0d;
+
+            return firstLength;
+        }
+
+        private double GetLengthValueFromResourceValue(IGeoObject geo, string resourceId)
+        {
+            IPropertyEntry objectSp = geo.GetShowProperties(frame);
+            IPropertyEntry modSp = objectSp.FindSubItem(resourceId);
+            return ((LengthProperty)modSp).GetLength();
+        }
+
+        private double CommonProp_GetLengthEvent(string resourceId)
+        {
+            return GetCommonLength(resourceId);
+        }
+
+        private void CommonProp_SetLengthEvent(string resourceId, double l)
+        {
+            isChangingMultipleAttributes = true;
+            using (frame.Project.Undo.UndoFrame)
+            {
+                foreach (IGeoObject geo in selectedObjects)
+                {
+                    IPropertyEntry objectSp = geo.GetShowProperties(frame);
+                    IPropertyEntry modSp = objectSp.FindSubItem(resourceId);
+                    if (modSp != null)
+                        ((LengthProperty)modSp).SetLength(l);
+                }
+            }
+            //Refresh all other properties because they could depend on each other
+            //e.g if you change the diameter the radius will change too
+            attributeProperties.Refresh();
+            
+            isChangingMultipleAttributes = false;
+            MultiChangeDone();
+        }
+
         public void InitMultiAttributeSelection()
         {
             if (multiLinePattern == null) return;
@@ -433,7 +508,7 @@ namespace CADability.UserInterface
                             IDisplayHotSpots hsp = sp as IDisplayHotSpots;
                             if (hsp != null) hsp.HotspotChangedEvent += new HotspotChangedDelegate(OnSubHotspotChanged);
                             items.Add(sp as IPropertyEntry);
-                            sp.PropertyEntryChangedStateEvent +=new PropertyEntryChangedStateDelegate(OnShowPropertyStateChanged);
+                            sp.PropertyEntryChangedStateEvent += new PropertyEntryChangedStateDelegate(OnShowPropertyStateChanged);
                             IGeoObjectShowProperty gsp = sp as IGeoObjectShowProperty;
                             if (gsp != null)
                             {
