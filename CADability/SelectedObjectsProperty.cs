@@ -133,6 +133,7 @@ namespace CADability.UserInterface
                     {
                         //LengthProperty e.g. Radius, Diameter, arc length
                         case LengthProperty lp:
+                            if (lp.ReadOnly) continue; //Only add writeable properties
                             LengthProperty commonPropLength = new LengthProperty(frame, prop.ResourceId);
                             commonPropLength.OnSetValue = delegate (double l) { CommonProp_SetLengthEvent(commonPropLength.ResourceId, l); };
                             commonPropLength.OnGetValue = delegate () { return CommonProp_GetLengthEvent(commonPropLength.ResourceId); };
