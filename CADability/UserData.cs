@@ -484,7 +484,7 @@ namespace CADability
             foreach (KeyValuePair<string, object> de in this.data)
             {	
                 // since the keys must be unique, we use the keys as property names
-                if (de.Value != null && !de.Value.GetType().IsGenericType && !de.Key.StartsWith("$")) // $xxx is reserved for Json additional entries
+                if (de.Value != null && !de.Key.StartsWith("$")) // $xxx is reserved for Json additional entries
                 {
                     // so kann man feststellen, ob de.Value serialisierbar ist
                     SerializableAttribute sa = (SerializableAttribute)System.Attribute.GetCustomAttribute(de.Value.GetType(), typeof(SerializableAttribute));
