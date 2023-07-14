@@ -3483,6 +3483,47 @@ namespace CADability.GeoObject
             }
             if (surface is ISurfaceImpl si) si.usedArea = Domain;
         }
+        /// <summary>
+        /// Overloading for PCam.
+        /// To pass also 2D curves and avoid Border/Area/Domain generation from the 2D curves of the edges that can introduce error for closed/periodic surfaces, still in evaluation, maybe at the end will be removed.
+        /// </summary>
+        public void Set(ISurface surface, List<Edge> outline, List<List<Edge>> holes, List<ICurve2D> outline2D, List<List<ICurve2D>> holes2D)
+        {
+            this.surface = surface;
+            this.outline = outline.ToArray();
+            if (holes == null) this.holes = new Edge[0][];
+            else
+            {
+                Edge[][] holesa = new Edge[holes.Count][];
+                for (int i = 0; i < holes.Count; i++)
+                {
+                    holesa[i] = holes[i].ToArray();
+                }
+                this.holes = holesa;
+            }
+            foreach (Edge e in Edges)
+            {
+                e.Owner = this;
+            }
+            extent = BoundingCube.EmptyBoundingCube;
+            orientedOutward = true;
+            foreach (Edge edge in Edges)
+            {
+                if (edge.Curve3D is IGeoObject go) go.Style = EdgeStyle;
+            }
+            if (surface is ISurfaceImpl si)
+            {
+                Border b = new Border(outline2D.ToArray());
+                List<Border> hs = new List<Border>();
+                foreach (List<ICurve2D> hole2D in holes2D)
+                {
+                    Border h = new Border(hole2D.ToArray());
+                    hs.Add(h);
+                }
+                area = new SimpleShape(b, hs.ToArray());
+                si.usedArea = Domain;
+            }
+        }
         internal static Face MakeFace(ISurface surface, Edge[] outline)
         {
             Face res = Face.Construct();
