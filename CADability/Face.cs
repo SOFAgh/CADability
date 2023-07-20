@@ -218,6 +218,7 @@ namespace CADability.GeoObject
         }
         public delegate void ConstructedDelegate(Face justConstructed);
         public static ConstructedDelegate Constructed;
+        public static bool PCamTriangulationFix = false; //Temporary. Fix triangulation errors with seams edges.
         #endregion
         protected Face()
             : base()
@@ -6003,36 +6004,84 @@ namespace CADability.GeoObject
             List<GeoPoint2D[]> polylines = new List<GeoPoint2D[]>();
             List<GeoPoint2D> polyoutline = new List<GeoPoint2D>();
 
-            ICurve2D[] usedCurves = new ICurve2D[outline.Length];
-#if DEBUG
-            if (hashCode == 1087)
-            { }
-            if (UserData.ContainsData("StepImport.ItemNumber"))
+            if (PCamTriangulationFix)
             {
-                IntegerProperty ip = UserData["StepImport.ItemNumber"] as IntegerProperty;
-                if (ip.IntegerValue == 3672)
-                { }
-            }
-#endif
-            for (int i = 0; i < outline.Length; ++i)
-            {
-                usedCurves[i] = outline[i].Curve2D(this, usedCurves);
-                if (outline[i].Curve3D != null)
-                {   // singuläre Kanten nicht verwenden. Damit wird erreicht, dass ein singulärer Punkt nur einmal vorkommt
-                    // nämlich bei der Kante, die vom singulären Punkt wegführt
-                    GeoPoint2D[] points = outline[i].GetTriangulationBasis(this, precision, usedCurves[i]);
-                    if (outline.Length == 1 && points.Length < 3)
-                    {   // das würde ja bedeuten, nur zwei Punkte auf der Outline, also nur ein Strich, hin- und zurück
-                        points = new GeoPoint2D[3];
-                        points[0] = usedCurves[i].PointAt(0.0);
-                        points[1] = usedCurves[i].PointAt(1.0 / 3.0);
-                        points[2] = usedCurves[i].PointAt(2.0 / 3.0);
-                    }
-                    polyoutline.AddRange(points);
-                }
-                else
+                if (GetFaceCounter(out int fc1) && fc1 == 167)
                 {
-                    polyoutline.Add(usedCurves[i].StartPoint);
+                    ;
+                }
+                int nonSeamEdgeIndex = 0;
+                foreach (Edge e in outline)
+                {
+                    if (e.PrimaryFace != e.SecondaryFace)
+                        break;
+                    nonSeamEdgeIndex++;
+                }
+                int remainingEdges = outline.Length;
+                int currEdgeIndex = nonSeamEdgeIndex;
+                if (nonSeamEdgeIndex >= outline.Length)
+                    currEdgeIndex = 0;
+                List<ICurve2D> usedCurves = new List<ICurve2D>();
+                while (remainingEdges > 0)
+                {
+                    Edge currEdge = outline[currEdgeIndex];
+                    ICurve2D edge2D = currEdge.Curve2D(this, usedCurves.ToArray());
+                    usedCurves.Add(edge2D);
+                    if (currEdge.Curve3D != null)
+                    {   // singuläre Kanten nicht verwenden. Damit wird erreicht, dass ein singulärer Punkt nur einmal vorkommt
+                        // nämlich bei der Kante, die vom singulären Punkt wegführt
+                        GeoPoint2D[] points = currEdge.GetTriangulationBasis(this, precision, edge2D);
+                        if (outline.Length == 1 && points.Length < 3)
+                        {   // das würde ja bedeuten, nur zwei Punkte auf der Outline, also nur ein Strich, hin- und zurück
+                            points = new GeoPoint2D[3];
+                            points[0] = edge2D.PointAt(0.0);
+                            points[1] = edge2D.PointAt(1.0 / 3.0);
+                            points[2] = edge2D.PointAt(2.0 / 3.0);
+                        }
+                        polyoutline.AddRange(points);
+                    }
+                    else
+                    {
+                        polyoutline.Add(edge2D.StartPoint);
+                    }
+                    remainingEdges--;
+                    currEdgeIndex++;
+                    if (currEdgeIndex >= outline.Length) currEdgeIndex = 0;
+                }
+            }
+            else
+            {
+                ICurve2D[] usedCurves = new ICurve2D[outline.Length];
+#if DEBUG
+                if (hashCode == 1087)
+                { }
+                if (UserData.ContainsData("StepImport.ItemNumber"))
+                {
+                    IntegerProperty ip = UserData["StepImport.ItemNumber"] as IntegerProperty;
+                    if (ip.IntegerValue == 3672)
+                    { }
+                }
+#endif
+                for (int i = 0; i < outline.Length; ++i)
+                {
+                    usedCurves[i] = outline[i].Curve2D(this, usedCurves);
+                    if (outline[i].Curve3D != null)
+                    {   // singuläre Kanten nicht verwenden. Damit wird erreicht, dass ein singulärer Punkt nur einmal vorkommt
+                        // nämlich bei der Kante, die vom singulären Punkt wegführt
+                        GeoPoint2D[] points = outline[i].GetTriangulationBasis(this, precision, usedCurves[i]);
+                        if (outline.Length == 1 && points.Length < 3)
+                        {   // das würde ja bedeuten, nur zwei Punkte auf der Outline, also nur ein Strich, hin- und zurück
+                            points = new GeoPoint2D[3];
+                            points[0] = usedCurves[i].PointAt(0.0);
+                            points[1] = usedCurves[i].PointAt(1.0 / 3.0);
+                            points[2] = usedCurves[i].PointAt(2.0 / 3.0);
+                        }
+                        polyoutline.AddRange(points);
+                    }
+                    else
+                    {
+                        polyoutline.Add(usedCurves[i].StartPoint);
+                    }
                 }
             }
             GeoPoint2D[] tmp = polyoutline.ToArray();
@@ -6842,8 +6891,34 @@ namespace CADability.GeoObject
             }
 
         }
+        private bool GetFaceCounter(out int fc)
+        {
+            bool ok = false;
+            fc = 0;
+
+            IntegerProperty fcp = UserData.GetData("fc") as IntegerProperty;
+            if (fcp != null)
+            {
+                fc = fcp.IntegerValue;
+                ok = true;
+            }
+
+            return ok;
+        }
         internal void PaintFaceTo3D(IPaintTo3D paintTo3D)
         {
+#if DEBUG
+            if (GetFaceCounter(out int fc))
+            {
+                System.Diagnostics.Debug.WriteLine($"Face.PaintFaceTo3D fc={fc}  {surface.GetType()}");
+                if (fc == 164 || fc == 165 || fc == 168 || fc == 596)
+                {
+                    System.Diagnostics.Debug.WriteLine("  face skipped");
+                    return;
+                }
+            }
+#endif
+
             // if DontRecalcTriangulation is true, then work with the already existing triangulation, as long as there is one
             if (!paintTo3D.DontRecalcTriangulation || trianglePoint == null)
                 TryAssureTriangles(paintTo3D.Precision);
