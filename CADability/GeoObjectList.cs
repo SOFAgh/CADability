@@ -485,12 +485,7 @@ namespace CADability.GeoObject
             list.Insert(0, iGeoObject);
         }
 
-        IEnumerator<IGeoObject> IEnumerable<IGeoObject>.GetEnumerator()
-        {
-            List<IGeoObject> ll = new List<IGeoObject>();
-            for (int i = 0; i < list.Count; ++i) ll.Add(list[i] as IGeoObject);
-            return ll.GetEnumerator();
-        }
+        IEnumerator<IGeoObject> IEnumerable<IGeoObject>.GetEnumerator() => list.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator()
         {
