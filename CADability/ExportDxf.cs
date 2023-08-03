@@ -559,7 +559,7 @@ namespace CADability.DXF
                 }
                 entity.Layer = layer;
             }
-            if (go is ILinePattern lp)
+            if (go is ILinePattern lp && lp.LinePattern != null)
             {
                 if (!createdLinePatterns.TryGetValue(lp.LinePattern, out Linetype linetype))
                 {
@@ -581,7 +581,7 @@ namespace CADability.DXF
                 }
                 entity.Linetype = linetype;
             }
-            if (go is ILineWidth lw)
+            if (go is ILineWidth lw && lw.LineWidth != null)
             {
                 double minError = double.MaxValue;
                 Lineweight found = Lineweight.Default;
