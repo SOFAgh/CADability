@@ -2197,13 +2197,20 @@ namespace CADability.GeoObject
                     }
                     else if ((d1 < d2) && (r1 > r2) && r2 < precision)
                     {
-                        Plane pln = new Plane(cnt[3], cnt[4], cnt[5]); // Ebene der Mittelpunkte der 3 kleinen Kreise
-                                                                       // die Location der Ebene stimmt noch nicht
-                        GeoPoint tcnt = new GeoPoint(pln.ToGlobal(pln.Project(cnt[0])), pln.ToGlobal(pln.Project(cnt[1])), pln.ToGlobal(pln.Project(cnt[2])));
-                        // GeoPoint tcnt = new GeoPoint(cnt[0], cnt[1], cnt[2]);
-                        pln = new Plane(tcnt, cnt[3], cnt[5]);
+                        try
+                        {
+                            Plane pln = new Plane(cnt[3], cnt[4], cnt[5]); // Ebene der Mittelpunkte der 3 kleinen Kreise
+                                                                           // die Location der Ebene stimmt noch nicht
+                            GeoPoint tcnt = new GeoPoint(pln.ToGlobal(pln.Project(cnt[0])), pln.ToGlobal(pln.Project(cnt[1])), pln.ToGlobal(pln.Project(cnt[2])));
+                            // GeoPoint tcnt = new GeoPoint(cnt[0], cnt[1], cnt[2]);
+                            pln = new Plane(tcnt, cnt[3], cnt[5]);
 
-                        ts = new ToroidalSurface(tcnt, pln.DirectionX, pln.DirectionY, pln.Normal, ((cnt[3] | tcnt) + (cnt[4] | tcnt) + (cnt[5] | tcnt)) / 3, (rad[3] + rad[4] + rad[5]) / 3);
+                            ts = new ToroidalSurface(tcnt, pln.DirectionX, pln.DirectionY, pln.Normal, ((cnt[3] | tcnt) + (cnt[4] | tcnt) + (cnt[5] | tcnt)) / 3, (rad[3] + rad[4] + rad[5]) / 3);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
                     }
                     if (ts != null)
                     {
