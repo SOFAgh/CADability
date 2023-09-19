@@ -3216,7 +3216,7 @@ namespace CADability.GeoObject
             }
         }
 
-        internal BSpline SetCyclicalStartPoint(double pos)
+        public BSpline SetCyclicalStartPoint(double pos)
         {
             double par = startParam + pos * (endParam - startParam);
             BSpline[] parts = SplitParam(par);
