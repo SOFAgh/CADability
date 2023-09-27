@@ -17,9 +17,9 @@ namespace CADability.GeoObject
     /// <summary>
     /// Interface to handle both CylindricalSurface and CylindricalSurfaceNP
     /// </summary>
-    public interface ICylinder: ISurfaceWithRadius
+    public interface ICylinder : ISurfaceWithRadius
     {
-        Axis Axis { get; set;  }
+        Axis Axis { get; set; }
         bool OutwardOriented { get; }
     }
     /// <summary>
@@ -27,7 +27,7 @@ namespace CADability.GeoObject
     /// cylinder. The u parameter always describes a circle or ellipse, the v parameter a Line.
     /// </summary>
     [Serializable()]
-    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection, 
+    public class CylindricalSurface : ISurfaceImpl, ISurfaceOfRevolution, ISerializable, IDeserializationCallback, ISurfacePlaneIntersection,
         IExportStep, ISurfaceOfArcExtrusion, ICylinder, IJsonSerialize
     {
         // Der Zylinder ist so beschaffen, dass er lediglich durch eine ModOp definiert ist.
@@ -350,6 +350,7 @@ namespace CADability.GeoObject
 
                         }
                         GetExtremePositions(thisBounds, other, otherBounds, out List<Tuple<double, double, double, double>> extremePositions);
+                        if (usedArea.IsInfinite || double.IsInfinity(usedArea.Size)) { usedArea = thisBounds; }
                         ICurve[] res = BoxedSurfaceEx.Intersect(thisBounds, other, otherBounds, null, extremePositions);
                         return res;
                     }
@@ -2361,7 +2362,7 @@ namespace CADability.GeoObject
             else return res;
         }
 
-        protected CylindricalSurface(): base(null)
+        protected CylindricalSurface() : base(null)
         {
             // empty constructor for Json
         }

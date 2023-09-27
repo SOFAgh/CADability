@@ -150,7 +150,7 @@
     <Compile Include="CadCanvas.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="ImportSVG.cs" />
+    <Compile Include="DebuggerPlayground.cs" />
     <Compile Include="DebugForm.cs" />
     <Compile Include="IUIServiceImpl.cs" />
     <Compile Include="MenuManager.cs">
