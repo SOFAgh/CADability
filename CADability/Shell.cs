@@ -2117,6 +2117,7 @@ namespace CADability.GeoObject
                             besti = i - intv;
                         }
                     }
+
                     Set<Face> sameRatio = new Set<Face>();
                     for (int i = besti; i < besti + intv; i++)
                     {

@@ -227,7 +227,8 @@ namespace CADability.GeoObject
                         ++secondknotindex;
                     }
                 }
-                if ((this as ICurve).GetPlanarState() == PlanarState.Planar || (this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
+                // PlanarState.UnderDetermined makes sometimes problems
+                if ((this as ICurve).GetPlanarState() == PlanarState.Planar) // || (this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
                 {   // in Wirklichkeit ein 2d spline, nur im Raum gelegen
                     if ((this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
                     {
@@ -1057,7 +1058,11 @@ namespace CADability.GeoObject
                 for (int i = 0; i < multiplicities.Length; ++i) sum += multiplicities[i];
                 if (poles.Length + degree + 1 != sum) return false;
             }
-
+            if (startParam > knots[0] || endParam < knots[knots.Length-1])
+            {
+                BSpline trimmed = TrimParam(startParam, endParam);
+                CopyGeometry(trimmed);
+            }
             // DEBUG:
             for (int i = 1; i < knots.Length; ++i)
             {

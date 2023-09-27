@@ -2255,6 +2255,7 @@ namespace CADability.GeoObject
                         // make it slightly bigger. This is often the extent of the Face.Area, which is sometimes not very accurate
                         // and it makes problems with Intersect
                     }
+                    if (ext.IsInfinite) ext = usedArea * 1.01;
                     boxedSurfaceEx = new BoxedSurfaceEx(this, ext); // removed ext*1.01, because NURBS surfaces are not well defined outside of their bounds
 
                 }
