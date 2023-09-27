@@ -228,14 +228,15 @@ namespace CADability.GeoObject
                     }
                 }
                 // PlanarState.UnderDetermined makes sometimes problems
-                if ((this as ICurve).GetPlanarState() == PlanarState.Planar) // || (this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
+                if ((this as ICurve).GetPlanarState() == PlanarState.Planar || (this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
                 {   // in Wirklichkeit ein 2d spline, nur im Raum gelegen
                     if ((this as ICurve).GetPlanarState() == PlanarState.UnderDetermined)
                     {
-                        GeoVector nrm = poles[poles.Length - 1] - poles[0];
-                        if (nrm.IsNullVector()) nrm = poles[poles.Length - 2] - poles[0];
-                        Plane tmp = new Plane(poles[0], nrm);
-                        this.plane = new Plane(tmp.Location, tmp.DirectionX, tmp.Normal);
+                        if (plane == null) plane = getPlane();
+                        //GeoVector nrm = poles[poles.Length - 1] - poles[0];
+                        //if (nrm.IsNullVector()) nrm = poles[poles.Length - 2] - poles[0];
+                        //Plane tmp = new Plane(poles[0], nrm);
+                        //this.plane = new Plane(tmp.Location, tmp.DirectionX, tmp.Normal);
                     }
                     if (weights == null)
                     {
@@ -2940,54 +2941,67 @@ namespace CADability.GeoObject
                 double MaxDist;
                 bool isLinear;
                 Plane res = Plane.FromPoints(poles, out MaxDist, out isLinear);
-                if (MaxDist < Precision.eps) return res;
+                if (MaxDist < Precision.eps)
+                {
+                    plane = res;
+                    return res;
+                }
                 else if (isLinear)
                 {
-                    GeoVector v = (this as ICurve).DirectionAt(0.5);
-                    if (Precision.IsNullVector(v))
-                    {   // Länge ist 0.0
-                        return new Plane(poles[0], GeoVector.ZAxis);
-                    }
-                    Angle xy = new Angle(v, GeoVector.ZAxis);
-                    Angle xz = new Angle(v, GeoVector.YAxis);
-                    Angle yz = new Angle(v, GeoVector.XAxis);
-                    xy = Math.Min(xy, Math.PI - xy);
-                    xz = Math.Min(xz, Math.PI - xz);
-                    yz = Math.Min(yz, Math.PI - yz);
-                    if (xy < xz)
+                    GeoVector nrm = poles[poles.Length - 1] - poles[0];
+                    if (nrm.IsNullVector())
                     {
-                        if (xy < yz) return new Plane(poles[0], GeoVector.XAxis, v);
-                        else return new Plane(poles[0], GeoVector.YAxis, v);
+                        for (int i = 0; i < poles.Length - 1; i++)
+                        {
+                            nrm = poles[poles.Length - i - 2] - poles[0];
+                            if (!nrm.IsNullVector()) break;
+                        }
                     }
-                    else
-                    {
-                        if (xz < yz) return new Plane(poles[0], GeoVector.XAxis, v);
-                        else return new Plane(poles[0], GeoVector.YAxis, v);
-                    }
+                    if (nrm.IsNullVector()) return Plane.XYPlane; // allpoles identical, singular object!
+                    Plane tmp = new Plane(poles[0], nrm);
+                    this.plane = new Plane(tmp.Location, tmp.DirectionX, tmp.Normal);
+                    return plane.Value;
+
+                    // don't use any methods that require the nurbs object to be already created, because this make an infinite recursion
+                    // as in this old code:
+                    //GeoVector v = (this as ICurve).DirectionAt(0.5);
+                    //if (Precision.IsNullVector(v))
+                    //{   // Länge ist 0.0
+                    //    return new Plane(poles[0], GeoVector.ZAxis);
+                    //}
+                    //Angle xy = new Angle(v, GeoVector.ZAxis);
+                    //Angle xz = new Angle(v, GeoVector.YAxis);
+                    //Angle yz = new Angle(v, GeoVector.XAxis);
+                    //xy = Math.Min(xy, Math.PI - xy);
+                    //xz = Math.Min(xz, Math.PI - xz);
+                    //yz = Math.Min(yz, Math.PI - yz);
+                    //if (xy < xz)
+                    //{
+                    //    if (xy < yz) return new Plane(poles[0], GeoVector.XAxis, v);
+                    //    else return new Plane(poles[0], GeoVector.YAxis, v);
+                    //}
+                    //else
+                    //{
+                    //    if (xz < yz) return new Plane(poles[0], GeoVector.XAxis, v);
+                    //    else return new Plane(poles[0], GeoVector.YAxis, v);
+                    //}
                 }
                 else
                 {
-                    // es könnte eine Linie sein, das ist aber 
-                    int m = poles.Length / 2;
-                    GeoPoint p = (this as ICurve).PointAt(0.5);
-                    GeoVector v = (this as ICurve).DirectionAt(0.5);
-                    if (Precision.IsNullVector(v))
-                    {   // Länge ist 0.0
-                        return new Plane(p, GeoVector.ZAxis);
-                    }
-                    for (int i = 0; i < poles.Length; i++)
+                    // there is no plane, so this should not be called, we return some arbitrary plane
+                    GeoVector nrm = poles[poles.Length - 1] - poles[0];
+                    if (nrm.IsNullVector())
                     {
-                        double d = Geometry.DistPL(poles[i], p, v);
-                        if (d > Precision.eps) return new Plane(poles[0], GeoVector.XAxis, GeoVector.YAxis);
+                        for (int i = 0; i < poles.Length - 1; i++)
+                        {
+                            nrm = poles[poles.Length - i - 2] - poles[0];
+                            if (!nrm.IsNullVector()) break;
+                        }
                     }
-                    if (Precision.SameDirection(v, GeoVector.ZAxis, false))
-                    {
-                        return new Plane(p, v, GeoVector.XAxis);
-                    }
-                    else
-                    {
-                        return new Plane(p, v, GeoVector.ZAxis ^ v);
-                    }
+                    if (nrm.IsNullVector()) return Plane.XYPlane; // allpoles identical, singular object!
+                    Plane tmp = new Plane(poles[0], nrm);
+                    this.plane = new Plane(tmp.Location, tmp.DirectionX, tmp.Normal);
+                    return plane.Value;
                 }
             }
         }
