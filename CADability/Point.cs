@@ -58,6 +58,7 @@ namespace CADability.GeoObject
         private PointSymbol symbol; // die Darstellung
         private double size; // die Größe (in Pixel?)
         private ColorDef colorDef;
+        private string name;
         #region polymorph construction
         public delegate Point ConstructionDelegate();
         public static ConstructionDelegate Constructor;
@@ -107,6 +108,20 @@ namespace CADability.GeoObject
                 }
             }
         }
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+            set
+            {
+                using (new Changing(this, false, true, "Name", name))
+                {
+                    name = value;
+                }
+            }
+        }
         #region IGeoObjectImpl overrides
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.Clone ()"/>
@@ -119,6 +134,7 @@ namespace CADability.GeoObject
             res.symbol = symbol;
             res.size = size;
             res.colorDef = colorDef;
+            res.name = name;
             res.CopyAttributes(this);
             return res;
         }
@@ -388,6 +404,7 @@ namespace CADability.GeoObject
             symbol = (PointSymbol)info.GetValue("Symbol", typeof(PointSymbol));
             colorDef = (ColorDef)info.GetValue("ColorDef", typeof(ColorDef));
             size = (double)info.GetValue("Size", typeof(double));
+            name = (string)info.GetValue("Name", typeof(string));
             if (Constructed != null) Constructed(this);
         }
         /// <summary>
@@ -402,6 +419,7 @@ namespace CADability.GeoObject
             info.AddValue("Symbol", symbol);
             info.AddValue("ColorDef", colorDef);
             info.AddValue("Size", size);
+            info.AddValue("Name", name);
         }
 
         public override BoundingRect GetExtent(Projection projection, ExtentPrecision extentPrecision)
