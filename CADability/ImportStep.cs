@@ -2378,12 +2378,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                             GeoObjectList val = new GeoObjectList();
                             for (int i = 0; i < elements.lval.Count; i++)
                             {
-                                object o = CreateEntity(elements.lval[i]);
+                                Item subItem = elements.lval[i];
+                                object o = CreateEntity(subItem);
                                 if (o is GeoPoint)
                                 {
                                     GeoObject.Point pnt = GeoObject.Point.Construct();
                                     pnt.Location = (GeoPoint)o;
                                     pnt.Symbol = PointSymbol.Cross;
+                                    pnt.Name = subItem.parameter["name"].sval;
                                     val.Add(pnt);
                                 }
                                 else if (o is IGeoObject) val.Add(o as IGeoObject);
