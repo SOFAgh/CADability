@@ -404,7 +404,14 @@ namespace CADability.GeoObject
             symbol = (PointSymbol)info.GetValue("Symbol", typeof(PointSymbol));
             colorDef = (ColorDef)info.GetValue("ColorDef", typeof(ColorDef));
             size = (double)info.GetValue("Size", typeof(double));
-            name = (string)info.GetValue("Name", typeof(string));
+            try //Needed because old files didn't contain the name of the point.
+            {
+                name = (string)info.GetValue("Name", typeof(string));
+            }
+            catch (SerializationException)
+            {
+                name = null;
+            }
             if (Constructed != null) Constructed(this);
         }
         /// <summary>
