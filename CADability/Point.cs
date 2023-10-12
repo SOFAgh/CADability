@@ -52,7 +52,7 @@ namespace CADability.GeoObject
     /// Implements a point as a <see cref="IGeoObject"/>. 
     /// </summary>
     [Serializable()]
-    public class Point : IGeoObjectImpl, IColorDef, ISerializable
+    public class Point : IGeoObjectImpl, IColorDef, ISerializable, IJsonSerialize
     {
         private GeoPoint location; // der Ort
         private PointSymbol symbol; // die Darstellung
@@ -427,6 +427,24 @@ namespace CADability.GeoObject
             info.AddValue("ColorDef", colorDef);
             info.AddValue("Size", size);
             info.AddValue("Name", name);
+        }
+        public override void GetObjectData(IJsonWriteData data)
+        {
+            base.GetObjectData(data);
+            data.AddProperty("Location", location);
+            data.AddProperty("Symbol", symbol);
+            if (colorDef != null) data.AddProperty("ColorDef", colorDef);
+            data.AddProperty("Size", size);
+            data.AddProperty("Name", name);
+        }
+        public override void SetObjectData(IJsonReadData data)
+        {
+            base.SetObjectData(data);
+            location = data.GetProperty<GeoPoint>("Location");
+            symbol = data.GetProperty<PointSymbol>("Symbol");
+            colorDef = data.GetPropertyOrDefault<ColorDef>("ColorDef");
+            size = data.GetProperty<double>("Size");
+            name = data.GetProperty<string>("Name");
         }
 
         public override BoundingRect GetExtent(Projection projection, ExtentPrecision extentPrecision)
