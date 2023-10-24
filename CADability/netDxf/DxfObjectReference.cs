@@ -1,4 +1,4 @@
-#region netDxf library licensed under the MIT License
+﻿#region netDxf library licensed under the MIT License
 // 
 //                       netDxf library
 // Copyright (c) Daniel Carvajal (haplokuon@gmail.com)
@@ -23,21 +23,41 @@
 // 
 #endregion
 
-namespace netDxf.Entities
+namespace netDxf
 {
     /// <summary>
-    /// Represents the terminator element of a vertex sequence in polylines or attributes in a block reference.
+    /// Represent a reference to a TableObject.
     /// </summary>
-    internal class EndSequence :
-        DxfObject
+    public class DxfObjectReference
     {
+        private readonly DxfObject reference;
+        private readonly int uses;
+
         /// <summary>
-        /// Initializes a new instance of the <c>EndSequence</c> class.
+        /// Initializes a new instance of the <c>DxfObjectReference</c> class.
         /// </summary>
-        public EndSequence()
-            : base(DxfObjectCode.EndSequence)
+        /// <param name="reference">DxfObject reference.</param>
+        /// <param name="uses">Number of times the specified reference uses the table object.</param>
+        public DxfObjectReference(DxfObject reference, int uses)
         {
-            this.Owner = null;
+            this.reference = reference;
+            this.uses = uses;
+        }
+
+        /// <summary>
+        /// Gets the DxfObject that references the table object.
+        /// </summary>
+        public DxfObject Reference
+        {
+            get { return this.reference; }
+        }
+
+        /// <summary>
+        /// Gets the number of times this reference uses the table object.
+        /// </summary>
+        public int Uses
+        {
+            get { return this.uses; }
         }
     }
 }

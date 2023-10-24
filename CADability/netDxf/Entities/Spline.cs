@@ -1,7 +1,7 @@
 #region netDxf library licensed under the MIT License
 // 
 //                       netDxf library
-// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
+// Copyright (c) Daniel Carvajal (haplokuon@gmail.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,8 @@ namespace netDxf.Entities
         EntityObject
     {
         #region private fields
+
+        public const short MaxDegree = 10;
 
         private readonly Vector3[] fitPoints;
         private readonly SplineCreationMethod creationMethod;
@@ -160,7 +162,7 @@ namespace netDxf.Entities
             : base(EntityType.Spline, DxfObjectCode.Spline)
         {
             // spline degree
-            if (degree < 1 || degree > 10)
+            if (degree < 1 || degree > MaxDegree)
             {
                 throw new ArgumentOutOfRangeException(nameof(degree), degree, "The spline degree valid values range from 1 to 10.");
             }
@@ -235,7 +237,7 @@ namespace netDxf.Entities
             : base(EntityType.Spline, DxfObjectCode.Spline)
         {
             // spline degree
-            if (degree < 1 || degree > 10)
+            if (degree < 1 || degree > MaxDegree)
             {
                 throw new ArgumentOutOfRangeException(nameof(degree), degree, "The spline degree valid values range from 1 to 10.");
             }

@@ -1,7 +1,7 @@
 #region netDxf library licensed under the MIT License
 // 
 //                       netDxf library
-// Copyright (c) 2019-2023 Daniel Carvajal (haplokuon@gmail.com)
+// Copyright (c) Daniel Carvajal (haplokuon@gmail.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -147,7 +147,7 @@ namespace netDxf.IO
         /// </summary>
         /// <param name="stream">Stream.</param>
         /// <param name="supportFolders">List of the document support folders.</param>
-        public DxfDocument Read(Stream stream, IEnumerable<string> supportFolders)
+        public DxfDocument Read(Stream stream, SupportFolders supportFolders)
         {
             if (stream == null)
             {
@@ -7799,6 +7799,10 @@ namespace netDxf.IO
                         break;
                     case 71:
                         degree = this.chunk.ReadShort();
+                        if (degree > Spline.MaxDegree)
+                        {
+                            degree = Spline.MaxDegree;
+                        }
                         this.chunk.Next();
                         break;
                     case 72:
@@ -7876,7 +7880,7 @@ namespace netDxf.IO
                         this.chunk.Next();
                         break;
                     case 41:
-                        // code 41 might appear before or after the control point coordinates.
+                        // code 41 might appear before or after the control point coordinates
                         double weight = this.chunk.ReadDouble();
                         weights.Add(weight);
                         this.chunk.Next();
@@ -7906,6 +7910,13 @@ namespace netDxf.IO
                 }
             }
 
+            if (weights.Count == 0 || weights.Count != ctrlPoints.Count)
+            {
+                // if the weights are not present the default 1.0 will be used
+                // but if they appear they must be present for all control points regardless of its value
+                weights = null;
+            }
+
             SplineCreationMethod method;
             if (fitPoints.Count == 0)
             {
@@ -7927,13 +7938,8 @@ namespace netDxf.IO
                 if (isPeriodic)
                 {
                     ctrlPoints.RemoveRange(0, degree);
-                    weights.RemoveRange(0, degree);
+                    weights?.RemoveRange(0, degree);
                 }
-            }
-
-            if (weights.Count == 0)
-            {
-                weights = null;
             }
 
             Spline entity = new Spline(ctrlPoints, weights, knots, degree, fitPoints, method, isPeriodic)
@@ -9389,6 +9395,11 @@ namespace netDxf.IO
                 textString = textString.Replace("^I", "\t");
                 // "^J" undocumented code in MText, they will be replaced by the standard end paragraph command "\P"
                 textString = textString.Replace("^J", "\\P");
+            }
+
+            if (spacingStyle == MTextLineSpacingStyle.Default || spacingStyle == MTextLineSpacingStyle.Multiple)
+            {
+                spacingStyle = MTextLineSpacingStyle.AtLeast;
             }
 
             Vector3 ocsDirection = MathHelper.Transform(direction, normal, CoordinateSystem.World, CoordinateSystem.Object);
@@ -12009,7 +12020,7 @@ namespace netDxf.IO
             }
 
             // if an entity references a table object not defined in the tables section a new one will be created
-            return this.doc.TextStyles.Add(new TextStyle(name));
+            return this.doc.TextStyles.Add(new TextStyle(name, TextStyle.DefaultFont));
         }
 
         private DimensionStyle GetDimensionStyle(string name)
