@@ -946,7 +946,7 @@ namespace CADability
                 //displayLists = null;
                 //System.GC.Collect();
                 //System.GC.WaitForPendingFinalizers();
-                //ipaintTo3D.Dispose(); 
+                ipaintTo3D.Dispose(); 
 
                 PaintToBitmap.MakeTransparent(Color.White);
                 //e.Graphics.DrawImageUnscaled(PaintToBitmap, clipRectangle);
