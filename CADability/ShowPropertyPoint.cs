@@ -43,7 +43,7 @@ namespace CADability.UserInterface
             {
                 if (subEntries == null)
                 {
-                    IPropertyEntry[] mainProps = { locationProperty };
+                    IPropertyEntry[] mainProps = { locationProperty, new NameProperty(this.point, "Name", "Block.Name") };
                     subEntries = PropertyEntryImpl.Concat(mainProps, attributeProperties);
                 }
                 return subEntries;
