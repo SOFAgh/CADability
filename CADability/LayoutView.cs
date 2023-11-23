@@ -983,6 +983,7 @@ namespace CADability
             {
                 if (go.Layer == null || visibleLayers.ContainsKey(go.Layer))
                 {
+                    go.PrePaintTo3D(iPaintTo3D);
                     go.PaintTo3D(iPaintTo3D); // iPaintTo3D enthält die Information, dass keine Listen verwendet werden dürfen
                 }
             }
