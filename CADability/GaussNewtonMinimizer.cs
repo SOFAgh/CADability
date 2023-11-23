@@ -1584,6 +1584,56 @@ namespace CADability
             uv2 = new GeoPoint2D(result[2], result[3]);
             return minError;
         }
+        /// <summary>
+        /// Tries to find a maximum or minimum point in the direction <paramref name="dir"/> of <paramref name="surface"/> within the patch <paramref name="bounds"/>.
+        /// Requires the surface to implement <see cref="ISurface.Derivation2At(GeoPoint2D, out GeoPoint, out GeoVector, out GeoVector, out GeoVector, out GeoVector, out GeoVector)"/>.
+        /// </summary>
+        /// <param name="surface">The surface</param>
+        /// <param name="bounds">The patch of the surface to be examined</param>
+        /// <param name="dir">The direction in which to find a minimum or maximum</param>
+        /// <param name="uv">a starting position for the search (usually the center of bounds)</param>
+        /// <returns>The error</returns>
+        public static double SurfaceExtrema(ISurface surface, BoundingRect bounds, GeoVector dir, ref GeoPoint2D uv)
+        {
+            // parameters uv1.x, uv1.y
+            bool checkParameter(double[] parameters)
+            {
+                return bounds.ContainsEps(new GeoPoint2D(parameters[0], parameters[1]), bounds.Size * 1e-6) ;
+            }
+            void curtailParameter(double[] parameters)
+            {
+                if (parameters[0] < bounds.Left) parameters[0] = bounds.Left;
+                if (parameters[0] > bounds.Right) parameters[0] = bounds.Right;
+                if (parameters[1] < bounds.Bottom) parameters[1] = bounds.Bottom;
+                if (parameters[1] > bounds.Top) parameters[1] = bounds.Top;
+            }
+            void efunc(double[] parameters, out double[] values)
+            {
+                values = new double[2];
+                GeoPoint2D suv = new GeoPoint2D(parameters[0], parameters[1]);
+                GeoVector sdu = surface.UDirection(suv);
+                GeoVector sdv = surface.VDirection(suv);
+
+                // the value to reach zero is the scalar product of diru*dir and dirv*dir
+                values[0] = dir.z * sdu.z + dir.y * sdu.y + dir.x * sdu.x;
+                values[1] = dir.z * sdv.z + dir.y * sdv.y + dir.x * sdv.x;
+            }
+            void jfunc(double[] parameters, out Matrix derivs)
+            {
+                derivs = DenseMatrix.Create(2, 2, 0);
+                GeoPoint2D suv = new GeoPoint2D(parameters[0], parameters[1]);
+                surface.Derivation2At(suv, out GeoPoint s, out GeoVector sdu, out GeoVector sdv, out GeoVector sduu, out GeoVector sdvv, out GeoVector sdudv);
+
+                derivs[0, 0] = dir.z * sduu.z + dir.y * sduu.y + dir.x * sduu.x;
+                derivs[0, 1] = dir.z * sdudv.z + dir.y * sdudv.y + dir.x * sdudv.x;
+                derivs[1, 0] = dir.z * sdudv.z + dir.y * sdudv.y + dir.x * sdudv.x;
+                derivs[1, 1] = dir.z * sdvv.z + dir.y * sdvv.y + dir.x * sdvv.x;
+            }
+            GaussNewtonMinimizer gnm = new GaussNewtonMinimizer(efunc, jfunc, checkParameter, curtailParameter);
+            bool ok = gnm.Solve(new double[] { uv.x, uv.y}, 30, 1e-6, 1e-6, out double minError, out int numiter, out double[] result);
+            uv = new GeoPoint2D(result[0], result[1]);
+            return minError;
+        }
         public static double SurfaceCurveExtrema(ISurface surface1, BoundingRect bounds1, ICurve curve2, double curveUmin, double curveUmax, ref GeoPoint2D uv1, ref double u2)
         {
             // see extremaSurfaces.wxmx

@@ -4564,64 +4564,101 @@ namespace CADability.GeoObject
         private bool FindExtremum(GeoVector dir, double umin, double umax, double vmin, double vmax, double u, double v, out GeoPoint2D extr)
         {   // u und v liegen innerhalb der Masche umin,vmin...umax,vmax
             // bei u hatte eine fixedv Kurve ein Extremum, bei v analog
-            extr = GeoPoint2D.Origin;
-            GeoPoint p1 = PointAt(new GeoPoint2D(u, v));
-            GeoPoint p2 = p1;
-            double mindist = double.MaxValue;
-            int dbgn = 0;
-            while (mindist > Precision.eps)
-            {
-                if (dbgn > 1000) return false; // muss noch genauer untersucht werden
-                ++dbgn;
-                bool foundU = false;
-                bool foundV = false;
-                BSpline fixedu = FixedU(u);
-                BSpline fixedv = FixedV(v);
-                if (!fixedv.IsSingular)
-                {
-                    double[] exu = (fixedv as ICurve).GetExtrema(dir);
-                    for (int k = 0; k < exu.Length; ++k)
-                    {
-                        double uex = uKnots[0] + exu[k] * (uKnots[uKnots.Length - 1] - uKnots[0]);
-                        if (uex > umin && uex < umax)
-                        {
-                            p1 = fixedv.PointAtParam(uex);
-                            u = uex;
-                            foundU = true;
-                            break;
-                        }
-                    }
-                }
-                if (!fixedu.IsSingular)
-                {
-                    double[] exv = (fixedu as ICurve).GetExtrema(dir);
-                    for (int k = 0; k < exv.Length; ++k)
-                    {
-                        double vex = vKnots[0] + exv[k] * (vKnots[vKnots.Length - 1] - vKnots[0]);
-                        if (vex > vmin && vex < vmax)
-                        {
-                            p2 = fixedu.PointAtParam(vex);
-                            v = vex;
-                            foundV = true;
-                            break;
-                        }
-                    }
-                }
-                //if ((!foundU || !foundV) && exv.Length > 0 && exu.Length > 0)
-                //{
-                //    // das ist der Fall, dass man beim Iterieren aus dem Patch hinausläuft
-                //    // noch kein solcher Fall bekannt
-                //    // man müsste entscheiden, ob man solche Werte auch zulässt und die Bedingung müsste
-                //    // nicht lauten ob innerhalb von min und max sondern die nächstgelegene Lösung
-                //}
-                if (!foundU || !foundV) return false; // kein passendes Extremum gefunden
-                double d = p1 | p2;
-                if (d >= mindist) return false; // konvergiert nicht
-                mindist = d;
-            }
+            //GeoVector n1 = GetNormal(new GeoPoint2D(umin, vmin));
+            //GeoVector n2 = GetNormal(new GeoPoint2D(umin, vmax));
+            //GeoVector n3 = GetNormal(new GeoPoint2D(umax, vmin));
+            //GeoVector n4 = GetNormal(new GeoPoint2D(umax, vmax));
+            //bool ok = false;
+            //GeoVector v1 = Geometry.ReBaseX(dir, n2, n3, n4);
+            //if (v1.x > 0 && v1.y > 0 && v1.z > 0 && v1.x < 1 && v1.y < 1 && v1.z < 1) ok = true;
+            //else
+            //{
+            //    GeoVector v2 = Geometry.ReBaseX(dir, n1, n3, n4);
+            //    if (v2.x > 0 && v2.y > 0 && v2.z > 0 && v2.x < 1 && v2.y < 1 && v2.z < 1) ok = true;
+            //    else
+            //    {
+            //        GeoVector v3 = Geometry.ReBaseX(dir, n1, n2, n4);
+            //        if (v3.x > 0 && v3.y > 0 && v3.z > 0 && v3.x < 1 && v3.y < 1 && v3.z < 1) ok = true;
+            //        else
+            //        {
+            //            GeoVector v4 = Geometry.ReBaseX(dir, n1, n2, n3);
+            //            if (v4.x > 0 && v4.y > 0 && v4.z > 0 && v4.x < 1 && v4.y < 1 && v4.z < 1) ok = true;
+            //        }
+            //    }
+            //}
+            //// we can exclude those surface patches, where the required dir, where we try to find a maximum or minimum, is not in the quadrant
+            //// of three of the four normal vectors. At least well behaving surfaces will follow this rule
+            //if (!ok)
+            //{
+            //    extr = GeoPoint2D.Invalid;
+            //    return false;
+            //}
             extr = new GeoPoint2D(u, v);
-            GeoPoint dbg = PointAt(extr);
-            return true;
+            double error = GaussNewtonMinimizer.SurfaceExtrema(this, new BoundingRect(umin, vmin, umax, vmax), dir, ref extr);
+            return error < 1e-6;
+
+//            extr = GeoPoint2D.Origin;
+//            GeoPoint p1 = PointAt(new GeoPoint2D(u, v));
+//            GeoPoint p2 = p1;
+//            double mindist = double.MaxValue;
+//            int dbgn = 0;
+//            while (mindist > Precision.eps)
+//            {
+//                if (dbgn > 1000) return false; // muss noch genauer untersucht werden
+//                ++dbgn;
+//                bool foundU = false;
+//                bool foundV = false;
+//                BSpline fixedu = FixedU(u);
+//                BSpline fixedv = FixedV(v);
+//                if (!fixedv.IsSingular)
+//                {
+//                    double[] exu = (fixedv as ICurve).GetExtrema(dir);
+//                    for (int k = 0; k < exu.Length; ++k)
+//                    {
+//                        double uex = uKnots[0] + exu[k] * (uKnots[uKnots.Length - 1] - uKnots[0]);
+//                        if (uex > umin && uex < umax)
+//                        {
+//                            p1 = fixedv.PointAtParam(uex);
+//                            u = uex;
+//                            foundU = true;
+//                            break;
+//                        }
+//                    }
+//                }
+//                if (!fixedu.IsSingular)
+//                {
+//                    double[] exv = (fixedu as ICurve).GetExtrema(dir);
+//                    for (int k = 0; k < exv.Length; ++k)
+//                    {
+//                        double vex = vKnots[0] + exv[k] * (vKnots[vKnots.Length - 1] - vKnots[0]);
+//                        if (vex > vmin && vex < vmax)
+//                        {
+//                            p2 = fixedu.PointAtParam(vex);
+//                            v = vex;
+//                            foundV = true;
+//                            break;
+//                        }
+//                    }
+//                }
+//                //if ((!foundU || !foundV) && exv.Length > 0 && exu.Length > 0)
+//                //{
+//                //    // das ist der Fall, dass man beim Iterieren aus dem Patch hinausläuft
+//                //    // noch kein solcher Fall bekannt
+//                //    // man müsste entscheiden, ob man solche Werte auch zulässt und die Bedingung müsste
+//                //    // nicht lauten ob innerhalb von min und max sondern die nächstgelegene Lösung
+//                //}
+//                if (!foundU || !foundV) return false; // kein passendes Extremum gefunden
+//                double d = p1 | p2;
+//                if (d >= mindist) return false; // konvergiert nicht
+//                mindist = d;
+//            }
+//            extr = new GeoPoint2D(u, v);
+//#if DEBUG
+//            double ddd = extr | uvse;
+//            if (ddd > 1e-6) { }
+//#endif
+//            GeoPoint dbg = PointAt(extr);
+//            return true;
         }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.SameGeometry (BoundingRect, ISurface, BoundingRect, double, out ModOp2D)"/>
