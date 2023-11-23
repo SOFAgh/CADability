@@ -946,7 +946,7 @@ namespace CADability
                 //displayLists = null;
                 //System.GC.Collect();
                 //System.GC.WaitForPendingFinalizers();
-                //ipaintTo3D.Dispose(); 
+                ipaintTo3D.Dispose(); 
 
                 PaintToBitmap.MakeTransparent(Color.White);
                 //e.Graphics.DrawImageUnscaled(PaintToBitmap, clipRectangle);
@@ -983,6 +983,7 @@ namespace CADability
             {
                 if (go.Layer == null || visibleLayers.ContainsKey(go.Layer))
                 {
+                    go.PrePaintTo3D(iPaintTo3D);
                     go.PaintTo3D(iPaintTo3D); // iPaintTo3D enthält die Information, dass keine Listen verwendet werden dürfen
                 }
             }

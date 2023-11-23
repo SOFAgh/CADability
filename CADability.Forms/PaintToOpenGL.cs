@@ -68,6 +68,7 @@ namespace CADability.Forms
         OpenGlList currentList;
         IntPtr deviceContext = IntPtr.Zero, renderContext = IntPtr.Zero;
         IntPtr controlHandle = IntPtr.Zero;
+        Graphics graphics = null;
         byte accumBits = 0, colorBits = 32, depthBits = 16, stencilBits = 0;
         static IntPtr MainRenderContext = IntPtr.Zero;
         static IntPtr LastRenderContext = IntPtr.Zero;
@@ -235,6 +236,12 @@ namespace CADability.Forms
         {
             clientwidth = sz.Width;
             clientheight = sz.Height;
+        }
+        public void Init(Bitmap image)
+        {
+            graphics = System.Drawing.Graphics.FromImage(image);
+            IntPtr dc = graphics.GetHdc();
+            Init(dc, image.Width, image.Height, true);
         }
         public void Init(IntPtr deviceContext, int width, int height, bool toBitmap)
         {
@@ -700,6 +707,12 @@ namespace CADability.Forms
         }
         void IPaintTo3D.Dispose()
         {
+            if (graphics != null)
+            {
+                graphics.ReleaseHdc(deviceContext);
+                graphics.Dispose();
+                graphics = null;
+            }
             if (renderContext != IntPtr.Zero && renderContext != MainRenderContext)
             {
                 ContextsToDelete.Add(renderContext);
