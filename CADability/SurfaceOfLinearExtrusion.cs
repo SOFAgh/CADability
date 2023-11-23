@@ -75,8 +75,9 @@ namespace CADability.GeoObject
         }
         public override ISurface GetOffsetSurface(double offset)
         {
-            if (basisCurve.GetPlanarState() != PlanarState.NonPlanar)
-            {
+            if (basisCurve.GetPlanarState() != PlanarState.NonPlanar && !(basisCurve is BSpline))
+            {   // the offset curves of BSplines are more expensive than the OffsetSurface,
+                // this is why we exclude BSplines here
                 Plane pln = Plane.XYPlane;
                 if (basisCurve.GetPlanarState() == PlanarState.Planar)
                 {
@@ -86,9 +87,13 @@ namespace CADability.GeoObject
                 {
                     pln = new Plane(basisCurve.StartPoint, basisCurve.StartDirection, basisCurve.StartDirection ^ direction);
                 }
-                ICurve2D c2d = basisCurve.GetProjectedCurve(pln);
-                ICurve2D c2dp = c2d.Parallel(offset, false, Precision.eps, Math.PI);
-                if (c2dp != null) return new SurfaceOfLinearExtrusion(c2dp.MakeGeoObject(pln) as ICurve, direction, curveStartParameter, curveEndParameter);
+                if (Precision.SameDirection(direction, pln.Normal, false))
+                {   // this aproach is only valid, when the extrusion direction is normal to the plane
+                    if (direction * pln.Normal < 0) pln.Reverse();
+                    ICurve2D c2d = basisCurve.GetProjectedCurve(pln);
+                    ICurve2D c2dp = c2d.Parallel(offset, false, Precision.eps, Math.PI);
+                    if (c2dp != null) return new SurfaceOfLinearExtrusion(c2dp.MakeGeoObject(pln) as ICurve, direction, curveStartParameter, curveEndParameter);
+                }
             }
             return new OffsetSurface(this, offset);
         }

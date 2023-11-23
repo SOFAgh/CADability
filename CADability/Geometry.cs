@@ -3373,6 +3373,16 @@ namespace CADability
             //}
             //else throw new GeometryException("no solution: linear dependent coordinate system");
         }
+        public static GeoVector ReBaseX(GeoVector toRebase, GeoVector sysDirx, GeoVector sysDiry, GeoVector sysDirz)
+        {
+            Matrix m = DenseMatrix.OfColumnArrays(sysDirx, sysDiry, sysDirz);
+            Vector<double> s = m.Solve(new DenseVector(toRebase));
+            if (s != null)
+            {
+                return new GeoVector(s[0], s[1], s[2]);
+            }
+            else throw new GeometryException("no solution: linear dependent coordinate system");
+        }
         public static GeoVector2D Dir2D(GeoVector dirx, GeoVector diry, GeoVector toConvert)
         {
             ModOp fromUnitPlane = new ModOp(dirx, diry, dirx ^ diry, GeoPoint.Origin);
