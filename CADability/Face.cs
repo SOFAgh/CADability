@@ -6014,7 +6014,7 @@ namespace CADability.GeoObject
                         break;
                     nonSeamEdgeIndex++;
                 }
-                double tol = Precision.eps;
+                double tol = Precision.eps; //0.000005;
                 int remainingEdges = outline.Length;
                 int currEdgeIndex = nonSeamEdgeIndex;
                 if (nonSeamEdgeIndex >= outline.Length)
@@ -6122,7 +6122,7 @@ namespace CADability.GeoObject
                             {
                                 ok = false;
 #if DEBUG
-                                throw new Exception("Face outline not connected");
+                                throw new Exception($"Face outline not connected fc={fc1}");
 #endif
                             }
                         }
@@ -7019,11 +7019,11 @@ namespace CADability.GeoObject
             if (GetFaceCounter(out int fc))
             {
                 System.Diagnostics.Debug.WriteLine($"Face.PaintFaceTo3D fc={fc}  {surface.GetType()}");
-                if (fc == 164 || fc == 165 || fc == 168 || fc == 596)
-                {
-                    System.Diagnostics.Debug.WriteLine("  face skipped");
-                    return;
-                }
+                //if (fc == 164 || fc == 165 || fc == 168 || fc == 596)
+                //{
+                //    System.Diagnostics.Debug.WriteLine("  face skipped");
+                //    return;
+                //}
             }
 #endif
 

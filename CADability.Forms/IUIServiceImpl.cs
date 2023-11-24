@@ -11,13 +11,13 @@ using System.Windows.Forms;
 
 namespace CADability.Forms
 {
-	public class IUIServiceImpl : IUIService
-	{
+    public class IUIServiceImpl : IUIService
+    {
         ProgressForm progressForm;
 
 
         public void Setup(Form mainForm)
-		{
+        {
             progressForm = new ProgressForm
             {
                 TopLevel = true,
@@ -143,10 +143,8 @@ namespace CADability.Forms
         }
         IPaintTo3D IUIService.CreatePaintInterface(Bitmap paintToBitmap, double precision)
         {
-            System.Drawing.Graphics gr = System.Drawing.Graphics.FromImage(paintToBitmap);
             PaintToOpenGL paintTo3D = new PaintToOpenGL(precision);
-            IntPtr dc = gr.GetHdc();
-            paintTo3D.Init(dc, paintToBitmap.Width, paintToBitmap.Height, true);
+            paintTo3D.Init(paintToBitmap);
             return paintTo3D;
         }
         Substitutes.DialogResult IUIService.ShowPageSetupDlg(ref PrintDocument printDocument, PageSettings pageSettings, out int width, out int height, out bool landscape)
