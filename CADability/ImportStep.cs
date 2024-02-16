@@ -410,8 +410,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         private Dictionary<int, string> importProblems;
         private List<Item> notImportedFaces;
         private Dictionary<string, ColorDef> definedColors;
-        private Dictionary<string, IGeoObject> namedGeoObjects = new Dictionary<string, IGeoObject>();
-        class Tokenizer : IDisposable
+		private System.Collections.Concurrent.ConcurrentDictionary<string, IGeoObject> namedGeoObjects = new System.Collections.Concurrent.ConcurrentDictionary<string, IGeoObject>();
+		class Tokenizer : IDisposable
         {
             StreamReader sr;
             string currentline;
