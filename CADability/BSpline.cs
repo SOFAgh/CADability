@@ -544,20 +544,23 @@ namespace CADability.GeoObject
             public Changing(BSpline bSpline, bool keepNurbs)
                 : base(bSpline, "CopyGeometry", bSpline.Clone())
             {
-                bSpline.nurbsHelper = false;
-                bSpline.plane = null;
-                bSpline.interpol = null;
-                bSpline.interdir = null;
-                bSpline.interparam = null;
-                bSpline.maxInterpolError = 0.0;
-                if (!keepNurbs)
+                lock (bSpline)
                 {
-                    bSpline.nubs3d = null;
-                    bSpline.nurbs3d = null;
-                    bSpline.nubs2d = null;
-                    bSpline.nurbs2d = null;
+                    bSpline.nurbsHelper = false;
+                    bSpline.plane = null;
+                    bSpline.interpol = null;
+                    bSpline.interdir = null;
+                    bSpline.interparam = null;
+                    bSpline.maxInterpolError = 0.0;
+                    if (!keepNurbs)
+                    {
+                        bSpline.nubs3d = null;
+                        bSpline.nurbs3d = null;
+                        bSpline.nubs2d = null;
+                        bSpline.nurbs2d = null;
+                    }
+                    this.bSpline = bSpline;
                 }
-                this.bSpline = bSpline;
             }
             public Changing(BSpline bSpline)
                 : base(bSpline, "CopyGeometry", bSpline.Clone())
@@ -2034,35 +2037,39 @@ namespace CADability.GeoObject
         {
             if (param == knots[0]) return poles[0];
             if (param == knots[knots.Length - 1]) return poles[poles.Length - 1];
-            if (!nurbsHelper) MakeNurbsHelper();
-            if (plane.HasValue)
+            lock (this)
             {
-                if (nubs2d != null)
+                if (!nurbsHelper) MakeNurbsHelper();
+                if (plane.HasValue)
                 {
-                    return plane.Value.ToGlobal(nubs2d.CurvePoint(param));
+                    if (nubs2d != null)
+                    {
+                        return plane.Value.ToGlobal(nubs2d.CurvePoint(param));
+                    }
+                    else
+                    {
+                        return plane.Value.ToGlobal((GeoPoint2D)nurbs2d.CurvePoint(param));
+                    }
                 }
                 else
                 {
-                    return plane.Value.ToGlobal((GeoPoint2D)nurbs2d.CurvePoint(param));
-                }
-            }
-            else
-            {
-                if (nubs3d != null)
-                {
-                    return nubs3d.CurvePoint(param);
-                }
-                else
-                {
-                    return nurbs3d.CurvePoint(param);
+                    if (nubs3d != null)
+                    {
+                        return nubs3d.CurvePoint(param);
+                    }
+                    else
+                    {
+                        return nurbs3d.CurvePoint(param);
+                    }
                 }
             }
         }
         private void PointDirAtParam(double param, out GeoPoint point, out GeoVector dir)
         {
-            if (!nurbsHelper) MakeNurbsHelper();
             lock (this)
             {
+                if (!nurbsHelper) MakeNurbsHelper();
+
                 if (plane.HasValue && (nubs2d != null | nurbs2d != null))
                 {
                     if (nubs2d != null)
