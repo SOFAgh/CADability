@@ -2890,10 +2890,7 @@ namespace CADability.GeoObject
             else if (nurbs3d != null) clone.nurbs3d = nurbs3d.Trim(spar, epar);
             else if (nubs2d != null) clone.nubs2d = nubs2d.Trim(spar, epar);
             else if (nurbs2d != null) clone.nurbs2d = nurbs2d.Trim(spar, epar);
-            using (new Changing(this, true))
-            {
-                clone.FromNurbs(getPlane());
-            }
+            clone.FromNurbs(getPlane());
             if (reverse) (clone as ICurve).Reverse();
             return clone;
         }
