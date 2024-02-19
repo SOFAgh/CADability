@@ -410,7 +410,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         private Dictionary<int, string> importProblems;
         private List<Item> notImportedFaces;
         private Dictionary<string, ColorDef> definedColors;
-        private Dictionary<string, IGeoObject> namedGeoObjects = new Dictionary<string, IGeoObject>();
+        private System.Collections.Concurrent.ConcurrentDictionary<string, IGeoObject> namedGeoObjects = new System.Collections.Concurrent.ConcurrentDictionary<string, IGeoObject>();
         class Tokenizer : IDisposable
         {
             StreamReader sr;
@@ -4370,123 +4370,123 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                         {
                             string nm = item.SubString(0);
                             object oo = CreateEntity(item.SubItem(1));
-                            if (oo is ICurve basisCurve)
-                            {
-                                basisCurve = basisCurve.Clone();
-                                double startParameter = double.MinValue;
-                                double endParameter = double.MinValue;
-                                GeoPoint startPoint = GeoPoint.Invalid;
-                                GeoPoint endPoint = GeoPoint.Invalid;
-                                if (item.SubItem(2).type == Item.ItemType.list)
-                                {
-                                    List<Item> lst = (item.SubItem(2).val as List<Item>);
-                                    for (int i = 0; i < lst.Count; i++)
-                                    {
-                                        object o = CreateEntity(lst[i]);
-                                        if (o is List<Item>) o = (o as List<Item>)[0].val;
-                                        if (o is double) startParameter = (double)o;
-                                        if (o is GeoPoint) startPoint = (GeoPoint)o;
-                                    }
-                                }
-                                if (item.SubItem(3).type == Item.ItemType.list)
-                                {
-                                    List<Item> lst = (item.SubItem(3).val as List<Item>);
-                                    for (int i = 0; i < lst.Count; i++)
-                                    {
-                                        object o = CreateEntity(lst[i]);
-                                        if (o is List<Item>) o = (o as List<Item>)[0].val;
-                                        if (o is double) endParameter = (double)o;
-                                        if (o is GeoPoint) endPoint = (GeoPoint)o;
-                                    }
-                                }
-                                bool sense = item.SubBool(4);
-                                string masterRepresentation = item.SubString(5);
-                                if (startParameter != double.MinValue && masterRepresentation != "CARTESIAN")
-                                {
-                                    // trimmed curve defined by start- and endParameter
-                                    if (basisCurve is Ellipse)
-                                    {
-                                        if (context != null)
-                                        {
-                                            startParameter = context.toRadian * startParameter;
-                                            endParameter = context.toRadian * endParameter;
-                                        }
-                                    }
-                                    if (startParameter != endParameter) basisCurve.Trim(basisCurve.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
-                                    if (!sense) basisCurve.Reverse();
-                                    item.val = basisCurve;
-                                }
-                                else if (startPoint.IsValid && endPoint.IsValid)
-                                {
-                                    // trimmed curve defined by start- and endpoint
-                                    if (!sense) basisCurve.Reverse();
-                                    double startPos = basisCurve.PositionOf(startPoint);
-                                    double endPos = basisCurve.PositionOf(endPoint);
-                                    basisCurve.Trim(startPos, endPos);
-                                    item.val = basisCurve;
-                                }
-                            }
-                            else if (oo is ICurve2D basisCurve2d)
-                            {
-                                basisCurve2d = basisCurve2d.Clone();
-                                double startParameter = double.MinValue;
-                                double endParameter = double.MinValue;
-                                GeoPoint2D startPoint = GeoPoint2D.Invalid;
-                                GeoPoint2D endPoint = GeoPoint2D.Invalid;
-                                if (item.SubItem(2).type == Item.ItemType.list)
-                                {
-                                    List<Item> lst = (item.SubItem(2).val as List<Item>);
-                                    for (int i = 0; i < lst.Count; i++)
-                                    {
-                                        object o = CreateEntity(lst[i]);
-                                        if (o is List<Item>) o = (o as List<Item>)[0].val;
-                                        if (o is double) startParameter = (double)o;
-                                        if (o is GeoPoint2D) startPoint = (GeoPoint2D)o;
-                                    }
-                                }
-                                if (item.SubItem(3).type == Item.ItemType.list)
-                                {
-                                    List<Item> lst = (item.SubItem(3).val as List<Item>);
-                                    for (int i = 0; i < lst.Count; i++)
-                                    {
-                                        object o = CreateEntity(lst[i]);
-                                        if (o is List<Item>) o = (o as List<Item>)[0].val;
-                                        if (o is double) endParameter = (double)o;
-                                        if (o is GeoPoint2D) endPoint = (GeoPoint2D)o;
-                                    }
-                                }
-                                bool sense = item.SubBool(4);
-                                string masterRepresentation = item.SubString(5);
-                                if (startParameter != double.MinValue && masterRepresentation != "CARTESIAN")
-                                {
-                                    // trimmed curve defined by start- and endParameter
-                                    if (basisCurve2d is Ellipse2D elli2d)
-                                    {
-                                        if (context != null)
-                                        {
-                                            startParameter = context.toRadian * startParameter;
-                                            endParameter = context.toRadian * endParameter;
-                                        }
-                                        elli2d.Trim(startParameter / (2 * Math.PI), endParameter / (2 * Math.PI));
-                                    }
-                                    else
-                                    {   // are all other curves from 0 to 1 ??? there is no "ParameterToPosition" for 2d curves
-                                        // basisCurve2d.Trim(basisCurve2d.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
-                                        basisCurve2d.Trim(startParameter, endParameter);
-                                    }
-                                    if (!sense) basisCurve2d.Reverse();
-                                    item.val = basisCurve2d;
-                                }
-                                else if (startPoint.IsValid && endPoint.IsValid)
-                                {
-                                    // trimmed curve defined by start- and endpoint
-                                    double startPos = basisCurve2d.PositionOf(startPoint);
-                                    double endPos = basisCurve2d.PositionOf(endPoint);
-                                    basisCurve2d.Trim(startPos, endPos);
-                                    if (!sense) basisCurve2d.Reverse();
-                                    item.val = basisCurve2d;
-                                }
-                            }
+							if (oo is ICurve basisCurve)
+							{
+								basisCurve = basisCurve.Clone();
+								double startParameter = double.MinValue;
+								double endParameter = double.MinValue;
+								GeoPoint startPoint = GeoPoint.Invalid;
+								GeoPoint endPoint = GeoPoint.Invalid;
+								if (item.SubItem(2).type == Item.ItemType.list)
+								{
+									List<Item> lst = (item.SubItem(2).val as List<Item>);
+									for (int i = 0; i < lst.Count; i++)
+									{
+										object o = CreateEntity(lst[i]);
+										if (o is List<Item>) o = (o as List<Item>)[0].val;
+										if (o is double) startParameter = (double)o;
+										if (o is GeoPoint) startPoint = (GeoPoint)o;
+									}
+								}
+								if (item.SubItem(3).type == Item.ItemType.list)
+								{
+									List<Item> lst = (item.SubItem(3).val as List<Item>);
+									for (int i = 0; i < lst.Count; i++)
+									{
+										object o = CreateEntity(lst[i]);
+										if (o is List<Item>) o = (o as List<Item>)[0].val;
+										if (o is double) endParameter = (double)o;
+										if (o is GeoPoint) endPoint = (GeoPoint)o;
+									}
+								}
+								bool sense = item.SubBool(4);
+								string masterRepresentation = item.SubString(5);
+								if (startParameter != double.MinValue && masterRepresentation != "CARTESIAN")
+								{
+									// trimmed curve defined by start- and endParameter
+									if (basisCurve is Ellipse)
+									{
+										if (context != null)
+										{
+											startParameter = context.toRadian * startParameter;
+											endParameter = context.toRadian * endParameter;
+										}
+									}
+									if (!sense) basisCurve.Reverse();
+									if (startParameter != endParameter) basisCurve.Trim(basisCurve.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
+									item.val = basisCurve;
+								}
+								else if (startPoint.IsValid && endPoint.IsValid)
+								{
+									// trimmed curve defined by start- and endpoint
+									if (!sense) basisCurve.Reverse();
+									double startPos = basisCurve.PositionOf(startPoint);
+									double endPos = basisCurve.PositionOf(endPoint);
+									basisCurve.Trim(startPos, endPos);
+									item.val = basisCurve;
+								}
+							}
+							else if (oo is ICurve2D basisCurve2d)
+							{
+								basisCurve2d = basisCurve2d.Clone();
+								double startParameter = double.MinValue;
+								double endParameter = double.MinValue;
+								GeoPoint2D startPoint = GeoPoint2D.Invalid;
+								GeoPoint2D endPoint = GeoPoint2D.Invalid;
+								if (item.SubItem(2).type == Item.ItemType.list)
+								{
+									List<Item> lst = (item.SubItem(2).val as List<Item>);
+									for (int i = 0; i < lst.Count; i++)
+									{
+										object o = CreateEntity(lst[i]);
+										if (o is List<Item>) o = (o as List<Item>)[0].val;
+										if (o is double) startParameter = (double)o;
+										if (o is GeoPoint2D) startPoint = (GeoPoint2D)o;
+									}
+								}
+								if (item.SubItem(3).type == Item.ItemType.list)
+								{
+									List<Item> lst = (item.SubItem(3).val as List<Item>);
+									for (int i = 0; i < lst.Count; i++)
+									{
+										object o = CreateEntity(lst[i]);
+										if (o is List<Item>) o = (o as List<Item>)[0].val;
+										if (o is double) endParameter = (double)o;
+										if (o is GeoPoint2D) endPoint = (GeoPoint2D)o;
+									}
+								}
+								bool sense = item.SubBool(4);
+								string masterRepresentation = item.SubString(5);
+								if (startParameter != double.MinValue && masterRepresentation != "CARTESIAN")
+								{
+									// trimmed curve defined by start- and endParameter
+									if (basisCurve2d is Ellipse2D elli2d)
+									{
+										if (context != null)
+										{
+											startParameter = context.toRadian * startParameter;
+											endParameter = context.toRadian * endParameter;
+										}
+										elli2d.Trim(startParameter / (2 * Math.PI), endParameter / (2 * Math.PI));
+									}
+									else
+									{   // are all other curves from 0 to 1 ??? there is no "ParameterToPosition" for 2d curves
+										// basisCurve2d.Trim(basisCurve2d.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
+										basisCurve2d.Trim(startParameter, endParameter);
+									}
+									if (!sense) basisCurve2d.Reverse();
+									item.val = basisCurve2d;
+								}
+								else if (startPoint.IsValid && endPoint.IsValid)
+								{
+									// trimmed curve defined by start- and endpoint
+									double startPos = basisCurve2d.PositionOf(startPoint);
+									double endPos = basisCurve2d.PositionOf(endPoint);
+									basisCurve2d.Trim(startPos, endPos);
+									if (!sense) basisCurve2d.Reverse();
+									item.val = basisCurve2d;
+								}
+							}
                         }
                         break;
                     case Item.ItemType.mappedItem:
