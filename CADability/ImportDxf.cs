@@ -383,17 +383,20 @@ namespace CADability.DXF
             double end = Angle.Deg(arc.EndAngle);
             double sweep = end - start;
             if (sweep < 0.0) sweep += Math.PI * 2.0;
-            // if (sweep < Precision.epsa) sweep = Math.PI * 2.0;
+            //if (sweep < Precision.epsa) sweep = Math.PI * 2.0;
             if (start == end) sweep = 0.0;
             if (start == Math.PI * 2.0 && end == 0.0) sweep = 0.0; // see in modena.dxf
             // Arcs are always counterclockwise, but maybe the normal is (0,0,-1) in 2D drawings.
             e.SetArcPlaneCenterRadiusAngles(plane, GeoPoint(arc.Center), arc.Radius, start, sweep);
-            if (sweep != 0.0 && Math.Abs(sweep / arc.Radius) < 1e-7)
-            {   // is there a good example for making a line instead of an arc?
-                //Line l = Line.Construct();
-                //l.SetTwoPoints(GeoPoint(arc.StartPoint), GeoPoint(arc.EndPoint));
-                //return l;
+
+            //If an arc is a full circle don't import as ellipse as this will be discarded later by Ellipse.HasValidData() 
+            if (e.IsCircle && sweep == 0.0d && Precision.IsEqual(e.StartPoint, e.EndPoint))
+            {
+                GeoObject.Ellipse circle = GeoObject.Ellipse.Construct();
+                circle.SetCirclePlaneCenterRadius(plane, GeoPoint(arc.Center), arc.Radius);
+                e = circle;
             }
+
             double th = arc.Thickness;
             if (th != 0.0 && !nor.IsNullVector())
             {
