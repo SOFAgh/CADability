@@ -435,8 +435,12 @@ namespace CADability.Attribute
                 List<Type> allTypes = new List<Type>();
                 for (int i = 0; i < names.Count; i++)
                 {
-                    Assembly loaded = Assembly.Load(names[i]);
-                    allTypes.AddRange(loaded.GetTypes());
+                    try //To avoid empty objects filter if assembly that are not related to CADability are scanned and generate exceptions.
+                    {
+                        Assembly loaded = Assembly.Load(names[i]);
+                        allTypes.AddRange(loaded.GetTypes());
+                    }
+                    catch { }
                 }
                 List<Type> allGeoObjectTypes = new List<Type>();
                 for (int i = 0; i < allTypes.Count; i++)
