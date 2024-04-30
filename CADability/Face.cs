@@ -4040,11 +4040,18 @@ namespace CADability.GeoObject
             {
                 if (area == null)
                 {   // everything should be correct oriented and thus it is straight forward to construct the SimpleShape
-
-                    ICurve2D[] clonedOutline = new ICurve2D[outline.Length];
-                    for (int i = 0; i < outline.Length; i++)
+                    ICurve2D[] clonedOutline;
+                    if (PCamTriangulationFix)
                     {
-                        clonedOutline[i] = outline[i].Curve2D(this).Clone();
+                        clonedOutline = GetEdges2D(MakeEdgesMap(outline)).ToArray();
+                    }
+                    else
+                    {
+                        clonedOutline = new ICurve2D[outline.Length];
+                        for (int i = 0; i < outline.Length; i++)
+                        {
+                            clonedOutline[i] = outline[i].Curve2D(this).Clone();
+                        }
                     }
                     Border soutline = new Border(out bool reversed, clonedOutline);
                     bool ok = !reversed;
@@ -4066,6 +4073,7 @@ namespace CADability.GeoObject
                 }
                 if (area == null)
                 {
+                    //This code should be removed. In which situations is it still used?
                     // periodic ist hier bereits erledigt (von wem???)
                     List<ICurve2D> ls = new List<ICurve2D>();
                     ICurve2D[] segments = new ICurve2D[outline.Length];
@@ -5936,6 +5944,147 @@ namespace CADability.GeoObject
         }
 
         private OctTree<TraingleOctTree> triangleOctTree;
+        private class EdgeMap
+        {
+            public Edge Edge { get; set; }
+            public ICurve2D Edge2D { get; set; }
+        }
+        private List<ICurve2D> GetEdges2D(List<EdgeMap> edgeMap)
+        {
+            List<ICurve2D> edges2D = new List<ICurve2D>();
+
+            foreach(EdgeMap em in edgeMap)
+            {
+                edges2D.Add(em.Edge2D.Clone());
+            }
+
+            return edges2D;
+        }
+        private List<EdgeMap> MakeEdgesMap(Edge[] edges)
+        {
+            List<EdgeMap> edgesMap = new List<EdgeMap>();
+            List<ICurve2D> edges2D = new List<ICurve2D>(); //Solo per avere lista curve 2D in debug.
+#if DEBUG
+            if (GetFaceCounter(out int fc1) && fc1 == 2644)
+            {
+                ;
+            }
+#endif
+            //Find non seam edge.
+            int nonSeamEdgeIndex = 0;
+            bool nonSeamEdgeFound = false;
+            foreach (Edge e in edges)
+            {
+                if (e.PrimaryFace != e.SecondaryFace)
+                {
+                    nonSeamEdgeFound = true;
+                    break;
+                }
+                nonSeamEdgeIndex++;
+            }
+            //Make list of 2D edges.
+            //Handle seam edges and different period.
+            double tol = 0.00006; //For file SZ6061196J07_P029_ASS_Test_Automation.stp    //0.0008 For file 06_PN_4648_S_1185_1_I15_A13_AS_P100-1.stp  //0.000005; //Not Precision.eps for file 83855_elp11b.stp
+            int remainingEdges = edges.Length;
+            int currEdgeIndex = nonSeamEdgeIndex;
+            if (nonSeamEdgeIndex >= edges.Length)
+                currEdgeIndex = 0;
+            ICurve2D prevCurve = null;
+            while (remainingEdges > 0)
+            {
+                Edge currEdge = edges[currEdgeIndex];
+                ICurve2D edge2D = null;
+                if (currEdge.PrimaryFace != currEdge.SecondaryFace)
+                {
+                    edge2D = currEdge.Curve2D(this);
+                }
+                else
+                {
+                    if (prevCurve == null && !nonSeamEdgeFound)
+                    {
+                        //Needed for full toroidal as single face.
+                        edge2D = currEdge.Curve2D(this);
+                    }
+                    else
+                    {
+                        double d1 = prevCurve.EndPoint | currEdge.PrimaryCurve2D.StartPoint;
+                        double d2 = prevCurve.EndPoint | currEdge.SecondaryCurve2D.StartPoint;
+                        if (d1 < tol)
+                            edge2D = currEdge.PrimaryCurve2D;
+                        else if (d2 < tol)
+                            edge2D = currEdge.SecondaryCurve2D;
+                        else
+                        {
+#if DEBUG
+                            //throw new Exception($"Face outline not connected due to wrong period? fc={fc1}"); //Exception in debug because I want to notice this situation. I don't remember the file that made me implement this!
+#endif
+                            //Fix period.
+                            ICurve2D currEdgePrimaryCurve = currEdge.PrimaryCurve2D.Clone();
+                            ICurve2D currEdgeSecondaryCurve = currEdge.SecondaryCurve2D.Clone();
+                            FixPeriod(prevCurve, currEdgePrimaryCurve);
+                            FixPeriod(prevCurve, currEdgeSecondaryCurve);
+                            double d21 = prevCurve.EndPoint | currEdgePrimaryCurve.StartPoint;
+                            double d22 = prevCurve.EndPoint | currEdgeSecondaryCurve.StartPoint;
+                            if (d21 < tol)
+                                edge2D = currEdge.PrimaryCurve2D;
+                            else if (d22 < tol)
+                                edge2D = currEdge.SecondaryCurve2D;
+                            else if (currEdge.Curve3D != null) //Se curva 3D degenerata in un punto e la 2D non e' collegata a niente la ignoro. File 04_PN1004_S1165_2_I08_AS_P159_STD.cdb del T6260
+                            {
+#if DEBUG
+                                throw new Exception($"Face outline not connected fc={fc1}");
+#endif
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (edge2D != null)
+                {
+                    edgesMap.Add(new EdgeMap() { Edge = currEdge, Edge2D = edge2D });
+                    edges2D.Add(edge2D);
+                    prevCurve = edge2D;
+                }
+                remainingEdges--;
+                currEdgeIndex++;
+                if (currEdgeIndex >= edges.Length) currEdgeIndex = 0;
+            }
+
+            return edgesMap;
+        }
+        private void FixPeriod(ICurve2D prevCurve, ICurve2D nextCurve)
+        {
+            double uPeriod = surface.UPeriod;
+            double vPeriod = surface.VPeriod;
+            if (surface.UPeriod > 0)
+            {
+                double du1 = prevCurve.EndPoint.x - nextCurve.StartPoint.x;
+                while (du1 >= uPeriod / 2)
+                {
+                    nextCurve.Move(uPeriod / 2, 0.0);
+                    du1 = prevCurve.EndPoint.x - nextCurve.StartPoint.x;
+                }
+                while (du1 <= -uPeriod / 2)
+                {
+                    nextCurve.Move(-uPeriod / 2, 0.0);
+                    du1 = prevCurve.EndPoint.x - nextCurve.StartPoint.x;
+                }
+            }
+            if (surface.VPeriod > 0)
+            {
+                double dv1 = prevCurve.EndPoint.y - nextCurve.StartPoint.y;
+                while (dv1 >= vPeriod / 2)
+                {
+                    nextCurve.Move(0.0, vPeriod / 2);
+                    dv1 = prevCurve.EndPoint.y - nextCurve.StartPoint.y;
+                }
+                while (dv1 <= -vPeriod / 2)
+                {
+                    nextCurve.Move(0.0, -vPeriod / 2);
+                    dv1 = prevCurve.EndPoint.y - nextCurve.StartPoint.y;
+                }
+            }
+        }
         private void Triangulate(double precision)
         {
             SimpleShape ss = Area; // damit es sicher bestimmt ist
@@ -6003,157 +6152,29 @@ namespace CADability.GeoObject
 
             if (PCamTriangulationFix)
             {
-                if (GetFaceCounter(out int fc1) && fc1 == 167)
+                List<EdgeMap> edgesMap = MakeEdgesMap(outline);
+                foreach(EdgeMap currEdgeMap in edgesMap)
                 {
-                    ;
-                }
-                int nonSeamEdgeIndex = 0;
-                foreach (Edge e in outline)
-                {
-                    if (e.PrimaryFace != e.SecondaryFace)
-                        break;
-                    nonSeamEdgeIndex++;
-                }
-                double tol = Precision.eps; //0.000005;
-                int remainingEdges = outline.Length;
-                int currEdgeIndex = nonSeamEdgeIndex;
-                if (nonSeamEdgeIndex >= outline.Length)
-                    currEdgeIndex = 0;
-                List<ICurve2D> usedCurves = new List<ICurve2D>();
-                while (remainingEdges > 0)
-                {
-                    bool ok = true;
-                    Edge currEdge = outline[currEdgeIndex];
-                    //ICurve2D edge2D = currEdge.Curve2D(this, usedCurves.ToArray());
-                    //usedCurves.Add(edge2D);
-                    ICurve2D edge2D = null;
-                    if (currEdge.PrimaryFace != currEdge.SecondaryFace)
-                    {
-                        edge2D = currEdge.Curve2D(this);
+                    Edge currEdge = currEdgeMap.Edge;
+                    ICurve2D edge2D = currEdgeMap.Edge2D;
+                    //Triangulate
+                    if (currEdge.Curve3D != null)
+                    {   // singuläre Kanten nicht verwenden. Damit wird erreicht, dass ein singulärer Punkt nur einmal vorkommt
+                        // nämlich bei der Kante, die vom singulären Punkt wegführt
+                        GeoPoint2D[] points = currEdge.GetTriangulationBasis(this, precision, edge2D);
+                        if (outline.Length == 1 && points.Length < 3)
+                        {   // das würde ja bedeuten, nur zwei Punkte auf der Outline, also nur ein Strich, hin- und zurück
+                            points = new GeoPoint2D[3];
+                            points[0] = edge2D.PointAt(0.0);
+                            points[1] = edge2D.PointAt(1.0 / 3.0);
+                            points[2] = edge2D.PointAt(2.0 / 3.0);
+                        }
+                        polyoutline.AddRange(points);
                     }
                     else
                     {
-                        ICurve2D prevCurve = usedCurves[usedCurves.Count - 1];
-                        if (surface.UPeriod > 0)
-                        {
-
-                        }
-                        if (surface.VPeriod > 0)
-                        {
-
-                        }
-                        double d1 = prevCurve.EndPoint | currEdge.PrimaryCurve2D.StartPoint;
-                        double d2 = prevCurve.EndPoint | currEdge.SecondaryCurve2D.StartPoint;
-                        if (d1 < tol)
-                            edge2D = currEdge.PrimaryCurve2D;
-                        else if (d2 < tol)
-                            edge2D = currEdge.SecondaryCurve2D;
-                        else
-                        {
-                            double uPeriod = surface.UPeriod;
-                            double vPeriod = surface.VPeriod;
-                            ICurve2D nextPrimaryCurve2D = currEdge.PrimaryCurve2D.Clone();
-                            ICurve2D nextSecondaryCurve2D = currEdge.SecondaryCurve2D.Clone();
-                            if (surface.UPeriod > 0)
-                            {
-                                double du1 = prevCurve.EndPoint.x - nextPrimaryCurve2D.StartPoint.x;
-                                //if (du > uPeriod / 2) nextPrimaryCurve2D.Move(uPeriod, 0.0);
-                                //if (du < -uPeriod / 2) nextPrimaryCurve2D.Move(-uPeriod, 0.0);
-                                while (du1 >= uPeriod / 2)
-                                {
-                                    nextPrimaryCurve2D.Move(uPeriod / 2, 0.0);
-                                    du1 = prevCurve.EndPoint.x - nextPrimaryCurve2D.StartPoint.x;
-                                }
-                                while (du1 <= -uPeriod / 2)
-                                {
-                                    nextPrimaryCurve2D.Move(-uPeriod / 2, 0.0);
-                                    du1 = prevCurve.EndPoint.x - nextPrimaryCurve2D.StartPoint.x;
-                                }
-
-                                double du2 = prevCurve.EndPoint.x - nextSecondaryCurve2D.StartPoint.x;
-                                while (du2 >= uPeriod / 2)
-                                {
-                                    nextSecondaryCurve2D.Move(uPeriod / 2, 0.0);
-                                    du2 = prevCurve.EndPoint.x - nextSecondaryCurve2D.StartPoint.x;
-                                }
-                                while (du2 <= -uPeriod / 2)
-                                {
-                                    nextSecondaryCurve2D.Move(-uPeriod / 2, 0.0);
-                                    du2 = prevCurve.EndPoint.x - nextSecondaryCurve2D.StartPoint.x;
-                                }
-                            }
-                            if (surface.VPeriod > 0)
-                            {
-                                double dv1 = prevCurve.EndPoint.y - nextPrimaryCurve2D.StartPoint.y;
-                                //if (dv > vPeriod / 2) nextPrimaryCurve2D.Move(0.0, vPeriod);
-                                //if (dv < -vPeriod / 2) nextPrimaryCurve2D.Move(0.0, -vPeriod);
-                                while (dv1 >= vPeriod / 2)
-                                {
-                                    nextPrimaryCurve2D.Move(0.0, vPeriod / 2);
-                                    dv1 = prevCurve.EndPoint.y - nextPrimaryCurve2D.StartPoint.y;
-                                }
-                                while (dv1 <= -vPeriod / 2)
-                                {
-                                    nextPrimaryCurve2D.Move(0.0, -vPeriod / 2);
-                                    dv1 = prevCurve.EndPoint.y - nextPrimaryCurve2D.StartPoint.y;
-                                }
-
-                                double dv2 = prevCurve.EndPoint.y - nextSecondaryCurve2D.StartPoint.y;
-                                while (dv2 >= vPeriod / 2)
-                                {
-                                    nextSecondaryCurve2D.Move(0.0, vPeriod / 2);
-                                    dv2 = prevCurve.EndPoint.y - nextSecondaryCurve2D.StartPoint.y;
-                                }
-                                while (dv2 <= -vPeriod / 2)
-                                {
-                                    nextSecondaryCurve2D.Move(0.0, -vPeriod / 2);
-                                    dv2 = prevCurve.EndPoint.y - nextSecondaryCurve2D.StartPoint.y;
-                                }
-                            }
-
-                            double d21 = prevCurve.EndPoint | nextPrimaryCurve2D.StartPoint;
-                            double d22 = prevCurve.EndPoint | nextSecondaryCurve2D.StartPoint;
-
-                            if (d21 < tol)
-                                edge2D = currEdge.PrimaryCurve2D;
-                            else if (d22 < tol)
-                                edge2D = currEdge.SecondaryCurve2D;
-                            else
-                            {
-                                ok = false;
-#if DEBUG
-                                throw new Exception($"Face outline not connected fc={fc1}");
-#endif
-                            }
-                        }
+                        polyoutline.Add(edge2D.StartPoint);
                     }
-                    if (ok)
-                    {
-                        usedCurves.Add(edge2D);
-
-                        if (currEdge.Curve3D != null)
-                        {   // singuläre Kanten nicht verwenden. Damit wird erreicht, dass ein singulärer Punkt nur einmal vorkommt
-                            // nämlich bei der Kante, die vom singulären Punkt wegführt
-                            GeoPoint2D[] points = currEdge.GetTriangulationBasis(this, precision, edge2D);
-                            if (outline.Length == 1 && points.Length < 3)
-                            {   // das würde ja bedeuten, nur zwei Punkte auf der Outline, also nur ein Strich, hin- und zurück
-                                points = new GeoPoint2D[3];
-                                points[0] = edge2D.PointAt(0.0);
-                                points[1] = edge2D.PointAt(1.0 / 3.0);
-                                points[2] = edge2D.PointAt(2.0 / 3.0);
-                            }
-                            polyoutline.AddRange(points);
-                        }
-                        else
-                        {
-                            polyoutline.Add(edge2D.StartPoint);
-                        }
-                        remainingEdges--;
-                        currEdgeIndex++;
-                        if (currEdgeIndex >= outline.Length) currEdgeIndex = 0;
-                    }
-                    else
-                        break;
                 }
             }
             else
