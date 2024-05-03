@@ -719,6 +719,7 @@
     <MenuItem MenuId="MenuId.LayoutView.Print" />
     <MenuItem MenuId="MenuId.LayoutView.Print.Setup" />
     <MenuItem MenuId="MenuId.LayoutView.Print.SelectPrinter" />
+    <MenuItem MenuId="MenuId.LayoutView.Print.MakeGlobal" />
   </Popup>
   <Popup MenuId="MenuId.ModelView">
     <MenuItem MenuId="MenuId.ModelView.Show" />

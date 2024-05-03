@@ -1383,6 +1383,11 @@ namespace CADability
                 {
                     res = typeof(UnDeseriazableObject);
                 }
+                if (res == null && typeName.StartsWith("System.Drawing.Printing"))
+                {
+                    //To avoid exception that cause an empty drawing to be displayed when opening an old cdb binary files in CADability targeted to NET5 or later because System.Drawing.Printing is no more serializable.
+                    res = typeof(UnDeseriazableObject);
+                }
                 if (typeName.StartsWith("System.Globalization.CompareInfo"))
                 {
                     // res = typeof(SCompareInfo);
@@ -2314,7 +2319,7 @@ namespace CADability
             {
                 try
                 {
-                    PageSettings ps = (PageSettings)info.GetValue("DefaultPageSettings", typeof(PageSettings));
+                    PageSettings ps = info.GetValue("DefaultPageSettings", typeof(object)) as PageSettings; //object and not PageSettings, because it could be UnDeseriazableObject.
                     if (printDocument == null) printDocument = new PrintDocument();
                     printDocument.DefaultPageSettings = ps;
                 }

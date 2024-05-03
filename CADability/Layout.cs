@@ -15,7 +15,7 @@ namespace CADability
     /// A Layout can be viewed with the LayoutView and can be printed.
     /// </summary>
     [Serializable]
-    public class Layout : ISerializable
+    public class Layout : ISerializable, IJsonSerialize
     {
         private LayoutPatch[] patches;
         private string name; // Name des Layouts
@@ -34,6 +34,12 @@ namespace CADability
         {
             this.project = project;
             patches = new LayoutPatch[0];
+        }
+		/// <summary>
+		/// For IJsonSerialize
+		/// </summary>
+		public Layout()
+        {
         }
         ~Layout()
         {
@@ -72,10 +78,10 @@ namespace CADability
             patches = (LayoutPatch[])al.ToArray(typeof(LayoutPatch));
         }
         /// <summary>
-		/// Removes the patch with the given index
-		/// </summary>
-		/// <param name="index"></param>
-		public void RemovePatch(int index)
+        /// Removes the patch with the given index
+        /// </summary>
+        /// <param name="index"></param>
+        public void RemovePatch(int index)
         {
             ArrayList al = new ArrayList(patches);
             al.RemoveAt(index);
@@ -88,9 +94,9 @@ namespace CADability
             patches = (LayoutPatch[])al.ToArray(typeof(LayoutPatch));
         }
         /// <summary>
-		/// Returns the number of the patches
-		/// </summary>
-		public int PatchCount
+        /// Returns the number of the patches
+        /// </summary>
+        public int PatchCount
         {
             get { return patches.Length; }
         }
@@ -320,8 +326,26 @@ namespace CADability
             info.AddValue("paperHeight", paperHeight, typeof(double));
             if (pageSettings != null) info.AddValue("PageSettings", pageSettings);
         }
+        #endregion
+        #region IJsonSerialize
+        public void GetObjectData(IJsonWriteData data)
+        {
+            data.AddProperty("Name", name);
+            data.AddProperty("Patches", patches);
+            data.AddProperty("paperWidth", paperWidth);
+            data.AddProperty("paperHeight", paperHeight);
+            if (pageSettings != null) data.AddProperty("PageSettings", pageSettings);
+        }
 
-#endregion
+        public void SetObjectData(IJsonReadData data)
+        {
+            name = data.GetPropertyOrDefault<string>("Name");
+            patches = data.GetPropertyOrDefault<LayoutPatch[]>("Patches");
+            paperWidth = data.GetPropertyOrDefault<double>("paperWidth");
+            paperHeight = data.GetPropertyOrDefault<double>("paperHeight");
+            pageSettings = data.GetPropertyOrDefault<System.Drawing.Printing.PageSettings>("PageSettings");
+        }
+        #endregion
     }
 }
 #endif
