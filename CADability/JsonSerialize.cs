@@ -1197,7 +1197,8 @@ namespace CADability
             {   // a hashtable or some other kind of dictionary is serialized as 
                 val = new JSonDictionary(ht, val.GetType());
             }
-            if (val is System.Drawing.Color)
+            if (val is System.Drawing.Color || val is System.Drawing.Printing.PageSettings || val is System.Drawing.Printing.Margins || val is System.Drawing.Printing.PaperSize ||
+                val is System.Drawing.Printing.PaperSource || val is System.Drawing.Printing.PrinterResolution || val is System.Drawing.Printing.PrinterSettings)
             {
                 val = new JSonSubstitute(val);
             }
@@ -1460,7 +1461,8 @@ namespace CADability
             {   // a hashtable or some other kind of dictionary is serialized as 
                 value = new JSonDictionary(ht, value.GetType());
             }
-            if (value is System.Drawing.Color)
+            if (value is System.Drawing.Color || value is System.Drawing.Printing.PageSettings || value is System.Drawing.Printing.Margins || value is System.Drawing.Printing.PaperSize ||
+                value is System.Drawing.Printing.PaperSource || value is System.Drawing.Printing.PrinterResolution || value is System.Drawing.Printing.PrinterSettings)
             {
                 value = new JSonSubstitute(value);
             }
@@ -1752,7 +1754,6 @@ namespace CADability
     internal class JSonSubstitute : IJsonSerialize, IJsonConvert
     {
         object toSerialize;
-        string typeName;
         public JSonSubstitute(object toSerialize)
         {
             this.toSerialize = toSerialize;
@@ -1769,25 +1770,123 @@ namespace CADability
         public void GetObjectData(IJsonWriteData data)
         {
             data.AddProperty("$OriginalType", toSerialize.GetType().FullName);
-            switch (toSerialize.GetType().FullName)
+            if (toSerialize is System.Drawing.Color color)
             {
-                case "System.Drawing.Color":
-                    {
-                        data.AddProperty("Argb", ((System.Drawing.Color)toSerialize).ToArgb());
-                    }
-                    break;
+                data.AddProperty("Argb", color.ToArgb());
+            }
+            else if (toSerialize is System.Drawing.Printing.PageSettings pageSettings)
+            {
+                data.AddProperty("Color", pageSettings.Color);
+                data.AddProperty("Landscape", pageSettings.Landscape);
+                data.AddProperty("Margins", pageSettings.Margins);
+                data.AddProperty("PaperSize", pageSettings.PaperSize);
+                data.AddProperty("PaperSource", pageSettings.PaperSource);
+                data.AddProperty("PrinterResolution", pageSettings.PrinterResolution);
+                data.AddProperty("PrinterSettings", pageSettings.PrinterSettings);
+            }
+            else if (toSerialize is System.Drawing.Printing.Margins margins)
+            {
+                data.AddProperty("Left", margins.Left);
+                data.AddProperty("Right", margins.Right);
+                data.AddProperty("Top", margins.Top);
+                data.AddProperty("Bottom", margins.Bottom);
+            }
+            else if (toSerialize is System.Drawing.Printing.PaperSize paperSize)
+            {
+                data.AddProperty("Height", paperSize.Height);
+                data.AddProperty("PaperName", paperSize.PaperName);
+                data.AddProperty("RawKind", paperSize.RawKind);
+                data.AddProperty("Width", paperSize.Width);
+            }
+            else if (toSerialize is System.Drawing.Printing.PaperSource paperSource)
+            {
+                data.AddProperty("RawKind", paperSource.RawKind);
+                data.AddProperty("SourceName", paperSource.SourceName);
+            }
+            else if (toSerialize is System.Drawing.Printing.PrinterResolution printerResolution)
+            {
+                data.AddProperty("Kind", printerResolution.Kind);
+                data.AddProperty("X", printerResolution.X);
+                data.AddProperty("Y", printerResolution.Y);
+            }
+            else if (toSerialize is System.Drawing.Printing.PrinterSettings printerSettings)
+            {
+                data.AddProperty("Collate", printerSettings.Collate);
+                data.AddProperty("Copies", printerSettings.Copies);
+                data.AddProperty("Duplex", printerSettings.Duplex);
+                data.AddProperty("FromPage", printerSettings.FromPage);
+                data.AddProperty("MaximumPage", printerSettings.MaximumPage);
+                data.AddProperty("MinimumPage", printerSettings.MinimumPage);
+                data.AddProperty("PrinterName", printerSettings.PrinterName);
+                data.AddProperty("PrintFileName", printerSettings.PrintFileName);
+                data.AddProperty("PrintRange", printerSettings.PrintRange);
+                data.AddProperty("PrintToFile", printerSettings.PrintToFile);
+                data.AddProperty("ToPage", printerSettings.ToPage);
             }
         }
 
         public void SetObjectData(IJsonReadData data)
         {
-            typeName = data.GetProperty<string>("$OriginalType");
+            string typeName = data.GetProperty<string>("$OriginalType");
             switch (typeName)
             {
                 case "System.Drawing.Color":
-                    {
-                        toSerialize = System.Drawing.Color.FromArgb(data.GetProperty<int>("Argb"));
-                    }
+                    toSerialize = System.Drawing.Color.FromArgb(data.GetProperty<int>("Argb"));
+                    break;
+                case "System.Drawing.Printing.PageSettings":
+                    System.Drawing.Printing.PageSettings pageSettings = new System.Drawing.Printing.PageSettings();
+                    toSerialize = pageSettings;
+                    pageSettings.Color = data.GetProperty<bool>("Color");
+                    pageSettings.Landscape = data.GetProperty<bool>("Landscape");
+                    pageSettings.Margins = data.GetProperty<System.Drawing.Printing.Margins>("Margins");
+                    pageSettings.PaperSize = data.GetProperty<System.Drawing.Printing.PaperSize>("PaperSize");
+                    pageSettings.PaperSource = data.GetProperty<System.Drawing.Printing.PaperSource>("PaperSource");
+                    pageSettings.PrinterResolution = data.GetProperty<System.Drawing.Printing.PrinterResolution>("PrinterResolution");
+                    pageSettings.PrinterSettings = data.GetProperty<System.Drawing.Printing.PrinterSettings>("PrinterSettings");
+                    break;
+                case "System.Drawing.Printing.Margins":
+                    System.Drawing.Printing.Margins margins = new System.Drawing.Printing.Margins();
+                    toSerialize = margins;
+                    margins.Left = data.GetProperty<int>("Left");
+                    margins.Right = data.GetProperty<int>("Right");
+                    margins.Top = data.GetProperty<int>("Top");
+                    margins.Bottom = data.GetProperty<int>("Bottom");
+                    break;
+                case "System.Drawing.Printing.PaperSize":
+                    System.Drawing.Printing.PaperSize paperSize = new System.Drawing.Printing.PaperSize();
+                    toSerialize = paperSize;
+                    paperSize.Height = data.GetProperty<int>("Height");
+                    paperSize.PaperName = data.GetProperty<string>("PaperName");
+                    paperSize.RawKind = data.GetProperty<int>("RawKind");
+                    paperSize.Width = data.GetProperty<int>("Width");
+                    break;
+                case "System.Drawing.Printing.PaperSource":
+                    System.Drawing.Printing.PaperSource paperSource = new System.Drawing.Printing.PaperSource();
+                    toSerialize = paperSource;
+                    paperSource.RawKind = data.GetProperty<int>("RawKind");
+                    paperSource.SourceName = data.GetProperty<string>("SourceName");
+                    break;
+                case "System.Drawing.Printing.PrinterResolution":
+                    System.Drawing.Printing.PrinterResolution printerResolution = new System.Drawing.Printing.PrinterResolution();
+                    toSerialize = printerResolution;
+                    printerResolution.Kind = data.GetProperty<System.Drawing.Printing.PrinterResolutionKind>("Kind");
+                    printerResolution.X = data.GetProperty<int>("X");
+                    printerResolution.Y = data.GetProperty<int>("Y");
+                    break;
+                case "System.Drawing.Printing.PrinterSettings":
+                    System.Drawing.Printing.PrinterSettings printerSettings = new System.Drawing.Printing.PrinterSettings();
+                    toSerialize = printerSettings;
+                    printerSettings.Collate = data.GetProperty<bool>("Collate");
+                    printerSettings.Copies = data.GetProperty<short>("Copies");
+                    printerSettings.Duplex = data.GetProperty<System.Drawing.Printing.Duplex>("Duplex");
+                    printerSettings.FromPage = data.GetProperty<int>("FromPage");
+                    printerSettings.MaximumPage = data.GetProperty<int>("MaximumPage");
+                    printerSettings.MinimumPage = data.GetProperty<int>("MinimumPage");
+                    printerSettings.PrinterName = data.GetProperty<string>("PrinterName");
+                    printerSettings.PrintFileName = data.GetProperty<string>("PrintFileName");
+                    printerSettings.PrintRange = data.GetProperty<System.Drawing.Printing.PrintRange>("PrintRange");
+                    printerSettings.PrintToFile = data.GetProperty<bool>("PrintToFile");
+                    printerSettings.ToPage = data.GetProperty<int>("ToPage");
                     break;
             }
         }

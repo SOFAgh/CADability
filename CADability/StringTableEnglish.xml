@@ -7123,6 +7123,11 @@
 		<tip>Select on which printer to print</tip>
 		<info>Select on which printer to print</info>
 	</data>
+	<data name="MenuId.LayoutView.Print.MakeGlobal">
+		<label>Make global</label>
+		<tip>Make these print settings the defaults for new drawings</tip>
+		<info>Make these print settings the defaults for new drawings</info>
+	</data>	
 	<data name="Constr.Rotate.SourcePlane">
 		<label>Source plane</label>
 		<tip>rotate from this plane</tip>

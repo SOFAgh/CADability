@@ -7142,6 +7142,11 @@
     <tip>Druckerauswahl aufrufen</tip>
     <info>Druckerauswahl aufrufen</info>
   </data>
+  <data name="MenuId.LayoutView.Print.MakeGlobal">
+    <label>Zur Vorgabe machen</label>
+    <tip></tip>
+    <info></info>
+  </data>
   <data name="Constr.Rotate.SourcePlane">
     <label>Ausgangs-Ebene</label>
     <tip>Diese Ebene soll gedreht werden</tip>
