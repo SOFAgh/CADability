@@ -1883,7 +1883,9 @@ namespace CADability
                     printerSettings.MaximumPage = data.GetProperty<int>("MaximumPage");
                     printerSettings.MinimumPage = data.GetProperty<int>("MinimumPage");
                     printerSettings.PrinterName = data.GetProperty<string>("PrinterName");
-                    printerSettings.PrintFileName = data.GetProperty<string>("PrintFileName");
+                    string pfn = data.GetProperty<string>("PrintFileName");
+                    if (!String.IsNullOrEmpty(pfn))
+                        printerSettings.PrintFileName = pfn;
                     printerSettings.PrintRange = data.GetProperty<System.Drawing.Printing.PrintRange>("PrintRange");
                     printerSettings.PrintToFile = data.GetProperty<bool>("PrintToFile");
                     printerSettings.ToPage = data.GetProperty<int>("ToPage");
