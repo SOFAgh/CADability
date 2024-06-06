@@ -2387,6 +2387,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                     pnt.Symbol = PointSymbol.Cross;
                                     pnt.Name = subItem.parameter["name"].sval;
                                     val.Add(pnt);
+                                    subItem.val = pnt; //For this CartesianPoint a Cadability Point is generated. I set it to the item instead of GeoPoint to make it work layer assignment.
                                 }
                                 else if (o is IGeoObject) val.Add(o as IGeoObject);
                                 else if (o is GeoObjectList) val.AddRange(o as GeoObjectList);
