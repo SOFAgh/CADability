@@ -768,7 +768,7 @@ namespace CADability.Attribute
         }
         public override void EndEdit(bool aborted, bool modified, string newValue)
         {
-            if (!aborted && modified && !string.IsNullOrWhiteSpace(newValue))
+            if (!aborted && !string.IsNullOrWhiteSpace(newValue))
             {   // check, whether there already exists another filter with the same name
                 try
                 {
