@@ -305,6 +305,11 @@ namespace CADability.GeoObject
         {
             throw new NotImplementedException("GetZMinMax not implemented");
         }
+        public override void Derivation2At(GeoPoint2D uv, out GeoPoint location, out GeoVector du, out GeoVector dv, out GeoVector duu, out GeoVector dvv, out GeoVector duv)
+        {
+            BaseSurface.Derivation2At(uv, out location, out du, out dv, out duu, out dvv, out duv);
+            //base.Derivation2At(uv, out location, out du, out dv, out duu, out dvv, out duv);
+        }
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.ISurfaceImpl.Make3dCurve (ICurve2D)"/>
         /// </summary>

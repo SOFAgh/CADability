@@ -2873,7 +2873,7 @@ namespace CADability.GeoObject
         {
             return (this as ICurve).GetPlane();
         }
-        internal BSpline TrimParam(double spar, double epar)
+        public BSpline TrimParam(double spar, double epar)
         {
             BSpline clone = BSpline.Construct();
             bool reverse = false;
