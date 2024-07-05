@@ -136,5 +136,18 @@ namespace CADability.Tests
                 Assert.That.BitmapsAreEqual(expected, actual);
             }
         }
+
+        [TestMethod]
+        [DeploymentItem(@"Files/Dxf/issue171.dxf", nameof(import_dxf_issue171_succeds))]
+        public void import_dxf_issue171_succeds()
+        {
+            // DXF file with Codepage DOS850
+
+            var file = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "issue171.dxf");
+            Assert.IsTrue(File.Exists(file));
+
+            var project = Project.ReadFromFile(file, "dxf");
+            Assert.IsNotNull(project);
+        }
     }
 }
