@@ -177,7 +177,7 @@ namespace netDxf.IO
                 }
                 else
                 {
-                    if (int.TryParse(dwgCodePage.Split('_')[1], out int codepage))
+                    if (TryGetCodePage(dwgCodePage, out int codepage))
                     {
                         try
                         {
@@ -334,6 +334,19 @@ namespace netDxf.IO
 
             return this.doc;
         }
+
+        private bool TryGetCodePage(string dwgCodePage, out int codepage)
+        {
+            dwgCodePage = dwgCodePage.Replace("DOS", "");
+
+            if (dwgCodePage.Contains("_"))
+            {
+                dwgCodePage = dwgCodePage.Split('_')[1];
+            }
+
+            return int.TryParse(dwgCodePage, out codepage);
+        }
+
 
         private static bool IsBinary(Stream stream)
         {
