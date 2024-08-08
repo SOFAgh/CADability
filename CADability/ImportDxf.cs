@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using netDxf;
 using netDxf.Entities;
-using netDxf.Blocks;
 using CADability.GeoObject;
-using System.Runtime.CompilerServices;
 using CADability.Shapes;
 using CADability.Curve2D;
 using CADability.Attribute;
@@ -13,13 +11,10 @@ using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
 #else
 using System.Drawing;
-using Point = System.Drawing.Point;
 #endif
 using netDxf.Tables;
 using System.Text;
 using System.IO;
-using System.Diagnostics;
-using Polyline2D = netDxf.Entities.Polyline2D;
 
 namespace CADability.DXF
 {
