@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using netDxf;
 using netDxf.Entities;
-using netDxf.Blocks;
 using CADability.GeoObject;
-using System.Runtime.CompilerServices;
 using CADability.Shapes;
 using CADability.Curve2D;
 using CADability.Attribute;
@@ -13,12 +11,10 @@ using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
 #else
 using System.Drawing;
-using Point = System.Drawing.Point;
 #endif
 using netDxf.Tables;
 using System.Text;
 using System.IO;
-using System.Diagnostics;
 
 namespace CADability.DXF
 {
@@ -471,6 +467,12 @@ namespace CADability.DXF
                 {
                     poles[i] = GeoPoint(spline.ControlPoints[i]);
                     weights[i] = spline.Weights[i];
+
+                    if (i > 0 && (poles[i] | poles[i - 1]) < Precision.eps)
+                    {
+                        var p2d = spline.ToPolyline2D(spline.ControlPoints.Length + spline.Knots.Length + 1);
+                        return CreatePolyline2D(p2d);
+                    }
                 }
                 double[] kn = new double[spline.Knots.Length];
                 for (int i = 0; i < kn.Length; ++i)
