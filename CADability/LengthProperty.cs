@@ -1,13 +1,10 @@
-﻿using CADability.GeoObject;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Globalization;
-using System.Reflection;
 
 namespace CADability.UserInterface
 {
     /// <summary>
-    /// Implements a hotspot <see cref="IHotSpot"/> to manipulate a lenth via a length property
+    /// Implements a hotspot <see cref="IHotSpot"/> to manipulate a length via a length property
     /// </summary>
     public class LengthHotSpot : IHotSpot, ICommandHandler
     {
@@ -140,8 +137,15 @@ namespace CADability.UserInterface
         protected override bool TextToValue(string text, out double val)
         {
             bool success = false;
-            if (numberFormatInfo.NumberDecimalSeparator == ".") text = text.Replace(",", ".");
-            if (numberFormatInfo.NumberDecimalSeparator == ",") text = text.Replace(".", ",");
+            if (numberFormatInfo.NumberDecimalSeparator == ".")
+                text = text.Replace(",", ".");
+
+            if (numberFormatInfo.NumberDecimalSeparator == ",")
+                text = text.Replace(".", ",");
+
+            //Remove duplicate NumberDecimalSeparator from end to start.
+            text = StringHelper.RemoveExtraStrings(text, numberFormatInfo.NumberDecimalSeparator);
+                
             val = 0.0;
             try
             {
@@ -155,28 +159,10 @@ namespace CADability.UserInterface
             catch (OverflowException)
             {
             }
-            //Locked = false;
-            if (!success)
-            {
-                try
-                {
-                    //Scripting s = new Scripting();
-                    //IFrame Frame = propertyPage.Frame;
-                    //if (Frame != null)
-                    //{
-                    //    if (numberFormatInfo.NumberDecimalSeparator == ",") text = text.Replace(",", "."); // this is ambiguous: there might be function calls with commas, 
-                    //    // which are destroyed here, but I don't know what to do. When using formulas, the user should be forced to have "." as decimal separator
-                    //    val = s.GetDouble(Frame.Project.NamedValues, text);
-                    //    success = true;
-                    //}
-                }
-                catch //(ScriptingException)
-                {
-                }
-            }
+            
             return success;
-
         }
+        
         protected override string ValueToText(double val)
         {
             return val.ToString("f", numberFormatInfo);
