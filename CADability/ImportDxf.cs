@@ -530,7 +530,8 @@ namespace CADability.DXF
 
                         ICurve curve = (ICurve)bsp;
                         //Use approximate to get the count of lines that will be needed to convert the spline into a Polyline2D
-                        ICurve approxCurve = curve.Approximate(true, 0.1);
+                        double maxError = project.Frame.GetDoubleSetting("Approximate.Precision", 0.01);
+                        ICurve approxCurve = curve.Approximate(true, maxError);
 
                         int usedCurves = 0;
                         if (approxCurve is GeoObject.Line)
@@ -539,7 +540,9 @@ namespace CADability.DXF
                             usedCurves = approxCurve.SubCurves.Length;
 
                         netDxf.Entities.Polyline2D p2d = spline.ToPolyline2D(usedCurves);
-                        return CreatePolyline2D(p2d);
+                        var res = CreatePolyline2D(p2d);
+                        
+                        return res;
                     }
 
                     return bsp;
