@@ -461,6 +461,7 @@ namespace CADability.DXF
             }
             else
             {
+                bool forcePolyline2D = false;
                 GeoPoint[] poles = new GeoPoint[spline.ControlPoints.Length];
                 double[] weights = new double[spline.ControlPoints.Length];
                 for (int i = 0; i < poles.Length; i++)
@@ -470,8 +471,7 @@ namespace CADability.DXF
 
                     if (i > 0 && (poles[i] | poles[i - 1]) < Precision.eps)
                     {
-                        var p2d = spline.ToPolyline2D(spline.ControlPoints.Length + spline.Knots.Length + 1);
-                        return CreatePolyline2D(p2d);
+                        forcePolyline2D = true;
                     }
                 }
                 double[] kn = new double[spline.Knots.Length];
@@ -523,12 +523,35 @@ namespace CADability.DXF
                         return path;
                     }
                     // if (spline.IsPeriodic) bsp.IsClosed = true; // to remove strange behavior in hünfeld.dxf
+
+                    if (forcePolyline2D)
+                    {
+                        //Look at https://github.com/SOFAgh/CADability/issues/173 to see why this is done.
+
+                        ICurve curve = (ICurve)bsp;
+                        //Use approximate to get the count of lines that will be needed to convert the spline into a Polyline2D
+                        double maxError = project.Frame.GetDoubleSetting("Approximate.Precision", 0.01);
+                        ICurve approxCurve = curve.Approximate(true, maxError);
+
+                        int usedCurves = 0;
+                        if (approxCurve is GeoObject.Line)
+                            usedCurves = 2;
+                        else
+                            usedCurves = approxCurve.SubCurves.Length;
+
+                        netDxf.Entities.Polyline2D p2d = spline.ToPolyline2D(usedCurves);
+                        var res = CreatePolyline2D(p2d);
+                        
+                        return res;
+                    }
+
                     return bsp;
                 }
                 // strange spline in "bspline-closed-periodic.dxf"
             }
             return null;
         }
+
         private IGeoObject CreateFace(netDxf.Entities.Face3D face)
         {
             List<GeoPoint> points = new List<GeoPoint>();
