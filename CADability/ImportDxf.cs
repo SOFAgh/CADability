@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using netDxf;
 using netDxf.Entities;
-using netDxf.Blocks;
 using CADability.GeoObject;
-using System.Runtime.CompilerServices;
 using CADability.Shapes;
 using CADability.Curve2D;
 using CADability.Attribute;
@@ -13,12 +11,10 @@ using CADability.WebDrawing;
 using Point = CADability.WebDrawing.Point;
 #else
 using System.Drawing;
-using Point = System.Drawing.Point;
 #endif
 using netDxf.Tables;
 using System.Text;
 using System.IO;
-using System.Diagnostics;
 
 namespace CADability.DXF
 {
@@ -383,17 +379,20 @@ namespace CADability.DXF
             double end = Angle.Deg(arc.EndAngle);
             double sweep = end - start;
             if (sweep < 0.0) sweep += Math.PI * 2.0;
-            // if (sweep < Precision.epsa) sweep = Math.PI * 2.0;
+            //if (sweep < Precision.epsa) sweep = Math.PI * 2.0;
             if (start == end) sweep = 0.0;
             if (start == Math.PI * 2.0 && end == 0.0) sweep = 0.0; // see in modena.dxf
             // Arcs are always counterclockwise, but maybe the normal is (0,0,-1) in 2D drawings.
             e.SetArcPlaneCenterRadiusAngles(plane, GeoPoint(arc.Center), arc.Radius, start, sweep);
-            if (sweep != 0.0 && Math.Abs(sweep / arc.Radius) < 1e-7)
-            {   // is there a good example for making a line instead of an arc?
-                //Line l = Line.Construct();
-                //l.SetTwoPoints(GeoPoint(arc.StartPoint), GeoPoint(arc.EndPoint));
-                //return l;
+
+            //If an arc is a full circle don't import as ellipse as this will be discarded later by Ellipse.HasValidData() 
+            if (e.IsCircle && sweep == 0.0d && Precision.IsEqual(e.StartPoint, e.EndPoint))
+            {
+                GeoObject.Ellipse circle = GeoObject.Ellipse.Construct();
+                circle.SetCirclePlaneCenterRadius(plane, GeoPoint(arc.Center), arc.Radius);
+                e = circle;
             }
+
             double th = arc.Thickness;
             if (th != 0.0 && !nor.IsNullVector())
             {
@@ -462,12 +461,18 @@ namespace CADability.DXF
             }
             else
             {
+                bool forcePolyline2D = false;
                 GeoPoint[] poles = new GeoPoint[spline.ControlPoints.Length];
                 double[] weights = new double[spline.ControlPoints.Length];
                 for (int i = 0; i < poles.Length; i++)
                 {
                     poles[i] = GeoPoint(spline.ControlPoints[i]);
                     weights[i] = spline.Weights[i];
+
+                    if (i > 0 && (poles[i] | poles[i - 1]) < Precision.eps)
+                    {
+                        forcePolyline2D = true;
+                    }
                 }
                 double[] kn = new double[spline.Knots.Length];
                 for (int i = 0; i < kn.Length; ++i)
@@ -518,12 +523,35 @@ namespace CADability.DXF
                         return path;
                     }
                     // if (spline.IsPeriodic) bsp.IsClosed = true; // to remove strange behavior in hünfeld.dxf
+
+                    if (forcePolyline2D)
+                    {
+                        //Look at https://github.com/SOFAgh/CADability/issues/173 to see why this is done.
+
+                        ICurve curve = (ICurve)bsp;
+                        //Use approximate to get the count of lines that will be needed to convert the spline into a Polyline2D
+                        double maxError = project.Frame.GetDoubleSetting("Approximate.Precision", 0.01);
+                        ICurve approxCurve = curve.Approximate(true, maxError);
+
+                        int usedCurves = 0;
+                        if (approxCurve is GeoObject.Line)
+                            usedCurves = 2;
+                        else
+                            usedCurves = approxCurve.SubCurves.Length;
+
+                        netDxf.Entities.Polyline2D p2d = spline.ToPolyline2D(usedCurves);
+                        var res = CreatePolyline2D(p2d);
+                        
+                        return res;
+                    }
+
                     return bsp;
                 }
                 // strange spline in "bspline-closed-periodic.dxf"
             }
             return null;
         }
+
         private IGeoObject CreateFace(netDxf.Entities.Face3D face)
         {
             List<GeoPoint> points = new List<GeoPoint>();

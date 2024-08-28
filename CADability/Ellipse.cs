@@ -1720,16 +1720,14 @@ namespace CADability.GeoObject
             }
         }
         /// <summary>
-        /// Returns true if it is not a full circle or a full ellipse, i.e. the <see cref="SweepParameter"/> is
-        /// not -2*pi and not 2*pi.
+        /// Returns true if it is not a full circle or a full ellipse.
         /// </summary>
         public bool IsArc
         {
             get
             {
-                // geändert von != auf < bzw. größer
-                // es kommen Bögen vor mit mehr als 2*pi, und die sollen als Kreise bzw. Ellipsen gelten
-                return (sweepParameter < 2.0 * Math.PI && sweepParameter > -2.0 * Math.PI);
+                //There are cases with arcs more than 2 * Math.PI, and they should be considered as circles or ellipses.
+                return Math.Abs(sweepParameter) < 2.0d * Math.PI - Precision.eps;
             }
         }
         public double Radius
