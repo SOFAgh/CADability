@@ -1376,7 +1376,7 @@ namespace CADability.GeoObject
                 GeoPoint cnt = Geometry.DropPL(sp, Location, Axis);
                 Plane pln = new Plane(cnt, Axis);
                 Ellipse res = Ellipse.Construct();
-                res.SetArcPlaneCenterStartEndPoint(pln, GeoPoint2D.Origin, pln.Project(sp), pln.Project(ep), pln, umin > umax);
+                res.SetArcPlaneCenterStartEndPoint(pln, GeoPoint2D.Origin, pln.Project(sp), pln.Project(ep), pln, umin < umax);
                 return res;
             }
             GeoPoint2D p2d = basisCurve2D.PointAt(GetPos(v));

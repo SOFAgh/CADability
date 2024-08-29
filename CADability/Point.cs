@@ -52,12 +52,13 @@ namespace CADability.GeoObject
     /// Implements a point as a <see cref="IGeoObject"/>. 
     /// </summary>
     [Serializable()]
-    public class Point : IGeoObjectImpl, IColorDef, ISerializable
+    public class Point : IGeoObjectImpl, IColorDef, ISerializable, IJsonSerialize
     {
         private GeoPoint location; // der Ort
         private PointSymbol symbol; // die Darstellung
         private double size; // die Größe (in Pixel?)
         private ColorDef colorDef;
+        private string name;
         #region polymorph construction
         public delegate Point ConstructionDelegate();
         public static ConstructionDelegate Constructor;
@@ -107,6 +108,20 @@ namespace CADability.GeoObject
                 }
             }
         }
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+            set
+            {
+                using (new Changing(this, false, true, "Name", name))
+                {
+                    name = value;
+                }
+            }
+        }
         #region IGeoObjectImpl overrides
         /// <summary>
         /// Overrides <see cref="CADability.GeoObject.IGeoObjectImpl.Clone ()"/>
@@ -119,6 +134,7 @@ namespace CADability.GeoObject
             res.symbol = symbol;
             res.size = size;
             res.colorDef = colorDef;
+            res.name = name;
             res.CopyAttributes(this);
             return res;
         }
@@ -388,6 +404,14 @@ namespace CADability.GeoObject
             symbol = (PointSymbol)info.GetValue("Symbol", typeof(PointSymbol));
             colorDef = (ColorDef)info.GetValue("ColorDef", typeof(ColorDef));
             size = (double)info.GetValue("Size", typeof(double));
+            try //Needed because old files didn't contain the name of the point.
+            {
+                name = (string)info.GetValue("Name", typeof(string));
+            }
+            catch (SerializationException)
+            {
+                name = null;
+            }
             if (Constructed != null) Constructed(this);
         }
         /// <summary>
@@ -402,6 +426,25 @@ namespace CADability.GeoObject
             info.AddValue("Symbol", symbol);
             info.AddValue("ColorDef", colorDef);
             info.AddValue("Size", size);
+            info.AddValue("Name", name);
+        }
+        public override void GetObjectData(IJsonWriteData data)
+        {
+            base.GetObjectData(data);
+            data.AddProperty("Location", location);
+            data.AddProperty("Symbol", symbol);
+            if (colorDef != null) data.AddProperty("ColorDef", colorDef);
+            data.AddProperty("Size", size);
+            data.AddProperty("Name", name);
+        }
+        public override void SetObjectData(IJsonReadData data)
+        {
+            base.SetObjectData(data);
+            location = data.GetProperty<GeoPoint>("Location");
+            symbol = data.GetProperty<PointSymbol>("Symbol");
+            colorDef = data.GetPropertyOrDefault<ColorDef>("ColorDef");
+            size = data.GetProperty<double>("Size");
+            name = data.GetProperty<string>("Name");
         }
 
         public override BoundingRect GetExtent(Projection projection, ExtentPrecision extentPrecision)

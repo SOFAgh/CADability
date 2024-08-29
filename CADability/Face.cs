@@ -5655,16 +5655,13 @@ namespace CADability.GeoObject
                 // we need to check both the outline and the holes: a (non periodic) cylinder may have two cricles as edges
                 // we must consider both edges (one of which is a hole)
                 extent = BoundingCube.EmptyBoundingCube;
-                foreach (Edge edge in AllEdgesIterated())
+                foreach (Edge edge in Edges)
                 {
                     if (edge.Curve3D != null)
                     {
                         extent.MinMax(edge.Curve3D.GetExtent());
                     }
                 }
-#if DEBUG
-                if (hashCode == 176) { }
-#endif
                 // a surface extreme point in axis direction is also necessary to check
                 GeoPoint2D[] extrema = surface.GetExtrema();
                 for (int i = 0; i < extrema.Length; ++i)
@@ -10318,7 +10315,7 @@ namespace CADability.GeoObject
                     {
                         edg.ReplaceFace(other, this, toThisSurface);
                     }
-                    segments.Add(edg.Curve2D(this));
+                    segments.Add(edg.Curve2D(this).Clone());
                 }
                 Border bdr = Border.FromOrientedList(segments.ToArray(), true);
                 bdr.forceConnect(true);

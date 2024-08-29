@@ -49,6 +49,7 @@ namespace CADability.UserInterface
 
             directionProperty = new GeoVectorProperty("Line.Direction", Frame, false);
             directionProperty.IsNormedVector = true;
+            directionProperty.IsAngle = true;
             directionProperty.GetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.GetGeoVectorDelegate(OnGetDirection);
             directionProperty.SetGeoVectorEvent += new CADability.UserInterface.GeoVectorProperty.SetGeoVectorDelegate(OnSetDirection);
             directionProperty.ModifyWithMouseEvent += new ModifyWithMouseDelegate(ModifyDirectionWithMouse);

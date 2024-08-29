@@ -155,7 +155,9 @@ namespace CADability.Forms
         }
         private void ListBox_DrawItem(object sender, DrawItemEventArgs e)
         {
-            string text = listBox.Items[e.Index].ToString();
+            string text = String.Empty;
+            if (e.Index > -1)
+                text = listBox.Items[e.Index].ToString();
             if ((e.State & DrawItemState.Selected) == DrawItemState.Selected)
             {
                 e.Graphics.FillRectangle(SystemBrushes.Highlight, e.Bounds);

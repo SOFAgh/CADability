@@ -870,14 +870,14 @@ namespace CADability.Attribute
                 {
                     subItems = new IPropertyEntry[9];
 
-                    LengthProperty lp = new LengthProperty("HatchStyleContour.LineDistance", base.propertyPage.GetFrame(), false);
+                    LengthProperty lp = new LengthProperty("HatchStyleContour.LineDistance", Frame, false);
                     lp.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnPropertyGetLineDistance);
                     lp.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnPropertySetLineDistance);
                     lp.Refresh();
                     lp.ShowMouseButton = false;
                     subItems[0] = lp;
 
-                    LengthProperty fd = new LengthProperty("HatchStyleContour.FirstDistance", base.propertyPage.GetFrame(), false);
+                    LengthProperty fd = new LengthProperty("HatchStyleContour.FirstDistance", Frame, false);
                     fd.GetLengthEvent += new CADability.UserInterface.LengthProperty.GetLengthDelegate(OnPropertyGetFirstDistance);
                     fd.SetLengthEvent += new CADability.UserInterface.LengthProperty.SetLengthDelegate(OnPropertySetFirstDistance);
                     fd.Refresh();
@@ -904,7 +904,7 @@ namespace CADability.Attribute
                     ib.Refresh();
                     subItems[5] = ib;
 
-                    Project pr = base.propertyPage.GetFrame().Project;
+                    Project pr = Frame.Project;
                     LineWidthSelectionProperty lws = new LineWidthSelectionProperty("HatchStyleLines.LineWidth", pr.LineWidthList, this.lineWidth);
                     lws.LineWidthChangedEvent += new CADability.UserInterface.LineWidthSelectionProperty.LineWidthChangedDelegate(OnLineWidthChanged);
                     subItems[6] = lws;

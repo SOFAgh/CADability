@@ -409,106 +409,106 @@ namespace CADability.GeoObject
         }
         #region Editor
         /* verschoben nach TextEditor
-		void PaintSelection(Rectangle Extent, ICondorView View, PaintToGDI PaintToDrawing)
-		{
-			if(paintText == null)
-			{
-				paintText = text.Get2DRepresentation(View.Projection,null)[0] as Text2D;
-				calcCarretFlags = 2;
-			}
-			switch (calcCarretFlags )
-			{
-				case 0: break;
-				case 1:
-				{
-					CharacterRange charRange = paintText.CalcSelectionRange(calcCarretFlags,  mouseStartPos, mouseEndPos, PaintToDrawing);
-					if(charRange.First >=0)
-						stringProperty.SetSelection(charRange.First,charRange.Length);
-				}break;
-				case 2:
-					if(selectionStart != -1)
-						paintText.CalcSelectionPos(new CharacterRange(selectionStart, selectionLength), PaintToDrawing);
-					break;
-			}
-			calcCarretFlags = 0;
-			if(selectionLength == 0 )
-			{
-				if(displayCarret)paintText.PaintCarret(PaintToDrawing);
-			}else
-				paintText.Paint(PaintToDrawing);
-			
-		}
-		private void carretTimer_Tick(object sender, EventArgs e)
-		{
-			Text2D t2d;
-			if(paintText == null)
-				t2d = text.Get2DRepresentation(Frame.ActiveView.Projection,null)[0] as Text2D;
-			else
-				t2d = paintText;
-				//Frame.ActiveView.InvalidateAll();
-			BoundingRect rc = t2d.GetExtent();
-			Frame.ActiveView.Invalidate(PaintBuffer.DrawingAspect.Active,Frame.ActiveView.Projection.DeviceRect(rc));
-			displayCarret = !displayCarret;
-		}
+        void PaintSelection(Rectangle Extent, ICondorView View, PaintToGDI PaintToDrawing)
+        {
+            if(paintText == null)
+            {
+                paintText = text.Get2DRepresentation(View.Projection,null)[0] as Text2D;
+                calcCarretFlags = 2;
+            }
+            switch (calcCarretFlags )
+            {
+                case 0: break;
+                case 1:
+                {
+                    CharacterRange charRange = paintText.CalcSelectionRange(calcCarretFlags,  mouseStartPos, mouseEndPos, PaintToDrawing);
+                    if(charRange.First >=0)
+                        stringProperty.SetSelection(charRange.First,charRange.Length);
+                }break;
+                case 2:
+                    if(selectionStart != -1)
+                        paintText.CalcSelectionPos(new CharacterRange(selectionStart, selectionLength), PaintToDrawing);
+                    break;
+            }
+            calcCarretFlags = 0;
+            if(selectionLength == 0 )
+            {
+                if(displayCarret)paintText.PaintCarret(PaintToDrawing);
+            }else
+                paintText.Paint(PaintToDrawing);
+            
+        }
+        private void carretTimer_Tick(object sender, EventArgs e)
+        {
+            Text2D t2d;
+            if(paintText == null)
+                t2d = text.Get2DRepresentation(Frame.ActiveView.Projection,null)[0] as Text2D;
+            else
+                t2d = paintText;
+                //Frame.ActiveView.InvalidateAll();
+            BoundingRect rc = t2d.GetExtent();
+            Frame.ActiveView.Invalidate(PaintBuffer.DrawingAspect.Active,Frame.ActiveView.Projection.DeviceRect(rc));
+            displayCarret = !displayCarret;
+        }
 
-		private void OnTextSelectionChanged(Condor.UserInterface.ManagedKeysTextbox.TextSelectionArgs args)
-		{
-			if((selectionStart !=args.SelectStart || selectionLength != args.SelectLength) && calcCarretFlags == 0)
-				calcCarretFlags = 2;
-			if( selectionStart == -1 &&  args.SelectStart!= selectionStart)
-			{
-				foreach( ICondorView view in Frame.AllViews)
-					view.SetPaintHandler( PaintBuffer.DrawingAspect.Active ,new RepaintView(PaintSelection));
-				if(selectionLength == 0) 
-				{
-					if( carretTimer == null )
-					{
-						carretTimer = new Timer();
-						carretTimer.Interval = 500;
-						carretTimer.Tick += new EventHandler(carretTimer_Tick);
-					}
-					displayCarret = true;
-					if(!carretTimer.Enabled)
-						carretTimer.Start();
-				}
-				else if( carretTimer != null )
-					carretTimer.Stop();
-			}
-			else if( args.SelectStart  == -1 && args.SelectStart != selectionStart)
-			{
-				foreach( ICondorView view in Frame.AllViews)
-					view.RemovePaintHandler( PaintBuffer.DrawingAspect.Active,new RepaintView(PaintSelection));
-				if( carretTimer != null )
-					carretTimer.Stop();
-			}
-			selectionStart = args.SelectStart;
-			selectionLength = args.SelectLength;
-			displayCarret = true;
-			carretTimer_Tick(null,null);
-		}
+        private void OnTextSelectionChanged(Condor.UserInterface.ManagedKeysTextbox.TextSelectionArgs args)
+        {
+            if((selectionStart !=args.SelectStart || selectionLength != args.SelectLength) && calcCarretFlags == 0)
+                calcCarretFlags = 2;
+            if( selectionStart == -1 &&  args.SelectStart!= selectionStart)
+            {
+                foreach( ICondorView view in Frame.AllViews)
+                    view.SetPaintHandler( PaintBuffer.DrawingAspect.Active ,new RepaintView(PaintSelection));
+                if(selectionLength == 0) 
+                {
+                    if( carretTimer == null )
+                    {
+                        carretTimer = new Timer();
+                        carretTimer.Interval = 500;
+                        carretTimer.Tick += new EventHandler(carretTimer_Tick);
+                    }
+                    displayCarret = true;
+                    if(!carretTimer.Enabled)
+                        carretTimer.Start();
+                }
+                else if( carretTimer != null )
+                    carretTimer.Stop();
+            }
+            else if( args.SelectStart  == -1 && args.SelectStart != selectionStart)
+            {
+                foreach( ICondorView view in Frame.AllViews)
+                    view.RemovePaintHandler( PaintBuffer.DrawingAspect.Active,new RepaintView(PaintSelection));
+                if( carretTimer != null )
+                    carretTimer.Stop();
+            }
+            selectionStart = args.SelectStart;
+            selectionLength = args.SelectLength;
+            displayCarret = true;
+            carretTimer_Tick(null,null);
+        }
 
-		private void setCarret(IGeoObject selected, ICondorView vw, MouseEventArgs e, ref bool handled)
-		{
-			if( text == selected && e.Button == MouseButtons.Left )
-			{
-				Plane pl = new Plane( new GeoPoint(0.0,0.0,0.0), text.LineDirection, text.GlyphDirection);//text.Location
-				mouseStartPos  = vw.Projection.PlanePoint(pl,new System.Drawing.Point(e.X,e.Y));
-				calcCarretFlags = 1;
-				
-				stringProperty.SetFocus();//löst OnTextSelectionChanged aus
-				handled = true;
-			}else
-				handled = false;
-		}
+        private void setCarret(IGeoObject selected, ICondorView vw, MouseEventArgs e, ref bool handled)
+        {
+            if( text == selected && e.Button == MouseButtons.Left )
+            {
+                Plane pl = new Plane( new GeoPoint(0.0,0.0,0.0), text.LineDirection, text.GlyphDirection);//text.Location
+                mouseStartPos  = vw.Projection.PlanePoint(pl,new System.Drawing.Point(e.X,e.Y));
+                calcCarretFlags = 1;
+                
+                stringProperty.SetFocus();//löst OnTextSelectionChanged aus
+                handled = true;
+            }else
+                handled = false;
+        }
 
-		private void stringProperty_StringChangedEvent(object sender, EventArgs e)
-		{
-			StringProperty sp = sender as StringProperty;
-			displayCarret = true;
-			//carretTimer_Tick(null,null);// invalidate auf den alten Extent
-			text.TextString =  sp.StringValue;
-		}
-		*/
+        private void stringProperty_StringChangedEvent(object sender, EventArgs e)
+        {
+            StringProperty sp = sender as StringProperty;
+            displayCarret = true;
+            //carretTimer_Tick(null,null);// invalidate auf den alten Extent
+            text.TextString =  sp.StringValue;
+        }
+        */
         #endregion
         private void StringPropertyStateChanged(IShowProperty sender, StateChangedArgs args)
         {
@@ -2808,49 +2808,52 @@ namespace CADability.GeoObject
         /// <param name="paintTo3D"></param>
         public override void PrePaintTo3D(IPaintTo3D paintTo3D)
         {
-            if (paintTo3D.TriangulateText)
-            {   // generates a display list for each character and saves the display list in a cache
-                int fs = 0; // this is regular
-                if (Underline) fs |= (int)FontStyle.Underline;
-                if (Italic) fs |= (int)FontStyle.Italic;
-                if (Bold) fs |= (int)FontStyle.Bold;
-                if (Strikeout) fs |= (int)FontStyle.Strikeout;
-                List<IGeoObject> res = new List<IGeoObject>();
-                PlaneSurface pls = new PlaneSurface(location, lineDirection, glyphDirection, lineDirection ^ glyphDirection);
-                FontFamily ff;
-                if (FontFamilyNames.Contains(fontName.ToUpper()))
-                {
-                    ff = new FontFamily(fontName);
+            if (!paintTo3D.IsBitmap)
+            {
+                if (paintTo3D.TriangulateText)
+                {   // generates a display list for each character and saves the display list in a cache
+                    int fs = 0; // this is regular
+                    if (Underline) fs |= (int)FontStyle.Underline;
+                    if (Italic) fs |= (int)FontStyle.Italic;
+                    if (Bold) fs |= (int)FontStyle.Bold;
+                    if (Strikeout) fs |= (int)FontStyle.Strikeout;
+                    List<IGeoObject> res = new List<IGeoObject>();
+                    PlaneSurface pls = new PlaneSurface(location, lineDirection, glyphDirection, lineDirection ^ glyphDirection);
+                    FontFamily ff;
+                    if (FontFamilyNames.Contains(fontName.ToUpper()))
+                    {
+                        ff = new FontFamily(fontName);
+                    }
+                    else
+                    {
+                        ff = new FontFamily(System.Drawing.Text.GenericFontFamilies.SansSerif);
+                    }
+                    if (!ff.IsStyleAvailable((FontStyle)fs))
+                    {
+                        if (ff.IsStyleAvailable(FontStyle.Regular)) fs = (int)FontStyle.Regular;
+                        else if (ff.IsStyleAvailable(FontStyle.Bold)) fs = (int)FontStyle.Bold;
+                        else if (ff.IsStyleAvailable(FontStyle.Italic)) fs = (int)FontStyle.Italic;
+                        else if (ff.IsStyleAvailable(FontStyle.Strikeout)) fs = (int)FontStyle.Strikeout;
+                        else if (ff.IsStyleAvailable(FontStyle.Underline)) fs = (int)FontStyle.Underline; // there must be one
+                    }
+                    int em = ff.GetEmHeight((FontStyle)fs);
+                    int ls = ff.GetLineSpacing((FontStyle)fs);
+                    int dc = ff.GetCellDescent((FontStyle)fs);
+                    int ac = ff.GetCellAscent((FontStyle)fs);
+                    for (int i = 0; i < textString.Length; ++i)
+                    {
+                        double width;
+                        FontCache.GlobalFontCache.Get(fontName, fs, textString[i], out width, paintTo3D);
+                    }
                 }
                 else
                 {
-                    ff = new FontFamily(System.Drawing.Text.GenericFontFamilies.SansSerif);
-                }
-                if (!ff.IsStyleAvailable((FontStyle)fs))
-                {
-                    if (ff.IsStyleAvailable(FontStyle.Regular)) fs = (int)FontStyle.Regular;
-                    else if (ff.IsStyleAvailable(FontStyle.Bold)) fs = (int)FontStyle.Bold;
-                    else if (ff.IsStyleAvailable(FontStyle.Italic)) fs = (int)FontStyle.Italic;
-                    else if (ff.IsStyleAvailable(FontStyle.Strikeout)) fs = (int)FontStyle.Strikeout;
-                    else if (ff.IsStyleAvailable(FontStyle.Underline)) fs = (int)FontStyle.Underline; // there must be one
-                }
-                int em = ff.GetEmHeight((FontStyle)fs);
-                int ls = ff.GetLineSpacing((FontStyle)fs);
-                int dc = ff.GetCellDescent((FontStyle)fs);
-                int ac = ff.GetCellAscent((FontStyle)fs);
-                for (int i = 0; i < textString.Length; ++i)
-                {
-                    double width;
-                    FontCache.GlobalFontCache.Get(fontName, fs, textString[i], out width, paintTo3D);
-                }
-            }
-            else
-            {
 #if WEBASSEMBLY
-                paintTo3D.PrepareText(fontName, textString, CADability.WebDrawing.FontStyle.Regular);
+                    paintTo3D.PrepareText(fontName, textString, CADability.WebDrawing.FontStyle.Regular);
 #else
-                paintTo3D.PrepareText(fontName, textString, fontStyle);
+                    paintTo3D.PrepareText(fontName, textString, fontStyle);
 #endif
+                }
             }
         }
         public delegate bool PaintTo3DDelegate(Text toPaint, IPaintTo3D paintTo3D);
