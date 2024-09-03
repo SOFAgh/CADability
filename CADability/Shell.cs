@@ -6463,6 +6463,7 @@ namespace CADability.GeoObject
             Set<Face> connected = new Set<Face>();
             Set<Edge> toCheck = new Set<Edge>();
             Face startWith = allFaces.GetAndRemoveAny();
+            connected.Add(startWith);
             toCheck.AddMany(startWith.AllEdges);
             while (!toCheck.IsEmpty())
             {
