@@ -1,7 +1,7 @@
 #region netDxf library licensed under the MIT License
 // 
 //                       netDxf library
-// Copyright (c) 2019-2021 Daniel Carvajal (haplokuon@gmail.com)
+// Copyright (c) Daniel Carvajal (haplokuon@gmail.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -76,6 +76,20 @@ namespace netDxf.Tables
                 return eventArgs.NewValue;
             }
             return newTextStyle;
+        }
+
+        public delegate void LinetypeShapeSegmentStyleChangedEventHandler(Linetype sender, TableObjectChangedEventArgs<ShapeStyle> e);
+        public event LinetypeShapeSegmentStyleChangedEventHandler LinetypeShapeSegmentStyleChanged;
+        protected virtual ShapeStyle OnLinetypeShapeSegmentStyleChangedEvent(ShapeStyle oldShapeStyle, ShapeStyle newShapeStyle)
+        {
+            LinetypeShapeSegmentStyleChangedEventHandler ae = this.LinetypeShapeSegmentStyleChanged;
+            if (ae != null)
+            {
+                TableObjectChangedEventArgs<ShapeStyle> eventArgs = new TableObjectChangedEventArgs<ShapeStyle>(oldShapeStyle, newShapeStyle);
+                ae(this, eventArgs);
+                return eventArgs.NewValue;
+            }
+            return newShapeStyle;
         }
 
         #endregion
@@ -641,19 +655,25 @@ namespace netDxf.Tables
                 }
             }
 
-            if (type == LinetypeSegmentType.Text)
+            LinetypeSegment segment = null;
+            switch (type)
             {
-                // complex text linetype segments only holds the name of the style
-                TextStyle textStyle = new TextStyle(style, "simplex.shx");
-                return new LinetypeTextSegment(name, textStyle, length, position, rotationType, rotation, scale);
-            }
-            if (type == LinetypeSegmentType.Shape)
-            {
-                ShapeStyle shapeStyle = new ShapeStyle(style);
-                return new LinetypeShapeSegment(name, shapeStyle, length, position, rotationType, rotation, scale);
+                case LinetypeSegmentType.Text:
+                {
+                    // complex text linetype segments only holds the name of the style
+                    TextStyle textStyle = new TextStyle(style, TextStyle.DefaultFont);
+                    segment = new LinetypeTextSegment(name, textStyle, length, position, rotationType, rotation, scale);
+                    break;
+                }
+                case LinetypeSegmentType.Shape:
+                {
+                    ShapeStyle shapeStyle = new ShapeStyle(Path.GetFileNameWithoutExtension(style), style);
+                    segment = new LinetypeShapeSegment(name, shapeStyle, length, position, rotationType, rotation, scale);
+                    break;
+                }
             }
 
-            return null;
+            return segment;
         }
 
         private static double ReadRotation(string data)
@@ -680,6 +700,36 @@ namespace netDxf.Tables
         #endregion
 
         #region overrides
+
+        /// <summary>
+        /// Checks if this instance has been referenced by other DxfObjects. 
+        /// </summary>
+        /// <returns>
+        /// Returns true if this instance has been referenced by other DxfObjects, false otherwise.
+        /// It will always return false if this instance does not belong to a document.
+        /// </returns>
+        /// <remarks>
+        /// This method returns the same value as the HasReferences method that can be found in the TableObjects class.
+        /// </remarks>
+        public override bool HasReferences()
+        {
+            return this.Owner != null && this.Owner.HasReferences(this.Name);
+        }
+
+        /// <summary>
+        /// Gets the list of DxfObjects referenced by this instance.
+        /// </summary>
+        /// <returns>
+        /// A list of DxfObjectReference that contains the DxfObject referenced by this instance and the number of times it does.
+        /// It will return null if this instance does not belong to a document.
+        /// </returns>
+        /// <remarks>
+        /// This method returns the same list as the GetReferences method that can be found in the TableObjects class.
+        /// </remarks>
+        public override List<DxfObjectReference> GetReferences()
+        {
+            return this.Owner?.GetReferences(this.Name);
+        }
 
         /// <summary>
         /// Creates a new Linetype that is a copy of the current instance.
@@ -731,6 +781,10 @@ namespace netDxf.Tables
             {
                 ((LinetypeTextSegment)e.Item).TextStyleChanged += this.LinetypeTextSegment_StyleChanged;
             }
+            if (e.Item.Type == LinetypeSegmentType.Shape)
+            {
+                ((LinetypeShapeSegment)e.Item).ShapeStyleChanged += this.LinetypeShapeSegment_StyleChanged;
+            }
         }
 
         private void Segments_BeforeRemoveItem(ObservableCollection<LinetypeSegment> sender, ObservableCollectionEventArgs<LinetypeSegment> e)
@@ -745,6 +799,10 @@ namespace netDxf.Tables
             {
                 ((LinetypeTextSegment)e.Item).TextStyleChanged -= this.LinetypeTextSegment_StyleChanged;
             }
+            if (e.Item.Type == LinetypeSegmentType.Shape)
+            {
+                ((LinetypeShapeSegment)e.Item).ShapeStyleChanged -= this.LinetypeShapeSegment_StyleChanged;
+            }
         }
 
         #endregion
@@ -754,6 +812,11 @@ namespace netDxf.Tables
         private void LinetypeTextSegment_StyleChanged(LinetypeTextSegment sender, TableObjectChangedEventArgs<TextStyle> e)
         {
             e.NewValue = this.OnLinetypeTextSegmentStyleChangedEvent(e.OldValue, e.NewValue);
+        }
+
+        private void LinetypeShapeSegment_StyleChanged(LinetypeShapeSegment sender, TableObjectChangedEventArgs<ShapeStyle> e)
+        {
+            e.NewValue = this.OnLinetypeShapeSegmentStyleChangedEvent(e.OldValue, e.NewValue);
         }
 
         #endregion

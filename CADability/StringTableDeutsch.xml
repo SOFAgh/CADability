@@ -5009,6 +5009,16 @@
     <tip>Dieser Stil ist für Bemaßungen voreingestellt</tip>
     <info>Dieser Stil ist die Vorgabe für neu erstellte Bemaßungen</info>
   </data>
+  <data name="MenuId.StyleEntry.DefaultForHiddenSolids">
+	<label>3D Voreinstellung (verdeckt)</label>
+	<tip>Dieser Stil ist für verdeckte 3D Objekte voreingestellt</tip>
+	<info>Dieser Stil ist für verdeckte 3D Objekte voreingestellt</info>
+  </data>
+  <data name="MenuId.StyleEntry.DefaultForAxis">
+	<label>Achsen Voreinstellung</label>
+	<tip>Achsen Voreinstellung</tip>
+	<info>Achsen Voreinstellung</info>
+  </data>
   <data name="MenuId.VisibleLayer.SelectAll">
     <label>Alle auswählen</label>
     <tip>Alle Ebenen sichtbar</tip>

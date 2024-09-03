@@ -1226,31 +1226,6 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.CadFrame.UpdateMRUMenu
   nameWithType: CadFrame.UpdateMRUMenu
-- uid: CADability.Forms.ImportSVG
-  name: ImportSVG
-  href: api/CADability.Forms.ImportSVG.html
-  commentId: T:CADability.Forms.ImportSVG
-  fullName: CADability.Forms.ImportSVG
-  nameWithType: ImportSVG
-- uid: CADability.Forms.ImportSVG.#ctor(System.String,CADability.Project)
-  name: ImportSVG(String, Project)
-  href: api/CADability.Forms.ImportSVG.html#CADability_Forms_ImportSVG__ctor_System_String_CADability_Project_
-  commentId: M:CADability.Forms.ImportSVG.#ctor(System.String,CADability.Project)
-  fullName: CADability.Forms.ImportSVG.ImportSVG(System.String, CADability.Project)
-  nameWithType: ImportSVG.ImportSVG(String, Project)
-- uid: CADability.Forms.ImportSVG.#ctor*
-  name: ImportSVG
-  href: api/CADability.Forms.ImportSVG.html#CADability_Forms_ImportSVG__ctor_
-  commentId: Overload:CADability.Forms.ImportSVG.#ctor
-  isSpec: "True"
-  fullName: CADability.Forms.ImportSVG.ImportSVG
-  nameWithType: ImportSVG.ImportSVG
-- uid: CADability.Forms.ImportSVG.Imported
-  name: Imported
-  href: api/CADability.Forms.ImportSVG.html#CADability_Forms_ImportSVG_Imported
-  commentId: F:CADability.Forms.ImportSVG.Imported
-  fullName: CADability.Forms.ImportSVG.Imported
-  nameWithType: ImportSVG.Imported
 - uid: CADability.Forms.PaintToBitmap
   name: PaintToBitmap
   href: api/CADability.Forms.PaintToBitmap.html
@@ -4453,54 +4428,3 @@ references:
   isSpec: "True"
   fullName: CADability.Forms.PropertyPage.ValueChanged
   nameWithType: PropertyPage.ValueChanged
-- uid: CADability.Forms.TestJSonSerialisation
-  name: TestJSonSerialisation
-  href: api/CADability.Forms.TestJSonSerialisation.html
-  commentId: T:CADability.Forms.TestJSonSerialisation
-  fullName: CADability.Forms.TestJSonSerialisation
-  nameWithType: TestJSonSerialisation
-- uid: CADability.Forms.TestJSonSerialisation.#ctor
-  name: TestJSonSerialisation()
-  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation__ctor
-  commentId: M:CADability.Forms.TestJSonSerialisation.#ctor
-  fullName: CADability.Forms.TestJSonSerialisation.TestJSonSerialisation()
-  nameWithType: TestJSonSerialisation.TestJSonSerialisation()
-- uid: CADability.Forms.TestJSonSerialisation.#ctor(System.String)
-  name: TestJSonSerialisation(String)
-  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation__ctor_System_String_
-  commentId: M:CADability.Forms.TestJSonSerialisation.#ctor(System.String)
-  fullName: CADability.Forms.TestJSonSerialisation.TestJSonSerialisation(System.String)
-  nameWithType: TestJSonSerialisation.TestJSonSerialisation(String)
-- uid: CADability.Forms.TestJSonSerialisation.#ctor*
-  name: TestJSonSerialisation
-  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation__ctor_
-  commentId: Overload:CADability.Forms.TestJSonSerialisation.#ctor
-  isSpec: "True"
-  fullName: CADability.Forms.TestJSonSerialisation.TestJSonSerialisation
-  nameWithType: TestJSonSerialisation.TestJSonSerialisation
-- uid: CADability.Forms.TestJSonSerialisation.GetObjectData(CADability.IJsonWriteData)
-  name: GetObjectData(IJsonWriteData)
-  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation_GetObjectData_CADability_IJsonWriteData_
-  commentId: M:CADability.Forms.TestJSonSerialisation.GetObjectData(CADability.IJsonWriteData)
-  fullName: CADability.Forms.TestJSonSerialisation.GetObjectData(CADability.IJsonWriteData)
-  nameWithType: TestJSonSerialisation.GetObjectData(IJsonWriteData)
-- uid: CADability.Forms.TestJSonSerialisation.GetObjectData*
-  name: GetObjectData
-  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation_GetObjectData_
-  commentId: Overload:CADability.Forms.TestJSonSerialisation.GetObjectData
-  isSpec: "True"
-  fullName: CADability.Forms.TestJSonSerialisation.GetObjectData
-  nameWithType: TestJSonSerialisation.GetObjectData
-- uid: CADability.Forms.TestJSonSerialisation.SetObjectData(CADability.IJsonReadData)
-  name: SetObjectData(IJsonReadData)
-  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation_SetObjectData_CADability_IJsonReadData_
-  commentId: M:CADability.Forms.TestJSonSerialisation.SetObjectData(CADability.IJsonReadData)
-  fullName: CADability.Forms.TestJSonSerialisation.SetObjectData(CADability.IJsonReadData)
-  nameWithType: TestJSonSerialisation.SetObjectData(IJsonReadData)
-- uid: CADability.Forms.TestJSonSerialisation.SetObjectData*
-  name: SetObjectData
-  href: api/CADability.Forms.TestJSonSerialisation.html#CADability_Forms_TestJSonSerialisation_SetObjectData_
-  commentId: Overload:CADability.Forms.TestJSonSerialisation.SetObjectData
-  isSpec: "True"
-  fullName: CADability.Forms.TestJSonSerialisation.SetObjectData
-  nameWithType: TestJSonSerialisation.SetObjectData

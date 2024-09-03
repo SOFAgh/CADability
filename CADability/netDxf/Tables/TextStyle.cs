@@ -1,7 +1,7 @@
 #region netDxf library licensed under the MIT License
 // 
 //                       netDxf library
-// Copyright (c) 2019-2023 Daniel Carvajal (haplokuon@gmail.com)
+// Copyright (c) Daniel Carvajal (haplokuon@gmail.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using netDxf.Collections;
 
@@ -58,28 +59,21 @@ namespace netDxf.Tables
         public const string DefaultName = "Standard";
 
         /// <summary>
+        /// Default text style font.
+        /// </summary>
+        public const string DefaultFont = "simplex.shx";
+
+        /// <summary>
         /// Gets the default text style.
         /// </summary>
         public static TextStyle Default
         {
-            get { return new TextStyle(DefaultName, "simplex.shx"); }
+            get { return new TextStyle(DefaultName, DefaultFont); }
         }
 
         #endregion
 
         #region constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <c>TextStyle</c> class.
-        /// </summary>
-        /// <param name="font">Text style font file name with full or relative path.</param>
-        /// <remarks>
-        /// The font file name, without the extension, will also be used as the name of the text style.
-        /// </remarks>
-        public TextStyle(string font)
-            : this(Path.GetFileNameWithoutExtension(font), font)
-        {
-        }
 
         /// <summary>
         /// Initializes a new instance of the <c>TextStyle</c> class.
@@ -132,23 +126,9 @@ namespace netDxf.Tables
         /// <summary>
         /// Initializes a new instance of the <c>TextStyle</c> class exclusively to be used with true type fonts.
         /// </summary>
-        /// <param name="fontFamily">True type font family name.</param>
-        /// <param name="fontStyle">True type font style</param>
-        /// <remarks>
-        /// This constructor is to be use only with true type fonts.
-        /// The fontFamily value will also be used as the name of the text style.
-        /// </remarks>
-        public TextStyle(string fontFamily, FontStyle fontStyle)
-            : this(fontFamily, fontFamily, fontStyle, true)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <c>TextStyle</c> class exclusively to be used with true type fonts.
-        /// </summary>
         /// <param name="name">Text style name.</param>
         /// <param name="fontFamily">True type font family name.</param>
-        /// <param name="fontStyle">True type font style</param>
+        /// <param name="fontStyle">True type font style.</param>
         /// <remarks>This constructor is to be use only with true type fonts.</remarks>
         public TextStyle(string name, string fontFamily, FontStyle fontStyle)
             : this(name, fontFamily, fontStyle, true)
@@ -434,6 +414,36 @@ namespace netDxf.Tables
         #endregion
 
         #region overrides
+
+        /// <summary>
+        /// Checks if this instance has been referenced by other DxfObjects. 
+        /// </summary>
+        /// <returns>
+        /// Returns true if this instance has been referenced by other DxfObjects, false otherwise.
+        /// It will always return false if this instance does not belong to a document.
+        /// </returns>
+        /// <remarks>
+        /// This method returns the same value as the HasReferences method that can be found in the TableObjects class.
+        /// </remarks>
+        public override bool HasReferences()
+        {
+            return this.Owner != null && this.Owner.HasReferences(this.Name);
+        }
+
+        /// <summary>
+        /// Gets the list of DxfObjects referenced by this instance.
+        /// </summary>
+        /// <returns>
+        /// A list of DxfObjectReference that contains the DxfObject referenced by this instance and the number of times it does.
+        /// It will return null if this instance does not belong to a document.
+        /// </returns>
+        /// <remarks>
+        /// This method returns the same list as the GetReferences method that can be found in the TableObjects class.
+        /// </remarks>
+        public override List<DxfObjectReference> GetReferences()
+        {
+            return this.Owner?.GetReferences(this.Name);
+        }
 
         /// <summary>
         /// Creates a new TextStyle that is a copy of the current instance.

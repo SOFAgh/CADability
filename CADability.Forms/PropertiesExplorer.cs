@@ -367,7 +367,16 @@ namespace CADability.Forms
                     if (EntryWithTextBox == toRefresh) // this was necessary because it might be called after the textBox entry had changed
                     {
                         bool allSelected = textBox.SelectionLength == textBox.Text.Length;
-                        textBox.Text = toRefresh.Value;
+                        //Save caret position here. If the textBox.Text property is set, the caret will be moved to the first position.
+                        //e.g. If you input text into the LengthProperty the cursor will always move to the first position
+                        int caretPos = textBox.SelectionStart;
+                        if (textBox.Text != toRefresh.Value)
+                        {
+                            textBox.Text = toRefresh.Value;
+                            //Restore last position
+                            textBox.SelectionStart = caretPos;
+                        }
+
                         textBox.Modified = false;
                         if (allSelected) textBox.SelectAll();
                         textBox.Update(); // to show smooth updating of the text when the mouse is moving

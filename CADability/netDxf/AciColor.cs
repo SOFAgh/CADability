@@ -1,7 +1,7 @@
 #region netDxf library licensed under the MIT License
 // 
 //                       netDxf library
-// Copyright (c) 2019-2023 Daniel Carvajal (haplokuon@gmail.com)
+// Copyright (c) Daniel Carvajal (haplokuon@gmail.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -642,25 +642,6 @@ namespace netDxf
                     index = (byte)i;
                 }
             }
-
-            //byte index = 0;
-            //foreach (byte[]  in IndexRgb.Keys)
-            //{
-            //    byte[] color = IndexRgb[key];
-            //    int red = r - color[0];
-            //    int green = g - color[1];
-            //    int blue = b - color[2];
-            //    int dist = red * red + green * green + blue * blue;
-            //    if (dist == 0) // the RGB components correspond to one of the indexed colors
-            //    {
-            //        return key;
-            //    }
-            //    if (dist < prevDist)
-            //    {
-            //        prevDist = dist;
-            //        index = key;
-            //    }
-            //}
 
             return index;
         }

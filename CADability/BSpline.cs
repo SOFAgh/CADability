@@ -11,7 +11,6 @@ using System.Drawing;
 using Point = System.Drawing.Point;
 #endif
 using System.Runtime.Serialization;
-using System.Text;
 using System.Threading;
 using Wintellect.PowerCollections;
 using MathNet.Numerics.LinearAlgebra.Double;
@@ -83,6 +82,7 @@ namespace CADability.GeoObject
         private double approxPrecision; // Genauigkeit zu approximation
         private readonly object lockApproximationRecalc = new object();
         private readonly object planeLock = new object();
+        private readonly object bSplineLock = new object();
         private WeakReference extrema;
         private GeoPoint[] GetCashedApproximation(double precision)
         {
@@ -149,7 +149,7 @@ namespace CADability.GeoObject
         }
         private void MakeNurbsHelper()
         {
-            lock (this)
+            lock (bSplineLock)
             {
                 if (nurbsHelper) return; // has already been calculated
                 // Knotenliste ist von allem anderen unabhängig
@@ -505,7 +505,7 @@ namespace CADability.GeoObject
         }
         private void InvalidateSecondaryData()
         {
-            lock (this)
+            lock (bSplineLock)
             {
                 nurbsHelper = false;
                 nubs3d = null;
@@ -2066,7 +2066,7 @@ namespace CADability.GeoObject
         }
         private void PointDirAtParam(double param, out GeoPoint point, out GeoVector dir)
         {
-            lock (this)
+            lock (bSplineLock)
             {
                 if (!nurbsHelper) MakeNurbsHelper();
                 if (plane.HasValue && (nubs2d != null | nurbs2d != null))
@@ -2909,9 +2909,8 @@ namespace CADability.GeoObject
         }
         PlanarState ICurve.GetPlanarState()
         {
-            lock (this)
+            lock (planeLock)
             {
-
                 if (this.IsSingular) return PlanarState.UnderDetermined;
                 double MaxDist;
                 bool isLinear;
@@ -2938,10 +2937,15 @@ namespace CADability.GeoObject
                 
         Plane ICurve.GetPlane()
         {
-            lock (planeLock)
+			if (plane.HasValue) 
+                return plane.Value;
+
+			lock (planeLock)
             {
-                if (plane.HasValue) return plane.Value;
-                double MaxDist;
+				if (plane.HasValue)
+					return plane.Value;
+
+				double MaxDist;
                 bool isLinear;
                 Plane res = Plane.FromPoints(poles, out MaxDist, out isLinear);
                 if (MaxDist < Precision.eps)

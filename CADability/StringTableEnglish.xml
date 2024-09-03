@@ -5010,6 +5010,16 @@
 		<tip>Default style for dimensioning</tip>
 		<info>Default style for dimensioning</info>
 	</data>
+	<data name="MenuId.StyleEntry.DefaultForHiddenSolids">
+		<label>3D default (hidden)</label>
+		<tip>Default for hidden 3D objects</tip>
+		<info>Default for hidden 3D objects</info>
+	</data>
+	<data name="MenuId.StyleEntry.DefaultForAxis">
+		<label>Default for Axis</label>
+		<tip>Default for Axis</tip>
+		<info>Default for Axis</info>
+	</data>
 	<data name="MenuId.VisibleLayer.SelectAll">
 		<label>Select all</label>
 		<tip>Select all layers as visible layers</tip>
