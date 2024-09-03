@@ -1778,7 +1778,7 @@ namespace CADability
                     }
                     catch (Exception ex)
                     {
-                        if(ex is DirectoryNotFoundException || ex is IOException || ex is UnauthorizedAccessException)
+                        if (ex is DirectoryNotFoundException || ex is IOException || ex is UnauthorizedAccessException)
                         {
                             //Best effort, if the folders could not be deleted there is nothing we can do.
                         }
@@ -2394,8 +2394,8 @@ namespace CADability
 #if !WEBASSEMBLY
             if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
             {
-            info.AddValue("Layouts", layouts.ToArray()); // Generics erwarten die exakte Version beim Deserialisieren, geht also nicht
-            info.AddValue("GdiViews", gdiViews.ToArray());
+                info.AddValue("Layouts", layouts.ToArray()); // Generics erwarten die exakte Version beim Deserialisieren, geht also nicht
+                info.AddValue("GdiViews", gdiViews.ToArray());
             }
 #endif
             info.AddValue("ProjectedModels", projectedModels.ToArray());
@@ -2406,7 +2406,7 @@ namespace CADability
             if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
             {
                 if (printDocument != null) info.AddValue("DefaultPageSettings", printDocument.DefaultPageSettings);
-        }
+            }
         }
         public void GetObjectData(IJsonWriteData data)
         {
@@ -2418,8 +2418,8 @@ namespace CADability
 #if !WEBASSEMBLY
             if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
             {
-            data.AddProperty("Layouts", layouts);
-            data.AddProperty("GdiViews", gdiViews);
+                data.AddProperty("Layouts", layouts);
+                data.AddProperty("GdiViews", gdiViews);
             }
 #endif
             data.AddProperty("ProjectedModels", projectedModels);
@@ -2430,7 +2430,7 @@ namespace CADability
             if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
             {
                 if (printDocument != null) data.AddProperty("DefaultPageSettings", printDocument.DefaultPageSettings);
-        }
+            }
         }
 
         public void SetObjectData(IJsonReadData data)
@@ -2446,8 +2446,8 @@ namespace CADability
             {
                 if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
                 {
-            layouts = data.GetPropertyOrDefault<List<Layout>>("Layouts");
-            gdiViews = data.GetPropertyOrDefault<List<GDI2DView>>("GdiViews");
+                    layouts = data.GetPropertyOrDefault<List<Layout>>("Layouts");
+                    gdiViews = data.GetPropertyOrDefault<List<GDI2DView>>("GdiViews");
                 }
             }
             catch (PlatformNotSupportedException) { }
@@ -2462,8 +2462,8 @@ namespace CADability
                 if (!Settings.GlobalSettings.GetBoolValue("DontSave.System.Drawing", false))
                 {
                     printDocument = new PrintDocument();
-                printDocument.DefaultPageSettings = data.GetPropertyOrDefault<PageSettings>("DefaultPageSettings");
-            }
+                    printDocument.DefaultPageSettings = data.GetPropertyOrDefault<PageSettings>("DefaultPageSettings");
+                }
             }
             catch (PlatformNotSupportedException) { }
             data.RegisterForSerializationDoneCallback(this);
