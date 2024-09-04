@@ -5779,7 +5779,7 @@ namespace CADability.GeoObject
         internal static Shell MakeShell(Face[] faces, bool tryToConnectOpenEdges = false)
         {
             Shell res = Shell.Construct();
-            res.colorDef = faces[0].ColorDef;
+            if (faces.Length > 0) res.colorDef = faces[0].ColorDef;
             res.SetFaces(faces);
             if (tryToConnectOpenEdges)
             {

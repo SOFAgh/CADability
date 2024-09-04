@@ -2040,7 +2040,7 @@ namespace CADability.GeoObject
             lock (this)
             {
                 if (!nurbsHelper) MakeNurbsHelper();
-                if (plane.HasValue)
+                if (plane.HasValue && (nubs2d != null | nurbs2d != null))
                 {
                     if (nubs2d != null)
                     {
@@ -2069,7 +2069,6 @@ namespace CADability.GeoObject
             lock (bSplineLock)
             {
                 if (!nurbsHelper) MakeNurbsHelper();
-
                 if (plane.HasValue && (nubs2d != null | nurbs2d != null))
                 {
                     if (nubs2d != null)
