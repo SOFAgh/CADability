@@ -1844,6 +1844,29 @@ namespace CADability
                 case "brep":
                     break;
                 case "stl":
+                    ImportSTL importSTL = new ImportSTL();
+                    Shell[] shells = importSTL.Read(FileName);
+                    if (shells != null)
+                    {
+                        project = Project.CreateSimpleProject();
+                        Model model = project.GetActiveModel();
+                        for (int i = 0; i < shells.Length; i++)
+                        {
+                            project.SetDefaults(shells[i]);
+                            if (shells[i].HasOpenEdgesExceptPoles())
+                            {
+                                model.Add(shells[i]);
+                            }
+                            else
+                            {
+                                Solid sld = Solid.Construct();
+                                sld.SetShell(shells[i]);
+                                project.SetDefaults(sld);
+                                model.Add(sld);
+                            }
+                        }
+                        return project;
+                    }
                     break;
                 case "sat":
                     break;
