@@ -1953,8 +1953,8 @@ namespace CADability.Curve2D
             {
                 double ds = p | StartPoint;
                 double de = p | EndPoint;
-                if (ds < this.Length * 1e-4) return 0.0;
-                if (de < this.Length * 1e-4) return 1.0;
+                if (ds < this.Length * 5e-4) return 0.0;
+                if (de < this.Length * 5e-4) return 1.0;
                 return double.MinValue;
             }
             return res;
