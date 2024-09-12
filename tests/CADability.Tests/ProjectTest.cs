@@ -168,8 +168,8 @@ namespace CADability.Tests
             var vol = solid.Volume(0);
 
             //If this file is imported as mm instead of m the volume will be around 0.00055309963466116513
-            //The real volumen should be around 552888.978403358
-            double rightVolume = 552888.978403358;
+            //The real volumen should be around 553099.66263763292
+            double rightVolume = 553099.66263763292;
             Debug.Assert((Math.Abs(vol - rightVolume) < Precision.eps));
         }
     }
