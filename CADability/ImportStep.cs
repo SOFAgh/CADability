@@ -4816,10 +4816,18 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 context.factor = (double)(vc.val as List<Item>)[0].val; // why * 1000 ? definitely wrong for 83855_elp11b.stp
                                 if (it.parameter.TryGetValue("name", out Item name))
                                 {
-                                    if (name.type == Item.ItemType.stringval && name.sval == "METRE") context.factor *= 1000; // added because of "PROBLEM ELE NULLPUNKT.stp"
+                                    //REVIEW: Is *= 1000 really right? Shouldn't it be = 1000?
+                                    if (name.type == Item.ItemType.stringval && name.sval == "METRE") 
+                                        context.factor *= 1000; // added because of "PROBLEM ELE NULLPUNKT.stp"
                                 }
                             }
                         }
+                    }
+                    else if (it.parameter.TryGetValue("name", out Item name))
+                    {
+                        //TODO: Add other units
+                        if (name.type == Item.ItemType.keyword && name.sval == "METRE") 
+                            context.factor = 1000; // added because of "issue153.stp"
                     }
                 }
             }
