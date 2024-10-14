@@ -125,18 +125,6 @@
     },
     {
       "type": "ManagedReference",
-      "source_relative_path": "obj/api/CADability.Forms.ImportSVG.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/CADability.Forms.ImportSVG.html",
-          "hash": "pdUH25ScGNyh2IleHbLYm+eyNit3lH9nf6wQsxS1hpM="
-        }
-      },
-      "is_incremental": true,
-      "version": ""
-    },
-    {
-      "type": "ManagedReference",
       "source_relative_path": "obj/api/CADability.Forms.PaintToBitmap.yml",
       "output": {
         ".html": {
@@ -165,7 +153,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.PaintToOpenGL.html",
-          "hash": "W2Q0iF8/BP3umyPDTkZwEHBp1SvtyLOsGmBn+RQXgf0="
+          "hash": "5q6n2YPeC0qQdZ1h6wCSnpxLvp6hoHZdlwirmFBIk9A="
         }
       },
       "is_incremental": true,
@@ -237,7 +225,7 @@
       "output": {
         ".html": {
           "relative_path": "api/CADability.Forms.html",
-          "hash": "jwT2n0KPwggtAa6l8ITMj8fFm9JBgUyzV7F66vCOPCA="
+          "hash": "LPgETfrZKett17AS32IKBykY/GFBf3beHQTBRCDpk8c="
         }
       },
       "is_incremental": false,
@@ -249,7 +237,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "A9fpL1EpBLIzuQwbN8vKWi99Tj4tWvZF5A+n5t1GGyM="
+          "hash": "7ZiE5yLm0mq5SSDK46sqIiMl7/aiSMvxFZCdYBKFkHg="
         }
       },
       "is_incremental": false,
@@ -286,8 +274,8 @@
         "ManagedReferenceDocumentProcessor": {
           "can_incremental": true,
           "incrementalPhase": "build",
-          "total_file_count": 16,
-          "skipped_file_count": 15
+          "total_file_count": 15,
+          "skipped_file_count": 14
         },
         "TocDocumentProcessor": {
           "can_incremental": false,

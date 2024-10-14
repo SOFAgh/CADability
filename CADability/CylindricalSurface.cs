@@ -478,7 +478,9 @@ namespace CADability.GeoObject
                 for (int i = 0; i < ip.Length; ++i)
                 {
                     double par = curve.PositionOf(PointAt(ip[i]));
-                    if (par >= -1e-6 && par <= 1.0 + 1e-6)
+                    // if (par >= -1e-6 && par <= 1.0 + 1e-6)
+                    // not sure why the curve parameter must be on the line and not on the extension. In the parametric this is a problem,
+                    // there we need also the intersections in the extension of the line
                     {
                         SurfaceHelper.AdjustPeriodic(this, uvExtent, ref ip[i]);
                         luOnCurve.Add(par);
@@ -1071,15 +1073,19 @@ namespace CADability.GeoObject
                         GeoPoint2D[] ips = cyl2.GetLineIntersection(loc, cyl1.Axis);
                         if (ips.Length == 2)
                         {
-                            if (ips[0].y < ips[1].y)
+                            GeoPoint p0 = cyl2.PointAt(ips[0]);
+                            GeoPoint p1 = cyl2.PointAt(ips[1]);
+                            // The two intersection point belong to different curves. 
+                            // We must consider the y component of cyl1, not of cyl2, to sort them into the correct points list.
+                            if (cyl1.PositionOf(p0).y < cyl1.PositionOf(p1).y)
                             {
-                                pnts1.Add(cyl2.PointAt(ips[0]));
-                                pnts2.Add(cyl2.PointAt(ips[1]));
+                                pnts1.Add(p0);
+                                pnts2.Add(p1);
                             }
                             else
                             {
-                                pnts1.Add(cyl2.PointAt(ips[1]));
-                                pnts2.Add(cyl2.PointAt(ips[0]));
+                                pnts1.Add(p1);
+                                pnts2.Add(p0);
                             }
                         }
                         else if (ips.Length == 1)

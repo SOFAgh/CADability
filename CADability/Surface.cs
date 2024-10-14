@@ -5262,10 +5262,21 @@ namespace CADability.GeoObject
                                             SurfaceHelper.AdjustPeriodic(other, otherBounds, ref oep);
                                             Line2D tc2d = new Line2D(tsp, tep);
                                             Line2D oc2d = new Line2D(osp, oep);
-                                            double pt = c3d.PositionOf(this.PointAt(tc2d.PointAt(0.5)));
-                                            double po = c3d.PositionOf(other.PointAt(oc2d.PointAt(0.5)));
-                                            if ((0 < pt && pt < 1) && (0 < po && po < 1)) // should be 0.5 // && was || before, but this was definitely wrong! we must check, whether tarc and oarc overlap
-                                                dscs.Add(new DualSurfaceCurve(c3d, this, tc2d, other, oc2d));
+                                            // double pt = c3d.PositionOf(this.PointAt(tc2d.PointAt(0.5)));
+                                            // double po = c3d.PositionOf(other.PointAt(oc2d.PointAt(0.5)));
+                                            // if ((0 < pt && pt < 1) && (0 < po && po < 1)) // should be 0.5 // && was || before, but this was definitely wrong! we must check, whether tarc and oarc overlap
+                                            // previous line was wrong, comment was right: we must check, whether tarc and oarc overlap
+                                            // These are two 2d arcs on the same planeso at least two start/endpoints must be within the other arc
+                                            int inside = 0;
+                                            double tp = tarc.PositionOf(oarc.StartPoint);
+                                            if (tp >= 0 && tp <= 1) ++inside;
+                                            tp = tarc.PositionOf(oarc.EndPoint);
+                                            if (tp >= 0 && tp <= 1) ++inside;
+                                            tp = oarc.PositionOf(tarc.StartPoint);
+                                            if (tp >= 0 && tp <= 1) ++inside;
+                                            tp = oarc.PositionOf(tarc.EndPoint);
+                                            if (tp >= 0 && tp <= 1) ++inside;
+                                            if (inside>=2) dscs.Add(new DualSurfaceCurve(c3d, this, tc2d, other, oc2d));
                                             // else: did choose wrong part of arc, no common intersection curve
                                         }
                                     }

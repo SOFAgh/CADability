@@ -411,6 +411,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
         private List<Item> notImportedFaces;
         private Dictionary<string, ColorDef> definedColors;
         private Dictionary<string, IGeoObject> namedGeoObjects = new Dictionary<string, IGeoObject>();
+        private Dictionary<NurbsSurface, ModOp2D> nurbsSurfacesWithModifiedKnots; // when in construction the nurbs surface get a different 2d space, the modification is saved here
         class Tokenizer : IDisposable
         {
             StreamReader sr;
@@ -1231,6 +1232,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             definitions = new List<Item>();
             importProblems = new Dictionary<int, string>();
             notImportedFaces = new List<Item>();
+            nurbsSurfacesWithModifiedKnots = new Dictionary<NurbsSurface, ModOp2D>();
 #if DEBUG
             allNames = new SortedDictionary<string, int>();
             entityPattern = new Dictionary<string, HashSet<string>>();
@@ -2266,7 +2268,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             }
             if (item.type == Item.ItemType.index) item = definitions[(int)item.val]; // resolve reference
 #if DEBUG
-            if (17 == item.definingIndex)
+            if (484 == item.definingIndex)
             {
 
             }
@@ -4235,6 +4237,10 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                         }
                                     }
                                 }
+                                if (nurbsSurfacesWithModifiedKnots.TryGetValue(srf as NurbsSurface, out ModOp2D modify2DCurve))
+                                {   // this nurbs surface doesn't have the original 2d space. Move the 2d curve to the modified 2d space here.
+                                    c2d = c2d.GetModified(modify2DCurve);
+                                }
                                 if (item.val != null) item.val = srf.Make3dCurve(c2d);
                             }
                             else if (o is ICurve c3d)
@@ -4404,7 +4410,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                 if (startParameter != double.MinValue && masterRepresentation != "CARTESIAN")
                                 {
                                     // trimmed curve defined by start- and endParameter
-                                    if (basisCurve is Ellipse)
+                                    if (basisCurve is Ellipse elli)
                                     {
                                         if (context != null)
                                         {
@@ -4412,8 +4418,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                                             endParameter = context.toRadian * endParameter;
                                         }
                                     }
-                                    if (startParameter != endParameter) basisCurve.Trim(basisCurve.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
                                     if (!sense) basisCurve.Reverse();
+                                    if (startParameter != endParameter) basisCurve.Trim(basisCurve.ParameterToPosition(startParameter), basisCurve.ParameterToPosition(endParameter));
                                     item.val = basisCurve;
                                 }
                                 else if (startPoint.IsValid && endPoint.IsValid)
@@ -4934,6 +4940,7 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
             // some NURBS surfaces come with extreme small uKnots or vKnots span. For better numerical behavior we normalize it here
             // this doesn't change the surface but only the 2d parameter space of the surface
             // an other case were we need to modify the knots span is with periodic surfaces that do not start with 0 as the first knot.
+            ModOp2D knotModification = ModOp2D.Identity;
             if (uKnots[uKnots.Length - 1] - uKnots[0] < 0.5 || (uClosed && uKnots[0] != 0.0))
             {
                 double f = 1.0 / (uKnots[uKnots.Length - 1] - uKnots[0]);
@@ -4942,6 +4949,8 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 {
                     uKnots[i] = (uKnots[i] - u0) * f;
                 }
+                knotModification[0, 0] = f;
+                knotModification[0, 2] = -u0;
             }
             if (vKnots[vKnots.Length - 1] - vKnots[0] < 0.5 || (vClosed && vKnots[0] != 0.0))
             {
@@ -4951,8 +4960,14 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                 {
                     vKnots[i] = (vKnots[i] - v0) * f;
                 }
+                knotModification[1, 1] = f;
+                knotModification[1, 2] = -v0;
             }
             NurbsSurface res = new NurbsSurface(poles, weights, uKnots, vKnots, uMults, vMults, uDegree, vDegree, false, false);
+            if (!knotModification.IsIdentity)
+            {
+                nurbsSurfacesWithModifiedKnots[res] = knotModification; // remember the modification for later use
+            }
             // we should not make canonical surfaces here, because a nurbs surface in a "GEOMETRIC_SET" used in a "GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION"
             // uses nurbs surfaces as faces with natural bounds
             switch (form)
