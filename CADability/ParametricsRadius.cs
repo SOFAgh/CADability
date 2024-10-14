@@ -74,6 +74,7 @@ namespace CADability
         {
             base.TitleId = "Constr.Parametrics.Cylinder.Radius";
             base.ActiveObject = shell.Clone();
+            List<InputObject> actionInputs = new List<InputObject>();
 
             if (useRadius)
             {
@@ -81,7 +82,7 @@ namespace CADability
                 radiusInput.GetLengthEvent += RadiusInput_GetLength;
                 radiusInput.SetLengthEvent += RadiusInput_SetLength;
                 radiusInput.Optional = diameter;
-                base.SetInput(radiusInput);
+                actionInputs.Add(radiusInput);
             }
             else
             {
@@ -89,17 +90,18 @@ namespace CADability
                 diameterInput.GetLengthEvent += DiameterInput_GetLength;
                 diameterInput.SetLengthEvent += DiameterInput_SetLength;
                 diameterInput.Optional = !diameter;
-                base.SetInput(diameterInput);
+                actionInputs.Add(diameterInput);
             }
 
             SeparatorInput separator = new SeparatorInput("Parametrics.Cylinder.AssociateParametric");
-            actionInputs.Add(separator);
-            nameInput = new StringInput("Parametrics.Cylinder.ParametricsName");
+            base.SetInput(separator);
+            StringInput nameInput = new StringInput("Parametrics.Cylinder.ParametricsName");
             nameInput.SetStringEvent += NameInput_SetStringEvent;
             nameInput.GetStringEvent += NameInput_GetStringEvent;
             nameInput.Optional = true;
             actionInputs.Add(nameInput);
 
+            SetInput(actionInputs.ToArray());
             base.OnSetAction();
 
             validResult = false;
