@@ -18,6 +18,8 @@ namespace CADability
         private bool validResult;
         private bool useRadius;
         private bool isFillet;
+        private string parametricsName;
+
         public ParametricsRadius(Face[] facesWithRadius, IFrame frame, bool useRadius)
         {
             this.facesWithRadius = facesWithRadius;
@@ -89,9 +91,28 @@ namespace CADability
                 diameterInput.Optional = !diameter;
                 base.SetInput(diameterInput);
             }
+
+            SeparatorInput separator = new SeparatorInput("Parametrics.Cylinder.AssociateParametric");
+            actionInputs.Add(separator);
+            nameInput = new StringInput("Parametrics.Cylinder.ParametricsName");
+            nameInput.SetStringEvent += NameInput_SetStringEvent;
+            nameInput.GetStringEvent += NameInput_GetStringEvent;
+            nameInput.Optional = true;
+            actionInputs.Add(nameInput);
+
             base.OnSetAction();
 
             validResult = false;
+        }
+        private string NameInput_GetStringEvent()
+        {
+            if (parametricsName == null) return string.Empty;
+            else return parametricsName;
+        }
+
+        private void NameInput_SetStringEvent(string val)
+        {
+            parametricsName = val;
         }
         public override void OnActivate(Actions.Action OldActiveAction, bool SettingAction)
         {
