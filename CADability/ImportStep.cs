@@ -4833,8 +4833,9 @@ VERTEX_POINT: C:\Zeichnungen\STEP\Ligna - Staab - Halle 1.stp (85207)
                     else if (it.parameter.TryGetValue("name", out Item name))
                     {
                         //TODO: Add other units
-                        if (name.type == Item.ItemType.keyword && name.sval == "METRE") 
-                            context.factor = 1000; // added because of "issue153.stp"
+                        //Commented until I get an ansnwer from GH and MM. I think at least also the prefix of this item should be checked.
+                        //if (name.type == Item.ItemType.keyword && name.sval == "METRE") 
+                        //    context.factor = 1000; // added because of "issue153.stp"
                     }
                 }
             }
