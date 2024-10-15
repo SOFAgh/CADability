@@ -1,6 +1,7 @@
-﻿using CADability.Forms;
+﻿using System.Diagnostics;
+using CADability.Forms;
 using System.IO.Compression;
-﻿using CADability.Attribute;
+using CADability.Attribute;
 using CADability.Shapes;
 
 namespace CADability.Tests
@@ -148,6 +149,28 @@ namespace CADability.Tests
 
             var project = Project.ReadFromFile(file, "dxf");
             Assert.IsNotNull(project);
+        }
+
+        [TestMethod]
+        [DeploymentItem(@"Files/Step/issue153.stp", nameof(import_step_issue153_succeeds))]
+        public void import_step_issue153_succeeds()
+        {
+            //The file issue153.stp is using Metres as unit. But it's imported as mm in CADability.
+
+            var file = Path.Combine(this.TestContext.DeploymentDirectory, this.TestContext.TestName, "issue153.stp");
+            Assert.IsTrue(File.Exists(file));
+
+            var project = Project.ReadFromFile(file, "stp");
+            Assert.IsNotNull(project);
+
+            var allObjects = project.GetActiveModel().AllObjects;
+            var solid = (CADability.GeoObject.Solid)allObjects[0];
+            var vol = solid.Volume(0);
+
+            //If this file is imported as mm instead of m the volume will be around 0.00055309963466116513
+            //The real volumen should be around 553099.66263763292
+            double rightVolume = 553099.66263763292;
+            Debug.Assert((Math.Abs(vol - rightVolume) < Precision.eps));
         }
     }
 }
